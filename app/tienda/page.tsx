@@ -217,26 +217,36 @@ export default function TiendaPOSPage() {
           {filteredProducts.map(p => {
             const isOutOfStock = p.currentStock <= 0
             return (
-              <Card key={p.id} className={`glass overflow-hidden ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:border-primary/50 transition-colors'}`}>
-                <div className="h-40 bg-white/5 relative flex items-center justify-center p-4">
+              <Card key={p.id} className={`group relative bg-card border-white/10 overflow-hidden rounded-2xl transition-all duration-300 ${isOutOfStock ? 'opacity-60 grayscale' : 'hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:border-primary/50 hover:-translate-y-1'}`}>
+                <div className="h-48 w-full bg-gradient-to-b from-white/5 to-transparent relative flex items-center justify-center p-4">
                   {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain" />
+                    <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-110" />
                   ) : (
-                    <ShoppingCart className="h-16 w-16 text-white/10" />
+                    <ShoppingCart className="h-20 w-20 text-white/5 transition-transform duration-500 group-hover:scale-110 group-hover:text-primary/20" />
                   )}
-                  {isOutOfStock && <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center font-bold text-red-500 z-10 backdrop-blur-sm">AGOTADO</div>}
+                  {/* Category Badge Floating */}
+                  <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-primary uppercase font-bold tracking-wider px-2 py-1 rounded-full">
+                    {p.category}
+                  </div>
+                  {/* Stock Badge */}
+                  <div className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-md border ${isOutOfStock ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}>
+                    {isOutOfStock ? 'AGOTADO' : `Stock: ${p.currentStock}`}
+                  </div>
                 </div>
-                <CardContent className="p-4">
-                  <div className="text-[10px] text-primary mb-1 uppercase font-bold tracking-wider">{p.category}</div>
-                  <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2" title={p.name}>{p.name}</h3>
-                  <div className="flex justify-between items-center mt-4">
-                    <p className="text-xl font-bold">{settings.storeCurrency} {p.sellPrice.toFixed(2)}</p>
+                
+                <CardContent className="p-5 bg-gradient-to-t from-black/60 to-transparent">
+                  <h3 className="font-bold text-base leading-tight line-clamp-2 mb-4 min-h-[2.5rem] group-hover:text-primary transition-colors" title={p.name}>{p.name}</h3>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Precio</p>
+                      <p className="text-2xl font-black text-white">{settings.storeCurrency} {p.sellPrice.toFixed(2)}</p>
+                    </div>
                     <button 
                       onClick={() => !isOutOfStock && addToCart(p)}
                       disabled={isOutOfStock}
-                      className="bg-white/10 hover:bg-primary hover:text-primary-foreground p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-5 w-5" />
                     </button>
                   </div>
                 </CardContent>
@@ -279,7 +289,7 @@ export default function TiendaPOSPage() {
                   </div>
                 )}
               </div>
-              <div className="p-4 border-t border-white/10 bg-black/40 space-y-4">
+              <div className="p-4 border-t border-white/10 bg-black/40 space-y-4 flex-shrink-0 overflow-y-auto max-h-[50vh]">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground block">Método de Pago</label>
                   <select 
@@ -400,16 +410,32 @@ export default function TiendaPOSPage() {
                   <Card 
                     key={p.id} 
                     onClick={() => !isOutOfStock && addToCart(p)}
-                    className={`glass cursor-pointer transition-transform hover:scale-105 overflow-hidden ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:border-primary/50'}`}
+                    className={`group cursor-pointer bg-card/80 border-white/5 overflow-hidden rounded-xl transition-all duration-200 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:border-primary/50 hover:bg-card hover:shadow-lg'}`}
                   >
-                    <div className="h-24 bg-white/5 flex items-center justify-center p-2 relative">
-                      {isOutOfStock && <div className="absolute inset-0 bg-red-500/20 flex items-center justify-center font-bold text-red-500 z-10 backdrop-blur-sm">AGOTADO</div>}
-                      <ShoppingCart className="h-10 w-10 text-white/10" />
+                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <ShoppingCart className="h-12 w-12 text-white/5" />
+                      )}
+                      
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center backdrop-blur-[2px] z-10">
+                          <span className="font-black text-red-400 rotate-[-15deg] border-2 border-red-400 px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
+                        </div>
+                      )}
+                      {/* Price Tag Floating */}
+                      <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10 text-primary font-bold text-xs shadow-xl z-20">
+                        {settings.storeCurrency} {p.sellPrice.toFixed(2)}
+                      </div>
                     </div>
-                    <CardContent className="p-3 text-center">
-                      <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-1" title={p.name}>{p.name}</h3>
-                      <p className="text-primary font-bold">{settings.storeCurrency} {p.sellPrice.toFixed(2)}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">Stock: {p.currentStock}</p>
+                    <CardContent className="p-3">
+                      <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1 truncate">{p.category}</div>
+                      <h3 className="font-bold text-xs leading-tight line-clamp-2 min-h-[2rem] group-hover:text-primary transition-colors" title={p.name}>{p.name}</h3>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/5">
+                        <span className="text-[10px] text-muted-foreground">Disponibles:</span>
+                        <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-yellow-500' : 'text-green-500'}`}>{p.currentStock}</span>
+                      </div>
                     </CardContent>
                   </Card>
                 )
@@ -419,14 +445,14 @@ export default function TiendaPOSPage() {
         </div>
 
         {/* LADO DERECHO: CARRITO Y FACTURACIÓN */}
-        <div className="w-full lg:w-[400px] flex flex-col bg-card border border-white/10 rounded-xl glass overflow-hidden">
-          <div className="p-4 border-b border-white/10 bg-black/20 flex items-center gap-2">
+        <div className="w-full lg:w-[420px] flex flex-col bg-card border border-white/10 rounded-xl glass overflow-hidden">
+          <div className="p-4 border-b border-white/10 bg-black/20 flex items-center gap-2 flex-shrink-0">
             <ShoppingCart className="h-5 w-5 text-primary" />
             <h2 className="font-bold text-lg">Ticket de Compra</h2>
           </div>
 
           {/* Items del Carrito */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[150px]">
             {cart.map(item => (
               <div key={item.productId} className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
                 <div className="flex-1">
@@ -455,7 +481,7 @@ export default function TiendaPOSPage() {
           </div>
 
           {/* Zona de Pago */}
-          <div className="p-4 border-t border-white/10 bg-black/40 space-y-4">
+          <div className="p-4 border-t border-white/10 bg-black/40 space-y-4 flex-shrink-0 max-h-[55vh] overflow-y-auto">
             
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground flex justify-between items-center">
@@ -673,59 +699,62 @@ export default function TiendaPOSPage() {
             <div className={`bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl my-auto ${widthClass}`}>
               <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
               
-              <div className="text-center mb-6 border-b border-dashed border-gray-400 pb-6">
+              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
                 <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
-                {settings.storeRif && <p className="text-xs text-gray-500 mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
-                {settings.storeAddress && <p className="text-xs text-gray-500 mb-2">{settings.storeAddress}</p>}
-                <p className="text-gray-600 mt-1">Ticket: {showReceipt.id}</p>
-                <p className="text-gray-600">{new Date(showReceipt.date).toLocaleString()}</p>
-                <p className="text-gray-600 mt-2">Cajero: {user?.name}</p>
-                <p className="text-gray-600">Cliente: {showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId)?.name : 'Consumidor Final'}</p>
+                {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
+                {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
+                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
+                <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
+                <p className="text-black mt-2">Cajero: {user?.name}</p>
+                <p className="text-black">Cliente: {showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId)?.name : 'Consumidor Final'}</p>
               </div>
 
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between font-bold border-b border-gray-300 pb-1">
+              <div className="space-y-2 mb-6 text-black">
+                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2">
                   <span>CANT. DESC.</span>
                   <span>TOTAL</span>
                 </div>
                 {showReceipt.items.map(item => (
-                  <div key={item.productId} className="flex justify-between">
-                    <span className="truncate pr-4">{item.qty}x {item.name}</span>
-                    <span className="shrink-0">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
+                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                    <div className="flex gap-2 pr-2">
+                      <span className="font-bold">{item.qty}x</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-dashed border-gray-400 pt-4 space-y-1">
-                <div className="flex justify-between text-gray-600">
-                  <span>Cant. Artículos</span>
+              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
+                <div className="flex justify-between">
+                  <span>Artículos Totales</span>
                   <span>{showReceipt.items.reduce((acc, item) => acc + item.qty, 0)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between">
                   <span>IVA ({settings.storeTaxRate}%)</span>
                   <span>{settings.storeCurrency} {showReceipt.tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-xl font-bold mt-2">
+                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
                   <span>TOTAL</span>
                   <span>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600 mt-2">
+                <div className="flex justify-between mt-2">
                   <span>Pago con:</span>
                   <span className="uppercase">{showReceipt.paymentMethod}</span>
                 </div>
                 {showReceipt.reference && (
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between">
                     <span>Ref:</span>
                     <span className="uppercase">{showReceipt.reference}</span>
                   </div>
                 )}
               </div>
 
-              <div className="text-center mt-8 text-gray-500 italic">
+              <div className="text-center mt-8 text-black italic font-bold">
                 {settings.storeReceiptMessage}
               </div>
 
