@@ -103,10 +103,10 @@ export default function VentasPage() {
                       <span className="bg-white/10 px-2 py-1 rounded text-xs">
                         {tx.paymentMethod}
                       </span>
-                      {tx.paymentMethod === 'Transferencia' && tx.reference && (
+                      {(tx.paymentMethod === 'Transferencia' || tx.paymentMethod === 'Pago Móvil') && tx.reference && (
                         <span className="text-[10px] text-muted-foreground uppercase">Ref: {tx.reference}</span>
                       )}
-                      {tx.paymentMethod === 'Transferencia' && tx.receiptImage && (
+                      {(tx.paymentMethod === 'Transferencia' || tx.paymentMethod === 'Pago Móvil') && tx.receiptImage && (
                         <button 
                           onClick={() => setViewImage(tx.receiptImage!)}
                           className="text-[10px] text-primary hover:underline font-bold"

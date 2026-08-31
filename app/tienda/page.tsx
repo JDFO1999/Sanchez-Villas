@@ -34,7 +34,7 @@ export default function TiendaPOSPage() {
   // Cart
   const [cart, setCart] = useState<TransactionItem[]>([])
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia'>('Efectivo')
+  const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil'>('Efectivo')
   const [txReference, setTxReference] = useState("")
   const [txReceiptImage, setTxReceiptImage] = useState("")
   
@@ -155,8 +155,8 @@ export default function TiendaPOSPage() {
       tax,
       total,
       paymentMethod,
-      reference: paymentMethod === 'Transferencia' ? txReference : undefined,
-      receiptImage: paymentMethod === 'Transferencia' ? txReceiptImage : undefined
+      reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil') ? txReference : undefined,
+      receiptImage: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil') ? txReceiptImage : undefined
     }
 
     storeService.addTransaction(tx)
@@ -297,13 +297,14 @@ export default function TiendaPOSPage() {
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
                     className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-primary appearance-none"
                   >
-                    <option value="Transferencia">Pago Móvil / Transferencia</option>
+                    <option value="Pago Móvil">Pago Móvil</option>
+                    <option value="Transferencia">Transferencia</option>
                   </select>
                 </div>
-                {paymentMethod === 'Transferencia' && (
+                {(paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil') && (
                   <div className="space-y-3 pt-2">
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Número de Referencia</label>
+                      <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
                       <input 
                         type="text" 
                         value={txReference}
@@ -342,8 +343,8 @@ export default function TiendaPOSPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    if (paymentMethod === 'Transferencia' && !txReference && !txReceiptImage) {
-                      showToast("Debes ingresar la referencia o el capture.", "warning");
+                    if ((paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil') && !txReference && !txReceiptImage) {
+                      showToast(`Debes ingresar la referencia o el capture de tu ${paymentMethod}.`, "warning");
                       return;
                     }
                     handleCheckout();
@@ -543,12 +544,12 @@ export default function TiendaPOSPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">Método de Pago</label>
-              <div className="flex gap-2">
-                {['Efectivo', 'Tarjeta', 'Transferencia'].map(m => (
+              <div className="flex gap-2 flex-wrap">
+                {['Efectivo', 'Tarjeta', 'Transferencia', 'Pago Móvil'].map(m => (
                   <button 
                     key={m}
                     onClick={() => setPaymentMethod(m as any)}
-                    className={`flex-1 py-2 rounded border text-xs font-bold transition ${paymentMethod === m ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'}`}
+                    className={`flex-1 min-w-[70px] py-2 rounded border text-[10px] sm:text-xs font-bold transition ${paymentMethod === m ? 'bg-primary/20 border-primary text-primary' : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'}`}
                   >
                     {m}
                   </button>
@@ -556,10 +557,10 @@ export default function TiendaPOSPage() {
               </div>
             </div>
 
-            {paymentMethod === 'Transferencia' && (
+            {(paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil') && (
               <div className="space-y-3 pt-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Número de Referencia</label>
+                  <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
                   <input 
                     type="text" 
                     value={txReference}

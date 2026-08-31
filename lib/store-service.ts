@@ -28,9 +28,9 @@ export interface Transaction {
   subtotal: number
   tax: number
   total: number
-  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia'
-  reference?: string // For Transferencia
-  receiptImage?: string // For Transferencia (Base64)
+  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil'
+  reference?: string // For Transferencia y Pago Movil
+  receiptImage?: string // For Transferencia y Pago Movil (Base64)
 }
 
 const PRODUCTS_DB_KEY = "gympro_products_db"
