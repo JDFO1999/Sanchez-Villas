@@ -83,10 +83,10 @@ export default function RegistroPage() {
 
         {settings.logoSettings?.showInLogin && (
           settings.logoUrl ? (
-            <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="object-contain mb-4" />
+            <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin, objectFit: settings.logoSettings.objectFit || 'contain' }} className={`mb-4 ${settings.logoSettings.fadeEffect ? 'opacity-80' : ''}`} />
           ) : (
-            <div style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-4">
-              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.sizeLogin / 2, height: settings.logoSettings.sizeLogin / 2 }} />
+            <div style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-4">
+              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.widthLogin / 2, height: settings.logoSettings.heightLogin / 2 }} />
             </div>
           )
         )}

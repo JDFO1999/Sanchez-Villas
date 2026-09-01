@@ -51,10 +51,21 @@ export default function LoginPage() {
       <div className="z-10 w-full max-w-md glass p-8 rounded-2xl flex flex-col items-center">
         {settings.logoSettings?.showInLogin && (
           settings.logoUrl ? (
-            <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="object-contain mb-6" />
+            <img 
+              src={settings.logoUrl} 
+              alt="Logo" 
+              style={{ 
+                width: settings.logoSettings.widthLogin, 
+                height: settings.logoSettings.heightLogin,
+                objectFit: settings.logoSettings.objectFit,
+                maskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
+                WebkitMaskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
+              }} 
+              className="mb-6 transition-all" 
+            />
           ) : (
-            <div style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-6">
-              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.sizeLogin / 2, height: settings.logoSettings.sizeLogin / 2 }} />
+            <div style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-6">
+              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.widthLogin / 2, height: settings.logoSettings.heightLogin / 2 }} />
             </div>
           )
         )}
@@ -90,19 +101,19 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Contraseña</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                <Lock className="h-5 w-5" />
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseña</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                <input
+                  type="password"
+                  value={clave}
+                  onChange={(e) => setClave(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                  placeholder="••••••••"
+                  required
+                />
               </div>
-              <input
-                type="password"
-                value={clave}
-                onChange={(e) => setClave(e.target.value)}
-                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                placeholder="••••••••"
-                required
-              />
             </div>
           </div>
 

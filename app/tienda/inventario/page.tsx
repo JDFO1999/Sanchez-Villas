@@ -148,8 +148,8 @@ export default function InventarioPage() {
       </div>
 
       <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-hidden">
+          <table className="w-full text-left text-sm hidden md:table">
             <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
               <tr>
                 <th className="p-4 font-medium">Código / Producto</th>
@@ -224,6 +224,71 @@ export default function InventarioPage() {
               )}
             </tbody>
           </table>
+
+          {/* Vista Móvil de Inventario */}
+          <div className="md:hidden flex flex-col divide-y divide-black/10 dark:divide-white/10">
+            {filtered.map(p => {
+              const isLowStock = p.currentStock <= p.minStockAlert
+              const margin = p.sellPrice - p.costPrice
+              const marginPercent = p.costPrice > 0 ? ((margin / p.costPrice) * 100).toFixed(0) : '100'
+
+              return (
+                <div key={p.id} className="p-4 space-y-3">
+                  <div className="flex justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {p.imageUrl ? (
+                        <div className="h-12 w-12 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded overflow-hidden shrink-0">
+                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="h-12 w-12 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded flex items-center justify-center shrink-0">
+                          <PackagePlus className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold text-sm">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{p.barcode}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded">{p.category}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-500">
+                        {settings.storeCurrency}{p.sellPrice.toFixed(2)}
+                      </div>
+                      <div className={`text-xs font-bold mt-1 flex items-center justify-end gap-1 ${isLowStock ? 'text-red-500' : 'text-foreground'}`}>
+                        Stock: {p.currentStock} {isLowStock && <AlertTriangle className="h-3 w-3" />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-lg text-xs mt-2">
+                    <div className="flex flex-col items-start">
+                      <span className="text-muted-foreground">Costo</span>
+                      <span className="font-medium">{settings.storeCurrency}{p.costPrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-muted-foreground">Margen</span>
+                      <span className="font-medium">{settings.storeCurrency}{margin.toFixed(2)} ({marginPercent}%)</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/5 mt-2">
+                    <button onClick={() => openModal(p)} className="flex-1 py-2 bg-blue-500/10 text-blue-500 rounded-lg font-medium text-xs hover:bg-blue-500/20 transition flex items-center justify-center gap-1">
+                      <Edit className="h-4 w-4" /> Editar
+                    </button>
+                    <button onClick={() => handleDelete(p.id)} className="flex-1 py-2 bg-red-500/10 text-red-500 rounded-lg font-medium text-xs hover:bg-red-500/20 transition flex items-center justify-center gap-1">
+                      <Trash2 className="h-4 w-4" /> Eliminar
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+            {filtered.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground">No hay productos.</div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -247,7 +312,7 @@ export default function InventarioPage() {
                 <div>
                   <label className="text-xs font-medium mb-1 flex items-center justify-between">
                     Departamento
-                    <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-primary hover:underline text-[10px] font-bold">+ Nuevo</button>
+                    <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-green-500 hover:underline text-[10px] font-bold">+ Nuevo</button>
                   </label>
                   <select required value={department} onChange={e=>setDepartment(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary">
                     <option value="">Seleccione...</option>

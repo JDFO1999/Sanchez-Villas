@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, CheckCircle2, FileEdit, UserCheck } from "lucide-react"
 import { dataService, AthleteRoutine } from "@/lib/data-service"
 
-export function EmployeeDashboard() {
+export function CoachDashboard() {
   const { user } = useAuth()
   const [routines, setRoutines] = useState<AthleteRoutine[]>([])
 
@@ -71,14 +71,9 @@ export function EmployeeDashboard() {
                     <strong>Dieta asignada:</strong> {routine.diet}
                   </div>
 
-                  {!routine.coachVerified && (
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleVerify(routine.id)}
-                        className="flex-1 bg-green-500/20 text-green-500 hover:bg-green-500/30 border border-green-500/30 py-2 rounded-lg text-sm font-medium transition"
-                      >
-                        Verificar Asistencia
-                      </button>
+                  {!routine.coachVerified && routine.completed && (
+                    <div className="text-xs text-orange-500 bg-orange-500/10 p-2 rounded text-center">
+                      Esperando que Recepción valide la entrada.
                     </div>
                   )}
                 </div>

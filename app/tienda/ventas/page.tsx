@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { storeService, Transaction } from "@/lib/store-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
+import { useToast } from "@/lib/toast-context"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
 import { ReceiptText, Calendar } from "lucide-react"
@@ -12,6 +13,7 @@ import { ReceiptText, Calendar } from "lucide-react"
 export default function VentasPage() {
   const { user } = useAuth()
   const { settings } = useSettings()
+  const { showToast } = useToast()
   
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
@@ -97,8 +99,8 @@ export default function VentasPage() {
       </div>
 
       <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-hidden">
+          <table className="w-full text-left text-sm hidden md:table">
             <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
               <tr>
                 <th className="p-4 font-medium">ID Transacción</th>
@@ -153,22 +155,27 @@ export default function VentasPage() {
                             const code = prompt("Ingrese el Código de Retiro del Atleta:")
                             if (code) {
                               if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
-                                const updatedTx = { ...tx, status: 'COMPLETED' as const }
+                                const updatedTx = { ...tx, status: 'COMPLETED' as const, deliveredBy: user?.name || user?.id }
                                 storeService.updateTransaction(updatedTx)
                                 setTransactions(storeService.getTransactions().reverse())
-                                alert("¡Código correcto! Venta finalizada y productos entregados.")
+                                showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
                               } else {
-                                alert("Código incorrecto.")
+                                showToast("Código incorrecto.", "error")
                               }
                             }
                           }}
                           className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
                         >
-                          Verificar Código
+                          Entregar
                         </button>
                       </div>
                     ) : (
-                      <span className="bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                        {tx.deliveredBy && (
+                          <span className="text-[10px] text-muted-foreground">Entregado por: {tx.deliveredBy}</span>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="p-4 text-right font-bold text-green-500">
@@ -185,6 +192,86 @@ export default function VentasPage() {
               )}
             </tbody>
           </table>
+
+          {/* Vista Móvil de Ventas */}
+          <div className="md:hidden flex flex-col divide-y divide-black/10 dark:divide-white/10">
+            {transactions.map(tx => (
+              <div key={tx.id} className="p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-bold text-primary">{tx.id}</div>
+                    <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
+                  </div>
+                  <div className="text-right font-bold text-green-500">
+                    {settings.storeCurrency} {tx.total.toFixed(2)}
+                  </div>
+                </div>
+                
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Cliente:</span> {getAthleteName(tx.customerId)}
+                </div>
+
+                <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-lg">
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="text-xs font-bold">{tx.paymentMethod}</span>
+                    {(tx.paymentMethod === 'Transferencia' || tx.paymentMethod === 'Pago Móvil' || tx.paymentMethod === 'Binance') && tx.reference && (
+                      <span className="text-[10px] text-muted-foreground uppercase">Ref: {tx.reference}</span>
+                    )}
+                  </div>
+                  {(tx.paymentMethod === 'Transferencia' || tx.paymentMethod === 'Pago Móvil' || tx.paymentMethod === 'Binance') && tx.receiptImage && (
+                    <button 
+                      onClick={() => setViewImage(tx.receiptImage!)}
+                      className="text-xs bg-primary/20 text-primary px-2 py-1 rounded hover:bg-primary/30 font-bold"
+                    >
+                      Ver Capture
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  {tx.items.map(item => (
+                    <div key={item.productId} className="text-xs text-muted-foreground flex justify-between gap-4">
+                      <span>{item.qty}x {item.name}</span>
+                      <span>{settings.storeCurrency}{item.subtotal.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                  {tx.status === 'PENDING_PICKUP' ? (
+                    <div className="flex justify-between items-center">
+                      <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
+                      <button 
+                        onClick={() => {
+                          const code = prompt("Ingrese el Código de Retiro del Atleta:")
+                          if (code) {
+                            if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
+                              const updatedTx = { ...tx, status: 'COMPLETED' as const }
+                              storeService.updateTransaction(updatedTx)
+                              setTransactions(storeService.getTransactions().reverse())
+                              showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
+                            } else {
+                              showToast("Código incorrecto.", "error")
+                            }
+                          }
+                        }}
+                        className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
+                      >
+                        Verificar Código
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {transactions.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground">
+                No se han registrado ventas aún.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

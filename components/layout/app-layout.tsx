@@ -26,7 +26,6 @@ const navItems = [
   { name: "Atletas", href: "/atletas", icon: Users },
   { name: "Membresías", href: "/membresias", icon: CreditCard },
   { name: "Tienda", href: "/tienda", icon: Store },
-  { name: "Finanzas", href: "/finanzas", icon: BarChart3 },
   { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
 ]
 
@@ -53,6 +52,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Define navigation based on role
   let currentNavItems = [...navItems];
   if (user?.role === 'admin') {
+    currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
     currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
   } else if (user?.role === 'athlete') {
     currentNavItems = [
@@ -61,23 +61,44 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
       { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
     ]
-  } else if (user?.role === 'employee') {
+  } else {
+    // Es Staff (Entrenador, Recepcionista, Cajero)
     currentNavItems = [
-      { name: "Asistencia", href: "/", icon: Home },
-      { name: "Atletas", href: "/atletas", icon: Users },
-      { name: "Membresías", href: "/membresias", icon: CreditCard },
-      { name: "Tienda (POS)", href: "/tienda", icon: Store },
-      { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
+      { name: "Panel Principal", href: "/", icon: Home }
     ]
+    
+    // Si tiene permiso CRM o es coach, puede ver atletas
+    if (user?.role === 'employee' || user?.permissions?.includes('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Atletas / Rutinas", href: "/atletas", icon: Users })
+    }
+    
+    // Si tiene permiso de POS o es cajero
+    if (user?.role === 'cajero' || user?.permissions?.includes('POS_ACCESS')) {
+      currentNavItems.push({ name: "Membresías", href: "/membresias", icon: CreditCard })
+      currentNavItems.push({ name: "Tienda (POS)", href: "/tienda", icon: Store })
+    }
+    
+    currentNavItems.push({ name: "Comunidad", href: "/comunidad", icon: MessageSquare })
   }
 
   const LogoComponent = () => (
     <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary hover:opacity-80 transition">
       {settings.logoSettings?.showInNavbar && (
         settings.logoUrl ? (
-          <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.sizeNavbar, height: settings.logoSettings.sizeNavbar }} className="object-contain" />
+          <img 
+            src={settings.logoUrl} 
+            alt="Logo" 
+            style={{ 
+              width: settings.logoSettings.widthNavbar, 
+              height: settings.logoSettings.heightNavbar,
+              objectFit: settings.logoSettings.objectFit,
+              maskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
+              WebkitMaskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
+            }} 
+            className="transition-all" 
+          />
         ) : (
-          <Dumbbell style={{ width: settings.logoSettings.sizeNavbar * 0.75, height: settings.logoSettings.sizeNavbar * 0.75 }} />
+          <Dumbbell style={{ width: settings.logoSettings.widthNavbar * 0.75, height: settings.logoSettings.widthNavbar * 0.75 }} />
         )
       )}
       {settings.logoSettings?.showNameInNavbar && (
@@ -120,10 +141,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     isActive 
-                      ? "bg-primary/10 text-primary font-medium" 
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "bg-primary/20 dark:bg-primary/10 text-primary font-bold" 
+                      : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -138,7 +159,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="text-sm text-muted-foreground font-medium">Tema</span>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full bg-secondary text-foreground hover:bg-primary/20 transition-colors"
+                className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
               >
                 {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>

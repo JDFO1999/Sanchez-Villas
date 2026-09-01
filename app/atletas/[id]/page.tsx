@@ -3,13 +3,18 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
+import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search } from "lucide-react"
+import { useSettings } from "@/lib/settings-context"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 
+import Swal from 'sweetalert2'
+
 export default function AtletaPerfilPage() {
-  const { user } = useAuth()
+  const { user, getAllEmployees } = useAuth()
+  const { settings } = useSettings()
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
 
@@ -22,6 +27,8 @@ export default function AtletaPerfilPage() {
   const [newChest, setNewChest] = useState("")
   const [newWaist, setNewWaist] = useState("")
   const [newHips, setNewHips] = useState("")
+  // Array de objetos para custom fields { name, value }
+  const [newCustomFields, setNewCustomFields] = useState<{name: string, value: string}[]>([])
 
   const [showCoachRequest, setShowCoachRequest] = useState(false)
   const [requestReason, setRequestReason] = useState("")
@@ -34,6 +41,13 @@ export default function AtletaPerfilPage() {
   const [routineStart, setRoutineStart] = useState("")
   const [routineEnd, setRoutineEnd] = useState("")
   const [routineRest, setRoutineRest] = useState("90s")
+
+  const [showRenovarModal, setShowRenovarModal] = useState(false)
+  const [renovarIncludeCoach, setRenovarIncludeCoach] = useState(false)
+  const [renovarSelectedCoach, setRenovarSelectedCoach] = useState(athlete?.coachId || "")
+  const [renovarMonths, setRenovarMonths] = useState(1)
+  const [renovarPaymentMethod, setRenovarPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Efectivo')
+  const [renovarReference, setRenovarReference] = useState("")
 
   useEffect(() => {
     if (id) {
@@ -52,6 +66,13 @@ export default function AtletaPerfilPage() {
 
   const handleAddBiometrics = (e: React.FormEvent) => {
     e.preventDefault()
+    const customFieldsObj = newCustomFields.reduce((acc, field) => {
+      if (field.name && field.value) {
+        acc[field.name] = parseFloat(field.value);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     const newRecord: BiometricRecord = {
       date: new Date().toISOString().split("T")[0],
       weight: parseFloat(newWeight),
@@ -60,22 +81,34 @@ export default function AtletaPerfilPage() {
         chest: parseFloat(newChest),
         waist: parseFloat(newWaist),
         hips: parseFloat(newHips),
-      })
+      }),
+      customFields: Object.keys(customFieldsObj).length > 0 ? customFieldsObj : undefined
     }
     const updated = { ...athlete, biometrics: [...athlete.biometrics, newRecord] }
     athleteService.updateAthlete(updated)
     setAthlete(updated)
     setShowForm(false)
-    alert("Medidas actualizadas y guardadas en el historial.")
+    setNewCustomFields([])
+    
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true
+    })
+    Toast.fire({ icon: 'success', title: 'Medidas actualizadas' })
   }
 
-  const mockCoaches = [
-    { id: '2', name: 'Carlos (Staff Principal)' },
-    { id: '5', name: 'Luis Fernando' },
-    { id: '6', name: 'Ana Gómez' },
+  // En caso de que se necesiten entrenadores, los sacamos de auth-context
+  const allCoaches = getAllEmployees ? getAllEmployees().filter(e => e.role !== 'admin') : [
+    { id: '2', name: 'Carlos (Staff Principal)' }
   ]
 
-  const filteredCoaches = mockCoaches.filter(c => c.name.toLowerCase().includes(coachSearch.toLowerCase()))
+  const currentCoachName = allCoaches.find(c => c.id === athlete?.coachId)?.name || 'Ninguno'
+  const previousCoachName = athlete?.previousCoachId ? (allCoaches.find(c => c.id === athlete.previousCoachId)?.name || 'Desconocido') : null
+
+  const filteredCoaches = allCoaches.filter(c => c.name.toLowerCase().includes(coachSearch.toLowerCase()))
 
   const handleAdminAssignCoach = (coachId: string) => {
     const updated = { ...athlete, coachId }
@@ -96,6 +129,78 @@ export default function AtletaPerfilPage() {
     alert(`Solicitud enviada al Administrador con éxito.\n\nMotivo: ${requestReason}`)
     setShowCoachRequest(false)
     setRequestReason("")
+  }
+
+  const handleRenovar = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Calculate total
+    const membershipPrice = 30 * renovarMonths
+    let coachPrice = 0
+
+    if (renovarIncludeCoach && renovarSelectedCoach) {
+      if (settings.coachCustomPricing) {
+        const coachInfo = getAllEmployees ? getAllEmployees().find((e: any) => e.id === renovarSelectedCoach) : null;
+        const cRate = coachInfo?.commissionRate || 15
+        coachPrice = cRate * renovarMonths
+      } else {
+        coachPrice = 15 * renovarMonths
+      }
+    }
+    
+    const total = membershipPrice + coachPrice
+
+    const coachInfo = getAllEmployees ? getAllEmployees().find((e: any) => e.id === renovarSelectedCoach) : null;
+    
+    if (!renovarPaymentMethod) return;
+    
+    // Process Transaction
+    const tx: Transaction = {
+      id: `TX-${Date.now()}`,
+      date: new Date().toISOString(),
+      cashierId: user?.id || 'admin',
+      customerId: athlete.id,
+      items: [
+        { productId: 'MEMB', name: `Membresía (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
+        ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice, qty: 1, subtotal: coachPrice }] : [])
+      ],
+      subtotal: total,
+      tax: 0,
+      total,
+      paymentMethod: renovarPaymentMethod,
+      reference: renovarReference,
+      status: 'COMPLETED'
+    }
+    storeService.addTransaction(tx)
+
+    // Update Athlete
+    const currentEnd = new Date(athlete.membershipEnd)
+    const now = new Date()
+    let startFrom = currentEnd > now ? currentEnd : now
+    startFrom.setMonth(startFrom.getMonth() + renovarMonths)
+
+    const updated = { 
+      ...athlete, 
+      membershipEnd: startFrom.toISOString().split('T')[0],
+      coachId: renovarIncludeCoach ? renovarSelectedCoach : athlete.coachId
+    }
+    athleteService.updateAthlete(updated)
+    setAthlete(updated)
+    setShowRenovarModal(false)
+    
+    // Toast Notification
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      }
+    })
+    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
   }
 
   // Calculate days remaining
@@ -222,6 +327,107 @@ export default function AtletaPerfilPage() {
         </div>
       )}
 
+      {/* Modal Renovar Membresia */}
+      {showRenovarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
+            <form onSubmit={handleRenovar} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
+                <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
+              </div>
+              <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
+                <input 
+                  type="checkbox" 
+                  id="includeCoach" 
+                  checked={renovarIncludeCoach} 
+                  onChange={e => setRenovarIncludeCoach(e.target.checked)} 
+                  className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
+                />
+                <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
+                  Añadir Entrenador Personal
+                </label>
+              </div>
+
+              {renovarIncludeCoach && (
+                <div className="mt-3">
+                  <label className="text-sm font-medium mb-1 block">Seleccionar Entrenador</label>
+                  <select 
+                    required 
+                    value={renovarSelectedCoach} 
+                    onChange={e => setRenovarSelectedCoach(e.target.value)} 
+                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
+                  >
+                    <option value="">Seleccione uno...</option>
+                    {allCoaches.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg mt-4 mb-4 flex justify-between items-center">
+                <span className="font-medium text-sm text-primary">Total a Cobrar:</span>
+                <span className="text-2xl font-black text-primary">
+                  {settings.storeCurrency} {(() => {
+                    const mem = 30 * renovarMonths
+                    let coachPrice = 0
+                    if (renovarIncludeCoach && renovarSelectedCoach) {
+                      if (settings.coachCustomPricing) {
+                        const coachInfo = getAllEmployees ? getAllEmployees().find((e: any) => e.id === renovarSelectedCoach) : null;
+                        coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
+                      } else {
+                        coachPrice = 15 * renovarMonths
+                      }
+                    }
+                    return mem + coachPrice
+                  })()}
+                </span>
+              </div>
+
+              {/* Método de Pago */}
+              <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
+                <h4 className="font-bold text-sm">Detalles de Facturación</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
+                    <select 
+                      value={renovarPaymentMethod}
+                      onChange={e => setRenovarPaymentMethod(e.target.value as any)}
+                      className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2 text-sm"
+                    >
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Tarjeta">Punto de Venta (Tarjeta)</option>
+                      <option value="Pago Móvil">Pago Móvil</option>
+                      <option value="Transferencia">Transferencia</option>
+                      <option value="Binance">Binance</option>
+                      <option value="Crédito/Fiado">Crédito/Fiado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">N° de Referencia</label>
+                    <input 
+                      type="text" 
+                      value={renovarReference} 
+                      onChange={e => setRenovarReference(e.target.value)} 
+                      placeholder="Opcional..."
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button type="button" onClick={() => setShowRenovarModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">Confirmar y Cobrar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {user?.role !== 'athlete' && (
         <Link href="/atletas" className="inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="h-4 w-4 mr-1" /> Volver al directorio
@@ -267,6 +473,14 @@ export default function AtletaPerfilPage() {
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <User className="h-4 w-4" /> C.C. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
             </p>
+            <p className="text-muted-foreground flex items-center gap-2 mt-1">
+              <span className="font-bold">Coach Actual:</span> {currentCoachName} 
+              {previousCoachName && (
+                <span className="text-xs ml-2 bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded">
+                  Anterior: {previousCoachName}
+                </span>
+              )}
+            </p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
                 🔥 Racha de Asistencia: 4 Días
@@ -282,9 +496,14 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'admin' && (
-            <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
-              Cambiar Coach
-            </button>
+            <>
+              <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
+                Cambiar Coach
+              </button>
+              <button onClick={() => setShowRenovarModal(true)} className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition shadow-lg shadow-green-500/20">
+                Renovar Membresía
+              </button>
+            </>
           )}
           {user?.role === 'athlete' && athlete.coachId && (
             <button onClick={() => setShowCoachRequest(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 transition">
@@ -391,6 +610,27 @@ export default function AtletaPerfilPage() {
                         </div>
                       </>
                     )}
+                    {settings.biometricFields?.map(field => {
+                      const valObj = newCustomFields.find(f => f.name === field);
+                      return (
+                        <div key={field}>
+                          <label className="text-xs text-muted-foreground">{field} (cm)</label>
+                          <input 
+                            type="number" step="0.1" 
+                            value={valObj?.value || ''} 
+                            onChange={e => {
+                              const val = e.target.value;
+                              setNewCustomFields(prev => {
+                                const existing = prev.find(p => p.name === field);
+                                if (existing) return prev.map(p => p.name === field ? { ...p, value: val } : p);
+                                return [...prev, { name: field, value: val }];
+                              })
+                            }} 
+                            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" 
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
                   <button type="submit" className="bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg text-sm w-full mt-2">
                     Guardar Registro
@@ -422,6 +662,12 @@ export default function AtletaPerfilPage() {
                       </div>
                     </>
                   )}
+                  {latestBiometrics.customFields && Object.entries(latestBiometrics.customFields).map(([key, val]) => (
+                    <div key={key} className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">{key}</p>
+                      <p className="text-xl font-bold">{val} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No hay registros biométricos.</p>
@@ -444,6 +690,7 @@ export default function AtletaPerfilPage() {
                       <span className="text-xs text-muted-foreground">
                         Peso: {record.weight}kg | Altura: {record.height}cm
                         {record.chest && ` | P: ${record.chest} | Ci: ${record.waist} | Ca: ${record.hips}`}
+                        {record.customFields && Object.entries(record.customFields).map(([k,v]) => ` | ${k.substring(0,2)}: ${v}`).join('')}
                       </span>
                     </div>
                   </div>

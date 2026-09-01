@@ -83,6 +83,7 @@ export interface BiometricRecord {
   chest?: number
   waist?: number
   hips?: number
+  customFields?: Record<string, number>
 }
 
 export interface AthleteProfile {
@@ -100,6 +101,8 @@ export interface AthleteProfile {
   attendancePercentage: number
   biometrics: BiometricRecord[]
   profilePicture?: string
+  debt?: number // Para fiados/tienda
+  previousCoachId?: string | null // Para saber qué entrenador tuvo antes
 }
 
 const ATHLETES_DB_KEY = "gympro_athletes_db";
@@ -156,13 +159,23 @@ export const athleteService = {
     return athleteService.getAthletes().find(a => a.id === id) || null;
   },
 
-  updateAthlete: (profile: AthleteProfile) => {
+  getAthlete: (id: string): AthleteProfile | null => {
+    return athleteService.getAthleteById(id);
+  },
+
+  updateAthlete: (idOrProfile: string | AthleteProfile, updateData?: Partial<AthleteProfile>) => {
     const athletes = athleteService.getAthletes();
-    const index = athletes.findIndex(a => a.id === profile.id);
+    let id = typeof idOrProfile === 'string' ? idOrProfile : idOrProfile.id;
+    let dataToUpdate = typeof idOrProfile === 'string' ? updateData : idOrProfile;
+    
+    const index = athletes.findIndex(a => a.id === id);
     if (index >= 0) {
-      athletes[index] = profile;
-    } else {
-      athletes.push(profile);
+      if (dataToUpdate && dataToUpdate.coachId !== undefined && dataToUpdate.coachId !== athletes[index].coachId) {
+        athletes[index].previousCoachId = athletes[index].coachId;
+      }
+      athletes[index] = { ...athletes[index], ...(dataToUpdate as Partial<AthleteProfile>) };
+    } else if (typeof idOrProfile !== 'string') {
+      athletes.push(idOrProfile);
     }
     localStorage.setItem(ATHLETES_DB_KEY, JSON.stringify(athletes));
   }

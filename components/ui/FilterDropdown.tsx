@@ -61,7 +61,7 @@ export default function FilterDropdown({
       </button>
 
       {show && (
-        <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-2xl bg-card border border-black/10 dark:border-white/10 glass z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="origin-top-left absolute left-0 mt-2 w-72 rounded-xl shadow-2xl bg-card border border-black/10 dark:border-white/10 glass z-30 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           <div className="p-4 space-y-4">
             {/* Header */}
             <div className="flex justify-between items-center">
@@ -113,16 +113,16 @@ export default function FilterDropdown({
                   placeholder="Mín"
                   value={priceMin}
                   onChange={(e) => onPriceMinChange(e.target.value)}
-                  className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:outline-none focus:border-primary"
+                  className="flex-1 w-0 min-w-0 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:outline-none focus:border-primary"
                   min="0"
                 />
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-xs text-muted-foreground shrink-0">—</span>
                 <input
                   type="number"
                   placeholder="Máx"
                   value={priceMax}
                   onChange={(e) => onPriceMaxChange(e.target.value)}
-                  className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:outline-none focus:border-primary"
+                  className="flex-1 w-0 min-w-0 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:outline-none focus:border-primary"
                   min="0"
                 />
               </div>

@@ -28,11 +28,12 @@ export interface Transaction {
   subtotal: number
   tax: number
   total: number
-  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance'
+  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
   reference?: string // For Transferencia, Pago Movil y Binance
   receiptImage?: string // For Transferencia, Pago Movil y Binance (Base64)
   status?: 'COMPLETED' | 'PENDING_PICKUP'
   pickupCode?: string
+  deliveredBy?: string // Guardar nombre del empleado que entrega el pedido online
 }
 
 const PRODUCTS_DB_KEY = "gympro_products_db"

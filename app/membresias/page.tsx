@@ -37,7 +37,7 @@ export default function MembresiasPage() {
     setAthletes(athleteService.getAthletes())
   }, [])
 
-  if (!user || (user.role !== 'admin' && !user.permissions?.includes('CRM_MANAGE'))) {
+  if (!user || (user.role !== 'admin' && !user.permissions?.includes('CRM_MANAGE') && !user.permissions?.includes('POS_ACCESS'))) {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
@@ -181,7 +181,7 @@ export default function MembresiasPage() {
               ))}
               <button 
                 onClick={() => setShowCreateMessageModal(true)}
-                className="text-xs bg-primary/20 text-primary border border-primary/20 px-2 py-1 rounded hover:bg-primary/30 transition flex items-center gap-1"
+                className="text-xs bg-green-500 text-white border border-green-600 px-2 py-1 rounded hover:bg-green-600 font-bold transition flex items-center gap-1"
               >
                 + Nuevo
               </button>

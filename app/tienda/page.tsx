@@ -8,7 +8,7 @@ import { storeService, Product, TransactionItem, Transaction } from "@/lib/store
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera } from "lucide-react"
+import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 
@@ -42,7 +42,7 @@ export default function TiendaPOSPage() {
   // Cart
   const [cart, setCart] = useState<TransactionItem[]>([])
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'Seleccionar' | 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance'>('Seleccionar')
+  const [paymentMethod, setPaymentMethod] = useState<'Seleccionar' | 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Seleccionar')
   const [txReference, setTxReference] = useState("")
   const [txReceiptImage, setTxReceiptImage] = useState("")
   
@@ -197,6 +197,16 @@ export default function TiendaPOSPage() {
 
     const isAthlete = user?.role === 'athlete'
 
+    if (!isAthlete) {
+      const pin = prompt("Por seguridad, ingrese su PIN de Cajero para procesar la venta:")
+      if (pin === null) return // Cancelled
+      const passwords = JSON.parse(localStorage.getItem('gympro_mock_passwords') || "{}")
+      if (passwords[user?.cedula || ''] !== pin) {
+        showToast("PIN incorrecto. Venta cancelada.", "error")
+        return
+      }
+    }
+
     const tx: Transaction = {
       id: `TX-${Date.now()}`,
       date: new Date().toISOString(),
@@ -211,6 +221,16 @@ export default function TiendaPOSPage() {
       receiptImage: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReceiptImage : undefined,
       status: isAthlete ? 'PENDING_PICKUP' : 'COMPLETED',
       pickupCode: isAthlete ? `ATH-${Math.floor(1000 + Math.random() * 9000)}` : undefined
+    }
+
+    if (paymentMethod === 'Crédito/Fiado' && selectedAthleteId && !isAthlete) {
+      // Find athlete and save debt
+      const athlete = athleteService.getAthlete(selectedAthleteId);
+      if (athlete) {
+        // En una app real crearíamos un modelo de Deuda. Aquí simulamos añadiendo un field debt al perfil
+        const newDebt = (athlete.debt || 0) + total;
+        athleteService.updateAthlete(selectedAthleteId, { debt: newDebt });
+      }
     }
 
     storeService.addTransaction(tx)
@@ -429,43 +449,42 @@ export default function TiendaPOSPage() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Comprobante (Capture)</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const reader = new FileReader()
-                              reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                          className="flex-1 text-xs text-muted-foreground file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 cursor-pointer" 
-                        />
-                        <button
-                          type="button"
-                          onClick={() => cameraInputRef.current?.click()}
-                          className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0"
-                          title="Tomar foto"
-                        >
-                          <Camera className="h-4 w-4 text-primary" />
-                        </button>
-                        <input
-                          ref={cameraInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const reader = new FileReader()
-                              reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
+                          <ImageIcon className="h-5 w-5 shrink-0" />
+                          <span className="truncate w-full">Galería</span>
+                          <input 
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                const reader = new FileReader()
+                                reader.onloadend = () => setTxReceiptImage(reader.result as string)
+                                reader.readAsDataURL(file)
+                              }
+                            }}
+                            className="hidden" 
+                          />
+                        </label>
+                        <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
+                          <Camera className="h-5 w-5 shrink-0" />
+                          <span className="truncate w-full">Tomar Foto</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                const reader = new FileReader()
+                                reader.onloadend = () => setTxReceiptImage(reader.result as string)
+                                reader.readAsDataURL(file)
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
                       {txReceiptImage && (
                         <div className="mt-2 relative w-20 h-20">
@@ -770,42 +789,41 @@ export default function TiendaPOSPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">Comprobante (Capture)</label>
                   <div className="flex gap-2">
-                    <input 
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          const reader = new FileReader()
-                          reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                          reader.readAsDataURL(file)
-                        }
-                      }}
-                      className="flex-1 text-xs text-muted-foreground file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 cursor-pointer" 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0"
-                      title="Tomar foto"
-                    >
-                      <Camera className="h-4 w-4 text-primary" />
-                    </button>
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          const reader = new FileReader()
-                          reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                          reader.readAsDataURL(file)
-                        }
-                      }}
-                    />
+                    <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
+                      <ImageIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Galería</span>
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => setTxReceiptImage(reader.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                        className="hidden" 
+                      />
+                    </label>
+                    <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
+                      <Camera className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Cámara</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => setTxReceiptImage(reader.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                   {txReceiptImage && (
                     <div className="mt-2 relative w-20 h-20">
@@ -950,6 +968,9 @@ export default function TiendaPOSPage() {
                 <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
                 <p className="text-black mt-2">Cajero: {user?.name}</p>
                 <p className="text-black">Cliente: {showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId)?.name : 'Consumidor Final'}</p>
+                {showReceipt.deliveredBy && (
+                  <p className="text-black font-bold">Despachado por: {showReceipt.deliveredBy}</p>
+                )}
               </div>
 
               <div className="space-y-2 mb-6 text-black">

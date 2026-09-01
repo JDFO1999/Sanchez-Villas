@@ -15,10 +15,14 @@ export interface AppSettings {
   logoSettings: {
     showInNavbar: boolean
     showInLogin: boolean
-    sizeNavbar: number
-    sizeLogin: number
+    widthNavbar: number
+    heightNavbar: number
+    widthLogin: number
+    heightLogin: number
     showNameInNavbar: boolean
     showNameInLogin: boolean
+    objectFit: 'contain' | 'cover' | 'fill'
+    fadeEffect: boolean
   }
   storeCurrency: string
   storeCurrencySecondary: string // e.g. BsS
@@ -40,6 +44,9 @@ export interface AppSettings {
     binance: string
     transferencia: string
   }
+  coachCustomPricing: boolean // Si es true, el entrenador pone su propio precio
+  gymCommissionPercentage: number // % que se queda el gimnasio de ese precio
+  biometricFields: string[]
 }
 
 interface SettingsContextType {
@@ -59,10 +66,14 @@ const defaultSettings: AppSettings = {
   logoSettings: {
     showInNavbar: true,
     showInLogin: true,
-    sizeNavbar: 40,
-    sizeLogin: 80,
+    widthNavbar: 40,
+    heightNavbar: 40,
+    widthLogin: 96,
+    heightLogin: 96,
     showNameInNavbar: true,
-    showNameInLogin: true
+    showNameInLogin: true,
+    objectFit: 'contain',
+    fadeEffect: false
   },
   storeCurrency: 'USD',
   storeCurrencySecondary: 'BsS',
@@ -83,7 +94,10 @@ const defaultSettings: AppSettings = {
     pagoMovil: '',
     binance: '',
     transferencia: ''
-  }
+  },
+  coachCustomPricing: false,
+  gymCommissionPercentage: 30,
+  biometricFields: ['Pecho', 'Cintura', 'Cadera'] // Default categories
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
