@@ -388,7 +388,7 @@ export default function FinanzasPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-green-400">{settings.storeCurrency} {totalIngresos.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Basado en transacciones POS</p>
+                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalIngresos * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="glass border-red-500/20">
@@ -398,7 +398,7 @@ export default function FinanzasPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-red-400">{settings.storeCurrency} {totalEgresos.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Gastos registrados</p>
+                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalEgresos * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className={`glass ${balanceNeto >= 0 ? 'border-primary/20' : 'border-red-500/20'}`}>
@@ -408,7 +408,7 @@ export default function FinanzasPage() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-black ${balanceNeto >= 0 ? 'text-foreground' : 'text-red-500'}`}>{settings.storeCurrency} {balanceNeto.toFixed(2)}</div>
-                <p className={`text-xs mt-1 ${balanceNeto >= 0 ? 'text-primary' : 'text-red-500'}`}>Rentabilidad global</p>
+                <p className={`text-xs mt-1 ${balanceNeto >= 0 ? 'text-primary' : 'text-red-500'}`}>{settings.storeCurrencySecondary} {(balanceNeto * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="glass border-orange-500/20">
@@ -418,7 +418,7 @@ export default function FinanzasPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-orange-400">{settings.storeCurrency} {estimatedDebt.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{overdueAthletes.length} atletas en mora</p>
+                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(estimatedDebt * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
             <Card className="glass border-blue-500/20">
@@ -428,7 +428,7 @@ export default function FinanzasPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-black text-blue-400">{settings.storeCurrency} {totalGymProfitFromCoaches.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Ganancia por entrenadores</p>
+                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalGymProfitFromCoaches * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -460,7 +460,7 @@ export default function FinanzasPage() {
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))', borderRadius: '8px' }}
                       itemStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, '']}
+                      formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)} (${settings.storeCurrencySecondary} ${(Number(value) * settings.storeExchangeRate).toFixed(2)})`, '']}
                     />
                     <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorIngresos)" />
                     <Area type="monotone" dataKey="egresos" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorEgresos)" />
@@ -489,7 +489,7 @@ export default function FinanzasPage() {
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, 'Monto']}
+                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)} (${settings.storeCurrencySecondary} ${(Number(value) * settings.storeExchangeRate).toFixed(2)})`, 'Monto']}
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
                       />
                       <Legend verticalAlign="bottom" height={36}/>
@@ -1164,17 +1164,7 @@ export default function FinanzasPage() {
                         </div>
                       )
                     }
-                    return (
-                      <div className="bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10 mt-4">
-                          <label className="text-xs font-medium text-foreground mb-1 block">Contraseña de Acceso</label>
-                          <input 
-                            type="text" value={empForm.clave || ''} onChange={e => setEmpForm({...empForm, clave: e.target.value})}
-                            placeholder="Requerida para inicio de sesión" required={!empForm.id}
-                            className="w-full bg-white dark:bg-black/50 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                          />
-                          <p className="text-[10px] text-muted-foreground mt-1">El empleado usará su cédula y esta contraseña para ingresar al sistema.</p>
-                      </div>
-                    )
+                    return null;
                   })()}
                 </div>
 
