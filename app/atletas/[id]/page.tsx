@@ -662,7 +662,9 @@ export default function AtletaPerfilPage() {
                       </div>
                     </>
                   )}
-                  {latestBiometrics.customFields && Object.entries(latestBiometrics.customFields).map(([key, val]) => (
+                  {latestBiometrics.customFields && Object.entries(latestBiometrics.customFields)
+                    .filter(([key]) => !['pecho', 'cintura', 'cadera'].includes(key.toLowerCase()))
+                    .map(([key, val]) => (
                     <div key={key} className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                       <p className="text-xs text-muted-foreground mb-1">{key}</p>
                       <p className="text-xl font-bold">{val} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
@@ -690,7 +692,9 @@ export default function AtletaPerfilPage() {
                       <span className="text-xs text-muted-foreground">
                         Peso: {record.weight}kg | Altura: {record.height}cm
                         {record.chest && ` | P: ${record.chest} | Ci: ${record.waist} | Ca: ${record.hips}`}
-                        {record.customFields && Object.entries(record.customFields).map(([k,v]) => ` | ${k.substring(0,2)}: ${v}`).join('')}
+                        {record.customFields && Object.entries(record.customFields)
+                          .filter(([k]) => !['pecho', 'cintura', 'cadera'].includes(k.toLowerCase()))
+                          .map(([k,v]) => ` | ${k.substring(0,2)}: ${v}`).join('')}
                       </span>
                     </div>
                   </div>

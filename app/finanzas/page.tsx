@@ -535,8 +535,9 @@ export default function FinanzasPage() {
                         <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
                       </td>
                       <td className="p-4 text-xs text-muted-foreground">{tx.reference || '-'}</td>
-                      <td className="p-4 font-bold text-green-500">
-                        {settings.storeCurrency} {tx.total.toFixed(2)}
+                      <td className="p-4">
+                        <div className="font-bold text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
                       </td>
                     </tr>
                   ))}
@@ -557,8 +558,9 @@ export default function FinanzasPage() {
                         <div className="font-mono text-xs font-bold">{tx.id}</div>
                         <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </div>
-                      <div className="font-black text-green-500 text-right">
-                        {settings.storeCurrency} {tx.total.toFixed(2)}
+                      <div className="text-right">
+                        <div className="font-black text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-sm pt-2">
@@ -979,16 +981,20 @@ export default function FinanzasPage() {
                         <td className="p-4">
                           <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
                           <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
+                          <div className="text-[10px] text-muted-foreground">{settings.storeCurrencySecondary} {(totalPay * settings.storeExchangeRate).toFixed(2)}</div>
                         </td>
                         <td className="p-4">
                           {assignedAthletes.length > 0 ? (
-                            <div className="font-bold text-green-500">+{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
+                            <>
+                              <div className="font-bold text-green-500">+{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
+                              <div className="text-[10px] text-muted-foreground">+{settings.storeCurrencySecondary} {(gymProfit * settings.storeExchangeRate).toFixed(2)}</div>
+                            </>
                           ) : (
                             <div className="text-muted-foreground">-</div>
                           )}
                         </td>
                         <td className="p-4 text-right flex justify-end gap-2">
-                          <button onClick={() => { setEmpForm({...emp, clave: ''}); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
+                          <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                             Editar
                           </button>
                           {!isPaidThisMonth ? (
@@ -1052,7 +1058,8 @@ export default function FinanzasPage() {
                         </div>
                         <div className="text-right">
                           <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
-                          <div className="text-[10px] text-muted-foreground">Ganancia: +{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
+                          <div className="text-[10px] text-muted-foreground">{settings.storeCurrencySecondary} {(totalPay * settings.storeExchangeRate).toFixed(2)}</div>
+                          <div className="text-[10px] text-green-500 mt-1">Gym: +{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
                         </div>
                       </div>
                       <div className="flex justify-between items-center text-sm pt-2">
@@ -1061,7 +1068,7 @@ export default function FinanzasPage() {
                           <span className="text-xs font-bold">{assignedAthletes.length} Atletas</span>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => { setEmpForm({...emp, clave: ''}); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
+                          <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                             Editar
                           </button>
                           {!isPaidThisMonth ? (
@@ -1139,6 +1146,7 @@ export default function FinanzasPage() {
                       className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
                     >
                       <option value="employee">Entrenador Base</option>
+                      <option value="cajero">Cajero / Recepción</option>
                       <option value="admin">Administrador Principal</option>
                       {customRoles.map(r => (
                         <option key={r.id} value={r.id}>{r.name} (Personalizado)</option>
