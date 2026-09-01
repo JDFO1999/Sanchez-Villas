@@ -53,9 +53,10 @@ export default function RutinaPage() {
   const { user } = useAuth()
   const [selectedDay, setSelectedDay] = useState<'yesterday' | 'today' | 'tomorrow'>('today')
   
+  type ExState = 'pending' | 'progress' | 'completed' | 'failed'
   // Track checked exercises by day and index
-  const [checkedExercises, setCheckedExercises] = useState<Record<string, Record<number, boolean>>>({
-    yesterday: { 0: true, 1: true, 2: true }, // all completed yesterday
+  const [exerciseStates, setExerciseStates] = useState<Record<string, Record<number, ExState>>>({
+    yesterday: { 0: 'completed', 1: 'completed', 2: 'completed' }, // all completed yesterday
     today: {},
     tomorrow: {}
   })
@@ -67,19 +68,19 @@ export default function RutinaPage() {
   })
 
   const routine = routinesData[selectedDay]
-  const currentChecked = checkedExercises[selectedDay] || {}
-  const allChecked = routine.exercises.length > 0 && routine.exercises.every((_, i) => currentChecked[i])
+  const currentStates = exerciseStates[selectedDay] || {}
+  const allChecked = routine.exercises.length > 0 && routine.exercises.every((_, i) => currentStates[i] === 'completed')
 
-  const toggleExercise = (idx: number) => {
+  const changeExerciseState = (idx: number, newState: ExState) => {
     if (selectedDay !== 'today') {
       alert(selectedDay === 'yesterday' ? "No puedes modificar una rutina de ayer, ya finalizó." : "No puedes modificar una rutina de mañana, aún no ha comenzado.")
       return
     }
-    setCheckedExercises(prev => ({
+    setExerciseStates(prev => ({
       ...prev,
       [selectedDay]: {
         ...prev[selectedDay],
-        [idx]: !prev[selectedDay][idx]
+        [idx]: newState
       }
     }))
   }
@@ -87,12 +88,12 @@ export default function RutinaPage() {
   const handleCompletar = () => {
     if (selectedDay !== 'today') return
     // If marking as complete, check all exercises
-    const newChecked = { ...currentChecked }
-    routine.exercises.forEach((_, i) => { newChecked[i] = true })
+    const newStates = { ...currentStates }
+    routine.exercises.forEach((_, i) => { newStates[i] = 'completed' })
     
-    setCheckedExercises(prev => ({
+    setExerciseStates(prev => ({
       ...prev,
-      [selectedDay]: newChecked
+      [selectedDay]: newStates
     }))
     
     setRoutineCompleted(prev => ({
@@ -101,7 +102,7 @@ export default function RutinaPage() {
     }))
   }
 
-  const isCompleted = routineCompleted[selectedDay] || (allChecked && Object.keys(currentChecked).length > 0)
+  const isCompleted = routineCompleted[selectedDay] || (allChecked && Object.keys(currentStates).length > 0)
 
   return (
     <div className="space-y-6">
@@ -194,33 +195,62 @@ export default function RutinaPage() {
           <CardContent>
             <div className="space-y-4">
               {routine.exercises.map((ex, idx) => {
-                const isChecked = currentChecked[idx]
+                const state = currentStates[idx] || 'pending'
+                const isChecked = state === 'completed'
+                const isFailed = state === 'failed'
+                const isProgress = state === 'progress'
+
+                let borderClass = 'border-black/5 dark:border-white/5 bg-secondary/10'
+                if (isChecked) borderClass = 'border-green-500/50 bg-green-500/10'
+                else if (isFailed) borderClass = 'border-red-500/50 bg-red-500/10'
+                else if (isProgress) borderClass = 'border-yellow-500/50 bg-yellow-500/10'
+
                 return (
                   <div 
                     key={idx} 
-                    onClick={() => toggleExercise(idx)}
-                    className={`p-4 rounded-xl border cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition
-                      ${isChecked ? 'border-green-500/50 bg-green-500/10' : 'border-black/5 dark:border-white/5 bg-secondary/10 hover:border-primary/50'}`}
+                    className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${borderClass}`}
                   >
-                    <div className="flex gap-4 items-start">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold shrink-0 transition-colors
-                        ${isChecked ? 'bg-green-500 text-white' : 'bg-primary/20 text-primary'}`}
-                      >
+                    <div className="flex gap-4 items-start flex-1">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold shrink-0 transition-colors ${isChecked ? 'bg-green-500 text-white' : isFailed ? 'bg-red-500 text-white' : isProgress ? 'bg-yellow-500 text-white' : 'bg-primary/20 text-primary'}`}>
                         {isChecked ? <CheckCircle2 className="h-5 w-5" /> : idx + 1}
                       </div>
                       <div>
-                        <h4 className={`font-semibold ${isChecked ? 'text-green-500 line-through opacity-70' : ''}`}>{ex.name}</h4>
+                        <h4 className={`font-semibold ${isChecked ? 'text-green-500 line-through opacity-70' : isFailed ? 'text-red-500 line-through opacity-70' : isProgress ? 'text-yellow-600 dark:text-yellow-400' : ''}`}>{ex.name}</h4>
                         <p className="text-sm text-muted-foreground mt-1">{ex.notes}</p>
                       </div>
                     </div>
-                    <div className={`flex items-center gap-4 shrink-0 ${isChecked ? 'opacity-50' : ''}`}>
-                      <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
-                        <p className="text-xs text-muted-foreground">Series</p>
-                        <p className="font-bold">{ex.sets}</p>
+                    
+                    <div className="flex flex-col gap-3 shrink-0">
+                      <div className={`flex items-center gap-4 ${isChecked || isFailed ? 'opacity-50' : ''}`}>
+                        <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
+                          <p className="text-xs text-muted-foreground">Series</p>
+                          <p className="font-bold">{ex.sets}</p>
+                        </div>
+                        <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
+                          <p className="text-xs text-muted-foreground">Reps</p>
+                          <p className="font-bold">{ex.reps}</p>
+                        </div>
                       </div>
-                      <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
-                        <p className="text-xs text-muted-foreground">Reps</p>
-                        <p className="font-bold">{ex.reps}</p>
+                      
+                      <div className="flex items-center gap-1 mt-2 sm:mt-0 justify-end">
+                         <button 
+                            onClick={() => changeExerciseState(idx, 'failed')}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isFailed ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}
+                         >
+                           No Realizado
+                         </button>
+                         <button 
+                            onClick={() => changeExerciseState(idx, 'progress')}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isProgress ? 'bg-yellow-500 text-white' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/20'}`}
+                         >
+                           En Progreso
+                         </button>
+                         <button 
+                            onClick={() => changeExerciseState(idx, 'completed')}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isChecked ? 'bg-green-500 text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
+                         >
+                           Realizado
+                         </button>
                       </div>
                     </div>
                   </div>

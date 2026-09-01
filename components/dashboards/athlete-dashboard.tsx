@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package } from "lucide-react"
+import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye } from "lucide-react"
 import Link from "next/link"
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
 import { storeService, Transaction, Product } from "@/lib/store-service"
@@ -52,6 +52,7 @@ export function AthleteDashboard() {
   
   const [purchases, setPurchases] = useState<Transaction[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [showTicketModal, setShowTicketModal] = useState<Transaction | null>(null)
 
   const [coachName, setCoachName] = useState('Sin Asignar')
   useEffect(() => {
@@ -310,52 +311,58 @@ export function AthleteDashboard() {
             <div className="space-y-4">
               {purchases.map(tx => (
                 <div key={tx.id} className="bg-card p-4 rounded-xl border border-black/10 dark:border-white/10 flex flex-col md:flex-row gap-4 justify-between">
-                  <div className="w-full flex justify-center pt-4 md:pt-0">
-                    <div className="bg-white text-black p-6 w-full max-w-sm font-mono text-sm relative shadow-sm border border-gray-200 mx-auto">
-                      <div className="text-center mb-4 border-b border-dashed border-black pb-4">
-                        <h2 className="font-bold text-xl uppercase tracking-widest">TICKET DE COMPRA</h2>
-                        <p className="text-black mt-1 font-bold">{tx.id}</p>
-                        {tx.pickupCode && tx.status === 'PENDING_PICKUP' && (
-                          <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
-                            <p className="font-bold text-[10px]">CÓDIGO DE RETIRO</p>
-                            <p className="text-xl font-black">{tx.pickupCode}</p>
-                          </div>
-                        )}
-                        <p className="text-black text-xs">{new Date(tx.date).toLocaleString()}</p>
-                        <p className="text-black text-xs font-bold mt-1">Estatus: {tx.status === 'PENDING_PICKUP' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
-                      </div>
-
-                      <div className="space-y-2 mb-4 text-black">
-                        <div className="flex justify-between font-bold border-b border-black pb-1 mb-2 text-xs">
-                          <span>CANT. DESC.</span>
-                          <span>TOTAL</span>
-                        </div>
-                        {tx.items.map(item => (
-                          <div key={item.productId} className="flex justify-between items-start text-xs mb-1 leading-tight">
-                            <div className="flex gap-2 pr-2">
-                              <span className="font-bold">{item.qty}x</span>
-                              <span>{item.name}</span>
-                            </div>
-                            <span className="shrink-0 font-bold">${item.subtotal.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="border-t border-dashed border-black pt-3 space-y-1 text-black text-xs">
-                        <div className="flex justify-between">
-                          <span>Subtotal</span>
-                          <span>${tx.subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-base font-black mt-1 pt-1 border-t border-black">
-                          <span>TOTAL</span>
-                          <span>${tx.total.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between mt-2">
-                          <span>Pago con:</span>
-                          <span className="uppercase">{tx.paymentMethod}</span>
-                        </div>
-                      </div>
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">Factura: {tx.id}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</span>
+                      {tx.status === 'PENDING_PICKUP' ? (
+                        <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> PENDIENTE RETIRO</span>
+                      ) : (
+                        <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full font-bold">COMPLETADA</span>
+                      )}
                     </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {tx.items.map(item => {
+                        const img = getProductImage(item.productId)
+                        return (
+                          <div key={item.productId} className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg border border-black/5 dark:border-white/5">
+                            {img ? (
+                              <img src={img} alt={item.name} className="h-10 w-10 object-contain rounded bg-black/5 dark:bg-white/5 p-1" />
+                            ) : (
+                              <div className="h-10 w-10 bg-black/5 dark:bg-white/5 rounded flex items-center justify-center">
+                                <ShoppingCart className="h-5 w-5 text-muted-foreground opacity-50" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-bold leading-tight max-w-[120px] truncate" title={item.name}>{item.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{item.qty}x</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col justify-center items-end gap-2 border-t md:border-t-0 md:border-l border-black/10 dark:border-white/10 pt-3 md:pt-0 md:pl-4">
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">Pago con {tx.paymentMethod}</p>
+                      <p className="font-black text-xl text-primary">${tx.total.toFixed(2)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setShowTicketModal(tx)}
+                        className="bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition"
+                      >
+                        <Eye className="h-3 w-3" /> Ver Ticket
+                      </button>
+                    </div>
+                    {tx.pickupCode && tx.status === 'PENDING_PICKUP' && (
+                      <div className="bg-white text-black px-3 py-2 rounded-lg border-2 border-dashed border-black text-center mt-1">
+                        <p className="text-[9px] font-bold">CÓDIGO DE RETIRO</p>
+                        <p className="font-mono font-black text-lg">{tx.pickupCode}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -363,6 +370,60 @@ export function AthleteDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* TICKET MODAL */}
+      {showTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto" onClick={() => setShowTicketModal(null)}>
+          <div className="w-full flex justify-center pt-4 md:pt-0" onClick={e => e.stopPropagation()}>
+            <div className="bg-white text-black p-6 w-full max-w-sm font-mono text-sm relative shadow-sm border border-gray-200 mx-auto">
+              <button onClick={() => setShowTicketModal(null)} className="absolute top-2 right-2 text-gray-500 hover:text-black font-sans font-bold text-xl">&times;</button>
+              <div className="text-center mb-4 border-b border-dashed border-black pb-4">
+                <h2 className="font-bold text-xl uppercase tracking-widest">TICKET DE COMPRA</h2>
+                <p className="text-black mt-1 font-bold">{showTicketModal.id}</p>
+                {showTicketModal.pickupCode && showTicketModal.status === 'PENDING_PICKUP' && (
+                  <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
+                    <p className="font-bold text-[10px]">CÓDIGO DE RETIRO</p>
+                    <p className="text-xl font-black">{showTicketModal.pickupCode}</p>
+                  </div>
+                )}
+                <p className="text-black text-xs">{new Date(showTicketModal.date).toLocaleString()}</p>
+                <p className="text-black text-xs font-bold mt-1">Estatus: {showTicketModal.status === 'PENDING_PICKUP' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
+              </div>
+
+              <div className="space-y-2 mb-4 text-black">
+                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2 text-xs">
+                  <span>CANT. DESC.</span>
+                  <span>TOTAL</span>
+                </div>
+                {showTicketModal.items.map(item => (
+                  <div key={item.productId} className="flex justify-between items-start text-xs mb-1 leading-tight">
+                    <div className="flex gap-2 pr-2">
+                      <span className="font-bold">{item.qty}x</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <span className="shrink-0 font-bold">${item.subtotal.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-dashed border-black pt-3 space-y-1 text-black text-xs">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>${showTicketModal.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-black mt-1 pt-1 border-t border-black">
+                  <span>TOTAL</span>
+                  <span>${showTicketModal.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span>Pago con:</span>
+                  <span className="uppercase">{showTicketModal.paymentMethod}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
