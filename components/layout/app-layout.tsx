@@ -73,12 +73,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const LogoComponent = () => (
     <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary hover:opacity-80 transition">
-      {settings.logoUrl ? (
-        <img src={settings.logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
-      ) : (
-        <Dumbbell className="h-6 w-6" />
+      {settings.logoSettings?.showInNavbar && (
+        settings.logoUrl ? (
+          <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.sizeNavbar, height: settings.logoSettings.sizeNavbar }} className="object-contain" />
+        ) : (
+          <Dumbbell style={{ width: settings.logoSettings.sizeNavbar * 0.75, height: settings.logoSettings.sizeNavbar * 0.75 }} />
+        )
       )}
-      <span>{settings.appName}</span>
+      {settings.logoSettings?.showNameInNavbar && (
+        <span>{settings.appName}</span>
+      )}
     </Link>
   )
 

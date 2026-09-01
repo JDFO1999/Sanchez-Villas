@@ -8,9 +8,9 @@ import { SettingsProvider } from "@/lib/settings-context";
 import { ToastProvider } from "@/lib/toast-context";
 import { FontWrapper } from "@/components/font-wrapper";
 
-export const arvo = Arvo({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-arvo" });
-export const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-export const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
+const arvo = Arvo({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-arvo" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 
 export const metadata: Metadata = {
   title: "GymPro - Sistema de Gestión",

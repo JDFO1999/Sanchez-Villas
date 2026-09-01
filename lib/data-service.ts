@@ -99,6 +99,7 @@ export interface AthleteProfile {
   lastLogin?: string // Ej. "2026-08-30 (Móvil)"
   attendancePercentage: number
   biometrics: BiometricRecord[]
+  profilePicture?: string
 }
 
 const ATHLETES_DB_KEY = "gympro_athletes_db";

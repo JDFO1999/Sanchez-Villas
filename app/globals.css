@@ -124,11 +124,11 @@
 
   /* Glassmorphism Classes */
   .glass {
-    @apply bg-card/60 backdrop-blur-md border border-white/10 shadow-lg;
+    @apply bg-card/60 backdrop-blur-md border border-black/10 dark:border-white/10 shadow-lg;
   }
   
   .dark .glass {
-    @apply bg-black/40 backdrop-blur-xl border border-white/10;
+    @apply bg-card/40 backdrop-blur-xl border border-white/10;
   }
 }
 

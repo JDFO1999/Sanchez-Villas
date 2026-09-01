@@ -24,7 +24,7 @@ export function EmployeeDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Panel de Entrenador</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Panel de Entrenador</h1>
           <p className="text-muted-foreground mt-1">
             Gestiona las rutinas, dietas y verifica la asistencia de tus atletas.
           </p>
@@ -43,7 +43,7 @@ export function EmployeeDashboard() {
           <CardContent>
             <div className="space-y-4">
               {routines.map((routine) => (
-                <div key={routine.id} className="p-4 border border-white/10 rounded-xl bg-card hover:bg-secondary/20 transition">
+                <div key={routine.id} className="p-4 border border-black/10 dark:border-white/10 rounded-xl bg-card hover:bg-secondary/20 transition">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="font-bold text-foreground">Juan (C.C. 9012)</h4>
@@ -60,7 +60,7 @@ export function EmployeeDashboard() {
                           <UserCheck className="h-3 w-3" /> Reportó Asistencia
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground mt-1 bg-white/5 px-2 py-1 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground mt-1 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-full">
                           Pendiente
                         </span>
                       )}
@@ -95,7 +95,7 @@ export function EmployeeDashboard() {
             <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); alert('Modo Mock: Asignación guardada.'); }}>
               <div>
                 <label className="text-sm font-medium block mb-1.5">Atleta</label>
-                <select className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary">
+                <select className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary">
                   <option>Juan (9012)</option>
                   <option>María (8013)</option>
                 </select>
@@ -103,7 +103,7 @@ export function EmployeeDashboard() {
               
               <div>
                 <label className="text-sm font-medium block mb-1.5">Fecha</label>
-                <select className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary">
+                <select className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary">
                   <option>Hoy</option>
                   <option>Mañana</option>
                 </select>
@@ -111,12 +111,12 @@ export function EmployeeDashboard() {
 
               <div>
                 <label className="text-sm font-medium block mb-1.5">Enfoque (Rutina)</label>
-                <input type="text" placeholder="Ej. Empuje (Pecho/Tríceps)" className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary" />
+                <input type="text" placeholder="Ej. Empuje (Pecho/Tríceps)" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary" />
               </div>
 
               <div>
                 <label className="text-sm font-medium block mb-1.5">Pauta de Dieta</label>
-                <textarea rows={3} placeholder="Instrucciones alimenticias para hoy..." className="w-full bg-black/40 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary"></textarea>
+                <textarea rows={3} placeholder="Instrucciones alimenticias para hoy..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary"></textarea>
               </div>
 
               <button type="submit" className="w-full bg-primary text-primary-foreground font-bold py-2.5 rounded-lg hover:bg-primary/90 transition">

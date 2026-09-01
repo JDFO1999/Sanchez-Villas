@@ -82,7 +82,7 @@ export default function AtletaPerfilPage() {
     athleteService.updateAthlete(updated)
     setAthlete(updated)
     setShowAdminCoachModal(false)
-    alert("Entrenador reasignado con éxito.")
+    alert("Entrenador asignado con éxito.")
   }
 
   const handleAssignRoutine = (e: React.FormEvent) => {
@@ -110,13 +110,13 @@ export default function AtletaPerfilPage() {
       {/* Modal Request */}
       {showCoachRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Solicitar Cambio de Entrenador</h3>
             <p className="text-sm text-muted-foreground mb-4">Esta solicitud será revisada por la administración del gimnasio.</p>
             <form onSubmit={handleSendRequest} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Entrenador Deseado</label>
-                <select className="w-full bg-black/40 border border-white/10 rounded p-2.5 text-sm">
+                <select className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
                   <option value="">Cualquier otro disponible</option>
                   <option value="2">Carlos (Staff Principal)</option>
                 </select>
@@ -129,11 +129,11 @@ export default function AtletaPerfilPage() {
                   value={requestReason}
                   onChange={e => setRequestReason(e.target.value)}
                   placeholder="Explica brevemente por qué deseas cambiar..."
-                  className="w-full bg-black/40 border border-white/10 rounded p-2.5 text-sm"
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowCoachRequest(false)} className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 rounded transition">Cancelar</button>
+                <button type="button" onClick={() => setShowCoachRequest(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
                 <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Enviar Solicitud</button>
               </div>
             </form>
@@ -144,7 +144,7 @@ export default function AtletaPerfilPage() {
       {/* Modal Admin Coach Change */}
       {showAdminCoachModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Reasignar Entrenador</h3>
             <p className="text-sm text-muted-foreground mb-4">Busca y selecciona el nuevo entrenador para este atleta.</p>
             <div className="relative mb-4">
@@ -154,7 +154,7 @@ export default function AtletaPerfilPage() {
                 placeholder="Buscar por nombre..." 
                 value={coachSearch}
                 onChange={e => setCoachSearch(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary"
               />
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
@@ -162,7 +162,7 @@ export default function AtletaPerfilPage() {
                 <button 
                   key={c.id} 
                   onClick={() => handleAdminAssignCoach(c.id)}
-                  className="w-full text-left p-3 rounded-lg border border-white/5 bg-black/20 hover:bg-primary/20 hover:border-primary/50 transition flex items-center gap-3"
+                  className="w-full text-left p-3 rounded-lg border border-black/5 dark:border-white/5 bg-black/20 hover:bg-primary/20 hover:border-primary/50 transition flex items-center gap-3"
                 >
                   <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">{c.name.charAt(0)}</div>
                   <span className="font-medium text-sm">{c.name}</span>
@@ -171,8 +171,8 @@ export default function AtletaPerfilPage() {
                 <p className="text-sm text-muted-foreground text-center py-4">No se encontraron entrenadores.</p>
               )}
             </div>
-            <div className="flex justify-end pt-2 border-t border-white/10">
-              <button type="button" onClick={() => setShowAdminCoachModal(false)} className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 rounded transition">Cancelar</button>
+            <div className="flex justify-end pt-2 border-t border-black/10 dark:border-white/10">
+              <button type="button" onClick={() => setShowAdminCoachModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
             </div>
           </div>
         </div>
@@ -181,13 +181,13 @@ export default function AtletaPerfilPage() {
       {/* Modal Assign Routine */}
       {showRoutineModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Asignar Rutina</h3>
             <p className="text-sm text-muted-foreground mb-4">Configura los parámetros del entrenamiento.</p>
             <form onSubmit={handleAssignRoutine} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Catálogo de Rutinas</label>
-                <select value={routineType} onChange={e => setRoutineType(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2.5 text-sm">
+                <select value={routineType} onChange={e => setRoutineType(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
                   <option value="Hipertrofia">Rutina de Hipertrofia (Fuerza)</option>
                   <option value="Resistencia">Rutina HIIT (Resistencia)</option>
                   <option value="Movilidad">Yoga y Movilidad</option>
@@ -197,16 +197,16 @@ export default function AtletaPerfilPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Fecha Inicio</label>
-                  <input type="date" required value={routineStart} onChange={e => setRoutineStart(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm" />
+                  <input type="date" required value={routineStart} onChange={e => setRoutineStart(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Fecha Fin</label>
-                  <input type="date" required value={routineEnd} onChange={e => setRoutineEnd(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm" />
+                  <input type="date" required value={routineEnd} onChange={e => setRoutineEnd(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Tiempo de Descanso</label>
-                <select value={routineRest} onChange={e => setRoutineRest(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2.5 text-sm">
+                <select value={routineRest} onChange={e => setRoutineRest(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
                   <option value="30s">Corto (30 seg)</option>
                   <option value="60s">Medio (60 seg)</option>
                   <option value="90s">Largo (90 seg)</option>
@@ -214,7 +214,7 @@ export default function AtletaPerfilPage() {
                 </select>
               </div>
               <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowRoutineModal(false)} className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 rounded transition">Cancelar</button>
+                <button type="button" onClick={() => setShowRoutineModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
                 <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Asignar</button>
               </div>
             </form>
@@ -228,16 +228,50 @@ export default function AtletaPerfilPage() {
         </Link>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-card/40 p-6 rounded-2xl border border-white/5 glass">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-card/40 p-6 rounded-2xl border border-black/5 dark:border-white/5 glass">
         <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-3xl">
-            {athlete.name.charAt(0)}
+          <div className="relative group">
+            {athlete.profilePicture ? (
+              <img src={athlete.profilePicture} alt={athlete.name} className="h-20 w-20 rounded-full object-cover border-2 border-primary" />
+            ) : (
+              <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-3xl">
+                {athlete.name.charAt(0)}
+              </div>
+            )}
+            
+            {user?.role === 'athlete' && user.id === athlete.id && (
+              <label className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                <span className="text-[10px] font-bold text-white text-center">Cambiar<br/>Foto</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        const updated = { ...athlete, profilePicture: reader.result as string }
+                        athleteService.updateAthlete(updated)
+                        setAthlete(updated)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }} 
+                />
+              </label>
+            )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{athlete.name}</h1>
+            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm">{athlete.name}</h1>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <User className="h-4 w-4" /> C.C. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
             </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
+                🔥 Racha de Asistencia: 4 Días
+              </span>
+            </div>
           </div>
         </div>
         
@@ -248,13 +282,18 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'admin' && (
-            <button onClick={() => setShowAdminCoachModal(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-white/10 border border-white/10 transition">
+            <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
               Cambiar Coach
             </button>
           )}
-          {user?.role === 'athlete' && (
-            <button onClick={() => setShowCoachRequest(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-white/10 border border-white/10 transition">
+          {user?.role === 'athlete' && athlete.coachId && (
+            <button onClick={() => setShowCoachRequest(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 transition">
               Solicitar Cambio de Coach
+            </button>
+          )}
+          {user?.role === 'athlete' && !athlete.coachId && (
+            <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition shadow">
+              Seleccionar Entrenador (Opcional)
             </button>
           )}
         </div>
@@ -276,7 +315,7 @@ export default function AtletaPerfilPage() {
                   {diffDays > 0 ? `${diffDays} días restantes` : 'Vencida'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio</p>
                   <p className="font-medium text-sm">{athlete.membershipStart}</p>
@@ -317,7 +356,7 @@ export default function AtletaPerfilPage() {
               {(user?.role === 'admin' || user?.role === 'employee') && (
                 <button 
                   onClick={() => setShowForm(!showForm)}
-                  className="text-sm bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/10 transition"
+                  className="text-sm bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-3 py-1.5 rounded-lg hover:bg-black/10 dark:bg-white/10 transition"
                 >
                   {showForm ? 'Cancelar' : 'Actualizar Medidas'}
                 </button>
@@ -325,30 +364,30 @@ export default function AtletaPerfilPage() {
             </CardHeader>
             <CardContent>
               {showForm ? (
-                <form onSubmit={handleAddBiometrics} className="space-y-4 p-4 rounded-xl bg-black/40 border border-white/5">
+                <form onSubmit={handleAddBiometrics} className="space-y-4 p-4 rounded-xl bg-black/5 dark:bg-black/40 border border-black/5 dark:border-white/5">
                   <h4 className="font-medium text-sm text-primary mb-2">Nuevo Registro Biométrico</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-muted-foreground">Peso (kg)</label>
-                      <input type="number" step="0.1" required value={newWeight} onChange={e => setNewWeight(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm mt-1" />
+                      <input type="number" step="0.1" required value={newWeight} onChange={e => setNewWeight(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground">Altura (cm)</label>
-                      <input type="number" step="1" required value={newHeight} onChange={e => setNewHeight(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm mt-1" />
+                      <input type="number" step="1" required value={newHeight} onChange={e => setNewHeight(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                     </div>
                     {athlete.gender === 'F' && (
                       <>
                         <div>
                           <label className="text-xs text-muted-foreground">Pecho (cm)</label>
-                          <input type="number" step="0.1" required value={newChest} onChange={e => setNewChest(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm mt-1" />
+                          <input type="number" step="0.1" required value={newChest} onChange={e => setNewChest(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Cintura (cm)</label>
-                          <input type="number" step="0.1" required value={newWaist} onChange={e => setNewWaist(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm mt-1" />
+                          <input type="number" step="0.1" required value={newWaist} onChange={e => setNewWaist(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-muted-foreground">Cadera (cm)</label>
-                          <input type="number" step="0.1" required value={newHips} onChange={e => setNewHips(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm mt-1" />
+                          <input type="number" step="0.1" required value={newHips} onChange={e => setNewHips(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                         </div>
                       </>
                     )}
@@ -359,25 +398,25 @@ export default function AtletaPerfilPage() {
                 </form>
               ) : latestBiometrics ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Peso</p>
                     <p className="text-xl font-bold">{latestBiometrics.weight} <span className="text-sm font-normal text-muted-foreground">kg</span></p>
                   </div>
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                     <p className="text-xs text-muted-foreground mb-1">Altura</p>
                     <p className="text-xl font-bold">{latestBiometrics.height} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
                   </div>
                   {athlete.gender === 'F' && latestBiometrics.chest && (
                     <>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                      <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Pecho</p>
                         <p className="text-xl font-bold">{latestBiometrics.chest} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
                       </div>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                      <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Cintura</p>
                         <p className="text-xl font-bold">{latestBiometrics.waist} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
                       </div>
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                      <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Cadera</p>
                         <p className="text-xl font-bold">{latestBiometrics.hips} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
                       </div>
@@ -399,7 +438,7 @@ export default function AtletaPerfilPage() {
             <CardContent>
               <div className="space-y-3">
                 {[...athlete.biometrics].reverse().map((record, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-white/5 bg-black/20 hover:bg-white/5 transition">
+                  <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-black/5 dark:border-white/5 bg-black/20 hover:bg-black/5 dark:bg-white/5 transition">
                     <div>
                       <span className="font-medium block">{record.date}</span>
                       <span className="text-xs text-muted-foreground">

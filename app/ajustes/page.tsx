@@ -29,6 +29,7 @@ export default function AjustesPage() {
   const [fontFamily, setFontFamily] = useState(settings.fontFamily)
   const [logoUrl, setLogoUrl] = useState(settings.logoUrl)
   const [isGlass, setIsGlass] = useState(settings.isGlass)
+  const [logoSettings, setLogoSettings] = useState(settings.logoSettings)
   
   const [storeCurrency, setStoreCurrency] = useState(settings.storeCurrency)
   const [storeTaxRate, setStoreTaxRate] = useState(settings.storeTaxRate)
@@ -37,6 +38,15 @@ export default function AjustesPage() {
   const [storeAddress, setStoreAddress] = useState(settings.storeAddress)
   const [storeTicketWidth, setStoreTicketWidth] = useState(settings.storeTicketWidth || '80mm')
   const [storeUseThermalPrinter, setStoreUseThermalPrinter] = useState(settings.storeUseThermalPrinter ?? true)
+  
+  const [storeCurrencySecondary, setStoreCurrencySecondary] = useState(settings.storeCurrencySecondary || "BsS")
+  const [storeExchangeRate, setStoreExchangeRate] = useState(settings.storeExchangeRate || 40.0)
+  const [storePaymentInstructions, setStorePaymentInstructions] = useState(settings.storePaymentInstructions || {
+    pagoMovil: "", binance: "", transferencia: ""
+  })
+  const [storePaymentQRs, setStorePaymentQRs] = useState(settings.storePaymentQRs || {
+    pagoMovil: "", binance: "", transferencia: ""
+  })
 
   // Ocultar si no es admin
   if (user?.role !== 'admin') {
@@ -53,13 +63,18 @@ export default function AjustesPage() {
       isGlass,
       fontFamily: fontFamily as any,
       logoUrl,
+      logoSettings,
       storeCurrency,
+      storeCurrencySecondary,
+      storeExchangeRate,
       storeTaxRate,
       storeReceiptMessage,
       storeRif,
       storeAddress,
       storeTicketWidth: storeTicketWidth as any,
-      storeUseThermalPrinter
+      storeUseThermalPrinter,
+      storePaymentInstructions,
+      storePaymentQRs
     })
     showToast("Ajustes guardados correctamente.", "success")
   }
@@ -75,11 +90,22 @@ export default function AjustesPage() {
     }
   }
 
+  const handleQRUpload = (method: 'pagoMovil' | 'binance' | 'transferencia', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setStorePaymentQRs(prev => ({ ...prev, [method]: reader.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ajustes Globales</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Ajustes Globales</h1>
           <p className="text-muted-foreground mt-1">
             Personaliza la apariencia de toda la plataforma.
           </p>
@@ -105,7 +131,7 @@ export default function AjustesPage() {
                   type="text" 
                   value={appName}
                   onChange={(e) => setAppName(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary" 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary" 
                 />
               </div>
 
@@ -116,7 +142,7 @@ export default function AjustesPage() {
                 </label>
                 <div className="flex items-center gap-4">
                   {logoUrl && (
-                    <div className="h-12 w-12 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                    <div className="h-12 w-12 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
                       <img src={logoUrl} alt="Logo Prev" className="max-h-full max-w-full object-contain" />
                     </div>
                   )}
@@ -129,6 +155,46 @@ export default function AjustesPage() {
                   {logoUrl && (
                     <button type="button" onClick={() => setLogoUrl("")} className="text-xs text-red-500 hover:underline shrink-0">Quitar</button>
                   )}
+                </div>
+              </div>
+
+              {/* Logo Visibility & Size */}
+              <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5">
+                <h4 className="text-sm font-bold text-primary">Ajustes de Logo y Título</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Navbar Settings */}
+                  <div className="space-y-3 bg-black/20 p-4 rounded-xl border border-black/5 dark:border-white/5">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Barra de Navegación (Sidebar)</h5>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={logoSettings?.showInNavbar ?? true} onChange={(e) => setLogoSettings(s => ({...s, showInNavbar: e.target.checked}))} className="accent-primary w-4 h-4" />
+                      Mostrar Logo
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={logoSettings?.showNameInNavbar ?? true} onChange={(e) => setLogoSettings(s => ({...s, showNameInNavbar: e.target.checked}))} className="accent-primary w-4 h-4" />
+                      Mostrar Nombre de la App
+                    </label>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Tamaño del Logo (px)</label>
+                      <input type="number" value={logoSettings?.sizeNavbar ?? 40} onChange={e => setLogoSettings(s => ({...s, sizeNavbar: Number(e.target.value)}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                    </div>
+                  </div>
+
+                  {/* Login Settings */}
+                  <div className="space-y-3 bg-black/20 p-4 rounded-xl border border-black/5 dark:border-white/5">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pantalla de Login/Registro</h5>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={logoSettings?.showInLogin ?? true} onChange={(e) => setLogoSettings(s => ({...s, showInLogin: e.target.checked}))} className="accent-primary w-4 h-4" />
+                      Mostrar Logo
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={logoSettings?.showNameInLogin ?? true} onChange={(e) => setLogoSettings(s => ({...s, showNameInLogin: e.target.checked}))} className="accent-primary w-4 h-4" />
+                      Mostrar Nombre de la App
+                    </label>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Tamaño del Logo (px)</label>
+                      <input type="number" value={logoSettings?.sizeLogin ?? 80} onChange={e => setLogoSettings(s => ({...s, sizeLogin: Number(e.target.value)}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -148,7 +214,7 @@ export default function AjustesPage() {
                     type="text" 
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
+                    className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
                   />
                 </div>
               </div>
@@ -169,7 +235,7 @@ export default function AjustesPage() {
                     type="text" 
                     value={secondaryColor}
                     onChange={(e) => setSecondaryColor(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
+                    className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
                   />
                 </div>
               </div>
@@ -190,7 +256,7 @@ export default function AjustesPage() {
                     type="text" 
                     value={borderColor}
                     onChange={(e) => setBorderColor(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
+                    className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary uppercase" 
                   />
                 </div>
               </div>
@@ -203,7 +269,7 @@ export default function AjustesPage() {
                 <select 
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value as any)}
-                  className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary"
                 >
                   <option value="arvo">Arvo (Deportiva / Slab Serif)</option>
                   <option value="inter">Inter (Moderna / Sans Serif)</option>
@@ -213,7 +279,7 @@ export default function AjustesPage() {
 
               {/* Efecto Desvanecido */}
               <div className="space-y-2 md:col-span-2">
-                <label className="flex items-center gap-3 cursor-pointer p-4 bg-black/40 border border-white/10 rounded-lg hover:border-primary/50 transition">
+                <label className="flex items-center gap-3 cursor-pointer p-4 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg hover:border-primary/50 transition">
                   <input 
                     type="checkbox" 
                     checked={isGlass}
@@ -228,7 +294,7 @@ export default function AjustesPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/10 mt-6 pt-6">
+            <div className="pt-4 border-t border-black/10 dark:border-white/10 mt-6 pt-6">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Store className="h-5 w-5 text-primary" /> Configuración de Tienda y Facturación</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -240,7 +306,7 @@ export default function AjustesPage() {
                     value={storeRif}
                     onChange={(e) => setStoreRif(e.target.value)}
                     placeholder="Ej. J-12345678-9"
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                   />
                 </div>
                 
@@ -251,19 +317,25 @@ export default function AjustesPage() {
                     value={storeAddress}
                     onChange={(e) => setStoreAddress(e.target.value)}
                     placeholder="Ej. Av. Principal..."
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium block">Moneda (Símbolo)</label>
-                  <input 
-                    type="text" 
-                    value={storeCurrency}
-                    onChange={(e) => setStoreCurrency(e.target.value)}
-                    placeholder="Ej. $, COP, MXN"
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block">Moneda Principal</label>
+                      <input type="text" value={storeCurrency} onChange={(e) => setStoreCurrency(e.target.value)} placeholder="Ej. USD, $" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block">Moneda Secundaria</label>
+                      <input type="text" value={storeCurrencySecondary} onChange={(e) => setStoreCurrencySecondary(e.target.value)} placeholder="Ej. BsS, COP" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block">Tasa de Cambio ({storeCurrencySecondary}/{storeCurrency})</label>
+                      <input type="number" step="0.01" value={storeExchangeRate} onChange={(e) => setStoreExchangeRate(Number(e.target.value))} placeholder="Ej. 40.5" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -272,7 +344,7 @@ export default function AjustesPage() {
                     type="number" 
                     value={storeTaxRate}
                     onChange={(e) => setStoreTaxRate(Number(e.target.value))}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                   />
                 </div>
 
@@ -281,7 +353,7 @@ export default function AjustesPage() {
                     <select 
                       value={storeTicketWidth}
                       onChange={(e) => setStoreTicketWidth(e.target.value as any)}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                     >
                       <option value="80mm">80mm (Tickera Grande)</option>
                       <option value="58mm">58mm (Tickera Pequeña)</option>
@@ -305,13 +377,51 @@ export default function AjustesPage() {
                     type="text" 
                     value={storeReceiptMessage}
                     onChange={(e) => setStoreReceiptMessage(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                   />
+                </div>
+                
+                <div className="space-y-4 md:col-span-2 pt-4 border-t border-black/5 dark:border-white/5">
+                  <h4 className="font-bold text-sm text-primary">Instrucciones de Pago (Tienda)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">Pago Móvil</label>
+                      <textarea rows={4} value={storePaymentInstructions.pagoMovil} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, pagoMovil: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Pago Móvil..." />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">Binance Pay</label>
+                      <textarea rows={4} value={storePaymentInstructions.binance} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, binance: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Binance (Email, ID)..." />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">Transferencia Bancaria</label>
+                      <textarea rows={4} value={storePaymentInstructions.transferencia} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, transferencia: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Cuenta Bancaria..." />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    {/* Pago Móvil QR */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">QR Pago Móvil</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleQRUpload('pagoMovil', e)} className="text-xs w-full mb-2" />
+                      {storePaymentQRs.pagoMovil && <div className="h-24 w-24 bg-white/5 border border-white/10 rounded overflow-hidden flex items-center justify-center p-1"><img src={storePaymentQRs.pagoMovil} className="max-h-full max-w-full object-contain" /></div>}
+                    </div>
+                    {/* Binance QR */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">QR Binance Pay</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleQRUpload('binance', e)} className="text-xs w-full mb-2" />
+                      {storePaymentQRs.binance && <div className="h-24 w-24 bg-white/5 border border-white/10 rounded overflow-hidden flex items-center justify-center p-1"><img src={storePaymentQRs.binance} className="max-h-full max-w-full object-contain" /></div>}
+                    </div>
+                    {/* Transferencia QR */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium block">QR Transferencia</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleQRUpload('transferencia', e)} className="text-xs w-full mb-2" />
+                      {storePaymentQRs.transferencia && <div className="h-24 w-24 bg-white/5 border border-white/10 rounded overflow-hidden flex items-center justify-center p-1"><img src={storePaymentQRs.transferencia} className="max-h-full max-w-full object-contain" /></div>}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-6 border-t border-white/10 flex justify-end mt-6">
+            <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
               <button 
                 type="submit" 
                 className="bg-primary text-primary-foreground font-bold py-3 px-6 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2"
@@ -337,7 +447,7 @@ export default function AjustesPage() {
             <button 
               type="button"
               onClick={() => setShowEmployeeModal(true)}
-              className="bg-white/10 hover:bg-white/20 text-foreground font-bold py-3 px-6 rounded-lg transition border border-white/20 w-full md:w-auto"
+              className="bg-black/10 dark:bg-white/10 hover:bg-white/20 text-foreground font-bold py-3 px-6 rounded-lg transition border border-white/20 w-full md:w-auto"
             >
               Buscar Empleado para Editar Permisos...
             </button>
@@ -348,7 +458,7 @@ export default function AjustesPage() {
       {/* MODAL DE EMPLEADOS */}
       {showEmployeeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass flex flex-col max-h-[85vh]">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass flex flex-col max-h-[85vh]">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2"><User className="h-5 w-5 text-primary"/> Buscar Empleado</h3>
               <button onClick={() => { setShowEmployeeModal(false); setSelectedEmpId(null); setEmpSearch(""); }} className="text-muted-foreground hover:text-white">&times;</button>
@@ -359,12 +469,12 @@ export default function AjustesPage() {
               placeholder="Buscar por nombre o cédula..." 
               value={empSearch}
               onChange={(e) => setEmpSearch(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-primary mb-4" 
+              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-primary mb-4" 
             />
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-2">
               {employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch)).map(emp => (
-                <div key={emp.id} className="p-4 bg-black/40 border border-white/10 rounded-lg hover:border-primary/50 transition">
+                <div key={emp.id} className="p-4 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg hover:border-primary/50 transition">
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => setSelectedEmpId(selectedEmpId === emp.id ? null : emp.id)}>
                     <div>
                       <h4 className="font-bold">{emp.name}</h4>
@@ -374,12 +484,12 @@ export default function AjustesPage() {
                       <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded font-bold uppercase">Acceso Total</span>
                     )}
                     {emp.role !== 'admin' && (
-                      <button className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded transition">Editar Permisos</button>
+                      <button className="text-xs bg-black/10 dark:bg-white/10 hover:bg-white/20 px-3 py-1 rounded transition">Editar Permisos</button>
                     )}
                   </div>
                   
                   {emp.role !== 'admin' && selectedEmpId === emp.id && (
-                    <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap gap-4">
+                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-4">
                       {[
                         { id: 'POS_ACCESS', label: 'Caja (POS)' },
                         { id: 'INVENTORY_MANAGE', label: 'Inventario' },

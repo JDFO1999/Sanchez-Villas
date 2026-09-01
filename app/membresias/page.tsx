@@ -24,6 +24,15 @@ export default function MembresiasPage() {
   const [showMessageModal, setShowMessageModal] = useState<AthleteProfile | null>(null)
   const [messageText, setMessageText] = useState("")
 
+  const [customMessages, setCustomMessages] = useState([
+    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
+    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
+    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
+  ])
+  const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
+  const [newMessageTitle, setNewMessageTitle] = useState("")
+  const [newMessageText, setNewMessageText] = useState("")
+
   useEffect(() => {
     setAthletes(athleteService.getAthletes())
   }, [])
@@ -103,47 +112,49 @@ export default function MembresiasPage() {
       {/* EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Editar Atleta</h3>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
                   <label className="text-xs font-medium mb-1 block">Nombre Completo</label>
-                  <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <label className="text-xs font-medium mb-1 block">Cédula</label>
-                  <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
                   <label className="text-xs font-medium mb-1 block">Teléfono</label>
-                  <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <label className="text-xs font-medium mb-1 block">Dirección</label>
-                  <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-white/5">
-                <label className="text-xs font-medium mb-1 block">Nueva Contraseña <span className="text-muted-foreground">(Opcional)</span></label>
-                <input type="password" placeholder="Dejar en blanco para no cambiar" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm focus:border-primary mb-3" />
-                
-                {editPassword && (
+              <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Nueva Contraseña</label>
+                    <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                  </div>
                   <div className="relative">
                     <label className="text-xs font-medium mb-1 block">Confirmar Contraseña</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-white/10'}`} placeholder="Repetir nueva contraseña" required={!!editPassword} />
-                    {passwordMatch && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
-                    {editConfirmPassword && !passwordMatch && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">Las contraseñas no coinciden</span>}
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
+                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
+                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
-                )}
+                </div>
               </div>
               
               <div className="flex gap-3 justify-end pt-4">
-                <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 rounded transition">Cancelar</button>
+                <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
                 <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
               </div>
             </form>
@@ -154,14 +165,26 @@ export default function MembresiasPage() {
       {/* MESSAGE MODAL */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
             <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
             
-            <div className="flex flex-wrap gap-2 mb-4">
-              <button onClick={()=>setMessageText(`¡Hola ${showMessageModal.name.split(' ')[0]}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos.`)} className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition">Inasistencia</button>
-              <button onClick={()=>setMessageText(`¡Felicidades por tu constancia esta semana ${showMessageModal.name.split(' ')[0]}! Sigue así.`)} className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition">Felicitación</button>
-              <button onClick={()=>setMessageText(`Hola ${showMessageModal.name.split(' ')[0]}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!`)} className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded hover:bg-white/10 transition">Recordatorio</button>
+            <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
+              {customMessages.map((msg, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setMessageText(msg.text.replace('{nombre}', showMessageModal.name.split(' ')[0]))} 
+                  className="text-xs bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-1 rounded hover:bg-black/10 dark:bg-white/10 transition"
+                >
+                  {msg.title}
+                </button>
+              ))}
+              <button 
+                onClick={() => setShowCreateMessageModal(true)}
+                className="text-xs bg-primary/20 text-primary border border-primary/20 px-2 py-1 rounded hover:bg-primary/30 transition flex items-center gap-1"
+              >
+                + Nuevo
+              </button>
             </div>
 
             <form onSubmit={handleSendMessage} className="space-y-4">
@@ -171,10 +194,10 @@ export default function MembresiasPage() {
                 value={messageText}
                 onChange={e => setMessageText(e.target.value)}
                 placeholder="Escribe tu mensaje..."
-                className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm focus:outline-none focus:border-primary"
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-3 text-sm focus:outline-none focus:border-primary"
               />
               <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={()=>setShowMessageModal(null)} className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10 rounded transition">Cancelar</button>
+                <button type="button" onClick={()=>setShowMessageModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
                 <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition flex items-center gap-2">
                   Abrir WhatsApp
                 </button>
@@ -184,9 +207,38 @@ export default function MembresiasPage() {
         </div>
       )}
 
+      {/* CREATE MESSAGE MODAL */}
+      {showCreateMessageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
+            <h3 className="text-lg font-bold mb-4">Crear Plantilla de Mensaje</h3>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              setCustomMessages(prev => [...prev, { title: newMessageTitle, text: newMessageText }]);
+              setShowCreateMessageModal(false);
+              setNewMessageTitle("");
+              setNewMessageText("");
+            }} className="space-y-4">
+              <div>
+                <label className="text-xs font-medium mb-1 block">Título del botón</label>
+                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. Promoción" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promoción..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Membresías & CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresías & CRM</h1>
           <p className="text-muted-foreground mt-1">
             Gestiona accesos, planes y comunícate con tus atletas.
           </p>
@@ -199,7 +251,7 @@ export default function MembresiasPage() {
             placeholder="Buscar por cédula o nombre..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
           />
         </div>
       </div>
@@ -233,7 +285,7 @@ export default function MembresiasPage() {
                   </div>
 
                   {/* Detalles Membresía */}
-                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-white/5 flex flex-col justify-center">
+                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
@@ -248,7 +300,7 @@ export default function MembresiasPage() {
                   </div>
 
                   {/* Último Acceso */}
-                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-white/5 flex flex-col justify-center">
+                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Último Acceso</span>
@@ -257,10 +309,10 @@ export default function MembresiasPage() {
                   </div>
 
                   {/* Acciones */}
-                  <div className="p-5 border-t md:border-t-0 md:border-l border-white/5 flex flex-row md:flex-col items-center justify-center gap-2 bg-black/20">
+                  <div className="p-5 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-row md:flex-col items-center justify-center gap-2">
                     <button 
                       onClick={() => openEditModal(a)}
-                      className="flex-1 md:w-full bg-white/5 hover:bg-white/10 text-foreground border border-white/10 px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1"
+                      className="flex-1 md:w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-foreground border border-black/10 dark:border-white/10 px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1"
                     >
                       <Edit className="h-3 w-3" /> Editar
                     </button>
@@ -279,7 +331,7 @@ export default function MembresiasPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground glass rounded-xl border border-white/10">
+          <div className="p-8 text-center text-muted-foreground glass rounded-xl border border-black/10 dark:border-white/10">
             No se encontraron atletas.
           </div>
         )}

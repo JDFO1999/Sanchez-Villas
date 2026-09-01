@@ -12,7 +12,17 @@ export interface AppSettings {
   borderColor: string // Hex format
   isGlass: boolean
   fontFamily: FontFamily
+  logoSettings: {
+    showInNavbar: boolean
+    showInLogin: boolean
+    sizeNavbar: number
+    sizeLogin: number
+    showNameInNavbar: boolean
+    showNameInLogin: boolean
+  }
   storeCurrency: string
+  storeCurrencySecondary: string // e.g. BsS
+  storeExchangeRate: number // e.g. 45.5
   storeTaxRate: number
   storeReceiptMessage: string
   storeNextInvoice: number
@@ -20,6 +30,16 @@ export interface AppSettings {
   storeAddress: string
   storeTicketWidth: '80mm' | '58mm' | 'Carta'
   storeUseThermalPrinter: boolean
+  storePaymentInstructions: {
+    pagoMovil: string
+    binance: string
+    transferencia: string
+  }
+  storePaymentQRs: {
+    pagoMovil: string
+    binance: string
+    transferencia: string
+  }
 }
 
 interface SettingsContextType {
@@ -36,14 +56,34 @@ const defaultSettings: AppSettings = {
   borderColor: '#333333', // Lighter gray
   isGlass: true,
   fontFamily: 'arvo',
+  logoSettings: {
+    showInNavbar: true,
+    showInLogin: true,
+    sizeNavbar: 40,
+    sizeLogin: 80,
+    showNameInNavbar: true,
+    showNameInLogin: true
+  },
   storeCurrency: 'USD',
+  storeCurrencySecondary: 'BsS',
+  storeExchangeRate: 40.0,
   storeTaxRate: 19,
   storeReceiptMessage: '¡Gracias por su compra en GymPro!',
   storeNextInvoice: 1,
   storeRif: 'J-12345678-9',
   storeAddress: 'Centro de la ciudad, Calle 1',
   storeTicketWidth: '80mm',
-  storeUseThermalPrinter: true
+  storeUseThermalPrinter: true,
+  storePaymentInstructions: {
+    pagoMovil: 'Banco: Banesco (0134)\nCédula: V-12345678\nTeléfono: 0414-1234567',
+    binance: 'Email: pagos@maximumstore.com\nPay ID: 123456789',
+    transferencia: 'Banco: Mercantil\nCuenta: 0105-0000-0000-0000-0000\nNombre: Maximum Store C.A.\nRIF: J-12345678-9'
+  },
+  storePaymentQRs: {
+    pagoMovil: '',
+    binance: '',
+    transferencia: ''
+  }
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)

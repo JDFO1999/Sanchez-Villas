@@ -6,8 +6,15 @@ import {
   Banknote, 
   AlertCircle,
   ArrowUpRight,
-  ShoppingCart
+  ShoppingCart,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  Calendar,
+  CheckCircle2,
+  X
 } from "lucide-react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -80,18 +87,109 @@ const membresiasNuevas = [
 
 export function AdminDashboard() {
   const hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+  
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportPeriod, setReportPeriod] = useState("Mensual")
+  const [reportFormat, setReportFormat] = useState("PDF")
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  const handleDownloadReport = () => {
+    setIsGenerating(true)
+    setTimeout(() => {
+      setIsGenerating(false)
+      setShowReportModal(false)
+      const link = document.createElement("a");
+      const content = reportFormat === "Excel" 
+        ? "data:text/csv;charset=utf-8,ID,Monto,Fecha\n1,100,2026-08-31" 
+        : "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nDPQM1Qo5ypUMFAwALJMLY31jBQK0osSQyNzgUKZqYkFEAkiBQAAD1oH/QplbmRzdHJlYW0KZW5kb2JqCgozIDAgb2JqCjM5CmVuZG9iagoKMSAwIG9iago8PC9QYWdlcyA0IDAgUi9UeXBlL0NhdGFsb2c+PgplbmRvYmoKCjUgMCBvYmoKPDwvQ3JlYXRpb25EYXRlKEQ6MjAxOTA5MjYwNjMzMTErMDAnMDAnKS9DcmVhdG9yKFBERiB0b29sKS9Qcm9kdWNlcihQREYgdG9vbCk+PgplbmRvYmoKCjQgMCBvYmoKPDwvQ291bnQgMS9LaWRzWzYgMCBSXS9UeXBlL1BhZ2VzPj4KZW5kb2JqCgo2IDAgb2JqCjw8L0NvbnRlbnRzIDIgMCBSL01lZGlhQm94WzAgMCA1OTUgODQyXS9QYXJlbnQgNCAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDcgMCBSPj4+Pi9UeXBlL1BhZ2U+PgplbmRvYmoKCjcgMCBvYmoKPDwvQmFzZUZvbnQvSGVsdmV0aWNhL0VuY29kaW5nL1dpbkFuc2lFbmNvZGluZy9TdWJ0eXBlL1R5cGUxL1R5cGUvRm9udD4+CmVuZG9iagoKeHJlZgowIDgKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA5NiAwMDAwMCBuIAowMDAwMDAwMjM1IDAwMDAwIG4gCjAwMDAwMDAxNjQgMDAwMDAgbiAKMDAwMDAwMDI5MiAwMDAwMCBuIAowMDAwMDAwMzk2IDAwMDAwIG4gCnRyYWlsZXIKPDwvUm9vdCAxIDAgUi9TaXplIDgvSW5mbyA1IDAgUj4+CnN0YXJ0eHJlZgo0ODQKJSVFT0YK";
+      link.href = content;
+      link.download = `Reporte_${reportPeriod}_GymPro.${reportFormat === "Excel" ? "csv" : "pdf"}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }, 1500)
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">
+            <button onClick={() => setShowReportModal(false)} className="absolute top-4 right-4 text-foreground/50 hover:text-foreground transition">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="mx-auto bg-primary/20 h-16 w-16 rounded-full flex items-center justify-center mb-4">
+                <Download className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent">Exportar Reporte</h3>
+              <p className="text-sm text-muted-foreground mt-2">Selecciona el formato y periodo para tu informe financiero.</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Periodo</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Semanal', 'Quincenal', 'Mensual'].map(p => (
+                    <button 
+                      key={p} 
+                      onClick={() => setReportPeriod(p)}
+                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Formato</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setReportFormat('PDF')}
+                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                  >
+                    <FileText className="h-6 w-6" />
+                    <span className="text-xs font-bold">PDF</span>
+                  </button>
+                  <button 
+                    onClick={() => setReportFormat('Excel')}
+                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-green-500/20 border-green-500/50 text-green-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                  >
+                    <FileSpreadsheet className="h-6 w-6" />
+                    <span className="text-xs font-bold">Excel (CSV)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleDownloadReport}
+              disabled={isGenerating}
+              className="w-full mt-6 bg-primary text-primary-foreground font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle2 className="h-5 w-5" /> Generar y Descargar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard General</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Dashboard General</h1>
           <p className="text-muted-foreground mt-1">
             Resumen integral de finanzas, tienda y retención de atletas.
           </p>
         </div>
-        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition">
-          Descargar Reporte Mensual
+        <button onClick={() => setShowReportModal(true)} className="bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary hover:text-primary-foreground transition flex items-center gap-2">
+          <Download className="h-4 w-4" /> Exportar Reporte
         </button>
       </div>
 
@@ -198,7 +296,7 @@ export function AdminDashboard() {
 
         <Card className="glass">
           <CardHeader>
-            <CardTitle>Asistencia Semanal (Mejorado)</CardTitle>
+            <CardTitle>Asistencia Semanal</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -212,9 +310,13 @@ export function AdminDashboard() {
                 />
                 <Bar dataKey="checkins" radius={[6, 6, 0, 0]}>
                   {
-                    attendanceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 2 ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.5)'} />
-                    ))
+                    attendanceData.map((entry, index) => {
+                      let color = '#22c55e' // Green by default (Alto)
+                      if (entry.checkins < 90) color = '#ef4444' // Red (Bajo)
+                      else if (entry.checkins <= 130) color = '#eab308' // Yellow (Intermedio)
+                      
+                      return <Cell key={`cell-${index}`} fill={color} />
+                    })
                   }
                 </Bar>
               </BarChart>
@@ -281,7 +383,7 @@ export function AdminDashboard() {
           <CardContent>
             <ul className="space-y-3">
               {membresiasPorVencer.map((mem, i) => (
-                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
                   <span className="font-medium">{mem.nombre}</span>
                   <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded-full font-bold">
                     Vence en {mem.venceEn}
@@ -299,7 +401,7 @@ export function AdminDashboard() {
           <CardContent>
             <ul className="space-y-3">
               {membresiasNuevas.map((mem, i) => (
-                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-white/5">
+                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
                   <div>
                     <span className="font-medium block">{mem.nombre}</span>
                     <span className="text-xs text-muted-foreground">{mem.plan}</span>

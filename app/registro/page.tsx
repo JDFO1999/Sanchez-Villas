@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation"
 import { Check, Dumbbell, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { athleteService } from "@/lib/data-service"
+import { useSettings } from "@/lib/settings-context"
 
 export default function RegistroPage() {
   const { registerAthlete, login } = useAuth()
+  const { settings } = useSettings()
   const router = useRouter()
   
   const [nombre, setNombre] = useState("")
@@ -79,10 +81,18 @@ export default function RegistroPage() {
           </Link>
         </div>
 
-        <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center mb-4">
-          <Dumbbell className="h-6 w-6 text-primary" />
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Únete a GymPro</h1>
+        {settings.logoSettings?.showInLogin && (
+          settings.logoUrl ? (
+            <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="object-contain mb-4" />
+          ) : (
+            <div style={{ width: settings.logoSettings.sizeLogin, height: settings.logoSettings.sizeLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-4">
+              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.sizeLogin / 2, height: settings.logoSettings.sizeLogin / 2 }} />
+            </div>
+          )
+        )}
+        <h1 className="text-2xl font-bold mb-2">
+          Únete a {settings.logoSettings?.showNameInLogin ? settings.appName : 'nuestra comunidad'}
+        </h1>
         <p className="text-muted-foreground mb-6 text-center text-sm">
           Crea tu cuenta de atleta y selecciona a tu entrenador
         </p>
@@ -97,33 +107,33 @@ export default function RegistroPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Nombre Completo</label>
-              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
+              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Cédula</label>
-              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
+              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Teléfono / WhatsApp</label>
-              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="+57 300 000 0000" required />
+              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="+57 300 000 0000" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Dirección</label>
-              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
+              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Contraseña</label>
-              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
+              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
             </div>
             <div className="relative">
               <label className="text-xs font-medium text-foreground mb-1 block">Confirmar Contraseña</label>
-              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-white/5 border rounded-lg p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-green-500/50 focus:border-green-500' : 'border-red-500/50 focus:border-red-500') : 'border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
+              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-black/5 dark:bg-white/5 border rounded-lg p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-green-500/50 focus:border-green-500' : 'border-red-500/50 focus:border-red-500') : 'border-black/10 dark:border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
               {claveMatch && <Check className="absolute right-3 top-9 h-4 w-4 text-green-500" />}
               {confirmClave && !claveMatch && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
             </div>
@@ -132,14 +142,14 @@ export default function RegistroPage() {
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Género</label>
-              <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary">
+              <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary">
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>
               </select>
             </div>
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Entrenador</label>
-              <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-primary">
+              <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary">
                 <option value="2">Carlos (Staff)</option>
               </select>
             </div>

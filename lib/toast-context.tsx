@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       background: '#222',
       color: '#fff',
       customClass: {
-        popup: 'border border-white/10 rounded-lg shadow-2xl glass'
+        popup: 'border border-black/10 dark:border-white/10 rounded-lg shadow-2xl glass'
       }
     })
   }, [])

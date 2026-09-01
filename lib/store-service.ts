@@ -28,9 +28,11 @@ export interface Transaction {
   subtotal: number
   tax: number
   total: number
-  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil'
-  reference?: string // For Transferencia y Pago Movil
-  receiptImage?: string // For Transferencia y Pago Movil (Base64)
+  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance'
+  reference?: string // For Transferencia, Pago Movil y Binance
+  receiptImage?: string // For Transferencia, Pago Movil y Binance (Base64)
+  status?: 'COMPLETED' | 'PENDING_PICKUP'
+  pickupCode?: string
 }
 
 const PRODUCTS_DB_KEY = "gympro_products_db"
@@ -126,6 +128,15 @@ export const storeService = {
     localStorage.setItem(PRODUCTS_DB_KEY, JSON.stringify(products))
   },
   
+  updateTransaction: (updatedTx: Transaction) => {
+    const transactions = storeService.getTransactions()
+    const index = transactions.findIndex(t => t.id === updatedTx.id)
+    if (index >= 0) {
+      transactions[index] = updatedTx
+      localStorage.setItem(TRANSACTIONS_DB_KEY, JSON.stringify(transactions))
+    }
+  },
+  
   getDepartments: (): string[] => {
     if (typeof window === "undefined") return []
     const data = localStorage.getItem(DEPTS_DB_KEY)
@@ -160,5 +171,22 @@ export const storeService = {
     const depts = storeService.getDepartments()
     const cats = storeService.getCategories()
     return { depts, cats }
+  },
+
+  // New: filter products by department, category and price range
+  filterProducts: ({ department, category, priceMin, priceMax }: {
+    department?: string
+    category?: string
+    priceMin?: number
+    priceMax?: number
+  }) => {
+    const products = storeService.getProducts()
+    return products.filter(p => {
+      const matchesDept = department ? p.department === department : true
+      const matchesCat = category ? p.category === category : true
+      const matchesMin = typeof priceMin === 'number' ? p.sellPrice >= priceMin : true
+      const matchesMax = typeof priceMax === 'number' ? p.sellPrice <= priceMax : true
+      return matchesDept && matchesCat && matchesMin && matchesMax
+    })
   }
 }
