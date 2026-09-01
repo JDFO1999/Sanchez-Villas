@@ -170,7 +170,7 @@ export function AthleteDashboard() {
               <select 
                 value={selectedPrIndex}
                 onChange={(e) => setSelectedPrIndex(Number(e.target.value))}
-                className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs text-muted-foreground w-full focus:outline-none focus:border-primary"
+                className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs text-foreground w-full focus:outline-none focus:border-primary [&>option]:bg-white [&>option]:dark:bg-zinc-900 [&>option]:text-black [&>option]:dark:text-white"
               >
                 {topExercises.map((ex, i) => (
                   <option key={ex.id} value={i}>{ex.name}</option>
@@ -212,26 +212,27 @@ export function AthleteDashboard() {
                   {[
                     { name: "1. Sentadilla Libre", reps: "4 x 10-12" },
                     { name: "2. Prensa Inclinada", reps: "4 x 12" },
-                    { name: "3. Extensión de Cuádriceps", reps: "3 x 15" }
-                  ].map((ex, i) => (
+                    { name: "3. Extensión de Cuádriceps", reps: "3 x 15" },
+                    { name: "4. Hip Thrust", reps: "4 x 10" }
+                  ].map((ex, i) => {
+                    const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
+                    const todayState = savedStates?.today?.[i] || 'pending'
+                    const stateColor = todayState === 'completed' ? 'text-green-500 line-through opacity-60' 
+                      : todayState === 'failed' ? 'text-red-500 line-through opacity-60'
+                      : todayState === 'progress' ? 'text-yellow-500' : ''
+                    const dotColor = todayState === 'completed' ? 'bg-green-500' 
+                      : todayState === 'failed' ? 'bg-red-500'
+                      : todayState === 'progress' ? 'bg-yellow-500' : 'bg-muted-foreground'
+                    return (
                     <div key={i} 
-                         className={`flex justify-between items-center p-2 rounded border transition-colors ${routineStatus === 'in-progress' ? 'hover:bg-black/5 dark:bg-white/5 cursor-pointer border-black/10 dark:border-white/10' : 'border-transparent border-b-white/5'}`}
-                         onClick={() => {
-                           if (routineStatus === 'in-progress') {
-                             // Minimal internal state for toggling in dashboard
-                             const el = document.getElementById(`dash-ex-${i}`) as HTMLInputElement
-                             if (el) el.checked = !el.checked
-                           }
-                         }}>
+                         className="flex justify-between items-center p-2 rounded border border-transparent border-b-black/5 dark:border-b-white/5">
                       <div className="flex items-center gap-2">
-                        {routineStatus === 'in-progress' && (
-                          <input type="checkbox" id={`dash-ex-${i}`} className="h-4 w-4 rounded border-white/20 bg-black/50 accent-primary" onClick={e => e.stopPropagation()} />
-                        )}
-                        <span className={routineStatus === 'completed' ? 'line-through text-muted-foreground' : ''}>{ex.name}</span>
+                        <div className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`}></div>
+                        <span className={stateColor}>{ex.name}</span>
                       </div>
                       <span className="text-muted-foreground">{ex.reps}</span>
                     </div>
-                  ))}
+                  )})}
                 </div>
 
                 <div className="flex gap-2">
@@ -268,29 +269,46 @@ export function AthleteDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { date: "Hoy", type: routineStatus === 'completed' ? "Pierna y Glúteo" : "Bebida recomendada tomada (Pre-entreno)", status: "Completado" },
-                { date: "Ayer", type: "Espalda y Bíceps", status: "Completado" },
-                { date: "Hace 2 días", type: "Pecho y Tríceps", status: "Completado" },
-                { date: "Hace 3 días", type: "Batido Post-Entreno", status: "Completado" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-black/5 dark:border-white/5 hover:bg-secondary/20 transition">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-2 w-2 rounded-full ${item.status === 'Completado' ? 'bg-green-500' : 'bg-primary'}`} />
-                    <div>
-                      <p className="font-medium text-sm">{item.type}</p>
-                      <p className="text-xs text-muted-foreground">{item.date}</p>
+              {(() => {
+                const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
+                const todayExercises = [
+                  "Sentadilla Libre", "Prensa Inclinada", "Extensión de Cuádriceps", "Hip Thrust"
+                ]
+                const completedToday = todayExercises
+                  .map((name, i) => ({ name, state: savedStates?.today?.[i] || 'pending' }))
+                  .filter(e => e.state === 'completed')
+
+                const pastActivities = [
+                  { date: "Ayer", type: "Espalda y Bíceps", status: "Completado" },
+                  { date: "Hace 2 días", type: "Pecho y Tríceps", status: "Completado" },
+                  { date: "Hace 3 días", type: "Batido Post-Entreno", status: "Completado" },
+                ]
+
+                const todayItems = completedToday.map(e => ({ date: "Hoy", type: e.name, status: "Completado" }))
+                const allItems = todayItems.length > 0 ? [...todayItems, ...pastActivities] : [
+                  { date: "Hoy", type: "Aún no has completado ejercicios", status: "Pendiente" },
+                  ...pastActivities
+                ]
+
+                return allItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-black/5 dark:border-white/5 hover:bg-secondary/20 transition">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-2 w-2 rounded-full ${item.status === 'Completado' ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                      <div>
+                        <p className="font-medium text-sm">{item.type}</p>
+                        <p className="text-xs text-muted-foreground">{item.date}</p>
+                      </div>
                     </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      item.status === 'Completado' 
+                        ? 'bg-green-500/10 text-green-500' 
+                        : 'bg-black/5 dark:bg-white/5 text-muted-foreground'
+                    }`}>
+                      {item.status}
+                    </span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    item.status === 'Completado' 
-                      ? 'bg-green-500/10 text-green-500' 
-                      : 'bg-primary/10 text-primary'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              ))}
+                ))
+              })()}
             </div>
           </CardContent>
         </Card>

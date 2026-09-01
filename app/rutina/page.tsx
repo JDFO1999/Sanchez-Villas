@@ -54,18 +54,36 @@ export default function RutinaPage() {
   const [selectedDay, setSelectedDay] = useState<'yesterday' | 'today' | 'tomorrow'>('today')
   
   type ExState = 'pending' | 'progress' | 'completed' | 'failed'
-  // Track checked exercises by day and index
-  const [exerciseStates, setExerciseStates] = useState<Record<string, Record<number, ExState>>>({
-    yesterday: { 0: 'completed', 1: 'completed', 2: 'completed' }, // all completed yesterday
-    today: {},
-    tomorrow: {}
+
+  // Load from localStorage on mount
+  const [exerciseStates, setExerciseStates] = useState<Record<string, Record<number, ExState>>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gympro_exercise_states')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      yesterday: { 0: 'completed', 1: 'completed', 2: 'completed' },
+      today: {},
+      tomorrow: {}
+    }
   })
 
-  const [routineCompleted, setRoutineCompleted] = useState<Record<string, boolean>>({
-    yesterday: true,
-    today: false,
-    tomorrow: false
+  const [routineCompleted, setRoutineCompleted] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gympro_routine_completed')
+      if (saved) return JSON.parse(saved)
+    }
+    return { yesterday: true, today: false, tomorrow: false }
   })
+
+  // Save to localStorage whenever states change
+  useEffect(() => {
+    localStorage.setItem('gympro_exercise_states', JSON.stringify(exerciseStates))
+  }, [exerciseStates])
+
+  useEffect(() => {
+    localStorage.setItem('gympro_routine_completed', JSON.stringify(routineCompleted))
+  }, [routineCompleted])
 
   const routine = routinesData[selectedDay]
   const currentStates = exerciseStates[selectedDay] || {}
@@ -73,7 +91,10 @@ export default function RutinaPage() {
 
   const changeExerciseState = (idx: number, newState: ExState) => {
     if (selectedDay !== 'today') {
-      alert(selectedDay === 'yesterday' ? "No puedes modificar una rutina de ayer, ya finalizó." : "No puedes modificar una rutina de mañana, aún no ha comenzado.")
+      import("sweetalert2").then((Swal) => {
+        const Toast = Swal.default.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
+        Toast.fire({ icon: 'warning', title: selectedDay === 'yesterday' ? 'No puedes modificar una rutina de ayer' : 'Esta rutina aún no ha comenzado' })
+      })
       return
     }
     setExerciseStates(prev => ({
@@ -87,7 +108,6 @@ export default function RutinaPage() {
 
   const handleCompletar = () => {
     if (selectedDay !== 'today') return
-    // If marking as complete, check all exercises
     const newStates = { ...currentStates }
     routine.exercises.forEach((_, i) => { newStates[i] = 'completed' })
     
