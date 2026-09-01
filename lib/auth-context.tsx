@@ -37,13 +37,15 @@ export interface User {
 // Mock Database of users
 export const mockUsers: User[] = [
   { id: '1', name: 'Admin Principal', email: 'admin@gympro.com', role: 'admin', cedula: '1234', permissions: ['POS_ACCESS', 'INVENTORY_MANAGE', 'SALES_VIEW', 'CRM_MANAGE'] },
-  { id: '2', name: 'Entrenador Carlos', email: 'carlos@gympro.com', role: 'employee', cedula: '5678', permissions: ['POS_ACCESS'] },
+  { id: '2', name: 'Recepción Maria', email: 'maria@gympro.com', role: 'cajero', cedula: '5678', permissions: ['POS_ACCESS', 'SALES_VIEW', 'CRM_MANAGE'] },
+  { id: '4', name: 'Entrenador Carlos', email: 'carlos@gympro.com', role: 'employee', cedula: '4444', permissions: [] },
   { id: '3', name: 'Atleta Juan', email: 'juan@atleta.com', role: 'athlete', cedula: '9012' }
 ]
 
 const mockPasswords: Record<string, string> = {
   '1234': 'admin',
-  '5678': 'entrenador',
+  '5678': 'recepcion',
+  '4444': 'entrenador',
   '9012': 'atleta'
 }
 

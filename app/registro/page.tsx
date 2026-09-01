@@ -20,7 +20,7 @@ export default function RegistroPage() {
   const [clave, setClave] = useState("")
   const [confirmClave, setConfirmClave] = useState("")
   const [genero, setGenero] = useState<'M' | 'F'>('M')
-  const [entrenador, setEntrenador] = useState("2") 
+  const [entrenador, setEntrenador] = useState("") 
   
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -46,15 +46,17 @@ export default function RegistroPage() {
       }
 
       const today = new Date()
+      // La membresía comienza hoy pero terminará hoy si no ha pagado, para que salga vencida y tenga que pagar
+      // O podemos ponerle endDate ayer para que force a renovar.
       const end = new Date()
-      end.setMonth(end.getMonth() + 1)
+      end.setDate(end.getDate() - 1)
       
       athleteService.updateAthlete({
         id: newUser.id,
         cedula: cedula,
         name: nombre,
         gender: genero,
-        coachId: entrenador,
+        coachId: entrenador || undefined,
         phone: telefono,
         address: direccion,
         membershipStart: today.toISOString().split("T")[0],
@@ -63,8 +65,22 @@ export default function RegistroPage() {
         biometrics: []
       })
 
-      login(cedula, clave)
-      router.push("/")
+      // Si el usuario actual tiene permisos de staff, no le hacemos auto-login
+      const currentUserStr = localStorage.getItem('gympro_user')
+      let isStaff = false
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr)
+        if (currentUser.role !== 'athlete') {
+           isStaff = true
+        }
+      }
+
+      if (isStaff) {
+        router.push(`/atletas/${newUser.id}`)
+      } else {
+        login(cedula, clave)
+        router.push("/")
+      }
     }, 800)
   }
 
@@ -148,9 +164,10 @@ export default function RegistroPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground mb-1 block">Entrenador</label>
+              <label className="text-xs font-medium text-foreground mb-1 block">Entrenador (Opcional)</label>
               <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary">
-                <option value="2">Carlos (Staff)</option>
+                <option value="">Ninguno</option>
+                <option value="4">Carlos (Staff)</option>
               </select>
             </div>
           </div>

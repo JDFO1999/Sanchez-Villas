@@ -16,6 +16,8 @@ export function ReceptionDashboard() {
     setAthletes(athleteService.getAthletes())
   }, [])
 
+  const [checkedInIds, setCheckedInIds] = useState<Record<string, boolean>>({})
+
   const handleCheckIn = (id: string) => {
     // Buscar si el atleta tiene rutina hoy para marcar coachVerified
     const routines = dataService.getRoutines()
@@ -26,8 +28,18 @@ export function ReceptionDashboard() {
       dataService.verifyByCoach(activeRoutine.id) // Recepción valida la entrada
     }
     
-    // Simulate check-in
-    alert(`Entrada registrada exitosamente.`)
+    setCheckedInIds(prev => ({...prev, [id]: true}))
+    
+    import("sweetalert2").then((Swal) => {
+      const Toast = Swal.default.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+      })
+      Toast.fire({ icon: 'success', title: 'Entrada registrada exitosamente' })
+    })
   }
 
   const filteredAthletes = athletes.filter(a => 
@@ -85,15 +97,17 @@ export function ReceptionDashboard() {
                     </div>
                     <button 
                       onClick={() => handleCheckIn(a.id)}
-                      disabled={isOverdue}
+                      disabled={isOverdue || checkedInIds[a.id]}
                       className={`px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2 transition ${
                         isOverdue 
-                          ? 'bg-red-500/20 text-red-500 cursor-not-allowed' 
-                          : 'bg-green-500/20 text-green-500 hover:bg-green-500/30'
+                          ? 'bg-black/10 dark:bg-white/10 text-muted-foreground cursor-not-allowed' 
+                          : checkedInIds[a.id]
+                            ? 'bg-green-500 text-white'
+                            : 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:bg-red-500/20 dark:text-red-400'
                       }`}
                     >
                       <ClipboardCheck className="h-4 w-4" />
-                      Dar Entrada
+                      {isOverdue ? 'Vencido' : checkedInIds[a.id] ? 'Listo' : 'Dar Entrada'}
                     </button>
                   </div>
                 )
