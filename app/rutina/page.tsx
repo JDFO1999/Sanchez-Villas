@@ -190,7 +190,7 @@ export default function RutinaPage() {
 
         <Card className="md:col-span-2 glass">
           <CardHeader>
-            <CardTitle>Ejercicios ({Object.keys(currentChecked).length}/{routine.exercises.length})</CardTitle>
+            <CardTitle>Ejercicios ({Object.values(currentStates).filter(s => s === 'completed').length}/{routine.exercises.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

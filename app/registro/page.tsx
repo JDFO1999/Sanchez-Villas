@@ -66,7 +66,7 @@ export default function RegistroPage() {
       })
 
       // Si el usuario actual tiene permisos de staff, no le hacemos auto-login
-      const currentUserStr = localStorage.getItem('gympro_user')
+      const currentUserStr = localStorage.getItem('gympro_mock_user')
       let isStaff = false
       if (currentUserStr) {
         const currentUser = JSON.parse(currentUserStr)
