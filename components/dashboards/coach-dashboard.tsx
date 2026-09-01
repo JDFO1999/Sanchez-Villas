@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, CheckCircle2, FileEdit, UserCheck } from "lucide-react"
-import { dataService, AthleteRoutine } from "@/lib/data-service"
+import { dataService, athleteService, AthleteRoutine } from "@/lib/data-service"
+import Link from "next/link"
 
 export function CoachDashboard() {
   const { user } = useAuth()
@@ -42,11 +43,15 @@ export function CoachDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {routines.map((routine) => (
+              {routines.map((routine) => {
+                const athlete = athleteService.getAthleteById(routine.athleteId)
+                return (
                 <div key={routine.id} className="p-4 border border-black/10 dark:border-white/10 rounded-xl bg-card hover:bg-secondary/20 transition">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className="font-bold text-foreground">Juan (C.C. 9012)</h4>
+                      <Link href={`/atletas/${routine.athleteId}`} className="font-bold text-foreground hover:text-primary transition underline-offset-4 hover:underline">
+                        {athlete ? `${athlete.name} (C.C. ${athlete.cedula})` : `Atleta ${routine.athleteId}`}
+                      </Link>
                       <p className="text-sm text-primary font-medium">{routine.title}</p>
                     </div>
                     <div className="text-right">

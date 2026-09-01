@@ -25,7 +25,7 @@ export default function VentasPage() {
     setAthletes(athleteService.getAthletes())
   }, [])
 
-  if (!user || (user.role !== 'admin' && !user.permissions?.includes('SALES_VIEW'))) {
+  if (!user || (user.role !== 'admin' && user.role !== 'cajero' && !user.permissions?.includes('SALES_VIEW'))) {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
@@ -154,24 +154,27 @@ export default function VentasPage() {
                           onClick={() => {
                             import("sweetalert2").then((Swal) => {
                               Swal.default.fire({
-                                title: 'Verificar Código de Retiro',
+                                title: 'Entregar Pedido',
+                                text: 'Ingrese el Código de Retiro del Atleta:',
                                 input: 'text',
-                                inputPlaceholder: 'Ingrese el código (Ej: ATH-1234)',
+                                inputPlaceholder: 'Ej: AB12',
                                 showCancelButton: true,
-                                confirmButtonText: 'Verificar',
+                                confirmButtonText: 'Verificar y Entregar',
                                 cancelButtonText: 'Cancelar',
-                                confirmButtonColor: '#22c55e',
-                                inputAttributes: { style: 'text-transform: uppercase; text-align: center; font-size: 1.2rem; font-weight: bold; letter-spacing: 0.1em;' },
-                                customClass: { input: 'swal-code-input' }
+                                inputValidator: (value) => {
+                                  if (!value) return 'Debes ingresar un código'
+                                  return null
+                                }
                               }).then((result) => {
-                                if (result.isConfirmed && result.value) {
-                                  if (result.value.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
+                                if (result.isConfirmed) {
+                                  const code = result.value
+                                  if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
                                     const updatedTx = { ...tx, status: 'COMPLETED' as const, deliveredBy: user?.name || user?.id }
                                     storeService.updateTransaction(updatedTx)
                                     setTransactions(storeService.getTransactions().reverse())
-                                    Swal.default.fire({ icon: 'success', title: '¡Entregado!', text: 'Código correcto. Productos entregados.', timer: 2000, showConfirmButton: false })
+                                    showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
                                   } else {
-                                    Swal.default.fire({ icon: 'error', title: 'Código Incorrecto', text: 'El código no coincide. Verifica e intenta de nuevo.' })
+                                    showToast("Código incorrecto.", "error")
                                   }
                                 }
                               })
@@ -256,21 +259,37 @@ export default function VentasPage() {
                       <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
                       <button 
                         onClick={() => {
-                          const code = prompt("Ingrese el Código de Retiro del Atleta:")
-                          if (code) {
-                            if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
-                              const updatedTx = { ...tx, status: 'COMPLETED' as const }
-                              storeService.updateTransaction(updatedTx)
-                              setTransactions(storeService.getTransactions().reverse())
-                              showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
-                            } else {
-                              showToast("Código incorrecto.", "error")
-                            }
-                          }
+                          import("sweetalert2").then((Swal) => {
+                            Swal.default.fire({
+                              title: 'Entregar Pedido',
+                              text: 'Ingrese el Código de Retiro del Atleta:',
+                              input: 'text',
+                              inputPlaceholder: 'Ej: AB12',
+                              showCancelButton: true,
+                              confirmButtonText: 'Verificar y Entregar',
+                              cancelButtonText: 'Cancelar',
+                              inputValidator: (value) => {
+                                if (!value) return 'Debes ingresar un código'
+                                return null
+                              }
+                            }).then((result) => {
+                              if (result.isConfirmed) {
+                                const code = result.value
+                                if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
+                                  const updatedTx = { ...tx, status: 'COMPLETED' as const, deliveredBy: user?.name || user?.id }
+                                  storeService.updateTransaction(updatedTx)
+                                  setTransactions(storeService.getTransactions().reverse())
+                                  showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
+                                } else {
+                                  showToast("Código incorrecto.", "error")
+                                }
+                              }
+                            })
+                          })
                         }}
-                        className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
+                        className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded hover:bg-primary/90 font-bold"
                       >
-                        Verificar Código
+                        Entregar
                       </button>
                     </div>
                   ) : (

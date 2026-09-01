@@ -83,7 +83,7 @@ export interface BiometricRecord {
   chest?: number
   waist?: number
   hips?: number
-  customFields?: Record<string, number>
+  customFields?: Record<string, any>
 }
 
 export interface AthleteProfile {

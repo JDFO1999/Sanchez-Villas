@@ -27,8 +27,7 @@ export default function AtletaPerfilPage() {
   const [newChest, setNewChest] = useState("")
   const [newWaist, setNewWaist] = useState("")
   const [newHips, setNewHips] = useState("")
-  // Array de objetos para custom fields { name, value }
-  const [newCustomFields, setNewCustomFields] = useState<{name: string, value: string}[]>([])
+  const [newCustomFields, setNewCustomFields] = useState<{name: string, unit: string, value: string}[]>([])
 
   const [showCoachRequest, setShowCoachRequest] = useState(false)
   const [requestReason, setRequestReason] = useState("")
@@ -68,20 +67,15 @@ export default function AtletaPerfilPage() {
     e.preventDefault()
     const customFieldsObj = newCustomFields.reduce((acc, field) => {
       if (field.name && field.value) {
-        acc[field.name] = parseFloat(field.value);
+        acc[field.name] = `${field.value} ${field.unit || ''}`.trim();
       }
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, string>);
 
     const newRecord: BiometricRecord = {
       date: new Date().toISOString().split("T")[0],
       weight: parseFloat(newWeight),
       height: parseFloat(newHeight),
-      ...(athlete.gender === 'F' && {
-        chest: parseFloat(newChest),
-        waist: parseFloat(newWaist),
-        hips: parseFloat(newHips),
-      }),
       customFields: Object.keys(customFieldsObj).length > 0 ? customFieldsObj : undefined
     }
     const updated = { ...athlete, biometrics: [...athlete.biometrics, newRecord] }
@@ -496,14 +490,9 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'admin' && (
-            <>
-              <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
-                Cambiar Coach
-              </button>
-              <button onClick={() => setShowRenovarModal(true)} className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition shadow-lg shadow-green-500/20">
-                Renovar Membresía
-              </button>
-            </>
+            <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
+              Cambiar Coach
+            </button>
           )}
           {user?.role === 'athlete' && athlete.coachId && (
             <button onClick={() => setShowCoachRequest(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 transition">
@@ -534,6 +523,11 @@ export default function AtletaPerfilPage() {
                   {diffDays > 0 ? `${diffDays} días restantes` : 'Vencida'}
                 </p>
               </div>
+              {(user?.role === 'admin' || user?.role === 'cajero' || user?.permissions?.includes('POS_ACCESS')) && (
+                <button onClick={() => setShowRenovarModal(true)} className="w-full bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 transition shadow-lg shadow-green-500/20">
+                  Renovar / Cobrar
+                </button>
+              )}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio</p>
@@ -594,44 +588,51 @@ export default function AtletaPerfilPage() {
                       <label className="text-xs text-muted-foreground">Altura (cm)</label>
                       <input type="number" step="1" required value={newHeight} onChange={e => setNewHeight(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                     </div>
-                    {athlete.gender === 'F' && (
-                      <>
+                    </div>
+                    {/* Campos dinámicos agregados manualmente por el entrenador para este atleta */}
+                    {newCustomFields.map((field, idx) => (
+                      <div key={idx} className="col-span-2 grid grid-cols-3 gap-2 items-end">
                         <div>
-                          <label className="text-xs text-muted-foreground">Pecho (cm)</label>
-                          <input type="number" step="0.1" required value={newChest} onChange={e => setNewChest(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
+                          <label className="text-xs text-muted-foreground">Categoría</label>
+                          <input type="text" placeholder="Ej. Brazo" value={field.name} onChange={e => {
+                            const newFields = [...newCustomFields]
+                            newFields[idx].name = e.target.value
+                            setNewCustomFields(newFields)
+                          }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Cintura (cm)</label>
-                          <input type="number" step="0.1" required value={newWaist} onChange={e => setNewWaist(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
+                          <label className="text-xs text-muted-foreground">Medida</label>
+                          <input type="number" step="0.1" placeholder="Ej. 34" value={field.value} onChange={e => {
+                            const newFields = [...newCustomFields]
+                            newFields[idx].value = e.target.value
+                            setNewCustomFields(newFields)
+                          }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                         </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground">Cadera (cm)</label>
-                          <input type="number" step="0.1" required value={newHips} onChange={e => setNewHips(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="text-xs text-muted-foreground">Unidad</label>
+                            <select value={field.unit} onChange={e => {
+                              const newFields = [...newCustomFields]
+                              newFields[idx].unit = e.target.value
+                              setNewCustomFields(newFields)
+                            }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1">
+                              <option value="cm">cm</option>
+                              <option value="kg">kg</option>
+                              <option value="%">%</option>
+                            </select>
+                          </div>
+                          <button type="button" onClick={() => {
+                            const newFields = [...newCustomFields]
+                            newFields.splice(idx, 1)
+                            setNewCustomFields(newFields)
+                          }} className="bg-red-500/10 text-red-500 p-2 rounded hover:bg-red-500/20 mb-px shrink-0">X</button>
                         </div>
-                      </>
-                    )}
-                    {settings.biometricFields?.map(field => {
-                      const valObj = newCustomFields.find(f => f.name === field);
-                      return (
-                        <div key={field}>
-                          <label className="text-xs text-muted-foreground">{field} (cm)</label>
-                          <input 
-                            type="number" step="0.1" 
-                            value={valObj?.value || ''} 
-                            onChange={e => {
-                              const val = e.target.value;
-                              setNewCustomFields(prev => {
-                                const existing = prev.find(p => p.name === field);
-                                if (existing) return prev.map(p => p.name === field ? { ...p, value: val } : p);
-                                return [...prev, { name: field, value: val }];
-                              })
-                            }} 
-                            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" 
-                          />
-                        </div>
-                      )
-                    })}
+                      </div>
+                    ))}
                   </div>
+                  <button type="button" onClick={() => setNewCustomFields([...newCustomFields, {name: '', unit: 'cm', value: ''}])} className="text-xs bg-primary/20 text-primary font-bold py-1.5 px-3 rounded-lg hover:bg-primary/30 transition">
+                    + Añadir Otra Medida
+                  </button>
                   <button type="submit" className="bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg text-sm w-full mt-2">
                     Guardar Registro
                   </button>
@@ -663,11 +664,10 @@ export default function AtletaPerfilPage() {
                     </>
                   )}
                   {latestBiometrics.customFields && Object.entries(latestBiometrics.customFields)
-                    .filter(([key]) => !['pecho', 'cintura', 'cadera'].includes(key.toLowerCase()))
                     .map(([key, val]) => (
                     <div key={key} className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">{key}</p>
-                      <p className="text-xl font-bold">{val} <span className="text-sm font-normal text-muted-foreground">cm</span></p>
+                      <p className="text-xs text-muted-foreground mb-1 capitalize">{key}</p>
+                      <p className="text-xl font-bold">{val}</p>
                     </div>
                   ))}
                 </div>
