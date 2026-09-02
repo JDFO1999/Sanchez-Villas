@@ -114,7 +114,6 @@ export default function EmpleadosPage() {
                 <th className="p-4 font-medium">Empleado</th>
                 <th className="p-4 font-medium">Información de Contacto</th>
                 <th className="p-4 font-medium">Atletas Asignados</th>
-                <th className="p-4 font-medium">Configuración de Pago</th>
                 <th className="p-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
@@ -137,16 +136,9 @@ export default function EmpleadosPage() {
                     <td className="p-4">
                       <div className="font-bold text-primary">{assignedAthletes.length} atletas</div>
                     </td>
-                    <td className="p-4">
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Base:</span> <span className="font-bold">{settings.storeCurrency} {baseSalary}</span>
-                      </div>
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Comisión:</span> <span className="font-bold">{settings.storeCurrency} {commissionRate} {emp.commissionType === 'percentage' ? '%' : 'fijo/atleta'}</span>
-                      </div>
-                    </td>
+
                     <td className="p-4 text-right flex justify-end gap-2">
-                      <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '', confirmClave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
+                      <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, pin: emp.accessPin || '', clave: '', confirmClave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                         Editar
                       </button>
                       <button onClick={async () => { 
@@ -165,7 +157,7 @@ export default function EmpleadosPage() {
               })}
               {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
+                  <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
                 </tr>
               )}
             </tbody>
@@ -241,24 +233,7 @@ export default function EmpleadosPage() {
                    </div>
                 )}
                 
-                {empForm.role === 'employee' && (
-                  <div className="col-span-2 border-t border-black/10 dark:border-white/10 pt-4 mt-2">
-                    <h4 className="font-bold text-primary mb-3">Información de Comisiones</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Comisión por Atleta (Monto o %)</label>
-                        <input type="number" step="0.01" min="0" value={empForm.commissionRate} onChange={e => setEmpForm({...empForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
-                        <select value={empForm.commissionType} onChange={e => setEmpForm({...empForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
-                          <option value="flat">Monto Fijo ({settings.storeCurrency})</option>
-                          <option value="percentage">Porcentaje (%) del Plan</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
+
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-4">
                 <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>

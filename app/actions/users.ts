@@ -44,6 +44,7 @@ export async function updateEmployee(id: string, data: any) {
         profession: data.profession || null,
         specialties: data.specialties || null,
         nonWorkingDays: data.nonWorkingDays || null,
+        accessPin: data.pin !== undefined ? data.pin : undefined,
         // Update password if provided
         ...(data.clave ? { password: data.clave } : {})
       }
