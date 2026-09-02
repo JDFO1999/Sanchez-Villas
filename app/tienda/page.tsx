@@ -61,22 +61,10 @@ export default function TiendaPOSPage() {
 
   useEffect(() => {
     async function load() {
-      const { getProducts } = await import('@/app/actions/store')
       const { getAthletes } = await import('@/app/actions/users')
+      const athRes = await getAthletes()
       
-      const [prodRes, athRes] = await Promise.all([
-        getProducts(),
-        getAthletes()
-      ])
-      
-      let loadedProducts = prodRes.success ? (prodRes.products as any) : []
-      // We map the Prisma product to the old structure
-      loadedProducts = loadedProducts.map((p: any) => ({
-        ...p,
-        sellPrice: p.price,
-        currentStock: p.stock
-      }))
-      
+      const loadedProducts = storeService.getProducts()
       setProducts(loadedProducts)
       if (athRes.success) setAthletes(athRes.athletes as any)
       
