@@ -27,11 +27,37 @@ model User {
   transactions     Transaction[] @relation("CashierTransactions")
   customerTx       Transaction[] @relation("CustomerTransactions")
   attendances      Attendance[]
+  payrollReceipts  PayrollReceipt[]
   
   coachedAthletes  User[]        @relation("CoachToAthlete")
   coach            User?         @relation("CoachToAthlete", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   coachId          String?
   previousCoachId  String?
+
+  // Configuración Laboral Extra
+  paymentFrequency String?
+  commissionType   String?
+  birthDate        String?
+  profession       String?
+  specialties      String?
+  nonWorkingDays   String?
+  lastPaidDate     DateTime?
+}
+
+model PayrollReceipt {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     User     @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  date         DateTime @default(now())
+  periodStart  DateTime
+  periodEnd    DateTime
+  baseSalary   Float
+  commission   Float
+  bonus        Float    @default(0)
+  deductions   Float    @default(0)
+  advances     Float    @default(0)
+  totalPaid    Float
+  notes        String?  @db.Text
 }
 
 model Membership {

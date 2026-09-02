@@ -150,6 +150,11 @@ export default function FinanzasPage() {
     commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', 
     nonWorkingDays: '', avatar: ''
   })
+  
+  const [showProcessPayrollModal, setShowProcessPayrollModal] = useState(false)
+  const [payrollProcessData, setPayrollProcessData] = useState<any>({
+    employeeId: '', name: '', baseSalary: 0, commission: 0, bonus: 0, deductions: 0, advances: 0, notes: ''
+  })
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault()
@@ -222,29 +227,92 @@ export default function FinanzasPage() {
     })
   }
 
-  const handlePayEmployee = async (emp: any, totalPay: number) => {
-    Swal.fire({
-      title: 'Pagar Nómina',
-      text: `¿Proceder a pagar ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, pagar',
-      cancelButtonText: 'Cancelar'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        financeService.addExpense({
-          description: `Nómina: ${emp.name}`,
-          amount: totalPay,
-          category: 'Nómina'
-        })
-        if (updateEmployee) {
-          await updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
-        }
-        if (getAllEmployees) setEmployees(await getAllEmployees())
-        setExpenses(financeService.getExpenses())
-        Swal.fire('¡Pagado!', 'La nómina ha sido registrada.', 'success')
-      }
+  const openProcessPayroll = (emp: any, base: number, commission: number) => {
+    setPayrollProcessData({
+      employeeId: emp.id,
+      name: emp.name,
+      baseSalary: base,
+      commission: commission,
+      bonus: 0,
+      deductions: 0,
+      advances: 0,
+      notes: ''
     })
+    setShowProcessPayrollModal(true)
+  }
+
+  const submitProcessPayroll = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { processPayroll } = await import('@/app/actions/payroll')
+    const { getExpenses } = await import('@/app/actions/finance')
+    
+    const totalPaid = payrollProcessData.baseSalary + payrollProcessData.commission + payrollProcessData.bonus - payrollProcessData.deductions - payrollProcessData.advances
+    
+    // Asumimos mes completo por defecto
+    const today = new Date()
+    const start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString()
+    
+    const res = await processPayroll({
+      employeeId: payrollProcessData.employeeId,
+      periodStart: start,
+      periodEnd: end,
+      baseSalary: payrollProcessData.baseSalary,
+      commission: payrollProcessData.commission,
+      bonus: payrollProcessData.bonus,
+      deductions: payrollProcessData.deductions,
+      advances: payrollProcessData.advances,
+      totalPaid: totalPaid,
+      notes: payrollProcessData.notes
+    })
+    
+    if (res.success) {
+      Swal.fire({
+        title: '¡Pagado!', 
+        text: 'La nómina ha sido procesada. ¿Deseas descargar el recibo en PDF?', 
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, descargar PDF',
+        cancelButtonText: 'No, gracias'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const element = document.createElement('div')
+          element.innerHTML = `
+            <div style="padding: 40px; font-family: sans-serif; color: #000; background: #fff;">
+              <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px;">Recibo de Nómina</h2>
+              <p><strong>Empresa/Gimnasio:</strong> ${settings.appName}</p>
+              <p><strong>Empleado:</strong> ${payrollProcessData.name}</p>
+              <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
+              <hr style="margin: 20px 0;" />
+              <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Sueldo Base</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${payrollProcessData.baseSalary.toFixed(2)}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Comisiones</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${payrollProcessData.commission.toFixed(2)}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Bonos Extras</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${payrollProcessData.bonus.toFixed(2)}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Adelantos Previos</td><td style="text-align: right; color: red; padding: 8px 0; border-bottom: 1px solid #eee;">-${settings.storeCurrency} ${payrollProcessData.advances.toFixed(2)}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Deducciones</td><td style="text-align: right; color: red; padding: 8px 0; border-bottom: 1px solid #eee;">-${settings.storeCurrency} ${payrollProcessData.deductions.toFixed(2)}</td></tr>
+              </table>
+              <hr style="margin: 20px 0;" />
+              <h3 style="text-align: right; font-size: 20px;">Total Pagado: ${settings.storeCurrency} ${totalPaid.toFixed(2)}</h3>
+              ${payrollProcessData.notes ? `<p style="margin-top: 20px; font-size: 14px; color: #555;"><strong>Notas:</strong> ${payrollProcessData.notes}</p>` : ''}
+              <div style="margin-top: 50px; text-align: center;">
+                <p>___________________________________</p>
+                <p>Firma de Recibido</p>
+              </div>
+            </div>
+          `
+          import('html2pdf.js').then((html2pdf) => {
+            html2pdf.default().from(element).save(`Recibo_Nomina_${payrollProcessData.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+          })
+        }
+      })
+      setShowProcessPayrollModal(false)
+      
+      const expRes = await getExpenses()
+      if (expRes.success) setExpenses(expRes.expenses as any)
+      if (getAllEmployees) setEmployees(await getAllEmployees())
+    } else {
+      Swal.fire('Error', res.error, 'error')
+    }
   }
   
   const handleSaldarDeuda = (athleteId: string, debtAmount: number) => {
@@ -987,24 +1055,28 @@ export default function FinanzasPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').map(emp => {
-                    const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
                     const baseSalary = emp.baseSalary || 0
                     const commissionRate = emp.commissionRate || 0
-                    const commissionType = emp.commissionType || 'flat'
                     
-                    const avgMembership = 30
-                    const totalRevenueFromMembership = assignedAthletes.length * avgMembership
+                    const currentMonthPrefix = new Date().toISOString().substring(0, 7)
+                    const monthTransactions = (transactions as any[]).filter(tx => tx.date.startsWith(currentMonthPrefix) && tx.status === 'COMPLETED')
+                    
+                    // Solo transacciones pagadas por clientes de este coach
+                    const coachTx = monthTransactions.filter(tx => tx.customer?.coachId === emp.id)
+                    
                     let commission = 0
-                    if (settings.coachCustomPricing) {
-                      const coachTotalGross = assignedAthletes.length * commissionRate
-                      const gymCut = coachTotalGross * ((settings.gymCommissionPercentage || 30) / 100)
-                      commission = coachTotalGross - gymCut
-                    } else {
-                      commission = commissionType === 'percentage' 
-                        ? totalRevenueFromMembership * (commissionRate / 100) 
-                        : assignedAthletes.length * commissionRate
+                    for (const tx of coachTx) {
+                      for (const item of tx.items) {
+                        if (item.productId === 'MEMB' || item.productId === 'COACH') {
+                          if (emp.commissionType === 'percentage') {
+                            commission += item.subtotal * (commissionRate / 100)
+                          } else {
+                            commission += commissionRate
+                          }
+                        }
+                      }
                     }
-                      
+                    
                     const totalPay = baseSalary + commission
                     const currentMonth = new Date().toISOString().substring(0, 7)
                     const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
@@ -1035,7 +1107,7 @@ export default function FinanzasPage() {
                             Configurar
                           </button>
                           {!isPaidThisMonth ? (
-                            <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
+                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
                               Pagar Nómina
                             </button>
                           ) : (
@@ -1160,6 +1232,58 @@ export default function FinanzasPage() {
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-6">
                 <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
                 <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Guardar Configuración</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {showProcessPayrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass relative my-8">
+            <h3 className="text-xl font-bold mb-4">Procesar Nómina</h3>
+            <p className="text-sm text-muted-foreground mb-4">Empleado: <b>{payrollProcessData.name}</b></p>
+            
+            <form onSubmit={submitProcessPayroll} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 bg-black/5 dark:bg-white/5 p-4 rounded-lg">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block">Sueldo Base</label>
+                  <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.baseSalary.toFixed(2)}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block">Comisiones (Calculado)</label>
+                  <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.commission.toFixed(2)}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-green-500 mb-1 block">Bonos Extras (+)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-green-500/30 rounded-lg p-2 text-sm focus:border-green-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-red-500 mb-1 block">Adelantos Previos (-)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-red-500 mb-1 block">Deducciones Varias (-)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas del Recibo</label>
+                <textarea rows={2} value={payrollProcessData.notes} onChange={e => setPayrollProcessData({...payrollProcessData, notes: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" placeholder="Ej: Bono por cumplimiento de metas..."></textarea>
+              </div>
+
+              <div className="bg-primary/10 p-4 rounded-lg flex justify-between items-center mt-4">
+                <span className="font-bold text-primary">Total a Pagar:</span>
+                <span className="text-2xl font-black text-primary">
+                  {settings.storeCurrency} {(payrollProcessData.baseSalary + payrollProcessData.commission + payrollProcessData.bonus - payrollProcessData.deductions - payrollProcessData.advances).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                <button type="button" onClick={() => setShowProcessPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Pagar y Generar Recibo</button>
               </div>
             </form>
           </div>

@@ -115,7 +115,7 @@ export async function getTransactions() {
       include: {
         items: true,
         cashier: { select: { name: true, cedula: true } },
-        customer: { select: { name: true, cedula: true } }
+        customer: { select: { name: true, cedula: true, coachId: true } }
       },
       orderBy: { date: 'desc' }
     })

@@ -14,6 +14,12 @@ export async function createEmployee(data: any) {
         accessPin: data.pin || null,
         baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : null,
         commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
+        commissionType: data.commissionType || 'flat',
+        paymentFrequency: data.paymentFrequency || 'monthly',
+        birthDate: data.birthDate || null,
+        profession: data.profession || null,
+        specialties: data.specialties || null,
+        nonWorkingDays: data.nonWorkingDays || null,
       }
     });
     revalidatePath("/empleados")
@@ -32,6 +38,12 @@ export async function updateEmployee(id: string, data: any) {
         role: data.role,
         baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : null,
         commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
+        commissionType: data.commissionType || 'flat',
+        paymentFrequency: data.paymentFrequency || 'monthly',
+        birthDate: data.birthDate || null,
+        profession: data.profession || null,
+        specialties: data.specialties || null,
+        nonWorkingDays: data.nonWorkingDays || null,
         // Update password if provided
         ...(data.clave ? { password: data.clave } : {})
       }
