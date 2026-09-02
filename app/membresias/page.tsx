@@ -3,13 +3,25 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
+import { storeService, Transaction } from "@/lib/store-service"
+import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign } from "lucide-react"
+import Swal from 'sweetalert2'
 
 export default function MembresiasPage() {
-  const { user, adminUpdateAthleteCredentials } = useAuth()
+  const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
+  const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
+
+  // Renovar Modal State
+  const [showRenovarModal, setShowRenovarModal] = useState<AthleteProfile | null>(null)
+  const [renovarIncludeCoach, setRenovarIncludeCoach] = useState(false)
+  const [renovarSelectedCoach, setRenovarSelectedCoach] = useState("")
+  const [renovarMonths, setRenovarMonths] = useState(1)
+  const [renovarPaymentMethod, setRenovarPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Efectivo')
+  const [renovarReference, setRenovarReference] = useState("")
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState<AthleteProfile | null>(null)
@@ -32,9 +44,20 @@ export default function MembresiasPage() {
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
   const [newMessageText, setNewMessageText] = useState("")
+  const [allCoaches, setAllCoaches] = useState<any[]>([])
 
   useEffect(() => {
-    setAthletes(athleteService.getAthletes())
+    async function load() {
+      const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
+      const res = await getAthletes()
+      if (res.success) setAthletes(res.athletes as any)
+      
+      const empRes = await getAllEmployees()
+      if (empRes.success) {
+        setAllCoaches(empRes.employees.filter((e: any) => e.role !== 'admin'))
+      }
+    }
+    load()
   }, [])
 
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('CRM_MANAGE') && !user.permissions?.includes('POS_ACCESS'))) {
@@ -58,7 +81,7 @@ export default function MembresiasPage() {
 
   const passwordMatch = editPassword && editConfirmPassword && editPassword === editConfirmPassword
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showEditModal) return
     if (editPassword && editPassword !== editConfirmPassword) {
@@ -67,7 +90,7 @@ export default function MembresiasPage() {
     }
 
     // Update credentials in auth system
-    const success = adminUpdateAthleteCredentials(
+    const success = await adminUpdateAthleteCredentials(
       showEditModal.cedula,
       editCedula,
       editName,
@@ -76,25 +99,23 @@ export default function MembresiasPage() {
 
     if (success) {
       // Update in athlete DB
-      const updatedProfile = { 
-        ...showEditModal, 
-        name: editName, 
-        cedula: editCedula,
+      const { updateAthlete, getAthletes } = await import('@/app/actions/users')
+      await updateAthlete(showEditModal.id, {
+        name: editName,
         phone: editPhone,
         address: editAddress
-      }
-      athleteService.updateAthlete(updatedProfile)
-      setAthletes(athleteService.getAthletes()) // refresh list
+      })
+      const athRes = await getAthletes()
+      if (athRes.success) setAthletes(athRes.athletes as any)
       setShowEditModal(null)
-      alert("Atleta actualizado exitosamente.")
     } else {
-      alert("Error actualizando atleta. Cédula no encontrada.")
+      alert("Error al actualizar credenciales.")
     }
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!showMessageModal?.phone) {
+  const sendMessage = () => {
+    if (!showMessageModal) return
+    if (!showMessageModal.phone) {
       alert("El atleta no tiene un número de teléfono registrado.")
       return
     }
@@ -106,9 +127,190 @@ export default function MembresiasPage() {
     setMessageText("")
   }
 
+  const openRenovarModal = (a: AthleteProfile) => {
+    setRenovarSelectedCoach(a.coachId || "")
+    setRenovarIncludeCoach(!!a.coachId)
+    setRenovarMonths(1)
+    setRenovarPaymentMethod('Efectivo')
+    setRenovarReference('')
+    setShowRenovarModal(a)
+  }
+
+  const handleRenovar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!showRenovarModal) return
+    
+    // Calculate total
+    const membershipPrice = 30 * renovarMonths
+    let coachPrice = 0
+
+    if (renovarIncludeCoach && renovarSelectedCoach) {
+      if (settings.coachCustomPricing) {
+        const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
+        const cRate = coachInfo?.commissionRate || 15
+        coachPrice = cRate * renovarMonths
+      } else {
+        coachPrice = 15 * renovarMonths
+      }
+    }
+    
+    const total = membershipPrice + coachPrice
+    
+    if (!renovarPaymentMethod) return;
+
+    const { createTransaction } = await import('@/app/actions/store')
+    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
+    
+    // Process Transaction
+    const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
+    await createTransaction({
+       cashierId: user?.id || 'admin',
+       customerId: showRenovarModal.id,
+       items: [
+         { productId: 'MEMB', name: `Membresía (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
+         ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice, qty: 1, subtotal: coachPrice }] : [])
+       ],
+       subtotal: total,
+       tax: 0,
+       total,
+       paymentMethod: renovarPaymentMethod,
+       reference: renovarReference,
+    })
+
+    // Update Athlete Membership
+    const currentEnd = new Date(showRenovarModal.membershipEnd)
+    const now = new Date()
+    let startFrom = currentEnd > now ? currentEnd : now
+    startFrom.setMonth(startFrom.getMonth() + renovarMonths)
+
+    await updateAthlete(showRenovarModal.id, {
+      membershipEnd: startFrom.toISOString(),
+      coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
+    })
+    
+    const athRes = await getAthletes()
+    if (athRes.success) setAthletes(athRes.athletes as any)
+    setShowRenovarModal(null)
+    
+    // Toast Notification
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      }
+    })
+    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto relative">
       
+      {/* RENOVAR MODAL */}
+      {showRenovarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
+            <form onSubmit={handleRenovar} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
+                <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
+              </div>
+              <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
+                <input 
+                  type="checkbox" 
+                  id="includeCoach" 
+                  checked={renovarIncludeCoach} 
+                  onChange={e => setRenovarIncludeCoach(e.target.checked)} 
+                  className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
+                />
+                <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
+                  Añadir Entrenador Personal
+                </label>
+              </div>
+
+              {renovarIncludeCoach && (
+                <div className="mt-3">
+                  <label className="text-sm font-medium mb-1 block">Seleccionar Entrenador</label>
+                  <select 
+                    required 
+                    value={renovarSelectedCoach} 
+                    onChange={e => setRenovarSelectedCoach(e.target.value)} 
+                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
+                  >
+                    <option value="">Seleccione uno...</option>
+                    {allCoaches.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg mt-4 mb-4 flex justify-between items-center">
+                <span className="font-medium text-sm text-primary">Total a Cobrar:</span>
+                <span className="text-2xl font-black text-primary">
+                  {settings.storeCurrency} {(() => {
+                    const mem = 30 * renovarMonths
+                    let coachPrice = 0
+                    if (renovarIncludeCoach && renovarSelectedCoach) {
+                      if (settings.coachCustomPricing) {
+                        const coachInfo = getAllEmployees ? getAllEmployees().find((e: any) => e.id === renovarSelectedCoach) : null;
+                        coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
+                      } else {
+                        coachPrice = 15 * renovarMonths
+                      }
+                    }
+                    return mem + coachPrice
+                  })()}
+                </span>
+              </div>
+
+              {/* Método de Pago */}
+              <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
+                <h4 className="font-bold text-sm">Detalles de Facturación</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
+                    <select 
+                      value={renovarPaymentMethod}
+                      onChange={e => setRenovarPaymentMethod(e.target.value as any)}
+                      className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2 text-sm"
+                    >
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Tarjeta">Punto de Venta (Tarjeta)</option>
+                      <option value="Pago Móvil">Pago Móvil</option>
+                      <option value="Transferencia">Transferencia</option>
+                      <option value="Binance">Binance</option>
+                      <option value="Crédito/Fiado">Crédito/Fiado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">N° de Referencia</label>
+                    <input 
+                      type="text" 
+                      value={renovarReference} 
+                      onChange={e => setRenovarReference(e.target.value)} 
+                      placeholder="Opcional..."
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button type="button" onClick={() => setShowRenovarModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">Confirmar y Cobrar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

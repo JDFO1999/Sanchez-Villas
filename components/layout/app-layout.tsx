@@ -52,6 +52,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Define navigation based on role
   let currentNavItems = [...navItems];
   if (user?.role === 'admin') {
+    currentNavItems.push({ name: "Empleados", href: "/empleados", icon: Users })
     currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
     currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
   } else if (user?.role === 'athlete') {

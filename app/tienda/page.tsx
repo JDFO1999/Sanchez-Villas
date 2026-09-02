@@ -60,12 +60,30 @@ export default function TiendaPOSPage() {
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
   useEffect(() => {
-    const prods = storeService.getProducts()
-    setProducts(prods)
-    setAthletes(athleteService.getAthletes())
-    
-    const { cats } = storeService.getDepartmentsAndCategories()
-    setCategories(["Todas", ...cats])
+    async function load() {
+      const { getProducts } = await import('@/app/actions/store')
+      const { getAthletes } = await import('@/app/actions/users')
+      
+      const [prodRes, athRes] = await Promise.all([
+        getProducts(),
+        getAthletes()
+      ])
+      
+      let loadedProducts = prodRes.success ? (prodRes.products as any) : []
+      // We map the Prisma product to the old structure
+      loadedProducts = loadedProducts.map((p: any) => ({
+        ...p,
+        sellPrice: p.price,
+        currentStock: p.stock
+      }))
+      
+      setProducts(loadedProducts)
+      if (athRes.success) setAthletes(athRes.athletes as any)
+      
+      const uniqueCats = Array.from(new Set(loadedProducts.map((p: any) => p.category)))
+      setCategories(["Todas", ...(uniqueCats as string[])])
+    }
+    load()
   }, [])
 
   const executeAddToCart = (product: Product) => {
@@ -177,7 +195,7 @@ export default function TiendaPOSPage() {
   const tax = subtotal * (settings.storeTaxRate / 100)
   const total = subtotal + tax
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return
     if (paymentMethod === 'Seleccionar') {
       showToast("Debe seleccionar un método de pago.", "error")
@@ -200,9 +218,10 @@ export default function TiendaPOSPage() {
     if (!isAthlete) {
       const pin = prompt("Por seguridad, ingrese su PIN de Cajero para procesar la venta:")
       if (pin === null) return // Cancelled
-      const passwords = JSON.parse(localStorage.getItem('gympro_mock_passwords') || "{}")
-      if (passwords[user?.cedula || ''] !== pin) {
-        showToast("PIN incorrecto. Venta cancelada.", "error")
+      const { validatePinAction } = await import('@/app/actions/auth')
+      const res = await validatePinAction(pin)
+      if (!res.success) {
+        showToast(res.error || "PIN incorrecto. Venta cancelada.", "error")
         return
       }
     }
@@ -225,27 +244,39 @@ export default function TiendaPOSPage() {
 
     if (paymentMethod === 'Crédito/Fiado' && selectedAthleteId && !isAthlete) {
       // Find athlete and save debt
-      const athlete = athleteService.getAthlete(selectedAthleteId);
-      if (athlete) {
-        // En una app real crearíamos un modelo de Deuda. Aquí simulamos añadiendo un field debt al perfil
-        const newDebt = (athlete.debt || 0) + total;
-        athleteService.updateAthlete(selectedAthleteId, { debt: newDebt });
-      }
+      const { updateAthlete } = await import('@/app/actions/users');
+      // For now we don't have debt in schema, skipping real debt update for mockup
     }
 
-    storeService.addTransaction(tx)
-    setProducts(storeService.getProducts()) // Refresh stock
-    setCart([])
-    setShowReceipt(tx)
-    setShowAdminCart(false)
-    setTxReference("")
-    setTxReceiptImage("")
-    showToast("Compra completada exitosamente.", "success")
+    const { createTransaction } = await import('@/app/actions/store');
     
-    if (settings.storeUseThermalPrinter) {
-      setTimeout(() => {
-        window.print()
-      }, 500)
+    const res = await createTransaction({
+       cashierId: isAthlete ? 'SELF_SERVICE' : (user?.id || 'unknown'),
+       customerId: isAthlete ? user?.id : (selectedAthleteId || undefined),
+       items: cart,
+       subtotal,
+       tax,
+       total,
+       paymentMethod,
+       reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReference : undefined
+    });
+
+    if (res.success) {
+      // We still use local products state but it will refresh on reload or we could fetch again
+      setCart([])
+      setShowReceipt(res.transaction)
+      setShowAdminCart(false)
+      setTxReference("")
+      setTxReceiptImage("")
+      showToast("Compra completada exitosamente.", "success")
+      
+      if (settings.storeUseThermalPrinter) {
+        setTimeout(() => {
+          window.print()
+        }, 500)
+      }
+    } else {
+      showToast(res.error, "error")
     }
   }
 

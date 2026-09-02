@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  cedula           String   @unique
+  name             String
+  role             String   // admin, coach, athlete, cajero, recepcion
+  password         String   // Contraseña principal (ahora requerida)
+  accessPin        String?  // PIN / Código de Barras autogenerado para cajeros/recepción
+  baseSalary       Float?   // Sueldo base individual para empleados
+  commissionRate   Float?   // Comisión para coaches
+  profilePicture   String?  @db.Text
+  gender           String?  // M o F
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relaciones
+  memberships      Membership[]  @relation("AthleteMemberships")
+  biometrics       Biometric[]
+  transactions     Transaction[] @relation("CashierTransactions")
+  customerTx       Transaction[] @relation("CustomerTransactions")
+  attendances      Attendance[]
+  
+  coachedAthletes  User[]        @relation("CoachToAthlete")
+  coach            User?         @relation("CoachToAthlete", fields: [coachId], references: [id])
+  coachId          String?
+  previousCoachId  String?
+}
+
+model Membership {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    User     @relation("AthleteMemberships", fields: [athleteId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  status     String   // ACTIVE, EXPIRED
+  createdAt  DateTime @default(now())
+}
+
+model Biometric {
+  id           String   @id @default(cuid())
+  athleteId    String
+  athlete      User     @relation(fields: [athleteId], references: [id])
+  date         DateTime @default(now())
+  weight       Float
+  height       Float
+  customFields String?  
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime @default(now())
+  type      String   // IN, OUT
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  barcode     String   @unique
+  name        String
+  price       Float
+  cost        Float
+  stock       Int
+  category    String
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  date          DateTime @default(now())
+  cashierId     String
+  cashier       User     @relation("CashierTransactions", fields: [cashierId], references: [id])
+  customerId    String?
+  customer      User?    @relation("CustomerTransactions", fields: [customerId], references: [id])
+  subtotal      Float
+  tax           Float
+  total         Float
+  paymentMethod String
+  reference     String?
+  status        String
+  items         TransactionItem[]
+}
+
+model TransactionItem {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  productId     String
+  name          String
+  price         Float
+  qty           Int
+  subtotal      Float
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  description String
+  amount      Float
+  category    String
+}

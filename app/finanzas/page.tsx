@@ -19,17 +19,32 @@ export default function FinanzasPage() {
   
   const [activeTab, setActiveTab] = useState('resumen')
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [transactions, setTransactions] = useState(storeService.getTransactions())
+  const [transactions, setTransactions] = useState([])
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [employees, setEmployees] = useState<any[]>([])
 
   useEffect(() => {
-    setExpenses(financeService.getExpenses())
-    setTransactions(storeService.getTransactions())
-    setAthletes(athleteService.getAthletes())
-    if (getAllEmployees) {
-      setEmployees(getAllEmployees())
+    async function load() {
+      const { getExpenses } = await import('@/app/actions/finance')
+      const { getTransactions } = await import('@/app/actions/store')
+      const { getAthletes } = await import('@/app/actions/users')
+      
+      const [expRes, txRes, athRes] = await Promise.all([
+        getExpenses(),
+        getTransactions(),
+        getAthletes()
+      ])
+      
+      if (expRes.success) setExpenses(expRes.expenses as any)
+      if (txRes.success) setTransactions(txRes.transactions as any)
+      if (athRes.success) setAthletes(athRes.athletes as any)
+
+      if (getAllEmployees) {
+        const emps = await getAllEmployees()
+        setEmployees(emps)
+      }
     }
+    load()
   }, [getAllEmployees])
   
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('FINANCE_VIEW') && !user.permissions?.includes('FINANCE_MANAGE'))) {
@@ -111,7 +126,6 @@ export default function FinanzasPage() {
     { id: 'ingresos', label: 'Flujo de Efectivo', icon: TrendingUp },
     { id: 'egresos', label: 'Egresos (Gastos)', icon: TrendingDown },
     { id: 'cuentas_cobrar', label: 'Cuentas por Cobrar', icon: AlertCircle },
-    { id: 'nomina', label: 'Nómina y Comisiones', icon: Users },
   ]
 
   const [showReportModal, setShowReportModal] = useState(false)
@@ -178,47 +192,6 @@ export default function FinanzasPage() {
       }
       setAthletes(athleteService.getAthletes())
       setTransactions(storeService.getTransactions())
-    }
-  }
-
-  // Estados para Empleados (Nómina)
-  const [showEmployeeModal, setShowEmployeeModal] = useState(false)
-  const { addEmployee, updateEmployee, getCustomRoles } = useAuth()
-  const customRoles = getCustomRoles ? getCustomRoles() : []
-  
-  const [empForm, setEmpForm] = useState<any>({
-    id: '', name: '', cedula: '', email: '', role: 'employee', clave: '',
-    birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '',
-    baseSalary: 0, commissionRate: 0, commissionType: 'flat'
-  })
-
-  const handleAddEmployee = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!addEmployee || !updateEmployee || !empForm.name || !empForm.cedula) return
-    
-    // Check if role needs password (e.g. POS access, Admin, or certain custom roles)
-    // We assume any custom role might need it, or we just pass the PIN if filled
-    if (empForm.id) {
-      updateEmployee(empForm.id, empForm)
-    } else {
-      addEmployee(empForm, empForm.clave || '1234')
-    }
-    setShowEmployeeModal(false)
-    if (getAllEmployees) setEmployees(getAllEmployees())
-  }
-  
-  const handlePayEmployee = (emp: any, totalPay: number) => {
-    if (confirm(`¿Proceder a pagar la nómina de ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`)) {
-      financeService.addExpense({
-        description: `Nómina: ${emp.name}`,
-        amount: totalPay,
-        category: 'Nómina'
-      })
-      if (updateEmployee) {
-        updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
-      }
-      setExpenses(financeService.getExpenses())
-      if (getAllEmployees) setEmployees(getAllEmployees())
     }
   }
 
@@ -904,358 +877,6 @@ export default function FinanzasPage() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'nomina' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Nómina y Comisiones</h2>
-            <div className="flex gap-2">
-              <button onClick={() => setShowEmployeeModal(true)} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Nuevo Empleado
-              </button>
-              <button onClick={() => handleDownloadReport('Nómina')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
-                <Download className="h-4 w-4" /> Exportar
-              </button>
-            </div>
-          </div>
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm hidden md:table">
-                <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
-                  <tr>
-                    <th className="p-4 font-medium">Empleado / Entrenador</th>
-                    <th className="p-4 font-medium">Atletas Asignados</th>
-                    <th className="p-4 font-medium">Sueldo + Comisiones</th>
-                    <th className="p-4 font-medium">Ganancia Gimnasio</th>
-                    <th className="p-4 font-medium text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {employees.filter(e => e.role !== 'admin').map(emp => {
-                    const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
-                    const baseSalary = emp.baseSalary || 0
-                    const commissionRate = emp.commissionRate || 0
-                    const commissionType = emp.commissionType || 'flat'
-                    
-                    const avgMembership = 30
-                    const totalRevenueFromMembership = assignedAthletes.length * avgMembership
-
-                    let commission = 0
-                    let gymProfit = 0
-
-                    if (settings.coachCustomPricing) {
-                      // El entrenador fijó su precio (commissionRate). El gym se queda con un % de eso.
-                      const coachTotalGross = assignedAthletes.length * commissionRate
-                      const gymCut = coachTotalGross * ((settings.gymCommissionPercentage || 30) / 100)
-                      commission = coachTotalGross - gymCut
-                      gymProfit = totalRevenueFromMembership + gymCut
-                    } else {
-                      // Modo Normal
-                      commission = commissionType === 'percentage' 
-                        ? totalRevenueFromMembership * (commissionRate / 100) 
-                        : assignedAthletes.length * commissionRate
-                      gymProfit = totalRevenueFromMembership - commission
-                    }
-                      
-                    const totalPay = baseSalary + commission
-
-                    // Check if paid this month
-                    const currentMonth = new Date().toISOString().substring(0, 7)
-                    const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
-
-                    return (
-                      <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
-                        <td className="p-4">
-                          <div className="font-bold flex items-center gap-2">
-                            {emp.name}
-                            {isPaidThisMonth && <span className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pagado</span>}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{emp.cedula} | {emp.role}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="font-bold">{assignedAthletes.length} atletas</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
-                          <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
-                          <div className="text-[10px] text-muted-foreground">{settings.storeCurrencySecondary} {(totalPay * settings.storeExchangeRate).toFixed(2)}</div>
-                        </td>
-                        <td className="p-4">
-                          {assignedAthletes.length > 0 ? (
-                            <>
-                              <div className="font-bold text-green-500">+{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
-                              <div className="text-[10px] text-muted-foreground">+{settings.storeCurrencySecondary} {(gymProfit * settings.storeExchangeRate).toFixed(2)}</div>
-                            </>
-                          ) : (
-                            <div className="text-muted-foreground">-</div>
-                          )}
-                        </td>
-                        <td className="p-4 text-right flex justify-end gap-2">
-                          <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
-                            Editar
-                          </button>
-                          {!isPaidThisMonth ? (
-                            <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
-                              Pagar
-                            </button>
-                          ) : (
-                            <button disabled className="px-3 py-1.5 bg-green-500/20 text-green-500 text-xs font-bold rounded cursor-not-allowed">
-                              Listo
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {employees.filter(e => e.role !== 'admin').length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* Mobile View */}
-              <div className="md:hidden flex flex-col divide-y divide-white/5">
-                {employees.filter(e => e.role !== 'admin').map(emp => {
-                  const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
-                  const baseSalary = emp.baseSalary || 0
-                  const commissionRate = emp.commissionRate || 0
-                  const commissionType = emp.commissionType || 'flat'
-                  const avgMembership = 30
-                  const totalRevenueFromMembership = assignedAthletes.length * avgMembership
-                  let commission = 0
-                  let gymProfit = 0
-
-                  if (settings.coachCustomPricing) {
-                    const coachTotalGross = assignedAthletes.length * commissionRate
-                    const gymCut = coachTotalGross * ((settings.gymCommissionPercentage || 30) / 100)
-                    commission = coachTotalGross - gymCut
-                    gymProfit = totalRevenueFromMembership + gymCut
-                  } else {
-                    commission = commissionType === 'percentage' 
-                      ? totalRevenueFromMembership * (commissionRate / 100) 
-                      : assignedAthletes.length * commissionRate
-                    gymProfit = totalRevenueFromMembership - commission
-                  }
-                  
-                  const totalPay = baseSalary + commission
-                  const currentMonth = new Date().toISOString().substring(0, 7)
-                  const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
-
-                  return (
-                    <div key={emp.id} className={`p-4 space-y-2 transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : ''}`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold flex items-center gap-2">
-                            {emp.name}
-                            {isPaidThisMonth && <span className="bg-green-500 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase">Pagado</span>}
-                          </div>
-                          <div className="text-xs text-muted-foreground">C.I: {emp.cedula}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
-                          <div className="text-[10px] text-muted-foreground">{settings.storeCurrencySecondary} {(totalPay * settings.storeExchangeRate).toFixed(2)}</div>
-                          <div className="text-[10px] text-green-500 mt-1">Gym: +{settings.storeCurrency} {gymProfit.toFixed(2)}</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-sm pt-2">
-                        <div>
-                          <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded capitalize mr-2">{emp.role}</span>
-                          <span className="text-xs font-bold">{assignedAthletes.length} Atletas</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
-                            Editar
-                          </button>
-                          {!isPaidThisMonth ? (
-                            <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
-                              Pagar
-                            </button>
-                          ) : (
-                            <button disabled className="px-3 py-1.5 bg-green-500/20 text-green-500 text-xs font-bold rounded cursor-not-allowed">
-                              Listo
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {employees.filter(e => e.role !== 'admin').length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL NUEVO EMPLEADO */}
-      {/* MODAL EMPLEADO EXTENDIDO */}
-      {showEmployeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-2xl w-full p-6 shadow-2xl glass relative my-8">
-            <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Empleado' : 'Registrar Empleado'}</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Info Básica */}
-                <div className="space-y-4">
-                  <h4 className="font-bold text-sm text-primary border-b border-black/10 dark:border-white/10 pb-1">Información Básica</h4>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
-                    <input 
-                      required autoFocus type="text" value={empForm.name} onChange={e => setEmpForm({...empForm, name: e.target.value})}
-                      placeholder="Ej. Carlos Pérez"
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Cédula</label>
-                      <input 
-                        required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})}
-                        placeholder="Ej. 12345678"
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Fecha de Nacimiento</label>
-                      <input 
-                        type="date" value={empForm.birthDate} onChange={e => setEmpForm({...empForm, birthDate: e.target.value})}
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Correo Electrónico</label>
-                    <input 
-                      type="email" value={empForm.email} onChange={e => setEmpForm({...empForm, email: e.target.value})}
-                      placeholder="carlos@gym.com"
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  
-                  <div className="pt-2">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol del Sistema</label>
-                    <select 
-                      value={empForm.role} onChange={e => setEmpForm({...empForm, role: e.target.value})}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    >
-                      <option value="employee">Entrenador Base</option>
-                      <option value="cajero">Cajero / Recepción</option>
-                      <option value="admin">Administrador Principal</option>
-                      {customRoles.map(r => (
-                        <option key={r.id} value={r.id}>{r.name} (Personalizado)</option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Validar que el rol de cajero/admin necesita PIN */}
-                  {(() => {
-                    const roleId = empForm.role
-                    const selectedCustomRole = customRoles.find(r => r.id === roleId)
-                    const needsPin = roleId === 'admin' || roleId === 'cajero' || selectedCustomRole?.permissions?.includes('POS_ACCESS')
-                    
-                    if (needsPin) {
-                      return (
-                        <div className="bg-primary/10 p-3 rounded-lg border border-primary/20 mt-4">
-                          <label className="text-xs font-medium text-primary mb-1 block">Clave Personal (PIN de Acceso)</label>
-                          <input 
-                            type="text" value={empForm.clave || ''} onChange={e => setEmpForm({...empForm, clave: e.target.value})}
-                            placeholder="Requerido para Caja / Login" required={!empForm.id}
-                            className="w-full bg-white dark:bg-black border border-primary/20 rounded-lg p-2 text-sm focus:border-primary"
-                          />
-                          <p className="text-[10px] text-muted-foreground mt-1">Obligatorio para iniciar sesión o cobrar en el punto de venta.</p>
-                        </div>
-                      )
-                    }
-                    return null;
-                  })()}
-                </div>
-
-                {/* Perfil y Pagos */}
-                <div className="space-y-4">
-                  <h4 className="font-bold text-sm text-primary border-b border-black/10 dark:border-white/10 pb-1">Perfil y Finanzas</h4>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Profesión</label>
-                    <input 
-                      type="text" value={empForm.profession} onChange={e => setEmpForm({...empForm, profession: e.target.value})}
-                      placeholder="Ej. Lic. Educación Física"
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Especialidad</label>
-                    <input 
-                      type="text" value={empForm.specialty} onChange={e => setEmpForm({...empForm, specialty: e.target.value})}
-                      placeholder="Ej. Musculación, CrossFit..."
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Cursos Realizados</label>
-                    <input 
-                      type="text" value={empForm.courses} onChange={e => setEmpForm({...empForm, courses: e.target.value})}
-                      placeholder="Ej. RCP, Entrenador Personal..."
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-
-                  <div className="pt-2">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Cuenta Bancaria</label>
-                    <input 
-                      type="text" value={empForm.bankAccount} onChange={e => setEmpForm({...empForm, bankAccount: e.target.value})}
-                      placeholder="Ej. Banesco 0134..."
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Pago Móvil</label>
-                    <input 
-                      type="text" value={empForm.mobilePayment} onChange={e => setEmpForm({...empForm, mobilePayment: e.target.value})}
-                      placeholder="Ej. 0414-1234567 / V-12345678"
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sueldo Base ({settings.storeCurrency})</label>
-                      <input 
-                        type="number" value={empForm.baseSalary} onChange={e => setEmpForm({...empForm, baseSalary: Number(e.target.value)})}
-                        placeholder="Ej. 150"
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-medium text-muted-foreground block">Comisión x Atleta</label>
-                        <select 
-                          value={empForm.commissionType} 
-                          onChange={e => setEmpForm({...empForm, commissionType: e.target.value})}
-                          className="text-[10px] bg-card dark:bg-black font-bold outline-none text-primary rounded p-1"
-                        >
-                          <option value="flat">Fijo ({settings.storeCurrency})</option>
-                          <option value="percentage">Porcentaje (%)</option>
-                        </select>
-                      </div>
-                      <input 
-                        type="number" value={empForm.commissionRate} onChange={e => setEmpForm({...empForm, commissionRate: Number(e.target.value)})}
-                        placeholder={empForm.commissionType === 'percentage' ? "Ej. 40" : "Ej. 10"}
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
-                <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90">Guardar Empleado</button>
-              </div>
-            </form>
           </div>
         </div>
       )}

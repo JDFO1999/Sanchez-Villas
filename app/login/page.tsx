@@ -17,20 +17,18 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    setTimeout(() => {
-      const success = login(cedula, clave)
-      if (success) {
-        router.push("/")
-      } else {
-        setError("Cédula o contraseña incorrectos")
-        setIsLoading(false)
-      }
-    }, 800)
+    const success = await login(cedula, clave)
+    if (success) {
+      router.push("/")
+    } else {
+      setError("Cédula o contraseña incorrectos")
+      setIsLoading(false)
+    }
   }
 
   const handleRecuperarClave = () => {
