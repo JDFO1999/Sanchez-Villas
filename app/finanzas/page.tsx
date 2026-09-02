@@ -307,6 +307,61 @@ export default function FinanzasPage() {
         }
       })
       setShowProcessPayrollModal(false)
+  }
+
+  const handleGeneratePDF_A4 = () => {
+    const element = document.createElement('div')
+    element.innerHTML = `
+      <div style="padding: 40px; font-family: sans-serif; color: #000; background: #fff;">
+        <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px;">Estado de Resultados - ${new Date().toLocaleDateString('es-ES', {month: 'long', year: 'numeric'}).toUpperCase()}</h2>
+        <p><strong>Gimnasio:</strong> ${settings.appName}</p>
+        <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
+        <hr style="margin: 20px 0;" />
+        
+        <h3 style="color: #16a34a;">1. INGRESOS</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Membresías y Productos (POS)</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${totalIngresos.toFixed(2)}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold;">TOTAL INGRESOS</td><td style="text-align: right; padding: 8px 0; font-weight: bold;">${settings.storeCurrency} ${totalIngresos.toFixed(2)}</td></tr>
+        </table>
+
+        <h3 style="color: #dc2626;">2. EGRESOS (GASTOS Y NÓMINA)</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          ${Object.entries(egresosPorCategoria).map(([cat, val]) => `
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${cat}</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${val.toFixed(2)}</td></tr>
+          `).join('')}
+          <tr><td style="padding: 8px 0; font-weight: bold;">TOTAL EGRESOS</td><td style="text-align: right; padding: 8px 0; font-weight: bold;">${settings.storeCurrency} ${totalEgresos.toFixed(2)}</td></tr>
+        </table>
+
+        <hr style="margin: 20px 0;" />
+        <h2 style="text-align: right; color: ${(totalIngresos - totalEgresos) >= 0 ? '#16a34a' : '#dc2626'}; font-size: 22px;">
+          BALANCE NETO: ${settings.storeCurrency} ${(totalIngresos - totalEgresos).toFixed(2)}
+        </h2>
+      </div>
+    `
+    import('html2pdf.js').then((html2pdf) => {
+      html2pdf.default().from(element).save(`Cierre_Mensual_${new Date().toISOString().split('T')[0]}.pdf`)
+    })
+  }
+
+  const handleGeneratePDF_80mm = () => {
+    const element = document.createElement('div')
+    element.innerHTML = `
+      <div style="width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; font-size: 12px;">
+        <h2 style="text-align: center; margin-bottom: 10px; font-size: 16px;">CIERRE DE CAJA (RESUMEN)</h2>
+        <p style="text-align: center; margin-bottom: 10px;">${settings.appName}</p>
+        <p>Fecha: ${new Date().toLocaleDateString()}</p>
+        <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
+        <p>Ventas Hoy: ${settings.storeCurrency} ${totalIngresos.toFixed(2)}</p>
+        <p>Gastos Hoy: ${settings.storeCurrency} ${totalEgresos.toFixed(2)}</p>
+        <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
+        <p style="text-align: center;">*** FIN DE REPORTE ***</p>
+      </div>
+    `
+    import('html2pdf.js').then((html2pdf) => {
+      const opt = { margin: 0, jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' } }
+      html2pdf.default().set(opt).from(element).save(`Ticket_Cierre_${new Date().toISOString().split('T')[0]}.pdf`)
+    })
+  }    
       
       const expRes = await getExpenses()
       if (expRes.success) setExpenses(expRes.expenses as any)
@@ -1173,63 +1228,13 @@ export default function FinanzasPage() {
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Genera reportes financieros consolidados (PDF) para revisión contable o auditoría.</p>
                   <button 
-                    onClick={() => {
-                      const element = document.createElement('div')
-                      element.innerHTML = `
-                        <div style="padding: 40px; font-family: sans-serif; color: #000; background: #fff;">
-                          <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px;">Estado de Resultados - ${new Date().toLocaleDateString('es-ES', {month: 'long', year: 'numeric'}).toUpperCase()}</h2>
-                          <p><strong>Gimnasio:</strong> ${settings.appName}</p>
-                          <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
-                          <hr style="margin: 20px 0;" />
-                          
-                          <h3 style="color: #16a34a;">1. INGRESOS</h3>
-                          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">Membresías y Productos (POS)</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${totalIngresos.toFixed(2)}</td></tr>
-                            <tr><td style="padding: 8px 0; font-weight: bold;">TOTAL INGRESOS</td><td style="text-align: right; padding: 8px 0; font-weight: bold;">${settings.storeCurrency} ${totalIngresos.toFixed(2)}</td></tr>
-                          </table>
-
-                          <h3 style="color: #dc2626;">2. EGRESOS (GASTOS Y NÓMINA)</h3>
-                          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                            ${Object.entries(egresosPorCategoria).map(([cat, val]) => `
-                              <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${cat}</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${val.toFixed(2)}</td></tr>
-                            `).join('')}
-                            <tr><td style="padding: 8px 0; font-weight: bold;">TOTAL EGRESOS</td><td style="text-align: right; padding: 8px 0; font-weight: bold;">${settings.storeCurrency} ${totalEgresos.toFixed(2)}</td></tr>
-                          </table>
-
-                          <hr style="margin: 20px 0;" />
-                          <h2 style="text-align: right; color: ${(totalIngresos - totalEgresos) >= 0 ? '#16a34a' : '#dc2626'}; font-size: 22px;">
-                            BALANCE NETO: ${settings.storeCurrency} ${(totalIngresos - totalEgresos).toFixed(2)}
-                          </h2>
-                        </div>
-                      `
-                      import('html2pdf.js').then((html2pdf) => {
-                        html2pdf.default().from(element).save(\`Cierre_Mensual_\${new Date().toISOString().split('T')[0]}.pdf\`)
-                      })
-                    }}
+                    onClick={handleGeneratePDF_A4}
                     className="w-full bg-black text-white dark:bg-white dark:text-black font-bold py-3 rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                   >
                     <Download className="h-5 w-5" /> Generar Cierre Mensual (A4)
                   </button>
                   <button 
-                    onClick={() => {
-                      const element = document.createElement('div')
-                      element.innerHTML = \`
-                        <div style="width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; font-size: 12px;">
-                          <h2 style="text-align: center; margin-bottom: 10px; font-size: 16px;">CIERRE DE CAJA (RESUMEN)</h2>
-                          <p style="text-align: center; margin-bottom: 10px;">\${settings.appName}</p>
-                          <p>Fecha: \${new Date().toLocaleDateString()}</p>
-                          <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
-                          <p>Ventas Hoy: \${settings.storeCurrency} \${totalIngresos.toFixed(2)}</p>
-                          <p>Gastos Hoy: \${settings.storeCurrency} \${totalEgresos.toFixed(2)}</p>
-                          <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
-                          <p style="text-align: center;">*** FIN DE REPORTE ***</p>
-                        </div>
-                      \`
-                      import('html2pdf.js').then((html2pdf) => {
-                        const opt = { margin: 0, jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' } }
-                        html2pdf.default().set(opt).from(element).save(\`Ticket_Cierre_\${new Date().toISOString().split('T')[0]}.pdf\`)
-                      })
-                    }}
+                    onClick={handleGeneratePDF_80mm}
                     className="w-full bg-primary/10 text-primary font-bold py-3 rounded-lg hover:bg-primary/20 transition flex items-center justify-center gap-2"
                   >
                     <Download className="h-5 w-5" /> Imprimir Ticket Resumen (80mm)
