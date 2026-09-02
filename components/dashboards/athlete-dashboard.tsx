@@ -107,9 +107,8 @@ export function AthleteDashboard() {
             <ScanBarcode className="h-5 w-5" /> Mostrar mi Código de Acceso
           </button>
         </div>
-          </div>
-        </div>
-        <div className="flex gap-2 flex-wrap">
+      </div>
+      <div className="flex gap-2 flex-wrap">
           <Link href="/tienda" className="bg-black text-white dark:bg-secondary dark:text-secondary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:opacity-80 transition flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" />
             Ir a la Tienda
@@ -119,7 +118,6 @@ export function AthleteDashboard() {
             Rutinas propuestas por el Coach
           </Link>
         </div>
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
