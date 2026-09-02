@@ -1310,7 +1310,41 @@ export default function FinanzasPage() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Días no laborables (Descanso)</label>
-                    <input type="text" value={payrollForm.nonWorkingDays || ''} onChange={e => setPayrollForm({...payrollForm, nonWorkingDays: e.target.value})} placeholder="Ej: Domingos" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    <div className="flex gap-1 sm:gap-2 w-full justify-between mt-2">
+                      {[
+                        { id: '1', label: 'L' },
+                        { id: '2', label: 'M' },
+                        { id: '3', label: 'M' },
+                        { id: '4', label: 'J' },
+                        { id: '5', label: 'V' },
+                        { id: '6', label: 'S' },
+                        { id: '0', label: 'D' },
+                      ].map(day => {
+                        const isSelected = (payrollForm.nonWorkingDays || '').includes(day.id)
+                        return (
+                          <button
+                            key={day.id}
+                            type="button"
+                            onClick={() => {
+                              let current = payrollForm.nonWorkingDays ? payrollForm.nonWorkingDays.split(',') : []
+                              if (isSelected) {
+                                current = current.filter(d => d !== day.id && d !== '')
+                              } else {
+                                current.push(day.id)
+                              }
+                              setPayrollForm({...payrollForm, nonWorkingDays: current.join(',')})
+                            }}
+                            className={`flex-1 aspect-square flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                              isSelected 
+                                ? 'bg-primary text-white shadow-md shadow-primary/20 scale-105' 
+                                : 'bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10'
+                            }`}
+                          >
+                            {day.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {payrollForm.role === 'employee' && (
