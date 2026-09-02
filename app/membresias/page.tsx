@@ -48,9 +48,8 @@ export default function MembresiasPage() {
 
   useEffect(() => {
     async function load() {
-      const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
-      const res = await getAthletes()
-      if (res.success) setAthletes(res.athletes as any)
+      const { getAllEmployees } = await import('@/app/actions/users')
+      setAthletes(athleteService.getAthletes())
       
       const empRes = await getAllEmployees()
       if (empRes.success) {
@@ -99,14 +98,17 @@ export default function MembresiasPage() {
 
     if (success) {
       // Update in athlete DB
-      const { updateAthlete, getAthletes } = await import('@/app/actions/users')
-      await updateAthlete(showEditModal.id, {
-        name: editName,
-        phone: editPhone,
-        address: editAddress
-      })
-      const athRes = await getAthletes()
-      if (athRes.success) setAthletes(athRes.athletes as any)
+      const current = athleteService.getAthlete(showEditModal.id)
+      if (current) {
+        athleteService.updateAthlete({
+          ...current,
+          name: editName,
+          cedula: editCedula, // they might have changed it
+          phone: editPhone,
+          address: editAddress
+        })
+      }
+      setAthletes(athleteService.getAthletes())
       setShowEditModal(null)
     } else {
       alert("Error al actualizar credenciales.")
@@ -159,7 +161,6 @@ export default function MembresiasPage() {
     if (!renovarPaymentMethod) return;
 
     const { createTransaction } = await import('@/app/actions/store')
-    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
     
     // Process Transaction
     const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
@@ -183,13 +184,16 @@ export default function MembresiasPage() {
     let startFrom = currentEnd > now ? currentEnd : now
     startFrom.setMonth(startFrom.getMonth() + renovarMonths)
 
-    await updateAthlete(showRenovarModal.id, {
-      membershipEnd: startFrom.toISOString(),
-      coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
-    })
+    const currentAth = athleteService.getAthlete(showRenovarModal.id)
+    if (currentAth) {
+      athleteService.updateAthlete({
+        ...currentAth,
+        membershipEnd: startFrom.toISOString(),
+        coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
+      })
+    }
     
-    const athRes = await getAthletes()
-    if (athRes.success) setAthletes(athRes.athletes as any)
+    setAthletes(athleteService.getAthletes())
     setShowRenovarModal(null)
     
     // Toast Notification
