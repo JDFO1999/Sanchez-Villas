@@ -1236,6 +1236,7 @@ export default function FinanzasPage() {
             </form>
           </div>
         </div>
+      )}
       {showProcessPayrollModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass relative my-8">
