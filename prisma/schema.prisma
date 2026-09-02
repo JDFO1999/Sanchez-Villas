@@ -43,6 +43,8 @@ model User {
   specialties      String?
   nonWorkingDays   String?
   lastPaidDate     DateTime?
+  bankAccount      String?
+  mobilePayment    String?
 }
 
 model PayrollReceipt {

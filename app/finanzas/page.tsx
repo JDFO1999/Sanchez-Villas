@@ -1299,6 +1299,16 @@ export default function FinanzasPage() {
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Especialidades</label>
                     <input type="text" value={payrollForm.specialties || ''} onChange={e => setPayrollForm({...payrollForm, specialties: e.target.value})} placeholder="Ej: Musculación, Cardio" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                   </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Cuenta Bancaria</label>
+                      <input type="text" value={payrollForm.bankAccount || ''} onChange={e => setPayrollForm({...payrollForm, bankAccount: e.target.value})} placeholder="Ej: 0102-..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Pago Móvil</label>
+                      <input type="text" value={payrollForm.mobilePayment || ''} onChange={e => setPayrollForm({...payrollForm, mobilePayment: e.target.value})} placeholder="Ej: 0414-1234567" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Nómina, Pagos y Horarios */}
