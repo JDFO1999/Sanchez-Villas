@@ -307,6 +307,12 @@ export default function FinanzasPage() {
         }
       })
       setShowProcessPayrollModal(false)
+      const expRes = await getExpenses()
+      if (expRes.success) setExpenses(expRes.expenses as any)
+      if (getAllEmployees) setEmployees(await getAllEmployees())
+    } else {
+      Swal.fire('Error', res.error, 'error')
+    }
   }
 
   const handleGeneratePDF_A4 = () => {
@@ -361,14 +367,6 @@ export default function FinanzasPage() {
       const opt = { margin: 0, jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' } }
       html2pdf.default().set(opt).from(element).save(`Ticket_Cierre_${new Date().toISOString().split('T')[0]}.pdf`)
     })
-  }    
-      
-      const expRes = await getExpenses()
-      if (expRes.success) setExpenses(expRes.expenses as any)
-      if (getAllEmployees) setEmployees(await getAllEmployees())
-    } else {
-      Swal.fire('Error', res.error, 'error')
-    }
   }
   
   const handleSaldarDeuda = (athleteId: string, debtAmount: number) => {
