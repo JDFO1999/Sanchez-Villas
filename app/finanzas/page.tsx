@@ -1135,6 +1135,8 @@ export default function FinanzasPage() {
                     const currentMonth = new Date().toISOString().substring(0, 7)
                     const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
 
+                    const empAssignedAthletes = athletes.filter(a => a.coachId === emp.id)
+
                     return (
                       <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
                         <td className="p-4">
@@ -1145,7 +1147,7 @@ export default function FinanzasPage() {
                           <div className="text-xs text-muted-foreground">{emp.cedula} | {emp.role}</div>
                         </td>
                         <td className="p-4">
-                          <div className="font-bold">{assignedAthletes.length} atletas</div>
+                          <div className="font-bold">{empAssignedAthletes.length} atletas</div>
                         </td>
                         <td className="p-4">
                           <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
