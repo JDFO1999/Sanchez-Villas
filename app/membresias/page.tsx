@@ -513,6 +513,17 @@ export default function MembresiasPage() {
                   {/* Acciones */}
                   <div className="p-5 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-row md:flex-col items-center justify-center gap-2">
                     <button 
+                      onClick={() => isExpired && openRenovarModal(a)}
+                      disabled={!isExpired}
+                      className={`flex-1 md:w-full px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1 ${
+                        isExpired 
+                          ? 'bg-green-500 hover:bg-green-600 text-white' 
+                          : 'bg-black/5 dark:bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <DollarSign className="h-3 w-3" /> Renovar
+                    </button>
+                    <button 
                       onClick={() => openEditModal(a)}
                       className="flex-1 md:w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-foreground border border-black/10 dark:border-white/10 px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1"
                     >
