@@ -1258,11 +1258,11 @@ export default function FinanzasPage() {
                   <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Información del Sistema</h4>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
-                    <input required type="text" value={payrollForm.name} onChange={e => setPayrollForm({...payrollForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    <input required type="text" value={payrollForm.name || ''} onChange={e => setPayrollForm({...payrollForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Cédula</label>
-                    <input required type="text" value={payrollForm.cedula} onChange={e => setPayrollForm({...payrollForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    <input required type="text" value={payrollForm.cedula || ''} onChange={e => setPayrollForm({...payrollForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
@@ -1275,11 +1275,11 @@ export default function FinanzasPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Contraseña</label>
-                        <input required type="password" value={payrollForm.clave} onChange={e => setPayrollForm({...payrollForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                        <input required type="password" value={payrollForm.clave || ''} onChange={e => setPayrollForm({...payrollForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar</label>
-                        <input required type="password" value={payrollForm.confirmClave} onChange={e => setPayrollForm({...payrollForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                        <input required type="password" value={payrollForm.confirmClave || ''} onChange={e => setPayrollForm({...payrollForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                       </div>
                     </div>
                   )}
@@ -1306,7 +1306,7 @@ export default function FinanzasPage() {
                   <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Condiciones Laborales y Nómina</h4>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Sueldo Base Mensual ({settings.storeCurrency})</label>
-                    <input type="number" step="0.01" min="0" value={payrollForm.baseSalary} onChange={e => setPayrollForm({...payrollForm, baseSalary: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    <input type="number" step="0.01" min="0" value={payrollForm.baseSalary || 0} onChange={e => setPayrollForm({...payrollForm, baseSalary: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Días no laborables (Descanso)</label>
@@ -1353,7 +1353,7 @@ export default function FinanzasPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs font-medium text-muted-foreground mb-1 block">Pago por Atleta</label>
-                          <input type="number" step="0.01" min="0" value={payrollForm.commissionRate} onChange={e => setPayrollForm({...payrollForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                          <input type="number" step="0.01" min="0" value={payrollForm.commissionRate || 0} onChange={e => setPayrollForm({...payrollForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                         </div>
                         <div>
                           <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
@@ -1407,21 +1407,21 @@ export default function FinanzasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-green-500 mb-1 block">Bonos Extras (+)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-green-500/30 rounded-lg p-2 text-sm focus:border-green-500" />
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus || 0} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-green-500/30 rounded-lg p-2 text-sm focus:border-green-500" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-red-500 mb-1 block">Adelantos Previos (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances || 0} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-red-500 mb-1 block">Deducciones Varias (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions || 0} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas del Recibo</label>
-                <textarea rows={2} value={payrollProcessData.notes} onChange={e => setPayrollProcessData({...payrollProcessData, notes: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" placeholder="Ej: Bono por cumplimiento de metas..."></textarea>
+                <textarea rows={2} value={payrollProcessData.notes || ''} onChange={e => setPayrollProcessData({...payrollProcessData, notes: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" placeholder="Ej: Bono por cumplimiento de metas..."></textarea>
               </div>
 
               <div className="bg-primary/10 p-4 rounded-lg flex justify-between items-center mt-4">
