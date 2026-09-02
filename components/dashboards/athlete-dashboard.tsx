@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye } from "lucide-react"
+import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye, ScanBarcode } from "lucide-react"
 import Link from "next/link"
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
 import { storeService, Transaction, Product } from "@/lib/store-service"
+import { QRCodeSVG } from "qrcode.react"
 
 const topExercises = [
   {
@@ -54,6 +55,7 @@ export function AthleteDashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [showTicketModal, setShowTicketModal] = useState<Transaction | null>(null)
 
+  const [showQRModal, setShowQRModal] = useState(false)
   const [coachName, setCoachName] = useState('Sin Asignar')
   useEffect(() => {
     if (user?.id) {
@@ -88,7 +90,7 @@ export function AthleteDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Hola, {user?.name?.split(' ')[1] || 'Atleta'}</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Hola, {user?.name?.split(' ')[0] || 'Atleta'}</h1>
           <p className="text-muted-foreground mt-1">
             Tu Coach Actual: <span className="font-bold text-foreground">{coachName}</span>
           </p>
@@ -98,6 +100,13 @@ export function AthleteDashboard() {
                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
              </span>
              Tienes una nueva rutina pendiente por completar hoy.
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button onClick={() => setShowQRModal(true)} className="bg-primary text-white px-4 py-2 rounded-md font-bold shadow-sm hover:bg-primary/90 transition flex items-center justify-center gap-2">
+            <ScanBarcode className="h-5 w-5" /> Mostrar mi Código de Acceso
+          </button>
+        </div>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -439,6 +448,28 @@ export function AthleteDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showQRModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl flex flex-col items-center text-black relative" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-black mb-1">Tu Código de Acceso</h3>
+            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este código en recepción para marcar tu entrada.</p>
+            
+            <div className="bg-gray-100 p-4 rounded-xl mb-6">
+              <QRCodeSVG value={user?.cedula || ''} size={200} level="H" />
+            </div>
+
+            <div className="text-center mb-6">
+              <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Cédula Identidad</p>
+              <p className="text-2xl font-mono tracking-widest font-black">{user?.cedula}</p>
+            </div>
+            
+            <button onClick={() => setShowQRModal(false)} className="w-full bg-black text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition">
+              Cerrar
+            </button>
           </div>
         </div>
       )}

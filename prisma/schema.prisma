@@ -28,6 +28,7 @@ model User {
   customerTx       Transaction[] @relation("CustomerTransactions")
   attendances      Attendance[]
   payrollReceipts  PayrollReceipt[]
+  cashSessions     CashSession[]
   
   coachedAthletes  User[]        @relation("CoachToAthlete")
   coach            User?         @relation("CoachToAthlete", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -58,6 +59,31 @@ model PayrollReceipt {
   advances     Float    @default(0)
   totalPaid    Float
   notes        String?  @db.Text
+}
+
+model CashSession {
+  id                 String   @id @default(cuid())
+  cashierId          String
+  cashier            User     @relation(fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  startTime          DateTime @default(now())
+  endTime            DateTime?
+  startingCash       Float    @default(0)
+  declaredCash       Float?
+  expectedCash       Float?
+  expectedCard       Float?
+  expectedTransfer   Float?
+  status             String   @default("OPEN") // OPEN, CLOSED
+  transactions       Transaction[]
+}
+
+model RecurringExpense {
+  id            String   @id @default(cuid())
+  description   String
+  amount        Float
+  category      String
+  dayOfMonth    Int
+  lastProcessed DateTime?
+  isActive      Boolean  @default(true)
 }
 
 model Membership {
@@ -106,6 +132,8 @@ model Transaction {
   cashier       User     @relation("CashierTransactions", fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customerId    String?
   customer      User?    @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cashSessionId String?
+  cashSession   CashSession? @relation(fields: [cashSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subtotal      Float
   tax           Float
   total         Float

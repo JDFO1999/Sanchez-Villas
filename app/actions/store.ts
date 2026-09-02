@@ -64,10 +64,16 @@ export async function createTransaction(data: any) {
   try {
     // Start a transaction to ensure all or nothing
     const transaction = await prisma.$transaction(async (tx) => {
+      // 0. Encontrar el turno de caja abierto del cajero
+      const activeSession = await tx.cashSession.findFirst({
+        where: { cashierId: data.cashierId, status: 'OPEN' }
+      });
+
       // 1. Create the main transaction
       const newTx = await tx.transaction.create({
         data: {
           cashierId: data.cashierId,
+          cashSessionId: activeSession ? activeSession.id : null,
           customerId: data.customerId || null,
           subtotal: parseFloat(data.subtotal),
           tax: parseFloat(data.tax),
