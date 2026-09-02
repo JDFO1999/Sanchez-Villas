@@ -41,6 +41,17 @@ export default function AtletaPerfilPage() {
   const [routineEnd, setRoutineEnd] = useState("")
   const [routineRest, setRoutineRest] = useState("90s")
 
+  const [allCoaches, setAllCoaches] = useState<any[]>([])
+  useEffect(() => {
+    if (getAllEmployees) {
+      getAllEmployees().then(res => {
+        setAllCoaches(res.filter((e: any) => e.role !== 'admin'))
+      }).catch(console.error)
+    } else {
+      setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
+    }
+  }, [getAllEmployees])
+
   useEffect(() => {
     if (id) {
       setAthlete(athleteService.getAthleteById(id))
@@ -86,18 +97,6 @@ export default function AtletaPerfilPage() {
     })
     Toast.fire({ icon: 'success', title: 'Medidas actualizadas' })
   }
-
-  const [allCoaches, setAllCoaches] = useState<any[]>([])
-
-  useEffect(() => {
-    if (getAllEmployees) {
-      getAllEmployees().then(res => {
-        setAllCoaches(res.filter((e: any) => e.role !== 'admin'))
-      }).catch(console.error)
-    } else {
-      setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
-    }
-  }, [getAllEmployees])
 
   const currentCoachName = allCoaches.find(c => c.id === athlete?.coachId)?.name || 'Ninguno'
   const previousCoachName = athlete?.previousCoachId ? (allCoaches.find(c => c.id === athlete.previousCoachId)?.name || 'Desconocido') : null
