@@ -87,10 +87,17 @@ export default function AtletaPerfilPage() {
     Toast.fire({ icon: 'success', title: 'Medidas actualizadas' })
   }
 
-  // En caso de que se necesiten entrenadores, los sacamos de auth-context
-  const allCoaches = getAllEmployees ? getAllEmployees().filter(e => e.role !== 'admin') : [
-    { id: '2', name: 'Carlos (Staff Principal)' }
-  ]
+  const [allCoaches, setAllCoaches] = useState<any[]>([])
+
+  useEffect(() => {
+    if (getAllEmployees) {
+      getAllEmployees().then(res => {
+        setAllCoaches(res.filter((e: any) => e.role !== 'admin'))
+      }).catch(console.error)
+    } else {
+      setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
+    }
+  }, [getAllEmployees])
 
   const currentCoachName = allCoaches.find(c => c.id === athlete?.coachId)?.name || 'Ninguno'
   const previousCoachName = athlete?.previousCoachId ? (allCoaches.find(c => c.id === athlete.previousCoachId)?.name || 'Desconocido') : null
