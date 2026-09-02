@@ -100,71 +100,60 @@ export default function EmpleadosPage() {
             <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
               <tr>
                 <th className="p-4 font-medium">Empleado</th>
+                <th className="p-4 font-medium">Información de Contacto</th>
                 <th className="p-4 font-medium">Atletas Asignados</th>
-                <th className="p-4 font-medium">Sueldo + Comisiones</th>
+                <th className="p-4 font-medium">Configuración de Pago</th>
                 <th className="p-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {employees.filter(e => e.role !== 'admin').map(emp => {
+              {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').map(emp => {
                 const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
                 const baseSalary = emp.baseSalary || 0
                 const commissionRate = emp.commissionRate || 0
-                const commissionType = emp.commissionType || 'flat'
-                
-                const avgMembership = 30
-                const totalRevenueFromMembership = assignedAthletes.length * avgMembership
-                let commission = 0
-                if (settings.coachCustomPricing) {
-                  const coachTotalGross = assignedAthletes.length * commissionRate
-                  const gymCut = coachTotalGross * ((settings.gymCommissionPercentage || 30) / 100)
-                  commission = coachTotalGross - gymCut
-                } else {
-                  commission = commissionType === 'percentage' 
-                    ? totalRevenueFromMembership * (commissionRate / 100) 
-                    : assignedAthletes.length * commissionRate
-                }
-                  
-                const totalPay = baseSalary + commission
-                const currentMonth = new Date().toISOString().substring(0, 7)
-                const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
 
                 return (
-                  <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                  <tr key={emp.id} className="transition-colors hover:bg-black/5 dark:hover:bg-white/5">
                     <td className="p-4">
-                      <div className="font-bold flex items-center gap-2">
-                        {emp.name}
-                        {isPaidThisMonth && <span className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pagado</span>}
+                      <div className="font-bold">{emp.name}</div>
+                      <div className="text-xs text-muted-foreground">C.C. {emp.cedula} | {emp.role.toUpperCase()}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm">{emp.email || 'Sin correo'}</div>
+                      <div className="text-xs text-muted-foreground">{emp.phone || 'Sin teléfono'}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-bold text-primary">{assignedAthletes.length} atletas</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Base:</span> <span className="font-bold">{settings.storeCurrency} {baseSalary}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">{emp.cedula} | {emp.role}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold">{assignedAthletes.length} atletas</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
-                      <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Comisión:</span> <span className="font-bold">{settings.storeCurrency} {commissionRate} {emp.commissionType === 'percentage' ? '%' : 'fijo/atleta'}</span>
+                      </div>
                     </td>
                     <td className="p-4 text-right flex justify-end gap-2">
                       <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, clave: '', confirmClave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                         Editar
                       </button>
-                      {!isPaidThisMonth ? (
-                        <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
-                          Pagar
-                        </button>
-                      ) : (
-                        <button disabled className="px-3 py-1.5 bg-green-500/20 text-green-500 text-xs font-bold rounded cursor-not-allowed">
-                          Listo
-                        </button>
-                      )}
+                      <button onClick={async () => { 
+                        if(confirm(`¿Estás seguro de eliminar (soft delete) a ${emp.name}?`)) {
+                          if (updateEmployee) {
+                            await updateEmployee(emp.id, { role: 'deleted' })
+                            if (getAllEmployees) setEmployees(await getAllEmployees())
+                          }
+                        }
+                      }} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold rounded transition">
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 )
               })}
-              {employees.filter(e => e.role !== 'admin').length === 0 && (
+              {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
                 </tr>
               )}
             </tbody>

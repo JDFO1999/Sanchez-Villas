@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 
 export default function FinanzasPage() {
-  const { user, getAllEmployees } = useAuth()
+  const { user, getAllEmployees, updateEmployee } = useAuth()
   const { settings } = useSettings()
   
   const [activeTab, setActiveTab] = useState('resumen')
@@ -126,6 +126,7 @@ export default function FinanzasPage() {
     { id: 'ingresos', label: 'Flujo de Efectivo', icon: TrendingUp },
     { id: 'egresos', label: 'Egresos (Gastos)', icon: TrendingDown },
     { id: 'cuentas_cobrar', label: 'Cuentas por Cobrar', icon: AlertCircle },
+    { id: 'nomina', label: 'Nómina y Comisiones', icon: Users },
   ]
 
   const [showReportModal, setShowReportModal] = useState(false)
@@ -167,6 +168,21 @@ export default function FinanzasPage() {
   const handleDeleteExpense = (id: string) => {
     if (confirm("¿Eliminar este gasto?")) {
       financeService.deleteExpense(id)
+      setExpenses(financeService.getExpenses())
+    }
+  }
+
+  const handlePayEmployee = async (emp: any, totalPay: number) => {
+    if (confirm(`¿Proceder a pagar la nómina de ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`)) {
+      financeService.addExpense({
+        description: `Nómina: ${emp.name}`,
+        amount: totalPay,
+        category: 'Nómina'
+      })
+      if (updateEmployee) {
+        await updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
+      }
+      if (getAllEmployees) setEmployees(await getAllEmployees())
       setExpenses(financeService.getExpenses())
     }
   }
@@ -876,6 +892,85 @@ export default function FinanzasPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'nomina' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
+                  <tr>
+                    <th className="p-4 font-medium">Empleado</th>
+                    <th className="p-4 font-medium">Atletas Asignados</th>
+                    <th className="p-4 font-medium">Sueldo + Comisiones</th>
+                    <th className="p-4 font-medium text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {employees.filter(e => e.role !== 'admin').map(emp => {
+                    const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
+                    const baseSalary = emp.baseSalary || 0
+                    const commissionRate = emp.commissionRate || 0
+                    const commissionType = emp.commissionType || 'flat'
+                    
+                    const avgMembership = 30
+                    const totalRevenueFromMembership = assignedAthletes.length * avgMembership
+                    let commission = 0
+                    if (settings.coachCustomPricing) {
+                      const coachTotalGross = assignedAthletes.length * commissionRate
+                      const gymCut = coachTotalGross * ((settings.gymCommissionPercentage || 30) / 100)
+                      commission = coachTotalGross - gymCut
+                    } else {
+                      commission = commissionType === 'percentage' 
+                        ? totalRevenueFromMembership * (commissionRate / 100) 
+                        : assignedAthletes.length * commissionRate
+                    }
+                      
+                    const totalPay = baseSalary + commission
+                    const currentMonth = new Date().toISOString().substring(0, 7)
+                    const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
+
+                    return (
+                      <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                        <td className="p-4">
+                          <div className="font-bold flex items-center gap-2">
+                            {emp.name}
+                            {isPaidThisMonth && <span className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pagado</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{emp.cedula} | {emp.role}</div>
+                        </td>
+                        <td className="p-4">
+                          <div className="font-bold">{assignedAthletes.length} atletas</div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
+                          <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
+                        </td>
+                        <td className="p-4 text-right flex justify-end gap-2">
+                          {!isPaidThisMonth ? (
+                            <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
+                              Pagar Nómina
+                            </button>
+                          ) : (
+                            <button disabled className="px-3 py-1.5 bg-green-500/20 text-green-500 text-xs font-bold rounded cursor-not-allowed">
+                              Nómina Pagada
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {employees.filter(e => e.role !== 'admin').length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
