@@ -15,7 +15,7 @@ import {
 import Swal from "sweetalert2"
 
 export default function FinanzasPage() {
-  const { user, getAllEmployees, updateEmployee } = useAuth()
+  const { user, getAllEmployees, updateEmployee, addEmployee } = useAuth()
   const { settings } = useSettings()
   
   const [activeTab, setActiveTab] = useState('resumen')
@@ -143,6 +143,14 @@ export default function FinanzasPage() {
   })
   const [isCustomCategory, setIsCustomCategory] = useState(false)
 
+  // Estados para Nómina y Empleados
+  const [showPayrollModal, setShowPayrollModal] = useState(false)
+  const [payrollForm, setPayrollForm] = useState<any>({
+    id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, 
+    commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', 
+    nonWorkingDays: '', avatar: ''
+  })
+
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault()
     if (!expForm.description || !expForm.amount) return
@@ -164,6 +172,37 @@ export default function FinanzasPage() {
     setShowExpenseModal(false)
     setExpForm({ id: '', description: '', amount: 0, category: 'Servicios' })
     setIsCustomCategory(false)
+  }
+
+  const handleSavePayroll = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addEmployee || !updateEmployee) return
+    
+    if (!payrollForm.id && payrollForm.clave !== payrollForm.confirmClave) {
+      Swal.fire('Error', 'Las contraseñas no coinciden.', 'error')
+      return
+    }
+
+    // Aquí guardamos en un mock storage los campos extra ya que Prisma no los soporta en esta iteración sin db push
+    const extraData = {
+      birthDate: payrollForm.birthDate,
+      profession: payrollForm.profession,
+      specialties: payrollForm.specialties,
+      nonWorkingDays: payrollForm.nonWorkingDays,
+      avatar: payrollForm.avatar,
+      commissionType: payrollForm.commissionType
+    }
+    localStorage.setItem(`emp_extra_${payrollForm.cedula}`, JSON.stringify(extraData))
+
+    if (payrollForm.id) {
+      await updateEmployee(payrollForm.id, payrollForm)
+      Swal.fire('Actualizado', 'Configuración de nómina guardada', 'success')
+    } else {
+      await addEmployee(payrollForm, payrollForm.clave)
+      Swal.fire('¡Empleado Creado!', 'Se ha agregado el empleado a la nómina', 'success')
+    }
+    setShowPayrollModal(false)
+    if (getAllEmployees) setEmployees(await getAllEmployees())
   }
 
   const handleDeleteExpense = (id: string) => {
@@ -930,6 +969,11 @@ export default function FinanzasPage() {
 
       {activeTab === 'nomina' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-end">
+            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-primary/90 flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Agregar Empleado a Nómina
+            </button>
+          </div>
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -942,7 +986,7 @@ export default function FinanzasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {employees.filter(e => e.role !== 'admin').map(emp => {
+                  {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').map(emp => {
                     const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
                     const baseSalary = emp.baseSalary || 0
                     const commissionRate = emp.commissionRate || 0
@@ -982,6 +1026,14 @@ export default function FinanzasPage() {
                           <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
                         </td>
                         <td className="p-4 text-right flex justify-end gap-2">
+                          <button onClick={() => {
+                            const extraStr = localStorage.getItem(`emp_extra_${emp.cedula}`)
+                            const extra = extraStr ? JSON.parse(extraStr) : {}
+                            setPayrollForm({ ...emp, clave: '', confirmClave: '', ...extra })
+                            setShowPayrollModal(true)
+                          }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
+                            Configurar
+                          </button>
                           {!isPaidThisMonth ? (
                             <button onClick={() => handlePayEmployee(emp, totalPay)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
                               Pagar Nómina
@@ -1003,6 +1055,113 @@ export default function FinanzasPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPayrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-4xl w-full p-6 shadow-2xl glass relative my-8">
+            <h3 className="text-xl font-bold mb-4">{payrollForm.id ? 'Configurar Nómina de Empleado' : 'Agregar Empleado a Nómina'}</h3>
+            <form onSubmit={handleSavePayroll} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Datos Personales y del Sistema */}
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Información del Sistema</h4>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
+                    <input required type="text" value={payrollForm.name} onChange={e => setPayrollForm({...payrollForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Cédula</label>
+                    <input required type="text" value={payrollForm.cedula} onChange={e => setPayrollForm({...payrollForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
+                    <select required value={payrollForm.role} onChange={e => setPayrollForm({...payrollForm, role: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
+                      <option value="employee">Entrenador (Coach)</option>
+                      <option value="cajero">Cajero / Recepción</option>
+                    </select>
+                  </div>
+                  {!payrollForm.id && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Contraseña</label>
+                        <input required type="password" value={payrollForm.clave} onChange={e => setPayrollForm({...payrollForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar</label>
+                        <input required type="password" value={payrollForm.confirmClave} onChange={e => setPayrollForm({...payrollForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2 mt-6">Información Personal Extras</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Fecha Nacimiento</label>
+                      <input type="date" value={payrollForm.birthDate || ''} onChange={e => setPayrollForm({...payrollForm, birthDate: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Profesión</label>
+                      <input type="text" value={payrollForm.profession || ''} onChange={e => setPayrollForm({...payrollForm, profession: e.target.value})} placeholder="Ej: Fisioterapeuta" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Especialidades</label>
+                    <input type="text" value={payrollForm.specialties || ''} onChange={e => setPayrollForm({...payrollForm, specialties: e.target.value})} placeholder="Ej: Musculación, Cardio" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  </div>
+                </div>
+
+                {/* Nómina, Pagos y Horarios */}
+                <div className="space-y-4">
+                  <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Condiciones Laborales y Nómina</h4>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Sueldo Base Mensual ({settings.storeCurrency})</label>
+                    <input type="number" step="0.01" min="0" value={payrollForm.baseSalary} onChange={e => setPayrollForm({...payrollForm, baseSalary: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Días no laborables (Descanso)</label>
+                    <input type="text" value={payrollForm.nonWorkingDays || ''} onChange={e => setPayrollForm({...payrollForm, nonWorkingDays: e.target.value})} placeholder="Ej: Domingos" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  </div>
+
+                  {payrollForm.role === 'employee' && (
+                    <>
+                      <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2 mt-6">Comisiones (Entrenador)</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">Pago por Atleta</label>
+                          <input type="number" step="0.01" min="0" value={payrollForm.commissionRate} onChange={e => setPayrollForm({...payrollForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
+                          <select value={payrollForm.commissionType} onChange={e => setPayrollForm({...payrollForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
+                            <option value="flat">Monto Fijo</option>
+                            <option value="percentage">Porcentaje (%)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="bg-primary/10 p-3 rounded-lg text-xs text-primary mt-2 flex gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>Actualmente la configuración global dice que los entrenadores tienen precio <b>{settings.coachCustomPricing ? "Personalizado (Puesto por el Entrenador)" : "Fijo (Asignado por el Gym)"}</b>. Si quieres cambiar esta regla, ajusta la configuración global en Settings.</span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {payrollForm.id && (
+                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+                      <p className="text-xs text-muted-foreground mb-1">Total de Atletas Asignados actualmente:</p>
+                      <div className="text-2xl font-black">{athletes.filter(a => a.coachId === payrollForm.id).length}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-6">
+                <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Guardar Configuración</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search, Eye, EyeOff } from "lucide-react"
 import Swal from "sweetalert2"
 
 export default function EmpleadosPage() {
@@ -14,6 +14,7 @@ export default function EmpleadosPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
+  const [showPin, setShowPin] = useState(false)
   
   const [empForm, setEmpForm] = useState<any>({
     id: '', name: '', cedula: '', email: '', role: 'employee', clave: '', confirmClave: '', pin: '',
@@ -46,7 +47,7 @@ export default function EmpleadosPage() {
     let currentPin = empForm.pin
     let generatedNewPin = false
     if (empForm.role === 'cajero' && !currentPin) {
-      currentPin = Math.floor(1000 + Math.random() * 9000).toString()
+      currentPin = Math.floor(10000000000 + Math.random() * 90000000000).toString().slice(0, 11)
       generatedNewPin = true
     }
 
@@ -204,18 +205,39 @@ export default function EmpleadosPage() {
                   <>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Contraseña de Sesión</label>
-                      <input required type="password" value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                      <div className="relative">
+                        <input required type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                        <button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar Contraseña</label>
-                      <input required type="password" value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                      <div className="relative">
+                        <input required type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                      </div>
                     </div>
                   </>
                 )}
-                {empForm.id && empForm.pin && (
+                {empForm.role === 'cajero' && empForm.id && empForm.pin && (
                    <div className="col-span-2">
-                     <label className="text-xs font-bold text-orange-500 mb-1 block">PIN Generado de POS (Solo lectura)</label>
-                     <input type="text" value={empForm.pin} disabled className="w-full bg-black/5 dark:bg-black/40 border border-orange-500/50 rounded-lg p-2 text-sm" />
+                     <label className="text-xs font-bold text-orange-500 mb-1 block">Código de Barras / PIN de POS (11 dígitos)</label>
+                     <div className="relative">
+                       <input 
+                         type={showPin ? "text" : "password"} 
+                         value={empForm.pin} 
+                         disabled 
+                         className="w-full bg-black/5 dark:bg-black/40 border border-orange-500/50 rounded-lg p-2 text-sm pr-10" 
+                       />
+                       <button 
+                         type="button" 
+                         onClick={() => setShowPin(!showPin)} 
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                       >
+                         {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                       </button>
+                     </div>
                    </div>
                 )}
                 
