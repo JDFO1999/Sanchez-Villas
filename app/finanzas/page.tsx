@@ -12,6 +12,7 @@ import {
   BarChart3, TrendingDown, TrendingUp, DollarSign, 
   AlertCircle, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle 
 } from "lucide-react"
+import Swal from "sweetalert2"
 
 export default function FinanzasPage() {
   const { user, getAllEmployees, updateEmployee } = useAuth()
@@ -166,49 +167,79 @@ export default function FinanzasPage() {
   }
 
   const handleDeleteExpense = (id: string) => {
-    if (confirm("¿Eliminar este gasto?")) {
-      financeService.deleteExpense(id)
-      setExpenses(financeService.getExpenses())
-    }
+    Swal.fire({
+      title: '¿Eliminar este gasto?',
+      text: "Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        financeService.deleteExpense(id)
+        setExpenses(financeService.getExpenses())
+        Swal.fire('Eliminado', 'El gasto ha sido eliminado.', 'success')
+      }
+    })
   }
 
   const handlePayEmployee = async (emp: any, totalPay: number) => {
-    if (confirm(`¿Proceder a pagar la nómina de ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`)) {
-      financeService.addExpense({
-        description: `Nómina: ${emp.name}`,
-        amount: totalPay,
-        category: 'Nómina'
-      })
-      if (updateEmployee) {
-        await updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
+    Swal.fire({
+      title: 'Pagar Nómina',
+      text: `¿Proceder a pagar ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, pagar',
+      cancelButtonText: 'Cancelar'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        financeService.addExpense({
+          description: `Nómina: ${emp.name}`,
+          amount: totalPay,
+          category: 'Nómina'
+        })
+        if (updateEmployee) {
+          await updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
+        }
+        if (getAllEmployees) setEmployees(await getAllEmployees())
+        setExpenses(financeService.getExpenses())
+        Swal.fire('¡Pagado!', 'La nómina ha sido registrada.', 'success')
       }
-      if (getAllEmployees) setEmployees(await getAllEmployees())
-      setExpenses(financeService.getExpenses())
-    }
+    })
   }
   
   const handleSaldarDeuda = (athleteId: string, debtAmount: number) => {
-    if (confirm(`¿Saldar la deuda de ${settings.storeCurrency} ${debtAmount}? (Esto registrará un ingreso)`)) {
-      storeService.addTransaction({
-        id: `TX-${Date.now()}`,
-        date: new Date().toISOString(),
-        cashierId: user?.id || 'unknown',
-        customerId: athleteId,
-        items: [{ productId: 'DEBT', name: 'Pago de Deuda (Fiado)', price: debtAmount, qty: 1, subtotal: debtAmount }],
-        subtotal: debtAmount,
-        tax: 0,
-        total: debtAmount,
-        paymentMethod: 'Efectivo',
-        status: 'COMPLETED'
-      })
-      athleteService.updateAthlete(athleteId, { debt: 0 } as any) // we just overwrite that field by fetching first
-      const athlete = athleteService.getAthlete(athleteId)
-      if (athlete) {
-         athleteService.updateAthlete({...athlete, debt: 0})
+    Swal.fire({
+      title: 'Saldar Deuda',
+      text: `¿Saldar la deuda de ${settings.storeCurrency} ${debtAmount}? (Esto registrará un ingreso)`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, saldar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        storeService.addTransaction({
+          id: `TX-${Date.now()}`,
+          date: new Date().toISOString(),
+          cashierId: user?.id || 'unknown',
+          customerId: athleteId,
+          items: [{ productId: 'DEBT', name: 'Pago de Deuda (Fiado)', price: debtAmount, qty: 1, subtotal: debtAmount }],
+          subtotal: debtAmount,
+          tax: 0,
+          total: debtAmount,
+          paymentMethod: 'Efectivo',
+          status: 'COMPLETED'
+        })
+        athleteService.updateAthlete(athleteId, { debt: 0 } as any) // we just overwrite that field by fetching first
+        const athlete = athleteService.getAthlete(athleteId)
+        if (athlete) {
+           athleteService.updateAthlete({...athlete, debt: 0})
+        }
+        setAthletes(athleteService.getAthletes())
+        setTransactions(storeService.getTransactions())
+        Swal.fire('¡Saldado!', 'La deuda ha sido pagada con éxito.', 'success')
       }
-      setAthletes(athleteService.getAthletes())
-      setTransactions(storeService.getTransactions())
-    }
+    })
   }
 
   const handleDownloadReport = (seccion: string) => {

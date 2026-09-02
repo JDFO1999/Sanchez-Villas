@@ -6,6 +6,7 @@ import { useSettings } from "@/lib/settings-context"
 import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Plus, Search } from "lucide-react"
+import Swal from "sweetalert2"
 
 export default function EmpleadosPage() {
   const { user, getAllEmployees, addEmployee, updateEmployee } = useAuth()
@@ -38,35 +39,45 @@ export default function EmpleadosPage() {
     if (!addEmployee || !updateEmployee || !empForm.name || !empForm.cedula) return
     
     if (!empForm.id && empForm.clave !== empForm.confirmClave) {
-      alert("Las contraseñas no coinciden.")
+      Swal.fire('Error', 'Las contraseñas no coinciden.', 'error')
       return
     }
 
+    let currentPin = empForm.pin
+    let generatedNewPin = false
+    if (empForm.role === 'cajero' && !currentPin) {
+      currentPin = Math.floor(1000 + Math.random() * 9000).toString()
+      generatedNewPin = true
+    }
+
+    const payload = { ...empForm, pin: currentPin }
+
     if (empForm.id) {
-      await updateEmployee(empForm.id, empForm)
+      await updateEmployee(empForm.id, payload)
+      Swal.fire('Actualizado', 'Datos guardados con éxito', 'success')
     } else {
-      await addEmployee(empForm, empForm.clave)
+      await addEmployee(payload, empForm.clave)
+      if (generatedNewPin) {
+        Swal.fire('¡Empleado Creado!', `Se creó el cajero exitosamente. Su PIN de acceso para facturar es: <b>${currentPin}</b>`, 'success')
+      } else {
+        Swal.fire('¡Empleado Creado!', 'Registrado correctamente', 'success')
+      }
     }
     setShowEmployeeModal(false)
     if (getAllEmployees) setEmployees(await getAllEmployees())
   }
   
-  const handlePayEmployee = async (emp: any, totalPay: number) => {
-    if (confirm(`¿Proceder a pagar la nómina de ${settings.storeCurrency} ${totalPay.toFixed(2)} a ${emp.name}?`)) {
-      financeService.addExpense({
-        description: `Nómina: ${emp.name}`,
-        amount: totalPay,
-        category: 'Nómina'
-      })
-      if (updateEmployee) {
-        await updateEmployee(emp.id, { ...emp, lastPaidDate: new Date().toISOString() })
-      }
-      if (getAllEmployees) setEmployees(await getAllEmployees())
-    }
-  }
+  const buscarAtleta = async () => {
+    const { value: cedulaStr } = await Swal.fire({
+      title: 'Buscar Atleta Existente',
+      input: 'text',
+      inputLabel: 'Ingrese la cédula del atleta:',
+      inputPlaceholder: 'Ej: 12345678',
+      showCancelButton: true,
+      confirmButtonText: 'Buscar',
+      cancelButtonText: 'Cancelar'
+    })
 
-  const buscarAtleta = () => {
-    const cedulaStr = prompt("Ingrese la cédula del atleta a buscar:");
     if (!cedulaStr) return;
     const atleta = athletes.find(a => a.cedula === cedulaStr);
     if (atleta) {
@@ -76,9 +87,9 @@ export default function EmpleadosPage() {
         cedula: atleta.cedula,
         email: atleta.email || `${atleta.cedula}@atleta.com`,
       });
-      alert(`Atleta ${atleta.name} encontrado y precargado.`);
+      Swal.fire('¡Encontrado!', `Atleta ${atleta.name} encontrado y precargado.`, 'success');
     } else {
-      alert("No se encontró ningún atleta con esa cédula.");
+      Swal.fire('No Encontrado', 'No se encontró ningún atleta con esa cédula.', 'error');
     }
   }
 
@@ -86,8 +97,8 @@ export default function EmpleadosPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-20 relative">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Nómina</h1>
-          <p className="text-muted-foreground">Gestión de personal, roles, salarios base y pago de comisiones.</p>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Comisiones</h1>
+          <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
         <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
@@ -166,11 +177,13 @@ export default function EmpleadosPage() {
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-2xl w-full p-6 shadow-2xl glass relative my-8">
             <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Empleado' : 'Registrar Empleado'}</h3>
             <form onSubmit={handleAddEmployee} className="space-y-4">
-              <div className="flex gap-2 mb-2">
-                 <button type="button" onClick={buscarAtleta} className="bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2">
-                   <Search className="h-4 w-4" /> Buscar Atleta Existente
-                 </button>
-              </div>
+              {!empForm.id && (
+                <div className="flex gap-2 mb-2">
+                   <button type="button" onClick={buscarAtleta} className="bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                     <Search className="h-4 w-4" /> Buscar Atleta Existente
+                   </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
@@ -178,7 +191,7 @@ export default function EmpleadosPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Cédula</label>
-                  <input required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})} disabled={!!empForm.id} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
@@ -205,26 +218,25 @@ export default function EmpleadosPage() {
                      <input type="text" value={empForm.pin} disabled className="w-full bg-black/5 dark:bg-black/40 border border-orange-500/50 rounded-lg p-2 text-sm" />
                    </div>
                 )}
-                <div className="col-span-2 border-t border-black/10 dark:border-white/10 pt-4 mt-2">
-                  <h4 className="font-bold text-primary mb-3">Información Salarial y Comisiones</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sueldo Base Mensual ({settings.storeCurrency})</label>
-                      <input type="number" step="0.01" min="0" value={empForm.baseSalary} onChange={e => setEmpForm({...empForm, baseSalary: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Comisión por Atleta (Monto o %)</label>
-                      <input type="number" step="0.01" min="0" value={empForm.commissionRate} onChange={e => setEmpForm({...empForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
-                      <select value={empForm.commissionType} onChange={e => setEmpForm({...empForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
-                        <option value="flat">Monto Fijo ({settings.storeCurrency})</option>
-                        <option value="percentage">Porcentaje (%) del Plan</option>
-                      </select>
+                
+                {empForm.role === 'employee' && (
+                  <div className="col-span-2 border-t border-black/10 dark:border-white/10 pt-4 mt-2">
+                    <h4 className="font-bold text-primary mb-3">Información de Comisiones</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Comisión por Atleta (Monto o %)</label>
+                        <input type="number" step="0.01" min="0" value={empForm.commissionRate} onChange={e => setEmpForm({...empForm, commissionRate: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
+                        <select value={empForm.commissionType} onChange={e => setEmpForm({...empForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
+                          <option value="flat">Monto Fijo ({settings.storeCurrency})</option>
+                          <option value="percentage">Porcentaje (%) del Plan</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-4">
                 <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
