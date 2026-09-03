@@ -943,31 +943,30 @@ export default function TiendaPOSPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-4">Nuevo Cliente (Rápido)</h3>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (walkInName && walkInCedula) {
-                const newClient = {
-                  id: `WALKIN-${Date.now()}`,
-                  cedula: walkInCedula,
-                  name: walkInName,
-                  membershipStart: new Date().toISOString(),
-                  membershipEnd: new Date(Date.now() + 86400000).toISOString(),
-                  phone: '', 
-                  address: '',
-                  gender: 'M',
-                  coachId: null,
-                  attendancePercentage: 0,
-                  biometrics: []
-                } as unknown as AthleteProfile;
-                athleteService.updateAthlete(newClient as any);
-                setAthletes(athleteService.getAthletes());
-                setSelectedAthleteId(newClient.id);
-                setClientSearchQuery(`${newClient.name} (${newClient.cedula})`);
-                setShowWalkInModal(false);
-                setWalkInName(""); setWalkInCedula("");
-                showToast("Cliente agregado.", "success");
-              }
-            }} className="space-y-4">
+            <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (walkInName && walkInCedula) {
+                  const { createAthlete } = await import('@/app/actions/users');
+                  const res = await createAthlete({
+                    name: walkInName,
+                    cedula: walkInCedula,
+                    role: 'athlete',
+                    password: walkInCedula,
+                    gender: 'M',
+                  });
+
+                  if (res.success && res.user) {
+                    setAthletes((prev: any) => [...prev, res.user]);
+                    setSelectedAthleteId(res.user.id);
+                    setClientSearchQuery(`${res.user.name} (${res.user.cedula})`);
+                    setShowWalkInModal(false);
+                    setWalkInName(""); setWalkInCedula("");
+                    showToast("Cliente agregado.", "success");
+                  } else {
+                    showToast(res.error || "Error al crear cliente", "error");
+                  }
+                }
+              }} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Cédula</label>
                 <input 
