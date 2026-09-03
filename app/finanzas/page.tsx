@@ -117,6 +117,31 @@ export default function FinanzasPage() {
   }));
 
   const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#0ea5e9', '#8b5cf6'];
+  const COLORS_IN = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+  const ingresosPorCategoria = transactions.reduce((acc, tx) => {
+    tx.items.forEach(item => {
+      let cat = 'Tienda'
+      const pId = String(item.productId || '').toLowerCase()
+      const pName = String(item.productName || '').toLowerCase()
+      if (pId === 'memb' || pName.includes('mensualidad') || pName.includes('mes')) cat = 'Mensualidades'
+      else if (pName.includes('inscrip')) cat = 'Inscripciones'
+      acc[cat] = (acc[cat] || 0) + (item.subtotal || 0);
+    })
+    return acc;
+  }, {} as Record<string, number>);
+
+  const pieChartIngresosData = Object.entries(ingresosPorCategoria).map(([name, value]) => ({
+    name, value
+  }));
+
+  const activeAthletesCount = athletes.filter(a => {
+    if (!a.membershipEnd) return false;
+    return new Date(a.membershipEnd) >= new Date();
+  }).length;
+  const mrr = activeAthletesCount * 30; // Ingreso recurrente mensual estimado
+  const upcomingPayroll = employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').reduce((sum, e) => sum + (e.baseSalary || 0), 0);
+  const projectedLiquidity = mrr - upcomingPayroll;
 
   if (!user || (user.role !== 'admin')) {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo administradores.</div>
@@ -561,7 +586,7 @@ export default function FinanzasPage() {
       {/* Contenido Dinámico */}
       {activeTab === 'resumen' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card className="glass border-green-500/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Totales</CardTitle>
@@ -612,9 +637,19 @@ export default function FinanzasPage() {
                 <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalGymProfitFromCoaches * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
+            <Card className="glass border-green-500/20">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">MRR / Liquidez Proyectada</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-green-400">{settings.storeCurrency} {projectedLiquidity.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">MRR: {settings.storeCurrency} {mrr.toFixed(2)} - Nómina: {settings.storeCurrency} {upcomingPayroll.toFixed(2)}</p>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
             <Card className="glass lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Flujo de Ingresos y Egresos</CardTitle>
@@ -652,6 +687,40 @@ export default function FinanzasPage() {
 
             <Card className="glass">
               <CardHeader>
+                <CardTitle>Distribución de Ingresos</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px] flex flex-col justify-center">
+                {pieChartIngresosData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieChartIngresosData}
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {pieChartIngresosData.map((entry, index) => (
+                          <Cell key={`cell-in-${index}`} fill={COLORS_IN[index % COLORS_IN.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, 'Monto']}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                      />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    No hay ingresos registrados
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="glass">
+              <CardHeader>
                 <CardTitle>Gastos Administrativos</CardTitle>
               </CardHeader>
               <CardContent className="h-[300px] flex flex-col justify-center">
@@ -670,7 +739,7 @@ export default function FinanzasPage() {
                         ))}
                       </Pie>
                       <Tooltip 
-                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)} (${settings.storeCurrencySecondary} ${(Number(value) * settings.storeExchangeRate).toFixed(2)})`, 'Monto']}
+                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, 'Monto']}
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
                       />
                       <Legend verticalAlign="bottom" height={36}/>
