@@ -96,12 +96,15 @@ export async function createTransaction(data: any) {
       // 2. Decrement stock for real products
       for (const item of data.items) {
         if (!['MEMB', 'COACH'].includes(item.productId)) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: { decrement: parseInt(item.qty) }
-            }
-          })
+          const productExists = await tx.product.findUnique({ where: { id: item.productId } });
+          if (productExists) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stock: { decrement: parseInt(item.qty) }
+              }
+            })
+          }
         }
       }
 
