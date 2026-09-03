@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
+import Swal from "sweetalert2"
 
 export default function TiendaPOSPage() {
   const { user } = useAuth()
