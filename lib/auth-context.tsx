@@ -122,10 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.success ? res.employees as User[] : []
   }
 
-  const addEmployeeFn = async (data: Partial<User>, clave: string) => {
-    const pin = (data.role === 'cajero' || data.permissions?.includes('POS_ACCESS')) 
-      ? Math.floor(1000 + Math.random() * 9000).toString() 
-      : undefined;
+  const addEmployeeFn = async (data: Partial<User> & { pin?: string }, clave: string) => {
+    // Si ya trae un pin (por ejemplo, el código de barras autogenerado de 11 dígitos), usamos ese.
+    // Si no, y es cajero, generamos uno de 4 dígitos (fallback legacy) o de 11.
+    const pin = data.pin || data.accessPin || ((data.role === 'cajero' || data.permissions?.includes('POS_ACCESS')) 
+      ? Math.floor(10000000000 + Math.random() * 90000000000).toString().slice(0, 11)
+      : undefined);
       
     await createEmployee({ ...data, clave, pin })
   }
