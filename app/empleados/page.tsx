@@ -7,6 +7,8 @@ import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Plus, Search, Eye, EyeOff } from "lucide-react"
 import Swal from "sweetalert2"
+import Barcode from "react-barcode"
+import JsBarcode from "jsbarcode"
 
 export default function EmpleadosPage() {
   const { user, getAllEmployees, addEmployee, updateEmployee } = useAuth()
@@ -59,7 +61,20 @@ export default function EmpleadosPage() {
     } else {
       await addEmployee(payload, empForm.clave)
       if (generatedNewPin) {
-        Swal.fire('¡Empleado Creado!', `Se creó el cajero exitosamente. Su PIN de acceso para facturar es: <b>${currentPin}</b>`, 'success')
+        Swal.fire({
+          title: '¡Empleado Creado!',
+          html: `Se creó el cajero exitosamente.<br><br>Su PIN de acceso para facturar es: <b>${currentPin}</b><br><br><div class="flex justify-center mt-4"><svg id="swal-barcode"></svg></div>`,
+          icon: 'success',
+          didOpen: () => {
+            JsBarcode("#swal-barcode", currentPin, {
+              format: "CODE128",
+              lineColor: "#000",
+              width: 2,
+              height: 50,
+              displayValue: true
+            });
+          }
+        })
       } else {
         Swal.fire('¡Empleado Creado!', 'Registrado correctamente', 'success')
       }
@@ -229,6 +244,9 @@ export default function EmpleadosPage() {
                        >
                          {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                        </button>
+                     </div>
+                     <div className="mt-4 flex justify-center bg-white p-4 rounded-lg">
+                       <Barcode value={empForm.pin} format="CODE128" width={2} height={50} />
                      </div>
                    </div>
                 )}
