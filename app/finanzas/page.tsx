@@ -1352,8 +1352,18 @@ export default function FinanzasPage() {
                       </div>
                     </div>
                   )}
-                  
-                  <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2 mt-6">Información Personal Extras</h4>
+
+                  <h4 className="font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2 mt-6">Contacto e Información Personal</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Correo Electrónico</label>
+                      <input type="email" value={payrollForm.email || ''} onChange={e => setPayrollForm({...payrollForm, email: e.target.value})} placeholder="ejemplo@correo.com" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
+                      <input type="tel" value={payrollForm.phone || ''} onChange={e => setPayrollForm({...payrollForm, phone: e.target.value})} placeholder="Ej: 0414..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Fecha Nacimiento</label>

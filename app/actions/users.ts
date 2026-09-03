@@ -20,8 +20,10 @@ export async function createEmployee(data: any) {
         profession: data.profession || null,
         specialties: data.specialties || null,
         nonWorkingDays: data.nonWorkingDays || null,
-          bankAccount: data.bankAccount || null,
-          mobilePayment: data.mobilePayment || null,
+        bankAccount: data.bankAccount || null,
+        mobilePayment: data.mobilePayment || null,
+        email: data.email || null,
+        phone: data.phone || null,
       }
     });
     revalidatePath("/empleados")
@@ -47,10 +49,10 @@ export async function updateEmployee(id: string, data: any) {
         profession: data.profession || null,
         specialties: data.specialties || null,
         nonWorkingDays: data.nonWorkingDays || null,
-          bankAccount: data.bankAccount || null,
-          mobilePayment: data.mobilePayment || null,
         bankAccount: data.bankAccount || null,
         mobilePayment: data.mobilePayment || null,
+        email: data.email || null,
+        phone: data.phone || null,
         accessPin: data.pin !== undefined ? data.pin : undefined,
         // Update password if provided
         ...(data.clave ? { password: data.clave } : {})

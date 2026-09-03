@@ -18,6 +18,8 @@ model User {
   commissionRate   Float?   // Comisión para coaches
   profilePicture   String?  @db.Text
   gender           String?  // M o F
+  email            String?
+  phone            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
