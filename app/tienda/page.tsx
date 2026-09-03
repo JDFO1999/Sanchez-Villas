@@ -202,22 +202,50 @@ export default function TiendaPOSPage() {
     }
 
     const isAthlete = user?.role === 'athlete'
+    let cashierIdToUse = isAthlete ? 'SELF_SERVICE' : (user?.id || 'unknown');
 
     if (!isAthlete) {
-      const pin = prompt("Por seguridad, ingrese su PIN de Cajero para procesar la venta:")
-      if (pin === null) return // Cancelled
+      const { value: pin } = await Swal.fire({
+        title: 'Validación de Seguridad',
+        text: 'Escanee su código de barras o ingrese su PIN de Cajero para procesar la venta:',
+        input: 'password',
+        inputPlaceholder: 'Ingrese su PIN...',
+        showCancelButton: true,
+        confirmButtonText: 'Validar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#10b981',
+      })
+
+      if (!pin) return // Cancelled or empty
+
       const { validatePinAction } = await import('@/app/actions/auth')
       const res = await validatePinAction(pin)
+
       if (!res.success) {
-        showToast(res.error || "PIN incorrecto. Venta cancelada.", "error")
+        Swal.fire('Error', res.error || "PIN incorrecto. Venta cancelada.", 'error')
         return
       }
+      
+      // Confirm cashier name
+      const { isConfirmed } = await Swal.fire({
+        title: 'Cajero Validado',
+        html: `La venta será procesada por: <br><br><span class="text-xl font-bold text-primary">${res.user.name}</span>`,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Procesar Venta',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#10b981',
+      })
+
+      if (!isConfirmed) return
+      
+      cashierIdToUse = res.user.id;
     }
 
     const tx: Transaction = {
       id: `TX-${Date.now()}`,
       date: new Date().toISOString(),
-      cashierId: isAthlete ? 'SELF_SERVICE' : (user?.id || 'unknown'),
+      cashierId: cashierIdToUse,
       customerId: isAthlete ? user?.id : (selectedAthleteId || undefined),
       items: cart,
       subtotal,
@@ -239,7 +267,7 @@ export default function TiendaPOSPage() {
     const { createTransaction } = await import('@/app/actions/store');
     
     const res = await createTransaction({
-       cashierId: isAthlete ? 'SELF_SERVICE' : (user?.id || 'unknown'),
+       cashierId: cashierIdToUse,
        customerId: isAthlete ? user?.id : (selectedAthleteId || undefined),
        items: cart,
        subtotal,
