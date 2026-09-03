@@ -90,6 +90,9 @@ export async function createTransaction(data: any) {
               subtotal: parseFloat(item.subtotal)
             }))
           }
+        },
+        include: {
+          items: true
         }
       });
 
