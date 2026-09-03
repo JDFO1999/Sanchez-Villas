@@ -148,7 +148,7 @@ export default function InventarioPage() {
       </div>
 
       <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-        <div className="overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-sm hidden md:table">
             <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
               <tr>
