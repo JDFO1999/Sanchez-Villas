@@ -20,7 +20,9 @@ export default function FinanzasPage() {
   
   const [activeTab, setActiveTab] = useState('resumen')
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [transactions, setTransactions] = useState([])
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [viewImage, setViewImage] = useState<string | null>(null)
+  const [showReceipt, setShowReceipt] = useState<any>(null)
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [employees, setEmployees] = useState<any[]>([])
 
@@ -38,7 +40,13 @@ export default function FinanzasPage() {
       
       if (expRes.success) setExpenses(expRes.expenses as any)
       if (txRes.success) setTransactions(txRes.transactions as any)
-      if (athRes.success) setAthletes(athRes.athletes as any)
+      if (athRes.success) {
+        setAthletes(athRes.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+          debt: a.debt || 0
+        })))
+      }
 
       if (getAllEmployees) {
         const emps = await getAllEmployees()
@@ -88,10 +96,10 @@ export default function FinanzasPage() {
     const dateObj = new Date(dateStr)
     const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'short' })
     const dayIngresos = transactions
-      .filter(tx => tx.date.startsWith(dateStr))
+      .filter(tx => tx.date && new Date(tx.date).toISOString().startsWith(dateStr))
       .reduce((sum, tx) => sum + tx.total, 0)
     const dayEgresos = expenses
-      .filter(ex => ex.date.startsWith(dateStr))
+      .filter(ex => ex.date && new Date(ex.date).toISOString().startsWith(dateStr))
       .reduce((sum, ex) => sum + ex.amount, 0)
     
     return { name: dayName.charAt(0).toUpperCase() + dayName.slice(1), ingresos: dayIngresos, egresos: dayEgresos }
@@ -214,14 +222,17 @@ export default function FinanzasPage() {
       return
     }
 
-    // Aquí guardamos en un mock storage los campos extra ya que Prisma no los soporta en esta iteración sin db push
     const extraData = {
       birthDate: payrollForm.birthDate,
       profession: payrollForm.profession,
       specialties: payrollForm.specialties,
       nonWorkingDays: payrollForm.nonWorkingDays,
       avatar: payrollForm.avatar,
-      commissionType: payrollForm.commissionType
+      commissionType: payrollForm.commissionType,
+      bankAccount: payrollForm.bankAccount,
+      bankName: payrollForm.bankName,
+      mobilePayment: payrollForm.mobilePayment,
+      mobilePaymentBank: payrollForm.mobilePaymentBank
     }
     localStorage.setItem(`emp_extra_${payrollForm.cedula}`, JSON.stringify(extraData))
 
@@ -485,9 +496,99 @@ export default function FinanzasPage() {
     }, 1500)
   }
 
+  const getAthleteName = (tx: any) => {
+    if (tx.customerId === 'unknown') return 'Desconocido';
+    if (!tx.customerId) return 'Consumidor Final';
+    if (tx.customer && tx.customer.name) return tx.customer.name;
+    const athlete = athletes.find(a => a.id === tx.customerId);
+    if (athlete) return athlete.name;
+    return 'Desconocido';
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-20 relative">
       
+      {showReceipt && (() => {
+        const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
+            <div className={`bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl my-auto ${widthClass}`}>
+              <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
+              
+              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
+                {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
+                {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
+                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
+                <div className="text-sm border-b border-black/20 pb-4 mb-4">
+                  <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
+                  <p className="text-black">Factura N°: {showReceipt.id.split('-')[0]}</p>
+                  <p className="text-black">Cajero: {showReceipt.cashierId || 'Admin'}</p>
+                  <p className="text-black">Cliente: {showReceipt.customerId ? getAthleteName(showReceipt) : 'Consumidor Final'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6 text-black">
+                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2">
+                  <span>CANT. DESC.</span>
+                  <span>TOTAL</span>
+                </div>
+                {showReceipt.items && showReceipt.items.map((item: any) => (
+                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                    <div className="flex gap-2 pr-2">
+                      <span className="font-bold">{item.qty}x</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <span className="shrink-0 font-bold">{settings.storeCurrencySecondary} {(item.subtotal * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
+                <div className="flex justify-between">
+                  <span>Artículos Totales</span>
+                  <span>{showReceipt.items ? showReceipt.items.reduce((acc: any, item: any) => acc + item.qty, 0) : 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>{settings.storeCurrencySecondary} {((showReceipt.subtotal||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>IVA ({settings.storeTaxRate}%)</span>
+                  <span>{settings.storeCurrencySecondary} {((showReceipt.tax||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
+                  <span>TOTAL</span>
+                  <span>{settings.storeCurrencySecondary} {((showReceipt.total||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span>Pago con:</span>
+                  <span className="uppercase">{showReceipt.paymentMethod}</span>
+                </div>
+                {showReceipt.reference && (
+                  <div className="flex justify-between">
+                    <span>Ref:</span>
+                    <span className="uppercase">{showReceipt.reference}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center mt-8 text-black italic font-bold">
+                {settings.storeReceiptMessage}
+              </div>
+
+              <div className="mt-6 flex flex-col gap-2 print:hidden">
+                <button 
+                  onClick={() => window.print()}
+                  className="w-full bg-black text-white font-sans font-bold py-3 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
+                >
+                   Imprimir Recibo
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">
@@ -510,7 +611,7 @@ export default function FinanzasPage() {
                     <button 
                       key={p} 
                       onClick={() => setReportPeriod(p)}
-                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                     >
                       {p}
                     </button>
@@ -540,7 +641,7 @@ export default function FinanzasPage() {
             <button 
               onClick={confirmDownload}
               disabled={isGenerating}
-              className="w-full mt-6 bg-primary text-primary-foreground font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGenerating ? (
                 <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -559,7 +660,7 @@ export default function FinanzasPage() {
         </div>
         <button 
           onClick={() => handleDownloadReport('Todas las secciones')}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
+          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
         >
           <Download className="h-4 w-4" /> Reporte General (PDF)
         </button>
@@ -780,11 +881,20 @@ export default function FinanzasPage() {
                   {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => (
                     <tr key={tx.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
                       <td className="p-4 text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                      <td className="p-4 font-medium font-mono text-xs">{tx.id}</td>
+                      <td className="p-4 font-medium font-mono text-xs">
+                        <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline hover:text-primary/80 transition-colors">
+                          {tx.id}
+                        </button>
+                      </td>
                       <td className="p-4">
                         <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
                       </td>
-                      <td className="p-4 text-xs text-muted-foreground">{tx.reference || '-'}</td>
+                      <td className="p-4 text-xs text-muted-foreground flex items-center gap-2">
+                        {tx.reference || '-'}
+                        {['Transferencia', 'Pago Móvil', 'Binance'].includes(tx.paymentMethod) && tx.receiptImage && (
+                          <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
+                        )}
+                      </td>
                       <td className="p-4">
                         <div className="font-bold text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
                         <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
@@ -805,7 +915,11 @@ export default function FinanzasPage() {
                   <div key={tx.id} className="p-4 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-mono text-xs font-bold">{tx.id}</div>
+                        <div className="font-mono text-xs font-bold">
+                          <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline">
+                            {tx.id}
+                          </button>
+                        </div>
                         <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </div>
                       <div className="text-right">
@@ -815,7 +929,12 @@ export default function FinanzasPage() {
                     </div>
                     <div className="flex justify-between items-center text-sm pt-2">
                       <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
-                      <span className="text-xs text-muted-foreground">{tx.reference || '-'}</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs text-muted-foreground">{tx.reference || '-'}</span>
+                        {['Transferencia', 'Pago Móvil', 'Binance'].includes(tx.paymentMethod) && tx.receiptImage && (
+                          <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -824,6 +943,18 @@ export default function FinanzasPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Ver Comprobante */}
+      {viewImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setViewImage(null)}>
+          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setViewImage(null)} className="absolute -top-10 right-0 text-white hover:text-gray-300">
+              Cerrar (Esc)
+            </button>
+            <img src={viewImage} alt="Comprobante Completo" className="w-full rounded-lg object-contain max-h-[80vh]" />
           </div>
         </div>
       )}
@@ -1161,7 +1292,7 @@ export default function FinanzasPage() {
       {activeTab === 'nomina' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-end">
-            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-primary/90 flex items-center gap-2">
+            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-primary/90 flex items-center gap-2">
               <Plus className="h-4 w-4" /> Agregar Empleado a Nómina
             </button>
           </div>
@@ -1173,6 +1304,7 @@ export default function FinanzasPage() {
                     <th className="p-4 font-medium">Empleado</th>
                     <th className="p-4 font-medium">Atletas Asignados</th>
                     <th className="p-4 font-medium">Sueldo + Comisiones</th>
+                    <th className="p-4 font-medium">Datos de Pago</th>
                     <th className="p-4 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -1182,27 +1314,15 @@ export default function FinanzasPage() {
                     const commissionRate = emp.commissionRate || 0
                     
                     const currentMonthPrefix = new Date().toISOString().substring(0, 7)
-                    const monthTransactions = (transactions as any[]).filter(tx => tx.date.startsWith(currentMonthPrefix) && tx.status === 'COMPLETED')
+                    const monthTransactions = (transactions as any[]).filter(tx => tx.date && new Date(tx.date).toISOString().startsWith(currentMonthPrefix) && tx.status === 'COMPLETED')
                     
                     // Solo transacciones pagadas por clientes de este coach
                     const coachTx = monthTransactions.filter(tx => tx.customer?.coachId === emp.id)
                     
-                    let commission = 0
-                    for (const tx of coachTx) {
-                      for (const item of tx.items) {
-                        if (item.productId === 'MEMB' || item.productId === 'COACH') {
-                          if (emp.commissionType === 'percentage') {
-                            commission += item.subtotal * (commissionRate / 100)
-                          } else {
-                            commission += commissionRate
-                          }
-                        }
-                      }
-                    }
-                    
-                    const totalPay = baseSalary + commission
+                    let commission = 0; if (emp.commissionType === 'flat') { commission = empAssignedAthletes.length * commissionRate; } else { for (const tx of coachTx) { for (const item of tx.items) { if (item.productId === 'MEMB' || item.productId === 'COACH') { commission += item.subtotal * (commissionRate / 100); } } } } 
+                      const totalPay = baseSalary + commission
                     const currentMonth = new Date().toISOString().substring(0, 7)
-                    const isPaidThisMonth = emp.lastPaidDate && emp.lastPaidDate.startsWith(currentMonth)
+                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
 
                     const empAssignedAthletes = athletes.filter(a => a.coachId === emp.id)
 
@@ -1221,6 +1341,19 @@ export default function FinanzasPage() {
                         <td className="p-4">
                           <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
                           <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
+                        </td>
+                        <td className="p-4 text-xs">
+                          {(() => {
+                            const extraStr = localStorage.getItem(`emp_extra_${emp.cedula}`)
+                            const extra = extraStr ? JSON.parse(extraStr) : {}
+                            return (
+                              <div className="space-y-1">
+                                {extra.bankAccount ? <div className="text-muted-foreground"><span className="font-bold">Cta:</span> {extra.bankName ? `${extra.bankName} - ` : ''}{extra.bankAccount}</div> : null}
+                                {extra.mobilePayment ? <div className="text-muted-foreground"><span className="font-bold">Pago Móvil:</span> {extra.mobilePaymentBank ? `${extra.mobilePaymentBank} - ` : ''}{extra.mobilePayment}</div> : null}
+                                {!extra.bankAccount && !extra.mobilePayment && <span className="text-red-500/70">Sin datos registrados</span>}
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td className="p-4 text-right flex justify-end gap-2">
                           <button onClick={() => {
@@ -1378,14 +1511,26 @@ export default function FinanzasPage() {
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Especialidades</label>
                     <input type="text" value={payrollForm.specialties || ''} onChange={e => setPayrollForm({...payrollForm, specialties: e.target.value})} placeholder="Ej: Musculación, Cardio" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Cuenta Bancaria</label>
-                      <input type="text" value={payrollForm.bankAccount || ''} onChange={e => setPayrollForm({...payrollForm, bankAccount: e.target.value})} placeholder="Ej: 0102-..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Banco (Cuenta)</label>
+                        <input type="text" value={payrollForm.bankName || ''} onChange={e => setPayrollForm({...payrollForm, bankName: e.target.value})} placeholder="Ej: Provincial" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Número de Cuenta</label>
+                        <input type="text" value={payrollForm.bankAccount || ''} onChange={e => setPayrollForm({...payrollForm, bankAccount: e.target.value})} placeholder="Ej: 0108-..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Pago Móvil</label>
-                      <input type="text" value={payrollForm.mobilePayment || ''} onChange={e => setPayrollForm({...payrollForm, mobilePayment: e.target.value})} placeholder="Ej: 0414-1234567" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Banco (Pago Móvil)</label>
+                        <input type="text" value={payrollForm.mobilePaymentBank || ''} onChange={e => setPayrollForm({...payrollForm, mobilePaymentBank: e.target.value})} placeholder="Ej: Banesco" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono (Pago Móvil)</label>
+                        <input type="text" value={payrollForm.mobilePayment || ''} onChange={e => setPayrollForm({...payrollForm, mobilePayment: e.target.value})} placeholder="Ej: 0414-1234567" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1532,3 +1677,4 @@ export default function FinanzasPage() {
     </div>
   )
 }
+

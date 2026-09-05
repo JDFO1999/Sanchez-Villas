@@ -132,8 +132,8 @@ model Product {
 model Transaction {
   id            String   @id @default(cuid())
   date          DateTime @default(now())
-  cashierId     String
-  cashier       User     @relation("CashierTransactions", fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cashierId     String?
+  cashier       User?    @relation("CashierTransactions", fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customerId    String?
   customer      User?    @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cashSessionId String?
@@ -164,4 +164,48 @@ model Expense {
   description String
   amount      Float
   category    String
+}
+model Routine {
+  id          String   @id @default(cuid())
+  athleteId   String
+  coachId     String
+  athlete     User     @relation("AthleteRoutines", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coach       User     @relation("CoachRoutines", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  title       String
+  date        DateTime
+  duration    String
+  completed   Boolean  @default(false)
+  exercises   RoutineExercise[]
+  createdAt   DateTime @default(now())
+}
+
+model RoutineExercise {
+  id          String   @id @default(cuid())
+  routineId   String
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  name        String
+  sets        Int
+  reps        String
+  notes       String?
+}
+
+model ExerciseProgress {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     User     @relation("AthleteExerciseProgress", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  exerciseName String
+  weight      Float
+  date        DateTime @default(now())
+}
+
+model DietAssignment {
+  id          String   @id @default(cuid())
+  athleteId   String
+  coachId     String
+  athlete     User     @relation("AthleteDiets", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coach       User     @relation("CoachDiets", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  title       String
+  description String   @db.Text
+  date        DateTime
+  createdAt   DateTime @default(now())
 }

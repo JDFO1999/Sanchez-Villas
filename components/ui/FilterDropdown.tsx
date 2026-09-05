@@ -92,7 +92,7 @@ export default function FilterDropdown({
                     onClick={() => onCategoryChange(c)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${
                       activeCategory === c
-                        ? "bg-primary text-primary-foreground"
+                        ? "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent"
                         : "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
                     }`}
                   >

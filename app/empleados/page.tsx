@@ -19,7 +19,7 @@ export default function EmpleadosPage() {
   const [showPin, setShowPin] = useState(false)
   
   const [empForm, setEmpForm] = useState<any>({
-    id: '', name: '', cedula: '', email: '', role: 'employee', clave: '', confirmClave: '', pin: '',
+    id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', pin: '',
     birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '',
     baseSalary: 0, commissionRate: 0, commissionType: 'flat'
   })
@@ -27,8 +27,14 @@ export default function EmpleadosPage() {
   useEffect(() => {
     async function load() {
       if (getAllEmployees) setEmployees(await getAllEmployees())
-      // athleteService will also be updated later
-      setAthletes(athleteService.getAthletes())
+      const { getAthletes } = await import('@/app/actions/users')
+      const res = await getAthletes()
+      if (res.success) {
+        setAthletes(res.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        })))
+      }
     }
     load()
   }, [getAllEmployees])
@@ -116,7 +122,7 @@ export default function EmpleadosPage() {
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Comisiones</h1>
           <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
-        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 transition flex items-center gap-2">
+        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
         </button>
       </div>
@@ -202,18 +208,30 @@ export default function EmpleadosPage() {
                   <input required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
                 </div>
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Correo</label>
+                  <input type="email" value={empForm.email} onChange={e => setEmpForm({...empForm, email: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
+                  <input type="text" value={empForm.phone} onChange={e => setEmpForm({...empForm, phone: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
                   <select required value={empForm.role} onChange={e => setEmpForm({...empForm, role: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
                     <option value="employee">Entrenador (Coach)</option>
                     <option value="cajero">Cajero / Recepción</option>
                   </select>
                 </div>
-                {!empForm.id && (
-                  <>
+                <div className="col-span-2">
+                    <h4 className="font-bold border-b border-black/10 dark:border-white/10 pb-2 mb-4 mt-2">Seguridad y Acceso</h4>
+                  </div>
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Contraseña de Sesión</label>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Contraseña de Sesión {empForm.id && <span className="text-xs text-muted-foreground font-normal">(Opcional: Dejar en blanco para mantener la actual)</span>}
+                      </label>
                       <div className="relative">
-                        <input required type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                        <input required={!empForm.id} type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
                         <button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -222,11 +240,10 @@ export default function EmpleadosPage() {
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar Contraseña</label>
                       <div className="relative">
-                        <input required type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                        <input required={!empForm.id} type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
                       </div>
                     </div>
-                  </>
-                )}
+                  </div>
                 {empForm.role === 'cajero' && empForm.id && empForm.pin && (
                    <div className="col-span-2">
                      <label className="text-xs font-bold text-orange-500 mb-1 block">Código de Barras / PIN de POS (11 dígitos)</label>

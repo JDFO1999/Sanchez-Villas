@@ -5,54 +5,39 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlayCircle, Clock, Calendar, CheckCircle, Info, Apple, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
 
-// Mock data for the 3 days
-const routinesData = {
-  yesterday: {
-    id: "r_yest",
-    title: "Espalda y Bíceps",
-    duration: "45 min",
-    date: "Ayer",
-    completed: true,
-    diet: "Alto en carbohidratos complejos. 1 batido post-entreno.",
-    exercises: [
-      { name: "Jalón al pecho", sets: 4, reps: "10-12", notes: "Controlar excéntrica" },
-      { name: "Remo con barra", sets: 4, reps: "10", notes: "Espalda recta" },
-      { name: "Curl de bíceps alterno", sets: 3, reps: "12", notes: "" }
-    ]
-  },
-  today: {
-    id: "r_tod",
-    title: "Pierna y Glúteo",
-    duration: "60 min",
-    date: "Hoy",
-    completed: false,
-    diet: "Aumento de proteínas. Comer algo ligero 1h antes del entreno.",
-    exercises: [
-      { name: "Sentadilla Libre", sets: 4, reps: "10-12", notes: "Profundidad máxima" },
-      { name: "Prensa Inclinada", sets: 4, reps: "12", notes: "No bloquear rodillas" },
-      { name: "Extensión de Cuádriceps", sets: 3, reps: "15", notes: "Sostener arriba 1s" },
-      { name: "Hip Thrust", sets: 4, reps: "10", notes: "Apretar glúteo" }
-    ]
-  },
-  tomorrow: {
-    id: "r_tom",
-    title: "Pecho y Tríceps",
-    duration: "50 min",
-    date: "Mañana",
-    completed: false,
-    diet: "Día de moderados carbohidratos. Mantener buena hidratación.",
-    exercises: [
-      { name: "Press de Banca", sets: 4, reps: "8-10", notes: "Barra a nivel del pecho" },
-      { name: "Aperturas con mancuernas", sets: 3, reps: "12", notes: "Estirar bien el pectoral" },
-      { name: "Extensión de tríceps polea", sets: 4, reps: "15", notes: "Codos pegados al cuerpo" }
-    ]
-  }
-}
 
-export default function RutinaPage() {
-  const { user } = useAuth()
-  const [selectedDay, setSelectedDay] = useState<'yesterday' | 'today' | 'tomorrow'>('today')
   
+export default function RutinaPage() {
+  const { user } = useAuth();
+  const [selectedDay, setSelectedDay] = useState<'yesterday' | 'today' | 'tomorrow'>('today');
+  const [realRoutines, setRealRoutines] = useState<any[]>([]);
+  const [todayRoutine, setTodayRoutine] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+  const [yesterdayRoutine, setYesterdayRoutine] = useState<any>(null);
+  const [tomorrowRoutine, setTomorrowRoutine] = useState<any>(null);
+  useEffect(() => {
+    if (user?.id) {
+      import("@/app/actions/users").then(async ({ getAthleteDashboardData }) => {
+        const res = await getAthleteDashboardData(user.id);
+          setLoading(false);
+        if (res.success && res.routines) {
+          setRealRoutines(res.routines);
+          const todayStr = new Date().toISOString().split("T")[0];
+          const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+          const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+          const t = res.routines.find((r: any) => r.date.startsWith(todayStr)); setTodayRoutine(t ? {...t, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
+          const y = res.routines.find((r: any) => r.date.startsWith(yesterdayStr)); setYesterdayRoutine(y ? {...y, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
+          const tm = res.routines.find((r: any) => r.date.startsWith(tomorrowStr)); setTomorrowRoutine(tm ? {...tm, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
+        }
+      });
+    }
+  }, [user]);
+  const routinesData: Record<string, any> = {
+    yesterday: yesterdayRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" },
+    today: todayRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" },
+    tomorrow: tomorrowRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" }
+  };
+
   type ExState = 'pending' | 'progress' | 'completed' | 'failed'
 
   // Load from localStorage on mount
@@ -137,12 +122,12 @@ export default function RutinaPage() {
         {isCompleted ? (
           <div className="bg-green-500/20 text-green-500 border border-green-500/50 px-4 py-2 rounded-md font-medium flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5" />
-            ¡Rutina Completada!
+              ¡Rutina Completada!
           </div>
-        ) : selectedDay === 'today' ? (
+        ) : selectedDay === 'today' && routine.exercises.length > 0 ? (
           <button 
             onClick={handleCompletar}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
+            className="border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
           >
             <PlayCircle className="h-5 w-5" />
             Marcar todo como Realizado
@@ -157,19 +142,19 @@ export default function RutinaPage() {
       <div className="flex bg-black/5 dark:bg-black/40 p-1 rounded-lg w-fit border border-black/5 dark:border-white/5">
         <button 
           onClick={() => setSelectedDay('yesterday')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'yesterday' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
+          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'yesterday' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
         >
           Ayer
         </button>
         <button 
           onClick={() => setSelectedDay('today')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'today' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
+          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'today' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
         >
           Hoy
         </button>
         <button 
           onClick={() => setSelectedDay('tomorrow')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'tomorrow' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
+          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'tomorrow' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
         >
           Mañana
         </button>
@@ -213,7 +198,7 @@ export default function RutinaPage() {
             <CardTitle>Ejercicios ({Object.values(currentStates).filter(s => s === 'completed').length}/{routine.exercises.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-4">{routine.exercises.length === 0 ? <div className="text-center py-12 text-muted-foreground"><Info className="h-12 w-12 mx-auto mb-4 opacity-20" /><p>No tienes ejercicios asignados para este día.</p></div> : null}
               {routine.exercises.map((ex, idx) => {
                 const state = currentStates[idx] || 'pending'
                 const isChecked = state === 'completed'
@@ -255,19 +240,19 @@ export default function RutinaPage() {
                       <div className="flex items-center gap-1 mt-2 sm:mt-0 justify-end">
                          <button 
                             onClick={() => changeExerciseState(idx, 'failed')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isFailed ? 'bg-red-500 text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isFailed ? 'bg-red-500 text-white' : 'bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/30 hover:bg-red-500/30'}`}
                          >
                            No Realizado
                          </button>
                          <button 
                             onClick={() => changeExerciseState(idx, 'progress')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isProgress ? 'bg-yellow-500 text-white' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/20'}`}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isProgress ? 'bg-yellow-500 text-white' : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30'}`}
                          >
                            En Progreso
                          </button>
                          <button 
                             onClick={() => changeExerciseState(idx, 'completed')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isChecked ? 'bg-green-500 text-white' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isChecked ? 'bg-green-500 text-white' : 'bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'}`}
                          >
                            Realizado
                          </button>
@@ -283,3 +268,10 @@ export default function RutinaPage() {
     </div>
   )
 }
+
+
+
+
+
+
+

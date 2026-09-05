@@ -1,7 +1,8 @@
-"use server"
+﻿"use server"
 
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { saveBase64Image } from "@/lib/image-utils"
 
 export async function getProducts() {
   try {
@@ -14,6 +15,7 @@ export async function getProducts() {
 
 export async function createProduct(data: any) {
   try {
+    const imageUrl = await saveBase64Image(data.imageUrl);
     const product = await prisma.product.create({
       data: {
         barcode: data.barcode,
@@ -21,10 +23,12 @@ export async function createProduct(data: any) {
         price: parseFloat(data.price),
         cost: parseFloat(data.cost),
         stock: parseInt(data.stock),
-        category: data.category
+        category: data.category,
+        imageUrl: imageUrl || null
       }
     })
-    revalidatePath("/tienda")
+    revalidatePath('/tienda');
+    revalidatePath('/');
     return { success: true, product }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -33,6 +37,7 @@ export async function createProduct(data: any) {
 
 export async function updateProduct(id: string, data: any) {
   try {
+    const imageUrl = await saveBase64Image(data.imageUrl);
     const product = await prisma.product.update({
       where: { id },
       data: {
@@ -40,10 +45,12 @@ export async function updateProduct(id: string, data: any) {
         price: parseFloat(data.price),
         cost: parseFloat(data.cost),
         stock: parseInt(data.stock),
-        category: data.category
+        category: data.category,
+        imageUrl: imageUrl || null
       }
     })
-    revalidatePath("/tienda")
+    revalidatePath('/tienda');
+    revalidatePath('/');
     return { success: true, product }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -53,7 +60,8 @@ export async function updateProduct(id: string, data: any) {
 export async function deleteProduct(id: string) {
   try {
     await prisma.product.delete({ where: { id } })
-    revalidatePath("/tienda")
+    revalidatePath('/tienda');
+    revalidatePath('/');
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -62,12 +70,17 @@ export async function deleteProduct(id: string) {
 
 export async function createTransaction(data: any) {
   try {
+    const receiptImage = await saveBase64Image(data.receiptImage);
+    
     // Start a transaction to ensure all or nothing
     const transaction = await prisma.$transaction(async (tx) => {
-      // 0. Encontrar el turno de caja abierto del cajero
-      const activeSession = await tx.cashSession.findFirst({
-        where: { cashierId: data.cashierId, status: 'OPEN' }
-      });
+      // 0. Encontrar el turno de caja abierto del cajero (si hay cajero)
+      let activeSession = null;
+      if (data.cashierId) {
+        activeSession = await tx.cashSession.findFirst({
+          where: { cashierId: data.cashierId, status: 'OPEN' }
+        });
+      }
 
       // 1. Create the main transaction
       const newTx = await tx.transaction.create({
@@ -80,7 +93,8 @@ export async function createTransaction(data: any) {
           total: parseFloat(data.total),
           paymentMethod: data.paymentMethod,
           reference: data.reference || null,
-          status: 'COMPLETED',
+          receiptImage: receiptImage || null,
+          status: data.cashierId ? 'COMPLETED' : 'PENDING_DELIVERY',
           items: {
             create: data.items.map((item: any) => ({
               productId: item.productId,
@@ -114,7 +128,8 @@ export async function createTransaction(data: any) {
       return newTx;
     })
 
-    revalidatePath("/tienda")
+    revalidatePath('/tienda');
+    revalidatePath('/');
     return { success: true, transaction }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -136,3 +151,47 @@ export async function getTransactions() {
     return { success: false, error: error.message, transactions: [] }
   }
 }
+
+export async function getPendingTransactions() {
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { status: 'PENDING_DELIVERY' },
+      include: {
+        customer: true,
+        items: true
+      },
+      orderBy: { date: 'asc' }
+    });
+    return { success: true, transactions };
+  } catch (error: any) {
+    return { success: false, error: error.message, transactions: [] };
+  }
+}
+
+export async function deliverTransaction(transactionId: string, cashierId: string) {
+  try {
+    const transaction = await prisma.$transaction(async (tx) => {
+      const activeSession = await tx.cashSession.findFirst({
+        where: { cashierId: cashierId, status: 'OPEN' }
+      });
+
+      if (!activeSession) {
+        throw new Error('No tienes un turno de caja abierto para registrar esta entrega.');
+      }
+
+      return await tx.transaction.update({
+        where: { id: transactionId },
+        data: {
+          status: 'COMPLETED',
+          cashierId: cashierId,
+          cashSessionId: activeSession.id
+        }
+      });
+    });
+
+    return { success: true, transaction };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

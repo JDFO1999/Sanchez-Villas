@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye, ScanBarcode } from "lucide-react"
 import Link from "next/link"
+import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye, ScanBarcode } from "lucide-react"
+
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
-import { storeService, Transaction, Product } from "@/lib/store-service"
+import { Transaction, Product } from "@/lib/store-service"
 import { QRCodeSVG } from "qrcode.react"
 
 const topExercises = [
@@ -40,7 +41,7 @@ const topExercises = [
       { day: "S2", weight: 75 },
       { day: "S3", weight: 72 },
       { day: "S4", weight: 70 },
-      { day: "S5", weight: 65 }, // Estancado o bajó
+      { day: "S5", weight: 65 }, // Estancado o bajÃ³
     ]
   }
 ]
@@ -57,15 +58,24 @@ export function AthleteDashboard() {
 
   const [showQRModal, setShowQRModal] = useState(false)
   const [coachName, setCoachName] = useState('Sin Asignar')
+  const [liveRoutines, setLiveRoutines] = useState<any[]>([])
+  const [liveDiets, setLiveDiets] = useState<any[]>([])
   useEffect(() => {
     if (user?.id) {
-      const allTx = storeService.getTransactions()
-      const userTx = allTx.filter(tx => tx.customerId === user.id)
-      setPurchases(userTx.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
-      setProducts(storeService.getProducts())
+      
+      
+      
+      
 
       // fetch coach
-      import("@/lib/data-service").then(({ athleteService }) => {
+      import("@/app/actions/users").then(async ({ getAthleteDashboardData }) => {
+          const stats = await getAthleteDashboardData(user.id);
+          if (stats.success) {
+            setLiveRoutines(liveRoutines || []);
+            setLiveDiets(liveDiets || []);
+          }
+        });
+        import("@/lib/data-service").then(({ athleteService }) => {
         const ath = athleteService.getAthlete(user.id)
         if (ath && ath.coachId) {
           const storedUser = localStorage.getItem('gympro_user') // or just fetch from mocked users
@@ -104,7 +114,7 @@ export function AthleteDashboard() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={() => setShowQRModal(true)} className="bg-primary text-white px-4 py-2 rounded-md font-bold shadow-sm hover:bg-primary/90 transition flex items-center justify-center gap-2">
-            <ScanBarcode className="h-5 w-5" /> Mostrar mi Código de Acceso
+            <ScanBarcode className="h-5 w-5" /> Mostrar mi CÃ³digo de Acceso
           </button>
         </div>
       </div>
@@ -128,10 +138,42 @@ export function AthleteDashboard() {
             <Flame className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4 Días</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              ¡Sigue así! Estás en racha.
-            </p>
+            <div className="space-y-4">
+              {(() => {
+                const todayStr = new Date().toISOString().split("T")[0];
+                const todayRoutine = liveRoutines?.find((r: any) => r.date.startsWith(todayStr));
+                if (!todayRoutine) {
+                  return (
+                    <div className="p-4 rounded-lg bg-secondary/50 border text-center text-muted-foreground">
+                      No tienes rutina asignada para hoy.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="p-4 rounded-lg bg-secondary/50 border">
+                    <h4 className="font-medium text-primary mb-1">{todayRoutine.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">{todayRoutine.duration || 'Sin duraci�n'}</p>
+                    
+                    <div className="space-y-2 text-sm mb-4">
+                      {todayRoutine.exercises?.length > 0 ? todayRoutine.exercises.map((ex: any, i: number) => {
+                        const isCompleted = false;
+                        return (
+                          <div key={i} className="flex justify-between items-center p-2 rounded border border-transparent border-b-black/5 dark:border-b-white/5">
+                            <div className="flex items-center gap-2">
+                              <div className={`h-2 w-2 rounded-full shrink-0 ${isCompleted ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>
+                              <span>{ex.name}</span>
+                            </div>
+                            <span className="text-muted-foreground">{ex.sets}x{ex.reps}</span>
+                          </div>
+                        )
+                      }) : <p className="text-muted-foreground text-xs">No hay ejercicios agregados.</p>}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <Link href="/rutina" className="block text-center w-full py-2 px-4 rounded bg-primary text-primary-foreground mt-4 hover:bg-primary/90 font-medium">Ver Rutina Completa</Link>
           </CardContent>
         </Card>
 
@@ -153,14 +195,14 @@ export function AthleteDashboard() {
         <Card className="border-primary/50 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-primary">
-              Membresía
+              MembresÃ­a
             </CardTitle>
             <CheckCircle2 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">Activa</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Vence en 14 días
+              Vence en 14 dÃ­as
             </p>
           </CardContent>
         </Card>
@@ -168,7 +210,7 @@ export function AthleteDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Carga Máxima (PR)
+              Carga MÃ¡xima (PR)
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -188,7 +230,7 @@ export function AthleteDashboard() {
               <div>
                 <div className="text-2xl font-bold">{prData[prData.length - 1].weight} kg</div>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  {isImproving ? <span className="text-green-500">▲ Mejorando</span> : <span className="text-yellow-500">▼ Estancado/Bajó</span>}
+                  {isImproving ? <span className="text-green-500">â² Mejorando</span> : <span className="text-yellow-500">â¼ Estancado/BajÃ³</span>}
                 </p>
               </div>
               <div className="h-10 w-24">
@@ -212,14 +254,14 @@ export function AthleteDashboard() {
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-secondary/50 border">
-                <h4 className="font-medium text-primary mb-1">Día 4: Pierna y Glúteo</h4>
-                <p className="text-sm text-muted-foreground mb-3">Enfocado en hipertrofia y fuerza máxima.</p>
+                <h4 className="font-medium text-primary mb-1">DÃ­a 4: Pierna y GlÃºteo</h4>
+                <p className="text-sm text-muted-foreground mb-3">Enfocado en hipertrofia y fuerza mÃ¡xima.</p>
                 
                 <div className="space-y-2 text-sm mb-4">
                   {[
                     { name: "1. Sentadilla Libre", reps: "4 x 10-12" },
                     { name: "2. Prensa Inclinada", reps: "4 x 12" },
-                    { name: "3. Extensión de Cuádriceps", reps: "3 x 15" },
+                    { name: "3. ExtensiÃ³n de CuÃ¡driceps", reps: "3 x 15" },
                     { name: "4. Hip Thrust", reps: "4 x 10" }
                   ].map((ex, i) => {
                     const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
@@ -279,21 +321,21 @@ export function AthleteDashboard() {
               {(() => {
                 const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
                 const todayExercises = [
-                  "Sentadilla Libre", "Prensa Inclinada", "Extensión de Cuádriceps", "Hip Thrust"
+                  "Sentadilla Libre", "Prensa Inclinada", "ExtensiÃ³n de CuÃ¡driceps", "Hip Thrust"
                 ]
                 const completedToday = todayExercises
                   .map((name, i) => ({ name, state: savedStates?.today?.[i] || 'pending' }))
                   .filter(e => e.state === 'completed')
 
                 const pastActivities = [
-                  { date: "Ayer", type: "Espalda y Bíceps", status: "Completado" },
-                  { date: "Hace 2 días", type: "Pecho y Tríceps", status: "Completado" },
-                  { date: "Hace 3 días", type: "Batido Post-Entreno", status: "Completado" },
+                  { date: "Ayer", type: "Espalda y BÃ­ceps", status: "Completado" },
+                  { date: "Hace 2 dÃ­as", type: "Pecho y TrÃ­ceps", status: "Completado" },
+                  { date: "Hace 3 dÃ­as", type: "Batido Post-Entreno", status: "Completado" },
                 ]
 
                 const todayItems = completedToday.map(e => ({ date: "Hoy", type: e.name, status: "Completado" }))
                 const allItems = todayItems.length > 0 ? [...todayItems, ...pastActivities] : [
-                  { date: "Hoy", type: "Aún no has completado ejercicios", status: "Pendiente" },
+                  { date: "Hoy", type: "AÃºn no has completado ejercicios", status: "Pendiente" },
                   ...pastActivities
                 ]
 
@@ -384,7 +426,7 @@ export function AthleteDashboard() {
                     </div>
                     {tx.pickupCode && tx.status === 'PENDING_PICKUP' && (
                       <div className="bg-white text-black px-3 py-2 rounded-lg border-2 border-dashed border-black text-center mt-1">
-                        <p className="text-[9px] font-bold">CÓDIGO DE RETIRO</p>
+                        <p className="text-[9px] font-bold">CÃDIGO DE RETIRO</p>
                         <p className="font-mono font-black text-lg">{tx.pickupCode}</p>
                       </div>
                     )}
@@ -407,7 +449,7 @@ export function AthleteDashboard() {
                 <p className="text-black mt-1 font-bold">{showTicketModal.id}</p>
                 {showTicketModal.pickupCode && showTicketModal.status === 'PENDING_PICKUP' && (
                   <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
-                    <p className="font-bold text-[10px]">CÓDIGO DE RETIRO</p>
+                    <p className="font-bold text-[10px]">CÃDIGO DE RETIRO</p>
                     <p className="text-xl font-black">{showTicketModal.pickupCode}</p>
                   </div>
                 )}
@@ -453,15 +495,15 @@ export function AthleteDashboard() {
       {showQRModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl flex flex-col items-center text-black relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black mb-1">Tu Código de Acceso</h3>
-            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este código en recepción para marcar tu entrada.</p>
+            <h3 className="text-xl font-black mb-1">Tu CÃ³digo de Acceso</h3>
+            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este cÃ³digo en recepciÃ³n para marcar tu entrada.</p>
             
             <div className="bg-gray-100 p-4 rounded-xl mb-6">
               <QRCodeSVG value={user?.cedula || ''} size={200} level="H" />
             </div>
 
             <div className="text-center mb-6">
-              <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">Cédula Identidad</p>
+              <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">CÃ©dula Identidad</p>
               <p className="text-2xl font-mono tracking-widest font-black">{user?.cedula}</p>
             </div>
             

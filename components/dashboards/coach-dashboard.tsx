@@ -30,7 +30,7 @@ export function CoachDashboard() {
             Gestiona las rutinas, dietas y verifica la asistencia de tus atletas.
           </p>
         </div>
-        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2">
+        <button className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2">
           <FileEdit className="h-4 w-4" />
           Nueva Asignación
         </button>
@@ -120,7 +120,7 @@ export function CoachDashboard() {
                 <textarea rows={3} placeholder="Instrucciones alimenticias para hoy..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:border-primary"></textarea>
               </div>
 
-              <button type="submit" className="w-full bg-primary text-primary-foreground font-bold py-2.5 rounded-lg hover:bg-primary/90 transition">
+              <button type="submit" className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2.5 rounded-lg hover:bg-primary/90 transition">
                 Asignar al Atleta
               </button>
             </form>

@@ -25,8 +25,12 @@ export default function AjustesPage() {
   const [roleForm, setRoleForm] = useState({ id: '', name: '', permissions: [] as string[] })
 
   useEffect(() => {
-    setEmployees(getAllEmployees())
-    setRoles(getCustomRoles())
+    async function load() {
+      const emps = await getAllEmployees()
+      setEmployees(emps)
+      setRoles(getCustomRoles())
+    }
+    load()
   }, [])
 
   const [appName, setAppName] = useState(settings.appName)
@@ -467,21 +471,22 @@ export default function AjustesPage() {
                         Si está activo, al registrar un empleado el valor de "Comisión x Atleta" se tratará como el precio público que el atleta debe pagar para entrenar con esa persona.
                       </p>
                     </div>
-                    {coachCustomPricing && (
-                      <div className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10">
-                        <label className="text-sm font-bold block mb-1">Porcentaje del Gimnasio (%)</label>
-                        <input 
-                          type="number" 
-                          value={gymCommissionPercentage}
-                          onChange={(e) => setGymCommissionPercentage(Number(e.target.value))}
-                          placeholder="Ej. 30"
-                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
-                        />
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Del precio que el entrenador defina, el gimnasio retendrá este porcentaje como ganancia.
-                        </p>
-                      </div>
-                    )}
+                    <div className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10">
+                      <label className="text-sm font-bold block mb-1">Porcentaje del Gimnasio (%)</label>
+                      <input 
+                        type="number" 
+                        value={gymCommissionPercentage}
+                        onChange={(e) => setGymCommissionPercentage(Number(e.target.value))}
+                        placeholder="Ej. 30"
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {coachCustomPricing 
+                          ? "Del precio que el entrenador defina, el gimnasio retendrá este porcentaje como ganancia."
+                          : "Del precio asignado por el gimnasio para el entrenador, el gimnasio retendrá este porcentaje como ganancia y el resto es para el entrenador."
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-4 md:col-span-2 pt-4 border-t border-black/5 dark:border-white/5">
@@ -566,7 +571,7 @@ export default function AjustesPage() {
             <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
               <button 
                 type="submit" 
-                className="bg-primary text-primary-foreground font-bold py-3 px-6 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3 px-6 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2"
               >
                 <Save className="h-5 w-5" />
                 Guardar Cambios
@@ -735,7 +740,7 @@ export default function AjustesPage() {
                                   ? [...(emp.permissions || []), perm.id]
                                   : (emp.permissions || []).filter(p => p !== perm.id)
                                 updateEmployeePermissions(emp.id, newPerms as any)
-                                setEmployees(getAllEmployees()) // Refresh UI
+                                getAllEmployees().then(setEmployees) // Refresh UI
                               }}
                               className="accent-primary h-4 w-4"
                             />

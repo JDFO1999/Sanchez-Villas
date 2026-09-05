@@ -1,31 +1,39 @@
-"use client"
+﻿"use client"
 
 // Imports
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { storeService, Product, TransactionItem, Transaction } from "@/lib/store-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon } from "lucide-react"
+import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 import Swal from "sweetalert2"
 
 export default function TiendaPOSPage() {
+  const router = useRouter();
   const { user } = useAuth()
   const { settings } = useSettings()
   const { showToast } = useToast()
   
   const [products, setProducts] = useState<Product[]>([])
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [showPendingOrders, setShowPendingOrders] = useState(false);
+  const [pendingSearch, setPendingSearch] = useState('');
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   
   // Client Search & Walk-in
   const [clientSearchQuery, setClientSearchQuery] = useState("")
   const [showWalkInModal, setShowWalkInModal] = useState(false)
   const [walkInName, setWalkInName] = useState("")
+  const [walkInCedulaType, setWalkInCedulaType] = useState("V")
   const [walkInCedula, setWalkInCedula] = useState("")
+  const [walkInAddress, setWalkInAddress] = useState("")
+  const [walkInPhone, setWalkInPhone] = useState("")
   const [categories, setCategories] = useState<string[]>([])
   
   // Athlete View Cart
@@ -65,7 +73,19 @@ export default function TiendaPOSPage() {
       const { getAthletes } = await import('@/app/actions/users')
       const athRes = await getAthletes()
       
-      const loadedProducts = storeService.getProducts()
+      const { getProducts } = await import('@/app/actions/store')
+      const prodRes = await getProducts()
+      const loadedProducts = prodRes.success ? (prodRes.products as any[]).map(p => ({
+        id: p.id,
+        barcode: p.barcode,
+        name: p.name,
+        category: p.category,
+        buyPrice: p.cost,
+        sellPrice: p.price,
+        currentStock: p.stock,
+        minStockAlert: 5,
+        imageUrl: p.imageUrl
+      })) : []
       setProducts(loadedProducts)
       if (athRes.success) setAthletes(athRes.athletes as any)
       
@@ -80,7 +100,7 @@ export default function TiendaPOSPage() {
       const exists = prev.find(i => i.productId === product.id)
       if (exists) {
         if (exists.qty >= product.currentStock && product.currentStock > 0) {
-          showToast("No hay suficiente stock para añadir más.", "warning")
+          showToast("No hay suficiente stock para aÃ±adir mÃ¡s.", "warning")
           return prev
         }
         return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1, subtotal: (i.qty + 1) * i.price } : i)
@@ -95,7 +115,7 @@ export default function TiendaPOSPage() {
     })
   }
 
-  const addToCart = (product: Product, e?: React.MouseEvent) => {
+  const addToCart = (product: Product) => {
     if (product.currentStock <= 0) {
       setPendingCartProduct(product)
       setShowAdminOverride(true)
@@ -103,20 +123,7 @@ export default function TiendaPOSPage() {
     }
     executeAddToCart(product)
     
-    if (e) {
-      const target = e.currentTarget as HTMLElement;
-      const rect = target.getBoundingClientRect();
-      const newFlying = {
-        id: Date.now() + Math.random(),
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-        image: product.imageUrl
-      };
-      setFlyingItems(prev => [...prev, newFlying]);
-      setTimeout(() => {
-        setFlyingItems(prev => prev.filter(f => f.id !== newFlying.id));
-      }, 700);
-    }
+    
     
     setCartAnim(true)
     setTimeout(() => setCartAnim(false), 300)
@@ -134,7 +141,7 @@ export default function TiendaPOSPage() {
       setPendingCartProduct(null)
       showToast("Venta sin stock autorizada.", "success")
     } else {
-      showToast("Cédula de administrador inválida.", "error")
+      showToast("CÃ©dula de administrador invÃ¡lida.", "error")
     }
   }
 
@@ -186,8 +193,14 @@ export default function TiendaPOSPage() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return
+    const isAthlete = user?.role === 'athlete'
+    if (!isAthlete && !selectedAthleteId) {
+      showToast("Debe seleccionar o registrar un cliente antes de facturar.", "error")
+      return
+    }
+    
     if (paymentMethod === 'Seleccionar') {
-      showToast("Debe seleccionar un método de pago.", "error")
+      showToast("Debe seleccionar un mÃ©todo de pago.", "error")
       return
     }
 
@@ -202,13 +215,12 @@ export default function TiendaPOSPage() {
       }
     }
 
-    const isAthlete = user?.role === 'athlete'
-    let cashierIdToUse = isAthlete ? 'SELF_SERVICE' : (user?.id || 'unknown');
+    let cashierIdToUse = isAthlete ? null : (user?.id || null);
 
     if (!isAthlete) {
       const { value: pin } = await Swal.fire({
         title: 'Validación de Seguridad',
-        text: 'Escanee su código de barras o ingrese su PIN de Cajero para procesar la venta:',
+        text: 'Escanee su cÃ³digo de barras o ingrese su PIN de Cajero para procesar la venta:',
         input: 'password',
         inputPlaceholder: 'Ingrese su PIN...',
         showCancelButton: true,
@@ -265,7 +277,7 @@ export default function TiendaPOSPage() {
       // For now we don't have debt in schema, skipping real debt update for mockup
     }
 
-    const { createTransaction } = await import('@/app/actions/store');
+    const { createTransaction, getProducts } = await import('@/app/actions/store');
     
     const res = await createTransaction({
        cashierId: cashierIdToUse,
@@ -275,19 +287,34 @@ export default function TiendaPOSPage() {
        tax,
        total,
        paymentMethod,
-       reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReference : undefined
+       reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReference : undefined,
+       receiptImage: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReceiptImage : undefined
     });
 
     if (res.success) {
-      // We still use local products state but it will refresh on reload or we could fetch again
+      const prodRes = await getProducts();
+      if (prodRes.success) {
+        setProducts((prodRes.products as any[]).map(p => ({
+          id: p.id,
+          barcode: p.barcode,
+          name: p.name,
+          category: p.category,
+          buyPrice: p.cost,
+          sellPrice: p.price,
+          currentStock: p.stock,
+          minStockAlert: 5,
+          imageUrl: p.imageUrl || null
+        })));
+      }
       setCart([])
       setShowReceipt(res.transaction)
       setShowAdminCart(false)
       setTxReference("")
       setTxReceiptImage("")
       showToast("Compra completada exitosamente.", "success")
+        router.refresh()
       
-      if (settings.storeUseThermalPrinter) {
+      if (!isAthlete && settings.storeUseThermalPrinter) {
         setTimeout(() => {
           window.print()
         }, 500)
@@ -301,14 +328,14 @@ export default function TiendaPOSPage() {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado a la Tienda.</div>
   }
 
-  // ===== VISTA CATÁLOGO PARA ATLETAS =====
+  // ===== VISTA CATÃLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
     return (
       <div className="space-y-6 max-w-6xl mx-auto pb-20">
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Catálogo {settings.appName}</h1>
-            <p className="text-muted-foreground mt-1">Reserva tus productos desde aquí y retíralos en recepción.</p>
+            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">CatÃ¡logo {settings.appName}</h1>
+            <p className="text-muted-foreground mt-1">Reserva tus productos desde aquÃ­ y retÃ­ralos en recepciÃ³n.</p>
           </div>
           <div className="relative flex gap-2">
             <button 
@@ -330,7 +357,7 @@ export default function TiendaPOSPage() {
               <User className="h-5 w-5" />
               <span>Pagar Mensualidad</span>
             </button>
-            <button onClick={() => setShowAthleteCart(true)} className="bg-primary text-primary-foreground font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20">
+            <button onClick={() => setShowAthleteCart(true)} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20">
               <ShoppingCart className="h-5 w-5" />
               <span>Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -371,7 +398,7 @@ export default function TiendaPOSPage() {
             return (
               <Card 
                 key={p.id} 
-                onClick={(e) => !isOutOfStock && addToCart(p, e)}
+                onClick={() => !isOutOfStock && addToCart(p)}
                 className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
               >
                 <div className="h-40 sm:h-28 w-full relative flex items-center justify-center p-3 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
@@ -439,13 +466,13 @@ export default function TiendaPOSPage() {
                 {cart.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 pt-10 pb-10">
                     <ShoppingCart className="h-12 w-12 mb-4" />
-                    <p>Carrito Vacío</p>
+                    <p>Carrito VacÃ­o</p>
                   </div>
                 )}
               </div>
               <div className="p-4 border-t border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40 space-y-4 flex-shrink-0 overflow-y-auto max-h-[50vh]">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground block">Método de Pago</label>
+                  <label className="text-xs font-medium text-muted-foreground block">MÃ©todo de Pago</label>
                   <select 
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
@@ -483,7 +510,7 @@ export default function TiendaPOSPage() {
                       })()}
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
+                      <label className="text-xs font-medium text-muted-foreground">NÃºmero de Referencia ({paymentMethod})</label>
                       <input 
                         type="text" 
                         value={txReference}
@@ -497,7 +524,7 @@ export default function TiendaPOSPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
                           <ImageIcon className="h-5 w-5 shrink-0" />
-                          <span className="truncate w-full">Galería</span>
+                          <span className="truncate w-full">GalerÃ­a</span>
                           <input 
                             type="file"
                             accept="image/*"
@@ -558,7 +585,7 @@ export default function TiendaPOSPage() {
                 <button 
                   onClick={() => {
                     if (paymentMethod === 'Seleccionar') {
-                      showToast("Debes seleccionar un método de pago.", "error");
+                      showToast("Debes seleccionar un mÃ©todo de pago.", "error");
                       return;
                     }
                     if (['Transferencia', 'Pago Móvil', 'Binance'].includes(paymentMethod)) {
@@ -571,7 +598,7 @@ export default function TiendaPOSPage() {
                     setShowAthleteCart(false);
                   }}
                   disabled={cart.length === 0}
-                  className="w-full bg-primary text-primary-foreground font-black py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed drop-shadow-md"
+                  className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-black py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed drop-shadow-md"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Enviar Pedido
                 </button>
@@ -579,7 +606,68 @@ export default function TiendaPOSPage() {
             </div>
           </div>
         )}
-      </div>
+      
+      {/* TICKET / RECIBO MODAL PARA ATLETA INYECTADO */}
+      {showReceipt && (() => {
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
+            <div className="bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl max-w-sm my-auto rounded-xl">
+              <button onClick={() => {
+                setShowReceipt(null);
+                window.location.reload(); // Refresh the page to clear the state and show the new purchases
+              }} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl">&times;</button>
+              
+              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
+                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
+                <div className="mt-4 mb-2 p-4 border-2 border-dashed border-black bg-gray-100 rounded-lg">
+                  <p className="font-bold text-lg mb-1">CÓDIGO DE RETIRO</p>
+                  <p className="text-4xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
+                </div>
+                <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
+              </div>
+
+              <div className="space-y-2 mb-6 text-black">
+                <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
+                  <span>CANT. DESC.</span>
+                  <span>TOTAL</span>
+                </div>
+                {showReceipt.items.map((item: any) => (
+                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                    <div className="flex gap-2 pr-2">
+                      <span className="font-bold">{item.qty}x</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
+                  <span>TOTAL</span>
+                  <div className="text-right">
+                    <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span>Pago con:</span>
+                  <span className="uppercase">{showReceipt.paymentMethod}</span>
+                </div>
+                <div className="flex justify-between text-orange-600 mt-2 text-lg">
+                  <span>Estatus:</span>
+                  <span className="uppercase">PENDIENTE DE RETIRO</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+</div>
     )
   }
 
@@ -592,8 +680,8 @@ export default function TiendaPOSPage() {
           <StoreNav />
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <button onClick={() => setShowAdminCart(true)} className={`bg-primary text-primary-foreground font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20 ${cartAnim ? 'animate-bounce' : ''}`}>
+          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+            <button onClick={() => setShowAdminCart(true)} className={`border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20 ${cartAnim ? 'animate-bounce' : ''}`}>
               <ShoppingCart className="h-5 w-5" />
               <span>Pagar / Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -627,7 +715,7 @@ export default function TiendaPOSPage() {
               <input 
                 ref={barcodeInputRef}
                 type="text" 
-                placeholder="Escanea código de barras o busca por nombre..." 
+                placeholder="Escanea cÃ³digo de barras o busca por nombre..." 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
@@ -635,7 +723,7 @@ export default function TiendaPOSPage() {
             </form>
           </div>
 
-          {/* Cuadrícula de Productos */}
+          {/* CuadrÃ­cula de Productos */}
           <div className="flex-1 overflow-y-auto min-h-0 pb-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-2">
               {filteredProducts.map(p => {
@@ -643,7 +731,7 @@ export default function TiendaPOSPage() {
                 return (
                   <Card 
                     key={p.id} 
-                    onClick={(e) => !isOutOfStock && addToCart(p, e)}
+                    onClick={() => !isOutOfStock && addToCart(p)}
                     className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
                   >
                     <div className="h-28 w-full relative flex items-center justify-center p-3 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
@@ -683,7 +771,7 @@ export default function TiendaPOSPage() {
           </div>
         </div>
 
-        {/* LADO DERECHO: CARRITO Y FACTURACIÓN (AHORA EN MODAL) */}
+        {/* LADO DERECHO: CARRITO Y FACTURACIÃ“N (AHORA EN MODAL) */}
         {showAdminCart && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col bg-card border border-black/10 dark:border-white/10 rounded-xl glass shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -720,8 +808,8 @@ export default function TiendaPOSPage() {
             {cart.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 py-10">
                 <ShoppingCart className="h-12 w-12 mb-4" />
-                <p>Carrito Vacío</p>
-                <p className="text-xs text-center mt-2 max-w-[200px]">Usa el lector de código de barras o selecciona un producto de la lista.</p>
+                <p>Carrito VacÃ­o</p>
+                <p className="text-xs text-center mt-2 max-w-[200px]">Usa el lector de cÃ³digo de barras o selecciona un producto de la lista.</p>
               </div>
             )}
           </div>
@@ -736,11 +824,11 @@ export default function TiendaPOSPage() {
                   <UserPlus className="h-3 w-3" /> Nuevo
                 </button>
               </label>
-              <div className="relative">
+              <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Buscar por cédula o nombre..."
+                  placeholder="Buscar por cÃ©dula o nombre..."
                   value={clientSearchQuery}
                   onChange={e => {
                     setClientSearchQuery(e.target.value)
@@ -770,7 +858,7 @@ export default function TiendaPOSPage() {
                 )}
               </div>
               
-              {/* Alerta de Membresía */}
+              {/* Alerta de MembresÃ­a */}
               {selectedAthleteId && (() => {
                 const athlete = athletes.find(a => a.id === selectedAthleteId);
                 if (!athlete) return null;
@@ -778,8 +866,8 @@ export default function TiendaPOSPage() {
                 if (isExpired) {
                   return (
                     <div className="mt-2 bg-red-500/20 border border-red-500/50 p-2 rounded flex gap-2 items-start text-xs text-red-500">
-                      <span className="font-bold uppercase">¡Atención!</span>
-                      <span>Membresía Vencida ({athlete.membershipEnd}). Ofrece la renovación.</span>
+                      <span className="font-bold uppercase">Â¡AtenciÃ³n!</span>
+                      <span>MembresÃ­a Vencida ({athlete.membershipEnd}). Ofrece la renovaciÃ³n.</span>
                     </div>
                   );
                 }
@@ -788,7 +876,7 @@ export default function TiendaPOSPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Método de Pago</label>
+              <label className="text-xs font-medium text-muted-foreground">MÃ©todo de Pago</label>
               <div className="flex gap-2 flex-wrap">
                 {['Efectivo', 'Tarjeta', 'Transferencia', 'Pago Móvil', 'Binance'].map(m => (
                   <button 
@@ -822,7 +910,7 @@ export default function TiendaPOSPage() {
                   })()}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
+                  <label className="text-xs font-medium text-muted-foreground">NÃºmero de Referencia ({paymentMethod})</label>
                   <input 
                     type="text" 
                     value={txReference}
@@ -836,7 +924,7 @@ export default function TiendaPOSPage() {
                   <div className="flex gap-2">
                     <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                       <ImageIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Galería</span>
+                      <span className="truncate">GalerÃ­a</span>
                       <input 
                         type="file"
                         accept="image/*"
@@ -853,7 +941,7 @@ export default function TiendaPOSPage() {
                     </label>
                     <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                       <Camera className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Cámara</span>
+                      <span className="truncate">CÃ¡mara</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -903,7 +991,7 @@ export default function TiendaPOSPage() {
             <button 
               onClick={handleCheckout}
               disabled={cart.length === 0}
-              className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="h-5 w-5" /> Cobrar Total
             </button>
@@ -914,17 +1002,106 @@ export default function TiendaPOSPage() {
         )}
       </div>
       
-      {/* MODAL DE OVERRIDE DE STOCK */}
+            {/* MODAL DE PEDIDOS ONLINE */}
+      {showPendingOrders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-3xl w-full max-h-[80vh] flex flex-col shadow-2xl glass overflow-hidden">
+            <div className="p-6 border-b border-black/10 dark:border-white/10 flex justify-between items-center bg-black/5 dark:bg-white/5">
+              <h3 className="text-2xl font-black flex items-center gap-2"><Package className="h-6 w-6 text-orange-500" /> Pedidos Online Pendientes</h3>
+              <button onClick={() => setShowPendingOrders(false)} className="text-muted-foreground hover:text-foreground font-bold">X</button>
+            </div>
+            
+            <div className="p-6 border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar por Cï¿½dula, Nombre o Cï¿½digo de Pedido..." 
+                  value={pendingSearch}
+                  onChange={(e) => setPendingSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {pendingOrders.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>No hay pedidos online pendientes por entregar.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {pendingOrders.filter(o => 
+                    o.customer?.cedula.includes(pendingSearch) || 
+                    o.customer?.name.toLowerCase().includes(pendingSearch.toLowerCase()) || 
+                    o.id.slice(-5).toUpperCase().includes(pendingSearch.toUpperCase())
+                  ).map(order => (
+                    <div key={order.id} className="border border-black/10 dark:border-white/10 rounded-lg p-4 bg-black/5 dark:bg-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
+                          <span className="font-bold">{order.customer?.name} ({order.customer?.cedula})</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{new Date(order.date).toLocaleString()}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {order.items.map((item: any) => (
+                            <span key={item.id} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded">
+                              {item.qty}x {item.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className="text-lg font-black"></span>
+                        <button 
+                          onClick={async () => {
+                            if (!user?.id) return;
+                            const result = await Swal.fire({
+                              title: 'ï¿½Entregar Pedido?',
+                              text: `ï¿½Confirmas que vas a entregar este pedido a ${order.customer?.name}? Esta venta se asignarï¿½ a tu caja actual.`, 
+                              icon: 'question',
+                              showCancelButton: true,
+                              confirmButtonText: 'Sï¿½, Entregar'
+                            });
+                            if (result.isConfirmed) {
+                              const { deliverTransaction } = await import('@/app/actions/store');
+                              const res = await deliverTransaction(order.id, user.id);
+                              if (res.success) {
+                                showToast('Pedido entregado con ï¿½xito y asignado a tu caja.', 'success');
+                                fetchPendingOrders();
+                              } else {
+                                showToast(res.error || 'Error al entregar pedido.', 'error');
+                              }
+                            }
+                          }}
+                          className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2"
+                        >
+                          <Check className="h-4 w-4" /> Entregar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+        {/* MODAL DE OVERRIDE DE STOCK */}
       {showAdminOverride && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-2 text-red-500">Autorización Requerida</h3>
-            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase código de Administrador para facturar sin stock.</p>
+            <h3 className="text-xl font-bold mb-2 text-red-500">AutorizaciÃ³n Requerida</h3>
+            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese CÃ©dula o pase cÃ³digo de Administrador para facturar sin stock.</p>
             <form onSubmit={handleAdminOverride} className="space-y-4">
               <input 
                 type="password" 
                 autoFocus
-                placeholder="Cédula de Administrador..." 
+                placeholder="CÃ©dula de Administrador..." 
                 value={adminCedula}
                 onChange={e => setAdminCedula(e.target.value)}
                 className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
@@ -942,17 +1119,20 @@ export default function TiendaPOSPage() {
       {showWalkInModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-4">Nuevo Cliente (Rápido)</h3>
+            <h3 className="text-xl font-bold mb-4">Nuevo Cliente</h3>
             <form onSubmit={async (e) => {
                 e.preventDefault();
+                const fullCedula = `${walkInCedulaType}-${walkInCedula}`;
                 if (walkInName && walkInCedula) {
                   const { createAthlete } = await import('@/app/actions/users');
                   const res = await createAthlete({
                     name: walkInName,
-                    cedula: walkInCedula,
+                    cedula: fullCedula,
                     role: 'athlete',
                     password: walkInCedula,
                     gender: 'M',
+                    address: walkInAddress,
+                    phone: walkInPhone
                   });
 
                   if (res.success && res.user) {
@@ -960,7 +1140,7 @@ export default function TiendaPOSPage() {
                     setSelectedAthleteId(res.user.id);
                     setClientSearchQuery(`${res.user.name} (${res.user.cedula})`);
                     setShowWalkInModal(false);
-                    setWalkInName(""); setWalkInCedula("");
+                    setWalkInName(""); setWalkInCedula(""); setWalkInAddress(""); setWalkInPhone(""); setWalkInCedulaType("V");
                     showToast("Cliente agregado.", "success");
                   } else {
                     showToast(res.error || "Error al crear cliente", "error");
@@ -968,22 +1148,48 @@ export default function TiendaPOSPage() {
                 }
               }} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Cédula</label>
-                <input 
-                  required autoFocus type="text" value={walkInCedula} onChange={e => setWalkInCedula(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                />
+                <label className="text-xs text-muted-foreground">CÃ©dula</label>
+                <div className="flex gap-2">
+                  <select 
+                    value={walkInCedulaType} 
+                    onChange={e => setWalkInCedulaType(e.target.value)}
+                    className="w-20 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                  >
+                    <option value="V">V</option>
+                    <option value="E">E</option>
+                    <option value="J">J</option>
+                  </select>
+                  <input 
+                    required autoFocus type="text" value={walkInCedula} onChange={e => setWalkInCedula(e.target.value)}
+                    className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                    placeholder="NÃºmero..."
+                  />
+                </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Nombre</label>
+                <label className="text-xs text-muted-foreground">Nombre / RazÃ³n Social</label>
                 <input 
                   required type="text" value={walkInName} onChange={e => setWalkInName(e.target.value)}
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
                 />
               </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">DirecciÃ³n</label>
+                <input 
+                  required type="text" value={walkInAddress} onChange={e => setWalkInAddress(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">TelÃ©fono</label>
+                <input 
+                  required type="text" value={walkInPhone} onChange={e => setWalkInPhone(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                />
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => setShowWalkInModal(false)} className="px-4 py-2 text-sm rounded bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded bg-primary text-primary-foreground font-bold hover:bg-primary/90">Guardar</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold hover:bg-primary/90">Guardar</button>
               </div>
             </form>
           </div>
@@ -995,7 +1201,7 @@ export default function TiendaPOSPage() {
         const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
-            <div className={`bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl my-auto ${widthClass}`}>
+            <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
               <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
               
               <div className="text-center mb-6 border-b border-dashed border-black pb-6">
@@ -1003,10 +1209,10 @@ export default function TiendaPOSPage() {
                 {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
                 {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
                 <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
-                {showReceipt.pickupCode && (
+                {true && (
                   <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
                     <p className="font-bold">CÓDIGO DE RETIRO</p>
-                    <p className="text-xl font-black">{showReceipt.pickupCode}</p>
+                    <p className="text-xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
                   </div>
                 )}
                 <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
@@ -1018,7 +1224,7 @@ export default function TiendaPOSPage() {
               </div>
 
               <div className="space-y-2 mb-6 text-black">
-                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2">
+                <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
                   <span>CANT. DESC.</span>
                   <span>TOTAL</span>
                 </div>
@@ -1028,27 +1234,32 @@ export default function TiendaPOSPage() {
                       <span className="font-bold">{item.qty}x</span>
                       <span>{item.name}</span>
                     </div>
-                    <span className="shrink-0 font-bold">{settings.storeCurrencySecondary} {(item.subtotal * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                    <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
               <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
                 <div className="flex justify-between">
-                  <span>Artículos Totales</span>
+                  <span>ArtÃ­culos Totales</span>
                   <span>{showReceipt.items.reduce((acc, item) => acc + item.qty, 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{settings.storeCurrencySecondary} {(showReceipt.subtotal * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>IVA ({settings.storeTaxRate}%)</span>
-                  <span>{settings.storeCurrencySecondary} {(showReceipt.tax * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <span>{settings.storeCurrency} {showReceipt.tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
                   <span>TOTAL</span>
-                  <span>{settings.storeCurrencySecondary} {(showReceipt.total * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <div className="text-right">
+                    <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
+                    {settings.storeExchangeRate > 0 && settings.storeCurrencySecondary && (
+                      <div className="text-sm">({settings.storeCurrencySecondary} {(showReceipt.total * settings.storeExchangeRate).toFixed(2)})</div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between mt-2">
                   <span>Pago con:</span>
@@ -1076,9 +1287,9 @@ export default function TiendaPOSPage() {
                 <button 
                   onClick={() => {
                     const client = showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId) : null;
-                    const phone = client?.phone || prompt("Ingrese número de teléfono (con código de país ej. 57300...):");
+                    const phone = client?.phone || prompt("Ingrese nÃºmero de telÃ©fono (con cÃ³digo de paÃ­s ej. 57300...):");
                     if (phone) {
-                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0A¡Gracias por preferirnos!`;
+                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* estÃ¡ listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0AÂ¡Gracias por preferirnos!`;
                       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                     }
                   }}
@@ -1136,10 +1347,76 @@ export default function TiendaPOSPage() {
             opacity: 0; 
           }
         }
-        .animate-fly-to-cart {
-          animation: flyToCart 0.7s cubic-bezier(0.2, 1, 0.3, 1) forwards;
-        }
-      `}</style>
-    </div>
-  )
-}
+          .animate-fly-to-cart {
+            animation: flyToCart 0.7s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+          }
+        `}</style>
+
+        {/* TICKET / RECIBO MODAL PARA ATLETA */}
+        {showReceipt && (() => {
+          const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
+          return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
+              <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
+                <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
+                
+                <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                  <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
+                  {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
+                  {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
+                  <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
+                  { (
+                    <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
+                      <p className="font-bold">CÓDIGO DE RETIRO</p>
+                      <p className="text-xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
+                    </div>
+                  )}
+                  <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
+                </div>
+  
+                <div className="space-y-2 mb-6 text-black">
+                  <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
+                    <span>CANT. DESC.</span>
+                    <span>TOTAL</span>
+                  </div>
+                  {showReceipt.items.map((item: any) => (
+                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                      <div className="flex gap-2 pr-2">
+                        <span className="font-bold">{item.qty}x</span>
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+  
+                <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
+                    <span>TOTAL</span>
+                    <div className="text-right">
+                      <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span>Pago con:</span>
+                    <span className="uppercase">{showReceipt.paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between text-orange-600 mt-2 text-lg">
+                    <span>Estatus:</span>
+                    <span className="uppercase">PENDIENTE DE RETIRO</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+    )
+  }
+
+
+

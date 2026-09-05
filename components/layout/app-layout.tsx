@@ -17,7 +17,8 @@ import {
   X, 
   Moon, 
   Sun,
-  Settings
+  Settings,
+  ScanLine
 } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -52,6 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Define navigation based on role
   let currentNavItems = [...navItems];
   if (user?.role === 'admin') {
+    currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
     currentNavItems.push({ name: "Empleados", href: "/empleados", icon: Users })
     currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
     currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
@@ -65,7 +67,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else {
     // Es Staff (Entrenador, Recepcionista, Cajero)
     currentNavItems = [
-      { name: "Panel Principal", href: "/", icon: Home }
+      { name: "Panel Principal", href: "/", icon: Home },
+      { name: "Asistencia", href: "/asistencia", icon: ScanLine }
     ]
     
     // Si tiene permiso CRM o es coach, puede ver atletas
@@ -109,7 +112,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden print:overflow-visible bg-background">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
@@ -119,8 +122,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -203,7 +205,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Bottom Navigation for Mobile */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t flex items-center justify-around px-2 z-40 pb-safe">
+        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t flex items-center justify-around px-2 z-40 pb-safe">
           {currentNavItems.slice(0, 5).map((item) => {
             const isActive = pathname === item.href
             return (
@@ -224,3 +226,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+

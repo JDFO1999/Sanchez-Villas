@@ -13,7 +13,17 @@ export default function AtletasPage() {
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
-    setAthletes(athleteService.getAthletes())
+    async function load() {
+      const { getAthletes } = await import('@/app/actions/users')
+      const res = await getAthletes()
+      if (res.success) {
+        setAthletes(res.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        })))
+      }
+    }
+    load()
   }, [])
 
   // Solo Admin y Empleado pueden ver esto
@@ -21,10 +31,21 @@ export default function AtletasPage() {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado</div>
   }
 
-  const filteredAthletes = athletes.filter(a => 
-    a.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    a.cedula.includes(searchTerm)
-  )
+  const [filterType, setFilterType] = useState('Todas')
+
+  const filteredAthletes = athletes.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.cedula.includes(searchTerm)
+    if (!matchesSearch) return false
+
+    const endDate = new Date(a.membershipEnd)
+    const today = new Date()
+    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (filterType === 'Activas') return diffDays > 0
+    if (filterType === 'Por Vencer') return diffDays > 0 && diffDays <= 5
+    if (filterType === 'Vencidas') return diffDays <= 0
+    return true
+  })
 
   return (
     <div className="space-y-6">
@@ -35,15 +56,27 @@ export default function AtletasPage() {
             Gestión y seguimiento de tus clientes.
           </p>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o cédula..." 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full sm:w-64 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
-          />
+        <div className="flex gap-2">
+          <select 
+            value={filterType} 
+            onChange={e => setFilterType(e.target.value)}
+            className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+          >
+            <option value="Todas">Todas</option>
+            <option value="Activas">Activas</option>
+            <option value="Por Vencer">Por Vencer</option>
+            <option value="Vencidas">Vencidas</option>
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o cédula..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+            />
+          </div>
         </div>
       </div>
 

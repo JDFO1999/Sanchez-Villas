@@ -158,7 +158,7 @@ export function ReceptionDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/tienda" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2">
+          <Link href="/tienda" className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2">
             <Store className="h-4 w-4" />
             Punto de Venta
           </Link>

@@ -27,7 +27,7 @@ export default function RegistroPage() {
 
   const claveMatch = clave && confirmClave && clave === confirmClave
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     if (clave !== confirmClave) {
@@ -37,51 +37,25 @@ export default function RegistroPage() {
     
     setIsLoading(true)
 
-    setTimeout(() => {
-      const newUser = registerAthlete(cedula, clave, { name: nombre })
-      if (!newUser) {
-        setError("La cédula ya está registrada.")
-        setIsLoading(false)
-        return
-      }
+    const newUser = await registerAthlete(cedula, clave, { name: nombre, gender: genero })
+    if (!newUser) {
+      setError("La cédula ya está registrada.")
+      setIsLoading(false)
+      return
+    }
 
-      const today = new Date()
-      // La membresía comienza hoy pero terminará hoy si no ha pagado, para que salga vencida y tenga que pagar
-      // O podemos ponerle endDate ayer para que force a renovar.
-      const end = new Date()
-      end.setDate(end.getDate() - 1)
-      
-      athleteService.updateAthlete({
-        id: newUser.id,
-        cedula: cedula,
-        name: nombre,
-        gender: genero,
-        coachId: entrenador || undefined,
-        phone: telefono,
-        address: direccion,
-        membershipStart: today.toISOString().split("T")[0],
-        membershipEnd: end.toISOString().split("T")[0],
-        attendancePercentage: 0,
-        biometrics: []
-      })
-
-      // Si el usuario actual tiene permisos de staff, no le hacemos auto-login
-      const currentUserStr = localStorage.getItem('gympro_mock_user')
-      let isStaff = false
-      if (currentUserStr) {
-        const currentUser = JSON.parse(currentUserStr)
-        if (currentUser.role !== 'athlete') {
-           isStaff = true
-        }
-      }
-
-      if (isStaff) {
-        router.push(`/atletas/${newUser.id}`)
-      } else {
-        login(cedula, clave)
+    // Attempt login if not staff
+    const storedUserId = localStorage.getItem('gympro_session_id')
+    if (!storedUserId) {
+      const loginSuccess = await login(cedula, clave)
+      if (loginSuccess) {
         router.push("/")
+      } else {
+        router.push("/login")
       }
-    }, 800)
+    } else {
+      router.push(`/atletas/${newUser.id}`)
+    }
   }
 
   return (
@@ -172,7 +146,7 @@ export default function RegistroPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center mt-6 disabled:opacity-50">
+          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center mt-6 disabled:opacity-50">
             {isLoading ? <Dumbbell className="h-5 w-5 animate-spin" /> : "Completar Registro"}
           </button>
         </form>

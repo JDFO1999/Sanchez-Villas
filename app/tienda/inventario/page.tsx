@@ -40,7 +40,25 @@ export default function InventarioPage() {
   const [allCats, setAllCats] = useState<string[]>([])
 
   useEffect(() => {
-    setProducts(storeService.getProducts())
+    async function fetchProducts() {
+      const { getProducts } = await import('@/app/actions/store');
+      const res = await getProducts();
+      if (res.success) {
+        setProducts((res.products as any[]).map(p => ({
+          id: p.id,
+          barcode: p.barcode,
+          name: p.name,
+          category: p.category,
+          department: 'General',
+          costPrice: p.cost,
+          sellPrice: p.price,
+          currentStock: p.stock,
+          minStockAlert: 5,
+          imageUrl: p.imageUrl
+        })));
+      }
+    }
+    fetchProducts();
     setAllDepts(storeService.getDepartments())
     setAllCats(storeService.getCategories())
   }, [])
@@ -91,30 +109,50 @@ export default function InventarioPage() {
     }
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    const product: Product = {
-      id: editingId || Date.now().toString(),
+    
+    const { createProduct, updateProduct, getProducts } = await import('@/app/actions/store');
+    
+    const productData = {
       barcode,
       name,
-      department,
       category,
-      costPrice,
-      sellPrice,
-      currentStock,
-      minStockAlert,
+      cost: costPrice,
+      price: sellPrice,
+      stock: currentStock,
       imageUrl
+    };
+
+    if (editingId) {
+       await updateProduct(editingId, productData);
+    } else {
+       await createProduct(productData);
     }
-    storeService.updateProduct(product)
-    setProducts(storeService.getProducts())
+
+    const res = await getProducts();
+    if (res.success) {
+      setProducts((res.products as any[]).map(p => ({
+        id: p.id, barcode: p.barcode, name: p.name, category: p.category,
+        department: 'General', costPrice: p.cost, sellPrice: p.price, currentStock: p.stock, minStockAlert: 5, imageUrl: p.imageUrl
+      })));
+    }
+    
     setShowModal(false)
     showToast(`Producto ${editingId ? 'actualizado' : 'creado'} correctamente.`, "success")
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("¿Seguro que deseas eliminar este producto?")) {
-      storeService.deleteProduct(id)
-      setProducts(storeService.getProducts())
+      const { deleteProduct, getProducts } = await import('@/app/actions/store');
+      await deleteProduct(id);
+      const res = await getProducts();
+      if (res.success) {
+        setProducts((res.products as any[]).map(p => ({
+          id: p.id, barcode: p.barcode, name: p.name, category: p.category,
+          department: 'General', costPrice: p.cost, sellPrice: p.price, currentStock: p.stock, minStockAlert: 5, imageUrl: p.imageUrl
+        })));
+      }
       showToast("Producto eliminado.", "warning")
     }
   }
@@ -141,7 +179,7 @@ export default function InventarioPage() {
         </div>
         <button 
           onClick={() => openModal()}
-          className="bg-primary text-primary-foreground font-bold py-2.5 px-4 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
+          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2.5 px-4 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
         >
           <PackagePlus className="h-4 w-4" /> Nuevo Producto
         </button>
@@ -375,7 +413,7 @@ export default function InventarioPage() {
               
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={()=>setShowModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Guardar</button>
+                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Guardar</button>
               </div>
             </form>
           </div>
@@ -404,7 +442,7 @@ export default function InventarioPage() {
                   setShowDeptModal(false);
                   showToast("Departamento creado.", "success");
                 }
-              }} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground font-bold rounded">Guardar</button>
+              }} className="px-3 py-1.5 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded">Guardar</button>
             </div>
           </div>
         </div>
@@ -433,7 +471,7 @@ export default function InventarioPage() {
                   setShowCatModal(false);
                   showToast("Categoría creada.", "success");
                 }
-              }} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground font-bold rounded">Guardar</button>
+              }} className="px-3 py-1.5 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded">Guardar</button>
             </div>
           </div>
         </div>

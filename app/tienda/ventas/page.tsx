@@ -21,18 +21,25 @@ export default function VentasPage() {
   const [showReceipt, setShowReceipt] = useState<Transaction | null>(null)
 
   useEffect(() => {
-    setTransactions(storeService.getTransactions().reverse()) // Newest first
-    setAthletes(athleteService.getAthletes())
+    async function load() {
+      const { getTransactions } = await import('@/app/actions/store')
+      const res = await getTransactions()
+      if (res.success) {
+        setTransactions(res.transactions as any)
+      }
+      setAthletes(athleteService.getAthletes())
+    }
+    load()
   }, [])
 
   if (!user || (user.role !== 'admin' && user.role !== 'cajero' && !user.permissions?.includes('SALES_VIEW'))) {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
-  const getAthleteName = (id?: string) => {
-    if (!id) return "Cliente General"
-    const athlete = athletes.find(a => a.id === id)
-    return athlete ? `${athlete.name} (C.C. ${athlete.cedula})` : "Desconocido"
+  const getAthleteName = (tx: any) => {
+    if (!tx.customerId) return "Cliente General"
+    if (tx.customer) return `${tx.customer.name} (C.C. ${tx.customer.cedula})`
+    return "Desconocido"
   }
 
   return (
@@ -85,7 +92,7 @@ export default function VentasPage() {
                 {transactions.length > 0 ? (
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-primary">{transactions[0].id}</h3>
-                    <p className="text-xs text-muted-foreground">Cliente: <span className="text-white font-bold">{getAthleteName(transactions[0].customerId)}</span></p>
+                    <p className="text-xs text-muted-foreground">Cliente: <span className="text-white font-bold">{getAthleteName(transactions[0])}</span></p>
                     <p className="text-xs text-muted-foreground">{new Date(transactions[0].date).toLocaleString()}</p>
                     <button onClick={() => setShowReceipt(transactions[0])} className="text-xs text-blue-400 font-bold hover:underline mt-1 block">Visualizar Factura</button>
                   </div>
@@ -115,9 +122,11 @@ export default function VentasPage() {
             <tbody className="divide-y divide-white/5">
               {transactions.map(tx => (
                 <tr key={tx.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
-                  <td className="p-4 font-medium text-primary">{tx.id}</td>
+                  <td className="p-4 font-medium text-primary">
+                    <button onClick={() => setShowReceipt(tx)} className="hover:underline">{tx.id}</button>
+                  </td>
                   <td className="p-4">{new Date(tx.date).toLocaleString()}</td>
-                  <td className="p-4">{getAthleteName(tx.customerId)}</td>
+                  <td className="p-4">{getAthleteName(tx)}</td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1 items-start">
                       <span className="bg-black/10 dark:bg-white/10 px-2 py-1 rounded text-xs">
@@ -180,7 +189,7 @@ export default function VentasPage() {
                               })
                             })
                           }}
-                          className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
+                          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
                         >
                           Entregar
                         </button>
@@ -195,7 +204,12 @@ export default function VentasPage() {
                     )}
                   </td>
                   <td className="p-4 text-right font-bold text-green-500">
-                    {settings.storeCurrency} {tx.total.toFixed(2)}
+                    <div>{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                    {settings.storeExchangeRate > 0 && settings.storeCurrencySecondary && (
+                      <div className="text-[10px] text-muted-foreground font-normal">
+                        ({settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)})
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -215,7 +229,9 @@ export default function VentasPage() {
               <div key={tx.id} className="p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-bold text-primary">{tx.id}</div>
+                    <div className="font-bold text-primary">
+                      <button onClick={() => setShowReceipt(tx)} className="hover:underline">{tx.id}</button>
+                    </div>
                     <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
                   </div>
                   <div className="text-right font-bold text-green-500">
@@ -224,7 +240,7 @@ export default function VentasPage() {
                 </div>
                 
                 <div className="text-sm">
-                  <span className="text-muted-foreground">Cliente:</span> {getAthleteName(tx.customerId)}
+                  <span className="text-muted-foreground">Cliente:</span> {getAthleteName(tx)}
                 </div>
 
                 <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-lg">
@@ -287,7 +303,7 @@ export default function VentasPage() {
                             })
                           })
                         }}
-                        className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded hover:bg-primary/90 font-bold"
+                        className="text-xs border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-3 py-2 rounded hover:bg-primary/90 font-bold"
                       >
                         Entregar
                       </button>
@@ -336,9 +352,12 @@ export default function VentasPage() {
                     <p className="text-xl font-black">{showReceipt.pickupCode}</p>
                   </div>
                 )}
-                <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
-                <p className="text-black mt-2">Cajero: {user?.name}</p>
-                <p className="text-black">Cliente: {showReceipt.customerId ? getAthleteName(showReceipt.customerId) : 'Consumidor Final'}</p>
+                <div className="text-sm border-b border-black/20 pb-4 mb-4">
+                  <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
+                  <p className="text-black">Factura N°: {showReceipt.id.split('-')[0]}</p>
+                  <p className="text-black">Cajero: {showReceipt.cashierId}</p>
+                  <p className="text-black">Cliente: {showReceipt.customerId ? getAthleteName(showReceipt) : 'Consumidor Final'}</p>
+                </div>
               </div>
 
               <div className="space-y-2 mb-6 text-black">

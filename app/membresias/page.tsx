@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -6,10 +6,10 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye } from "lucide-react"
 import Swal from 'sweetalert2'
 
-export default function MembresiasPage() {
+export default function MembresíasPage() {
   const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
   const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
@@ -22,6 +22,8 @@ export default function MembresiasPage() {
   const [renovarMonths, setRenovarMonths] = useState(1)
   const [renovarPaymentMethod, setRenovarPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Efectivo')
   const [renovarReference, setRenovarReference] = useState("")
+  const [renovarReceiptImage, setRenovarReceiptImage] = useState<string | null>(null)
+  const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState<AthleteProfile | null>(null)
@@ -37,9 +39,9 @@ export default function MembresiasPage() {
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
-    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
-    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
+    { title: "Inasistencia", text: "Â¡Hola {nombre}! Hemos notado que llevas dÃ­as sin venir al gimnasio. Â¿Todo bien? Te esperamos." },
+    { title: "FelicitaciÃ³n", text: "Â¡Felicidades por tu constancia esta semana {nombre}! Sigue asÃ­." },
+    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresÃ­a estÃ¡ prÃ³xima a vencer. Â¡Renueva pronto para no perder el ritmo!" }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -48,12 +50,18 @@ export default function MembresiasPage() {
 
   useEffect(() => {
     async function load() {
-      const { getAllEmployees } = await import('@/app/actions/users')
-      setAthletes(athleteService.getAthletes())
+      const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
+      const athRes = await getAthletes()
+      if (athRes.success) {
+        setAthletes(athRes.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        })))
+      }
       
       const empRes = await getAllEmployees()
       if (empRes.success) {
-        setAllCoaches(empRes.employees.filter((e: any) => e.role !== 'admin'))
+        setAllCoaches(empRes.employees.filter((e: any) => e.role === 'employee'))
       }
     }
     load()
@@ -63,10 +71,21 @@ export default function MembresiasPage() {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
-  const filtered = athletes.filter(a => 
-    a.name.toLowerCase().includes(search.toLowerCase()) || 
-    a.cedula.includes(search)
-  )
+  const [filterType, setFilterType] = useState('Todas')
+
+  const filtered = athletes.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.cedula.includes(search)
+    if (!matchesSearch) return false
+
+    const endDate = new Date(a.membershipEnd)
+    const today = new Date()
+    const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (filterType === 'Activas') return diffDays > 0
+    if (filterType === 'Por Vencer') return diffDays > 0 && diffDays <= 5
+    if (filterType === 'Vencidas') return diffDays <= 0
+    return true
+  })
 
   const openEditModal = (a: AthleteProfile) => {
     setEditName(a.name)
@@ -84,7 +103,7 @@ export default function MembresiasPage() {
     e.preventDefault()
     if (!showEditModal) return
     if (editPassword && editPassword !== editConfirmPassword) {
-      alert("Las contraseñas no coinciden.")
+      alert("Las contraseÃ±as no coinciden.")
       return
     }
 
@@ -97,18 +116,20 @@ export default function MembresiasPage() {
     )
 
     if (success) {
-      // Update in athlete DB
-      const current = athleteService.getAthlete(showEditModal.id)
-      if (current) {
-        athleteService.updateAthlete({
-          ...current,
-          name: editName,
-          cedula: editCedula, // they might have changed it
-          phone: editPhone,
-          address: editAddress
-        })
+      const { updateAthlete, getAthletes } = await import('@/app/actions/users')
+      await updateAthlete(showEditModal.id, {
+        name: editName,
+        phone: editPhone,
+        address: editAddress
+      })
+      
+      const athRes = await getAthletes()
+      if (athRes.success) {
+        setAthletes(athRes.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        })))
       }
-      setAthletes(athleteService.getAthletes())
       setShowEditModal(null)
     } else {
       alert("Error al actualizar credenciales.")
@@ -118,7 +139,7 @@ export default function MembresiasPage() {
   const sendMessage = () => {
     if (!showMessageModal) return
     if (!showMessageModal.phone) {
-      alert("El atleta no tiene un número de teléfono registrado.")
+      alert("El atleta no tiene un nÃºmero de telÃ©fono registrado.")
       return
     }
     // Clean phone number (remove spaces, +, etc)
@@ -135,6 +156,7 @@ export default function MembresiasPage() {
     setRenovarMonths(1)
     setRenovarPaymentMethod('Efectivo')
     setRenovarReference('')
+    setRenovarReceiptImage(null)
     setShowRenovarModal(a)
   }
 
@@ -160,6 +182,18 @@ export default function MembresiasPage() {
     
     if (!renovarPaymentMethod) return;
 
+    if (['Transferencia', 'Pago Móvil', 'Binance'].includes(renovarPaymentMethod)) {
+        if (!renovarReference.trim() || !renovarReceiptImage) {
+          Swal.fire('Advertencia', `Debes ingresar la referencia y el capture de tu ${renovarPaymentMethod}.`, 'warning');
+          return;
+        }
+      } else if (renovarPaymentMethod === 'Tarjeta') {
+        if (!renovarReference.trim()) {
+          Swal.fire('Advertencia', 'Debes ingresar el número de transacción para el pago con Tarjeta.', 'warning');
+          return;
+        }
+      }
+
     const { createTransaction } = await import('@/app/actions/store')
     
     // Process Transaction
@@ -168,7 +202,7 @@ export default function MembresiasPage() {
        cashierId: user?.id || 'admin',
        customerId: showRenovarModal.id,
        items: [
-         { productId: 'MEMB', name: `Membresía (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
+         { productId: 'MEMB', name: `MembresÃ­a (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
          ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice, qty: 1, subtotal: coachPrice }] : [])
        ],
        subtotal: total,
@@ -176,6 +210,7 @@ export default function MembresiasPage() {
        total,
        paymentMethod: renovarPaymentMethod,
        reference: renovarReference,
+       receiptImage: renovarReceiptImage || undefined
     })
 
     // Update Athlete Membership
@@ -184,16 +219,19 @@ export default function MembresiasPage() {
     let startFrom = currentEnd > now ? currentEnd : now
     startFrom.setMonth(startFrom.getMonth() + renovarMonths)
 
-    const currentAth = athleteService.getAthlete(showRenovarModal.id)
-    if (currentAth) {
-      athleteService.updateAthlete({
-        ...currentAth,
-        membershipEnd: startFrom.toISOString(),
-        coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
-      })
-    }
+    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
+    await updateAthlete(showRenovarModal.id, {
+      membershipEnd: startFrom.toISOString(),
+      coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
+    })
     
-    setAthletes(athleteService.getAthletes())
+    const athRes = await getAthletes()
+    if (athRes.success) {
+      setAthletes(athRes.athletes.map((a: any) => ({
+        ...a,
+        membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+      })))
+    }
     setShowRenovarModal(null)
     
     // Toast Notification
@@ -208,7 +246,7 @@ export default function MembresiasPage() {
         toast.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
+    Toast.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
   }
 
   return (
@@ -218,11 +256,11 @@ export default function MembresiasPage() {
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
+            <h3 className="text-xl font-bold mb-2">Renovar MembresÃ­a</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automÃ¡ticamente en la caja.</p>
             <form onSubmit={handleRenovar} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
+                <label className="text-sm font-medium mb-1 block">DuraciÃ³n (Meses)</label>
                 <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
               </div>
               <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
@@ -234,7 +272,7 @@ export default function MembresiasPage() {
                   className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
                 />
                 <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
-                  Añadir Entrenador Personal
+                  AÃ±adir Entrenador Personal
                 </label>
               </div>
 
@@ -274,12 +312,12 @@ export default function MembresiasPage() {
                 </span>
               </div>
 
-              {/* Método de Pago */}
+              {/* MÃ©todo de Pago */}
               <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
-                <h4 className="font-bold text-sm">Detalles de Facturación</h4>
+                <h4 className="font-bold text-sm">Detalles de FacturaciÃ³n</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
+                    <label className="text-xs font-medium mb-1 block">MÃ©todo de Pago</label>
                     <select 
                       value={renovarPaymentMethod}
                       onChange={e => setRenovarPaymentMethod(e.target.value as any)}
@@ -293,17 +331,89 @@ export default function MembresiasPage() {
                       <option value="Crédito/Fiado">Crédito/Fiado</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">N° de Referencia</label>
-                    <input 
-                      type="text" 
-                      value={renovarReference} 
-                      onChange={e => setRenovarReference(e.target.value)} 
-                      placeholder="Opcional..."
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm"
-                    />
-                  </div>
+                  {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(renovarPaymentMethod) && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                        <label className="text-xs font-medium text-muted-foreground block">
+                          {renovarPaymentMethod === 'Tarjeta' ? 'NÂ° de TransacciÃ³n' : `NÂ° de Referencia (${renovarPaymentMethod})`}
+                        </label>
+                        {(() => {
+                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
+                            : renovarPaymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
+                            : renovarPaymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
+                          return qr ? (
+                            <button type="button" onClick={() => setShowQRModal(qr)} className="p-1 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0" title="Ver QR">
+                              <Eye className="h-4 w-4 text-primary" />
+                            </button>
+                          ) : null;
+                        })()}
+                      </div>
+                      
+                      {renovarPaymentMethod === 'Binance' && settings.storePaymentInstructions?.binance && (
+                        <div className="text-[10px] text-muted-foreground mb-1 p-1 bg-black/5 dark:bg-white/5 rounded">
+                          {settings.storePaymentInstructions.binance}
+                        </div>
+                      )}
+
+                      <input 
+                        required
+                        type="text" 
+                        value={renovarReference} 
+                        onChange={e => setRenovarReference(e.target.value)} 
+                        placeholder={renovarPaymentMethod === 'Tarjeta' ? 'Ej. 000123' : 'Obligatorio...'}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary"
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {['Transferencia', 'Pago Móvil', 'Binance'].includes(renovarPaymentMethod) && (
+                  <div className="mt-4 p-3 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
+                    <label className="text-xs font-medium mb-2 block">Comprobante de Pago</label>
+                    <div className="flex gap-2">
+                      <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
+                        <span>Subir Archivo</span>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                          className="hidden" 
+                        />
+                      </label>
+                      <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
+                        <Camera className="h-4 w-4 shrink-0" />
+                        <span className="truncate">CÃ¡mara</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {renovarReceiptImage && (
+                      <div className="mt-2 relative w-20 h-20">
+                        <img src={renovarReceiptImage} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-primary/30" />
+                        <button type="button" onClick={() => setRenovarReceiptImage(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">&times;</button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
@@ -327,32 +437,32 @@ export default function MembresiasPage() {
                   <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Cédula</label>
+                  <label className="text-xs font-medium mb-1 block">CÃ©dula</label>
                   <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Teléfono</label>
+                  <label className="text-xs font-medium mb-1 block">TelÃ©fono</label>
                   <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Dirección</label>
+                  <label className="text-xs font-medium mb-1 block">DirecciÃ³n</label>
                   <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
+                <p className="text-xs text-muted-foreground mb-2">Cambiar ContraseÃ±a (Opcional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva Contraseña</label>
+                    <label className="text-xs font-medium mb-1 block">Nueva ContraseÃ±a</label>
                     <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar Contraseña</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
+                    <label className="text-xs font-medium mb-1 block">Confirmar ContraseÃ±a</label>
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseÃ±a" disabled={!editPassword} required={!!editPassword} />
                     {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
                     {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
@@ -361,7 +471,7 @@ export default function MembresiasPage() {
               
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
+                <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
               </div>
             </form>
           </div>
@@ -373,7 +483,7 @@ export default function MembresiasPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin nÃºmero registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -426,16 +536,16 @@ export default function MembresiasPage() {
               setNewMessageText("");
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">Título del botón</label>
-                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. Promoción" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <label className="text-xs font-medium mb-1 block">TÃ­tulo del botÃ³n</label>
+                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. PromociÃ³n" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
-                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promoción..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Guardar</button>
+                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Guardar</button>
               </div>
             </form>
           </div>
@@ -444,21 +554,33 @@ export default function MembresiasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresías & CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­as & CRM</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes y comunícate con tus atletas.
+            Gestiona accesos, planes y comunÃ­cate con tus atletas.
           </p>
         </div>
         
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Buscar por cédula o nombre..." 
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
-          />
+        <div className="flex gap-2 w-full sm:w-auto">
+          <select 
+            value={filterType} 
+            onChange={e => setFilterType(e.target.value)}
+            className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+          >
+            <option value="Todas">Todas</option>
+            <option value="Activas">Activas</option>
+            <option value="Por Vencer">Por Vencer</option>
+            <option value="Vencidas">Vencidas</option>
+          </select>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Buscar por cÃ©dula o nombre..." 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+            />
+          </div>
         </div>
       </div>
 
@@ -490,26 +612,26 @@ export default function MembresiasPage() {
                     </div>
                   </div>
 
-                  {/* Detalles Membresía */}
+                  {/* Detalles MembresÃ­a */}
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
+                      <span className="text-sm font-medium">{a.membershipType || 'Plan EstÃ¡ndar'}</span>
                     </div>
                     <div className="text-sm">
                       <span className="text-muted-foreground">Vence: </span>
-                      <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{a.membershipEnd}</span>
+                      <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
                       <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                        {isExpired ? 'Vencida' : `${diffDays} días`}
+                        {isExpired ? 'Vencida' : `${diffDays} dÃ­as`}
                       </span>
                     </div>
                   </div>
 
-                  {/* Último Acceso */}
+                  {/* Ãšltimo Acceso */}
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Último Acceso</span>
+                      <span className="text-sm font-medium">Ãšltimo Acceso</span>
                     </div>
                     <p className="text-sm text-muted-foreground">{a.lastLogin || 'Nunca'}</p>
                   </div>
@@ -553,6 +675,22 @@ export default function MembresiasPage() {
           </div>
         )}
       </div>
+      
+      {/* MODAL QR FULLSCREENº */}
+      {showQRModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-6 backdrop-blur-md" onClick={() => setShowQRModal(null)}>
+          <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowQRModal(null)} className="absolute top-3 right-3 text-gray-500 hover:text-black font-bold text-xl">&times;</button>
+            <h3 className="text-center font-bold text-black mb-4">Escanea el QR</h3>
+            <img src={showQRModal} alt="QR de Pago" className="w-full aspect-square object-contain" />
+            <p className="text-center text-xs text-gray-500 mt-3">Usa la app de tu banco para escanear</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
+
+
+

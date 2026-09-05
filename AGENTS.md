@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Actualización del Estado del Proyecto
+
+Siempre que termines una sesión de trabajo, implementes una nueva funcionalidad o realices cambios significativos en este proyecto, **DEBES** actualizar el archivo `ESTADO_PROYECTO.md` para reflejar el progreso, los módulos completados y los próximos pasos pendientes. Esto garantiza que el contexto del proyecto se mantenga al día para futuras sesiones.

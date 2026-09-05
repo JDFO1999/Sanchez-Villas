@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   X
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -29,65 +29,94 @@ import {
   Cell
 } from "recharts"
 
-const revenueData = [
-  { name: "Ene", ingresos: 4000, egresos: 2400 },
-  { name: "Feb", ingresos: 3000, egresos: 1398 },
-  { name: "Mar", ingresos: 2000, egresos: 9800 },
-  { name: "Abr", ingresos: 2780, egresos: 3908 },
-  { name: "May", ingresos: 1890, egresos: 4800 },
-  { name: "Jun", ingresos: 2390, egresos: 3800 },
-  { name: "Jul", ingresos: 3490, egresos: 4300 },
-]
 
-const attendanceData = [
-  { name: "Lun", checkins: 145 },
-  { name: "Mar", checkins: 130 },
-  { name: "Mie", checkins: 155 },
-  { name: "Jue", checkins: 120 },
-  { name: "Vie", checkins: 110 },
-  { name: "Sab", checkins: 85 },
-  { name: "Dom", checkins: 40 },
-]
-
-const storeData = [
-  { name: "Lun", ventas: 300, costos: 150 },
-  { name: "Mar", ventas: 450, costos: 200 },
-  { name: "Mie", ventas: 320, costos: 180 },
-  { name: "Jue", ventas: 500, costos: 250 },
-  { name: "Vie", ventas: 600, costos: 300 },
-  { name: "Sab", ventas: 800, costos: 400 },
-  { name: "Dom", ventas: 200, costos: 100 },
-]
-
-const topRiesgo = [
-  { nombre: "Carlos M.", dias: 12, antiguedad: "2 años" },
-  { nombre: "Ana G.", dias: 9, antiguedad: "1.5 años" },
-  { nombre: "Luis F.", dias: 8, antiguedad: "3 años" }
-]
-
-const exitoAtletas = [
-  { nombre: "María P.", porcentaje: 95 },
-  { nombre: "Jorge R.", porcentaje: 88 },
-  { nombre: "Elena S.", porcentaje: 82 },
-  { nombre: "Diego L.", porcentaje: 75 },
-  { nombre: "Juan C.", porcentaje: 60 },
-]
-
-const membresiasPorVencer = [
-  { nombre: "Pedro S.", venceEn: "2 días" },
-  { nombre: "Lucía M.", venceEn: "3 días" },
-  { nombre: "Andrés V.", venceEn: "4 días" },
-]
-
-const membresiasNuevas = [
-  { nombre: "Sofía C.", plan: "Plan Anual", hace: "2 horas" },
-  { nombre: "Roberto D.", plan: "Plan Mensual", hace: "5 horas" },
-  { nombre: "Camila R.", plan: "Plan Semestral", hace: "1 día" },
-]
 
 export function AdminDashboard() {
   const hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
   
+  const [storeData, setStoreData] = useState([
+    { name: "Lun", ventas: 0, costos: 0 },
+    { name: "Mar", ventas: 0, costos: 0 },
+    { name: "Mie", ventas: 0, costos: 0 },
+    { name: "Jue", ventas: 0, costos: 0 },
+    { name: "Vie", ventas: 0, costos: 0 },
+    { name: "Sab", ventas: 0, costos: 0 },
+    { name: "Dom", ventas: 0, costos: 0 },
+  ])
+
+  const [dynamicStats, setDynamicStats] = useState({
+    activeAthletes: 0,
+    checkinsToday: 0,
+    monthlyRevenue: 0,
+    riskAthletes: [] as any[],
+    exitoAtletas: [] as any[],
+    membresiasPorVencer: [] as any[],
+    membresiasNuevas: [] as any[],
+    revenueData: [] as any[],
+    recentCheckins: [] as any[],
+    attendanceData: [] as any[]
+  })
+
+  const [coachRequests, setCoachRequests] = useState<any[]>([])
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        const { getTransactions, getProducts } = await import('@/app/actions/store')
+        const { getDashboardStats } = await import('@/app/actions/dashboard')
+        const { getPendingCoachRequests } = await import('@/app/actions/users')
+        
+        const [txRes, prodRes, statsRes, reqsRes] = await Promise.all([
+          getTransactions(),
+          getProducts(),
+          getDashboardStats(),
+          getPendingCoachRequests()
+        ])
+        
+        if (reqsRes.success) {
+          setCoachRequests(reqsRes.requests as any[])
+        }
+        
+        if (statsRes.success) {
+          setDynamicStats(statsRes.stats as any)
+        }
+        
+        if (txRes.success && prodRes.success) {
+          const txs = txRes.transactions as any[]
+          const prods = prodRes.products as any[]
+          
+          const newData = [
+            { name: "Lun", ventas: 0, costos: 0 },
+            { name: "Mar", ventas: 0, costos: 0 },
+            { name: "Mie", ventas: 0, costos: 0 },
+            { name: "Jue", ventas: 0, costos: 0 },
+            { name: "Vie", ventas: 0, costos: 0 },
+            { name: "Sab", ventas: 0, costos: 0 },
+            { name: "Dom", ventas: 0, costos: 0 },
+          ]
+          
+          txs.forEach(tx => {
+            const d = new Date(tx.date)
+            let day = d.getDay() - 1
+            if (day === -1) day = 6 // Sunday
+            newData[day].ventas += tx.total
+            
+            tx.items.forEach((item: any) => {
+              const p = prods.find(pr => pr.id === item.productId)
+              if (p) newData[day].costos += (p.cost * item.qty) // Cost from backend is `p.cost`
+            })
+          })
+          
+          setStoreData(newData)
+        }
+      } catch (err) {
+        console.error("Error loading dashboard data:", err)
+      }
+    }
+    
+    fetchDashboardData()
+  }, [])
+
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportPeriod, setReportPeriod] = useState("Mensual")
   const [reportFormat, setReportFormat] = useState("PDF")
@@ -112,7 +141,57 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6 relative">
-      
+        
+        {coachRequests.length > 0 && (
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 glass">
+            <h3 className="text-orange-500 font-bold flex items-center gap-2 mb-3">
+              <AlertCircle className="h-5 w-5" /> Solicitudes de Cambio de Entrenador ({coachRequests.length})
+            </h3>
+            <div className="space-y-2">
+              {coachRequests.map((req) => (
+                <div key={req.id} className="flex flex-col sm:flex-row justify-between items-center bg-card border border-black/5 dark:border-white/5 p-3 rounded-lg gap-3">
+                  <div className="text-sm">
+                    <span className="font-bold">{req.athlete.name}</span> (C.I: {req.athlete.cedula}) quiere cambiar de 
+                    <span className="font-medium text-muted-foreground mx-1">
+                      {req.athlete.coach?.name || 'Ninguno'}
+                    </span>
+                    a
+                    <span className="font-bold text-primary mx-1">
+                      {req.coach.name}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button 
+                      onClick={async () => {
+                        const { resolveCoachRequest } = await import('@/app/actions/users')
+                        const res = await resolveCoachRequest(req.id, "APPROVED", req.athleteId, req.coachId)
+                        if (res.success) {
+                          setCoachRequests(prev => prev.filter(r => r.id !== req.id))
+                        }
+                      }}
+                      className="flex-1 sm:flex-none bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition"
+                    >
+                      Aprobar
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        const { resolveCoachRequest } = await import('@/app/actions/users')
+                        const res = await resolveCoachRequest(req.id, "REJECTED", req.athleteId, req.coachId)
+                        if (res.success) {
+                          setCoachRequests(prev => prev.filter(r => r.id !== req.id))
+                        }
+                      }}
+                      className="flex-1 sm:flex-none bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500/20 transition"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">
@@ -135,7 +214,7 @@ export function AdminDashboard() {
                     <button 
                       key={p} 
                       onClick={() => setReportPeriod(p)}
-                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                     >
                       {p}
                     </button>
@@ -167,7 +246,7 @@ export function AdminDashboard() {
             <button 
               onClick={handleDownloadReport}
               disabled={isGenerating}
-              className="w-full mt-6 bg-primary text-primary-foreground font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGenerating ? (
                 <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -203,10 +282,10 @@ export function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">342</div>
+            <div className="text-2xl font-bold">{dynamicStats.activeAthletes}</div>
             <p className="text-xs text-green-500 flex items-center mt-1">
               <ArrowUpRight className="h-3 w-3 mr-1" />
-              +12% desde el mes pasado
+              Actualizado hoy
             </p>
           </CardContent>
         </Card>
@@ -219,7 +298,7 @@ export function AdminDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">145</div>
+            <div className="text-2xl font-bold">{dynamicStats.checkinsToday}</div>
             <p className="text-xs text-primary capitalize flex items-center mt-1">
               {hoy}
             </p>
@@ -234,10 +313,10 @@ export function AdminDashboard() {
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$12,450</div>
+            <div className="text-2xl font-bold">${dynamicStats.monthlyRevenue.toFixed(2)}</div>
             <p className="text-xs text-green-500 flex items-center mt-1">
               <ArrowUpRight className="h-3 w-3 mr-1" />
-              +8% vs mes anterior
+              Tienda (Completados)
             </p>
           </CardContent>
         </Card>
@@ -251,12 +330,14 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mt-1">
-              {topRiesgo.map((atleta, i) => (
+              {dynamicStats.riskAthletes.length > 0 ? dynamicStats.riskAthletes.map((atleta: any, i: number) => (
                 <div key={i} className="flex justify-between items-center text-xs">
                   <span className="font-medium text-foreground">{atleta.nombre} <span className="text-muted-foreground">({atleta.antiguedad})</span></span>
                   <span className="text-destructive font-bold">{atleta.dias}d ausente</span>
                 </div>
-              ))}
+              )) : (
+                <div className="text-xs text-muted-foreground">No hay atletas en riesgo.</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -270,7 +351,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={dynamicStats.revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
@@ -300,7 +381,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} barSize={35}>
+              <BarChart data={dynamicStats.attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }} barSize={35}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
@@ -310,7 +391,7 @@ export function AdminDashboard() {
                 />
                 <Bar dataKey="checkins" radius={[6, 6, 0, 0]}>
                   {
-                    attendanceData.map((entry, index) => {
+                    dynamicStats.attendanceData.map((entry, index) => {
                       let color = '#22c55e' // Green by default (Alto)
                       if (entry.checkins < 90) color = '#ef4444' // Red (Bajo)
                       else if (entry.checkins <= 130) color = '#eab308' // Yellow (Intermedio)
@@ -353,7 +434,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2">
             <div className="space-y-4">
-              {exitoAtletas.map((atleta, i) => (
+              {dynamicStats.exitoAtletas.map((atleta, i) => (
                 <div key={i} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-sm font-medium">
                     <span>{atleta.nombre}</span>
@@ -382,7 +463,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {membresiasPorVencer.map((mem, i) => (
+              {dynamicStats.membresiasPorVencer.map((mem, i) => (
                 <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
                   <span className="font-medium">{mem.nombre}</span>
                   <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded-full font-bold">
@@ -400,7 +481,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {membresiasNuevas.map((mem, i) => (
+              {dynamicStats.membresiasNuevas.map((mem, i) => (
                 <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
                   <div>
                     <span className="font-medium block">{mem.nombre}</span>

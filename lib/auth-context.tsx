@@ -103,9 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    setUser(null)
     localStorage.removeItem('gympro_session_id')
-    window.location.href = '/login'
+    setUser(null)
   }
 
   // Permisos (We keep these local for simplicity if not in DB yet)

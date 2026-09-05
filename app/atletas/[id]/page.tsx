@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -41,6 +41,8 @@ export default function AtletaPerfilPage() {
   const [routineEnd, setRoutineEnd] = useState("")
   const [routineRest, setRoutineRest] = useState("90s")
 
+  const [requestTarget, setRequestTarget] = useState("")
+
   const [allCoaches, setAllCoaches] = useState<any[]>([])
   useEffect(() => {
     if (getAllEmployees) {
@@ -53,9 +55,22 @@ export default function AtletaPerfilPage() {
   }, [getAllEmployees])
 
   useEffect(() => {
-    if (id) {
-      setAthlete(athleteService.getAthleteById(id))
+    async function load() {
+      if (!id) return;
+      const { getAthleteById } = await import('@/app/actions/users')
+      const res = await getAthleteById(id)
+      if (res.success && res.athlete) {
+        // Map Prisma format to UI format
+        setAthlete({
+          ...res.athlete,
+          membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
+          membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan EstÃ¡ndar",
+          biometrics: res.athlete.biometrics || [],
+          attendance: res.athlete.attendance || []
+        } as any)
+      }
     }
+    load()
   }, [id])
 
   if (!athlete) return <div className="p-8">Cargando perfil...</div>
@@ -67,7 +82,7 @@ export default function AtletaPerfilPage() {
 
   const latestBiometrics = athlete.biometrics.length > 0 ? athlete.biometrics[athlete.biometrics.length - 1] : null
 
-  const handleAddBiometrics = (e: React.FormEvent) => {
+  const handleAddBiometrics = async (e: React.FormEvent) => {
     e.preventDefault()
     const customFieldsObj = newCustomFields.reduce((acc, field) => {
       if (field.name && field.value) {
@@ -76,15 +91,26 @@ export default function AtletaPerfilPage() {
       return acc;
     }, {} as Record<string, string>);
 
-    const newRecord: BiometricRecord = {
-      date: new Date().toISOString().split("T")[0],
+    const newRecord = {
       weight: parseFloat(newWeight),
       height: parseFloat(newHeight),
       customFields: Object.keys(customFieldsObj).length > 0 ? customFieldsObj : undefined
     }
-    const updated = { ...athlete, biometrics: [...athlete.biometrics, newRecord] }
-    athleteService.updateAthlete(updated)
-    setAthlete(updated)
+    
+    const { addBiometric, getAthleteById } = await import('@/app/actions/users')
+    await addBiometric(athlete.id, newRecord)
+    
+    const res = await getAthleteById(athlete.id)
+    if (res.success && res.athlete) {
+      setAthlete({
+        ...res.athlete,
+        membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
+        membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan EstÃ¡ndar",
+        biometrics: res.athlete.biometrics || [],
+        attendance: res.athlete.attendance || []
+      } as any)
+    }
+
     setShowForm(false)
     setNewCustomFields([])
     
@@ -105,10 +131,10 @@ export default function AtletaPerfilPage() {
 
   const handleAdminAssignCoach = (coachId: string) => {
     const updated = { ...athlete, coachId }
-    athleteService.updateAthlete(updated)
+    import('@/app/actions/users').then(m => m.updateAthlete(updated.id, updated))
     setAthlete(updated)
     setShowAdminCoachModal(false)
-    alert("Entrenador asignado con éxito.")
+    alert("Entrenador asignado con Ã©xito.")
   }
 
   const handleAssignRoutine = (e: React.FormEvent) => {
@@ -117,11 +143,21 @@ export default function AtletaPerfilPage() {
     setShowRoutineModal(false)
   }
 
-  const handleSendRequest = (e: React.FormEvent) => {
+  const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault()
-    alert(`Solicitud enviada al Administrador con éxito.\n\nMotivo: ${requestReason}`)
-    setShowCoachRequest(false)
-    setRequestReason("")
+    if (!requestTarget) {
+      alert("Por favor selecciona un entrenador.")
+      return
+    }
+    const { requestCoachChange } = await import('@/app/actions/users')
+    const res = await requestCoachChange(id, requestTarget)
+    if (res.success) {
+      alert("Solicitud enviada al Administrador con Ã©xito.")
+      setShowCoachRequest(false)
+      setRequestReason("")
+    } else {
+      alert(res.error || "OcurriÃ³ un error al enviar la solicitud")
+    }
   }
 
   // Calculate days remaining
@@ -138,13 +174,20 @@ export default function AtletaPerfilPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Solicitar Cambio de Entrenador</h3>
-            <p className="text-sm text-muted-foreground mb-4">Esta solicitud será revisada por la administración del gimnasio.</p>
+            <p className="text-sm text-muted-foreground mb-4">Esta solicitud serÃ¡ revisada por la administraciÃ³n del gimnasio.</p>
             <form onSubmit={handleSendRequest} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Entrenador Deseado</label>
-                <select className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
-                  <option value="">Cualquier otro disponible</option>
-                  <option value="2">Carlos (Staff Principal)</option>
+                <select 
+                  required
+                  value={requestTarget}
+                  onChange={e => setRequestTarget(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
+                >
+                  <option value="">Selecciona un entrenador</option>
+                  {allCoaches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -154,13 +197,13 @@ export default function AtletaPerfilPage() {
                   rows={3} 
                   value={requestReason}
                   onChange={e => setRequestReason(e.target.value)}
-                  placeholder="Explica brevemente por qué deseas cambiar..."
+                  placeholder="Explica brevemente por quÃ© deseas cambiar..."
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => setShowCoachRequest(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Enviar Solicitud</button>
+                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Enviar Solicitud</button>
               </div>
             </form>
           </div>
@@ -209,10 +252,10 @@ export default function AtletaPerfilPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Asignar Rutina</h3>
-            <p className="text-sm text-muted-foreground mb-4">Configura los parámetros del entrenamiento.</p>
+            <p className="text-sm text-muted-foreground mb-4">Configura los parÃ¡metros del entrenamiento.</p>
             <form onSubmit={handleAssignRoutine} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Catálogo de Rutinas</label>
+                <label className="text-sm font-medium mb-1 block">CatÃ¡logo de Rutinas</label>
                 <select value={routineType} onChange={e => setRoutineType(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
                   <option value="Hipertrofia">Rutina de Hipertrofia (Fuerza)</option>
                   <option value="Resistencia">Rutina HIIT (Resistencia)</option>
@@ -241,7 +284,7 @@ export default function AtletaPerfilPage() {
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => setShowRoutineModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-primary text-primary-foreground font-bold rounded hover:bg-primary/90 transition">Asignar</button>
+                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Asignar</button>
               </div>
             </form>
           </div>
@@ -276,10 +319,19 @@ export default function AtletaPerfilPage() {
                     const file = e.target.files?.[0]
                     if (file) {
                       const reader = new FileReader()
-                      reader.onloadend = () => {
-                        const updated = { ...athlete, profilePicture: reader.result as string }
-                        athleteService.updateAthlete(updated)
+                      reader.onloadend = async () => {
+                        const base64 = reader.result as string;
+                        // Optimistic update
+                        const updated = { ...athlete, profilePicture: base64 }
                         setAthlete(updated)
+                        
+                        const { updateProfilePicture } = await import('@/app/actions/users');
+                        const res = await updateProfilePicture(athlete.id, base64);
+                        if (res.success) {
+                          setAthlete({ ...athlete, profilePicture: res.profilePicture });
+                        } else {
+                          alert("Error al subir foto: " + res.error);
+                        }
                       }
                       reader.readAsDataURL(file)
                     }
@@ -303,7 +355,7 @@ export default function AtletaPerfilPage() {
             </p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-                🔥 Racha de Asistencia: 4 Días
+                ðŸ”¥ Racha de Asistencia: 4 DÃ­as
               </span>
             </div>
           </div>
@@ -326,7 +378,7 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'athlete' && !athlete.coachId && (
-            <button onClick={() => setShowAdminCoachModal(true)} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition shadow">
+            <button onClick={() => setShowAdminCoachModal(true)} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition shadow">
               Seleccionar Entrenador (Opcional)
             </button>
           )}
@@ -334,29 +386,29 @@ export default function AtletaPerfilPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Columna Izquierda: Membresía y Asistencia */}
+        {/* Columna Izquierda: MembresÃ­a y Asistencia */}
         <div className="space-y-6">
           <Card className="glass border-primary/20">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" /> Membresía
+                <Calendar className="h-5 w-5 text-primary" /> MembresÃ­a
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Estado</p>
                 <p className={`font-bold text-xl ${diffDays > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffDays > 0 ? `${diffDays} días restantes` : 'Vencida'}
+                  {diffDays > 0 ? `${diffDays} dÃ­as restantes` : 'Vencida'}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio</p>
-                  <p className="font-medium text-sm">{athlete.membershipStart}</p>
+                  <p className="font-medium text-sm">{new Date(athlete.membershipStart).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimiento</p>
-                  <p className="font-medium text-sm">{athlete.membershipEnd}</p>
+                  <p className="font-medium text-sm">{new Date(athlete.membershipEnd).toLocaleDateString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -380,7 +432,7 @@ export default function AtletaPerfilPage() {
           </Card>
         </div>
 
-        {/* Columna Derecha: Biometría e Historial */}
+        {/* Columna Derecha: BiometrÃ­a e Historial */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="glass">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -399,7 +451,7 @@ export default function AtletaPerfilPage() {
             <CardContent>
               {showForm ? (
                 <form onSubmit={handleAddBiometrics} className="space-y-4 p-4 rounded-xl bg-black/5 dark:bg-black/40 border border-black/5 dark:border-white/5">
-                  <h4 className="font-medium text-sm text-primary mb-2">Nuevo Registro Biométrico</h4>
+                  <h4 className="font-medium text-sm text-primary mb-2">Nuevo Registro BiomÃ©trico</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-muted-foreground">Peso (kg)</label>
@@ -410,11 +462,11 @@ export default function AtletaPerfilPage() {
                       <input type="number" step="1" required value={newHeight} onChange={e => setNewHeight(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                     </div>
                     
-                    {/* Campos dinámicos agregados manualmente por el entrenador para este atleta */}
+                    {/* Campos dinÃ¡micos agregados manualmente por el entrenador para este atleta */}
                     {newCustomFields.map((field, idx) => (
                       <div key={idx} className="col-span-2 grid grid-cols-3 gap-2 items-end">
                         <div>
-                          <label className="text-xs text-muted-foreground">Categoría</label>
+                          <label className="text-xs text-muted-foreground">CategorÃ­a</label>
                           <input type="text" placeholder="Ej. Brazo" value={field.name} onChange={e => {
                             const newFields = [...newCustomFields]
                             newFields[idx].name = e.target.value
@@ -452,9 +504,9 @@ export default function AtletaPerfilPage() {
                     ))}
                   </div>
                   <button type="button" onClick={() => setNewCustomFields([...newCustomFields, {name: '', unit: 'cm', value: ''}])} className="text-xs bg-primary/20 text-primary font-bold py-1.5 px-3 rounded-lg hover:bg-primary/30 transition">
-                    + Añadir Otra Medida
+                    + AÃ±adir Otra Medida
                   </button>
-                  <button type="submit" className="bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg text-sm w-full mt-2">
+                  <button type="submit" className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-medium py-2 px-4 rounded-lg text-sm w-full mt-2">
                     Guardar Registro
                   </button>
                 </form>
@@ -493,7 +545,7 @@ export default function AtletaPerfilPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay registros biométricos.</p>
+                <p className="text-sm text-muted-foreground">No hay registros biomÃ©tricos.</p>
               )}
             </CardContent>
           </Card>
@@ -509,7 +561,7 @@ export default function AtletaPerfilPage() {
                 {[...athlete.biometrics].reverse().map((record, idx) => (
                   <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-black/5 dark:border-white/5 bg-black/20 hover:bg-black/5 dark:bg-white/5 transition">
                     <div>
-                      <span className="font-medium block">{record.date}</span>
+                      <span className="font-medium block">{new Date(record.date).toLocaleDateString()}</span>
                       <span className="text-xs text-muted-foreground">
                         Peso: {record.weight}kg | Altura: {record.height}cm
                         {record.chest && ` | P: ${record.chest} | Ci: ${record.waist} | Ca: ${record.hips}`}
@@ -528,3 +580,4 @@ export default function AtletaPerfilPage() {
     </div>
   )
 }
+

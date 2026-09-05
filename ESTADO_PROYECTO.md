@@ -17,10 +17,12 @@ Toda la persistencia de datos actual es *Mock* (se guarda en el `localStorage` d
 4. **Inventario (`/tienda/inventario`):** CRUD de productos con Modales.
 5. **Historial de Ventas (`/tienda/ventas`):** Tabla de transacciones con visor visual de captures.
 6. **Ajustes (`/ajustes`):** Buscador de empleados, configuración de tickera.
+7. **Módulo de Membresías (`/membresias`):** Modificar datos del atleta, ver inicio y vencimiento de membresía. Tracking de conexión y envíos de mensajes por WhatsApp.
+8. **Módulo de Asistencia (`/asistencia`):** Lector de entrada para atletas validando vencimiento y registro de check-in, vinculación de ventas reales al Dashboard.
 
 ### Próximos Pasos (Pendientes):
-- **Módulo de Membresías:** Modificar datos del atleta, ver inicio y vencimiento de membresía. Tracking de conexión y envíos de mensajes por WhatsApp.
-- **Módulo de Asistencia:** Lector de entrada para atletas, vinculación de ventas reales al Dashboard.
+- **Refinamiento UI/UX:** Revisar diseño responsive en todas las pantallas.
+- **Migración a Backend Real:** Reemplazar `localStorage` por una base de datos real (ej. PostgreSQL + Prisma).
 
 ## Cómo retomar el proyecto con la IA
 Si estás abriendo este proyecto en una computadora nueva:
