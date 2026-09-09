@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import Swal from "sweetalert2"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -58,6 +59,21 @@ export function AdminDashboard() {
   })
 
   const [coachRequests, setCoachRequests] = useState<any[]>([])
+  const [pendingOrders, setPendingOrders] = useState<any[]>([])
+
+  const fetchPendingOrders = () => {
+    import('@/app/actions/store').then(({ getPendingTransactions }) => {
+      getPendingTransactions().then(res => {
+        if (res.success) setPendingOrders(res.transactions)
+      })
+    })
+  }
+
+  useEffect(() => {
+    fetchPendingOrders()
+    const interval = setInterval(fetchPendingOrders, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     async function fetchDashboardData() {

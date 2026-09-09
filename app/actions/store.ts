@@ -152,7 +152,35 @@ export async function getTransactions() {
   }
 }
 
+async function cancelExpiredCashOrders() {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const expiredTxs = await prisma.transaction.findMany({
+    where: {
+      status: 'PENDING_DELIVERY',
+      paymentMethod: 'Efectivo',
+      date: { lt: twentyFourHoursAgo }
+    },
+    include: { items: true }
+  });
+
+  for (const tx of expiredTxs) {
+    await prisma.transaction.update({ where: { id: tx.id }, data: { status: 'CANCELED' } });
+    for (const item of tx.items) {
+      if (!['MEMB', 'COACH'].includes(item.productId)) {
+        const prod = await prisma.product.findUnique({ where: { id: item.productId } });
+        if (prod) {
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.qty } }
+          });
+        }
+      }
+    }
+  }
+}
+
 export async function getPendingTransactions() {
+  await cancelExpiredCashOrders();
   try {
     const transactions = await prisma.transaction.findMany({
       where: { status: 'PENDING_DELIVERY' },
@@ -195,3 +223,34 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
   }
 }
 
+
+export async function cancelTransaction(transactionId: string) {
+  try {
+    const tx = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: { items: true }
+    });
+
+    if (!tx) return { success: false, error: 'Transacción no encontrada' };
+    if (tx.status !== 'PENDING_DELIVERY') return { success: false, error: 'La transacción no está pendiente' };
+    if (tx.paymentMethod !== 'Efectivo') return { success: false, error: 'Solo se pueden cancelar facturas en Efectivo' };
+
+    await prisma.$transaction(async (txPrisma) => {
+      await txPrisma.transaction.update({
+        where: { id: transactionId },
+        data: { status: 'CANCELED' }
+      });
+
+      for (const item of tx.items) {
+        await txPrisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { increment: item.qty } }
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

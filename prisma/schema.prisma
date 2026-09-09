@@ -47,6 +47,12 @@ model User {
   lastPaidDate     DateTime?
   bankAccount      String?
   mobilePayment    String?
+  // Rutinas y Dietas
+  athleteRoutines    Routine[]         @relation("AthleteRoutines")
+  coachRoutines      Routine[]         @relation("CoachRoutines")
+  athleteDiets       DietAssignment[]  @relation("AthleteDiets")
+  coachDiets         DietAssignment[]  @relation("CoachDiets")
+  exerciseProgresses ExerciseProgress[] @relation("AthleteExerciseProgress")
 }
 
 model PayrollReceipt {

@@ -503,7 +503,7 @@ export default function MembresíasPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSendMessage} className="space-y-4">
+            <form onSubmit={(() => {})} className="space-y-4">
               <textarea 
                 required
                 rows={4} 

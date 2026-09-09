@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (storedUserId) {
         const res = await getUserById(storedUserId)
         if (res.success && res.user) {
-          setUser(res.user as User)
+          setUser(res.user as unknown as User)
         } else {
           localStorage.removeItem('gympro_session_id')
         }
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerAthlete = async (cedula: string, clave: string, profile: any) => {
     const res = await createAthlete({ cedula, password: clave, name: profile.name, gender: profile.gender || 'M' })
     if (res.success && res.user) {
-      return res.user as User
+      return res.user as unknown as User
     }
     return false
   }
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginFn = async (cedula: string, clave: string) => {
     const res = await loginAction(cedula, clave)
     if (res.success && res.user) {
-      setUser(res.user as User)
+      setUser(res.user as unknown as User)
       localStorage.setItem('gympro_session_id', res.user.id)
       return true
     }
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Empleados
   const getAllEmployeesFn = async () => {
     const res = await getAllEmployees()
-    return res.success ? res.employees as User[] : []
+    return res.success ? res.employees as unknown as User[] : []
   }
 
   const addEmployeeFn = async (data: Partial<User> & { pin?: string }, clave: string) => {

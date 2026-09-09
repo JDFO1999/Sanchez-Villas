@@ -362,9 +362,9 @@ export async function getAthleteDashboardData(athleteId: string) {
     const purchases = await prisma.transaction.findMany({
       where: { customerId: athleteId },
       orderBy: { date: 'desc' },
-      include: { items: true },
-      take: 5
-    })
+      include: { items: true }
+      })
+      
     const routines = await prisma.routine.findMany({
       where: { athleteId },
       include: { exercises: true },
@@ -378,9 +378,11 @@ export async function getAthleteDashboardData(athleteId: string) {
       where: { athleteId },
       orderBy: { date: "asc" }
     })
-    return { success: true, biometrics, attendances: allAttendances.slice(0, 5), memberships, purchases, streak, routines, diets, exerciseProgress }
+    console.log("SERVER SIDE PURCHASES FOR", athleteId, ":", purchases.length);
+    const payload = { success: true, biometrics, attendances: allAttendances.slice(0, 5), memberships, purchases, streak, routines, diets, exerciseProgress };
+    return JSON.parse(JSON.stringify(payload));
   } catch (error) {
-    return { success: false, error: 'Error al obtener dashboard de atleta' }
+    console.error("DASHBOARD CATCH ERROR:", error); return { success: false, error: 'Error al obtener dashboard de atleta' }
   }
 }
 

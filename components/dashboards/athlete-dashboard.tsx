@@ -9,42 +9,8 @@ import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Cloc
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
 import { Transaction, Product } from "@/lib/store-service"
 import { QRCodeSVG } from "qrcode.react"
-
-const topExercises = [
-  {
-    id: 1,
-    name: "Sentadilla libre",
-    data: [
-      { day: "S1", weight: 100 },
-      { day: "S2", weight: 105 },
-      { day: "S3", weight: 110 },
-      { day: "S4", weight: 115 },
-      { day: "S5", weight: 120 },
-    ]
-  },
-  {
-    id: 2,
-    name: "Peso Muerto",
-    data: [
-      { day: "S1", weight: 120 },
-      { day: "S2", weight: 120 },
-      { day: "S3", weight: 125 },
-      { day: "S4", weight: 130 },
-      { day: "S5", weight: 130 },
-    ]
-  },
-  {
-    id: 3,
-    name: "Press de Banca",
-    data: [
-      { day: "S1", weight: 70 },
-      { day: "S2", weight: 75 },
-      { day: "S3", weight: 72 },
-      { day: "S4", weight: 70 },
-      { day: "S5", weight: 65 }, // Estancado o bajÃ³
-    ]
-  }
-]
+import { cancelTransaction } from "@/app/actions/store"
+import Swal from "sweetalert2"
 
 export function AthleteDashboard() {
   const { user } = useAuth()
@@ -55,11 +21,44 @@ export function AthleteDashboard() {
   const [purchases, setPurchases] = useState<Transaction[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [showTicketModal, setShowTicketModal] = useState<Transaction | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 3
 
   const [showQRModal, setShowQRModal] = useState(false)
   const [coachName, setCoachName] = useState('Sin Asignar')
   const [liveRoutines, setLiveRoutines] = useState<any[]>([])
   const [liveDiets, setLiveDiets] = useState<any[]>([])
+  const [attendances, setAttendances] = useState<any[]>([])
+  const [streak, setStreak] = useState(0)
+
+  const handleCancelTx = async (tx: Transaction) => {
+    const result = await Swal.fire({
+      title: '¿Cancelar este pedido?',
+      text: 'Esta acción cancelará tu pedido en efectivo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+      color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827',
+      cancelButtonColor: '#3b82f6',
+      confirmButtonText: 'Sí, cancelar pedido',
+      cancelButtonText: 'No, mantener'
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({ title: 'Cancelando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+      const res = await cancelTransaction(tx.id);
+      if (res.success) {
+        Swal.fire({ title: 'Cancelado', text: 'El pedido fue cancelado correctamente.', icon: 'success', background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff', color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827' });
+        const stats = await import("@/app/actions/users").then(m => m.getAthleteDashboardData(user!.id));
+        if (stats.success) setPurchases(stats.purchases || []);
+      } else {
+        Swal.fire({ title: 'Error', text: res.error || 'No se pudo cancelar', icon: 'error', background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff', color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827' });
+      }
+    }
+  };
+
+  const [exerciseProgress, setExerciseProgress] = useState<any[]>([])
   useEffect(() => {
     if (user?.id) {
       
@@ -71,16 +70,19 @@ export function AthleteDashboard() {
       import("@/app/actions/users").then(async ({ getAthleteDashboardData }) => {
           const stats = await getAthleteDashboardData(user.id);
           if (stats.success) {
-            setLiveRoutines(liveRoutines || []);
-            setLiveDiets(liveDiets || []);
+            setLiveRoutines(stats.routines || []);
+            setLiveDiets(stats.diets || []);
+            console.log('API returned purchases:', stats.purchases);
+              setPurchases(stats.purchases || []);
+            setAttendances(stats.attendances || []);
+            setStreak(stats.streak || 0);
+            setExerciseProgress(stats.exerciseProgress || []);
           }
         });
         import("@/lib/data-service").then(({ athleteService }) => {
         const ath = athleteService.getAthlete(user.id)
         if (ath && ath.coachId) {
-          const storedUser = localStorage.getItem('gympro_user') // or just fetch from mocked users
-          if (ath.coachId === '2' || ath.coachId === '4') setCoachName('Carlos (Staff Principal)')
-          else setCoachName('Entrenador asignado')
+          setCoachName(ath.coach?.name || 'Entrenador asignado')
         }
       })
     }
@@ -91,10 +93,7 @@ export function AthleteDashboard() {
     return prod?.imageUrl || ''
   }
 
-  const currentExercise = topExercises[selectedPrIndex]
-  const prData = currentExercise.data
-  const isImproving = prData[prData.length - 1].weight >= prData[prData.length - 2].weight
-  const strokeColor = isImproving ? "#22c55e" : "#eab308"
+  
 
   return (
     <div className="space-y-6">
@@ -104,22 +103,48 @@ export function AthleteDashboard() {
           <p className="text-muted-foreground mt-1">
             Tu Coach Actual: <span className="font-bold text-foreground">{coachName}</span>
           </p>
-          <div className="mt-3 bg-blue-500/10 border border-blue-500/30 text-blue-500 text-sm px-3 py-2 rounded-lg flex items-center gap-2">
-             <span className="relative flex h-3 w-3">
-               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-               <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-             </span>
-             Tienes una nueva rutina pendiente por completar hoy.
-          </div>
+          {(() => {
+              const todayStr = new Date().toDateString();
+              const todayRoutine = liveRoutines.find(r => new Date(r.date).toDateString() === todayStr);
+              
+              if (!todayRoutine) {
+                return (
+                  <div className="mt-3 bg-red-500/10 border border-red-500/30 text-red-500 text-sm px-3 py-2 rounded-lg flex items-center gap-2 font-bold uppercase">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    NO SE HA ASIGNADO UNA RUTINA POR HOY
+                  </div>
+                );
+              } else if (todayRoutine.completed) {
+                return (
+                  <div className="mt-3 bg-green-500/10 border border-green-500/30 text-green-500 text-sm px-3 py-2 rounded-lg flex items-center gap-2 font-bold uppercase">
+                    <CheckCircle2 className="h-4 w-4" />
+                    HAS COMPLETADO LA RUTINA DE HOY, EXCELENTE!
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="mt-3 bg-blue-500/10 border border-blue-500/30 text-blue-500 text-sm px-3 py-2 rounded-lg flex items-center gap-2 font-bold">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    Tienes una nueva rutina pendiente por completar hoy.
+                  </div>
+                );
+              }
+            })()}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <button onClick={() => setShowQRModal(true)} className="bg-primary text-white px-4 py-2 rounded-md font-bold shadow-sm hover:bg-primary/90 transition flex items-center justify-center gap-2">
-            <ScanBarcode className="h-5 w-5" /> Mostrar mi CÃ³digo de Acceso
+            <ScanBarcode className="h-5 w-5" /> Mostrar mi Código de Acceso
           </button>
         </div>
       </div>
       <div className="flex gap-2 flex-wrap">
-          <Link href="/tienda" className="bg-black text-white dark:bg-secondary dark:text-secondary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:opacity-80 transition flex items-center gap-2">
+          <Link href="/tienda" className="bg-green-600 text-white dark:bg-green-600 dark:text-white px-4 py-2 rounded-md font-medium shadow-sm hover:bg-green-700 transition flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" />
             Ir a la Tienda
           </Link>
@@ -132,118 +157,62 @@ export function AthleteDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Racha Actual
-            </CardTitle>
-            <Flame className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {(() => {
-                const todayStr = new Date().toISOString().split("T")[0];
-                const todayRoutine = liveRoutines?.find((r: any) => r.date.startsWith(todayStr));
-                if (!todayRoutine) {
-                  return (
-                    <div className="p-4 rounded-lg bg-secondary/50 border text-center text-muted-foreground">
-                      No tienes rutina asignada para hoy.
-                    </div>
-                  );
-                }
-                return (
-                  <div className="p-4 rounded-lg bg-secondary/50 border">
-                    <h4 className="font-medium text-primary mb-1">{todayRoutine.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-3">{todayRoutine.duration || 'Sin duraci�n'}</p>
-                    
-                    <div className="space-y-2 text-sm mb-4">
-                      {todayRoutine.exercises?.length > 0 ? todayRoutine.exercises.map((ex: any, i: number) => {
-                        const isCompleted = false;
-                        return (
-                          <div key={i} className="flex justify-between items-center p-2 rounded border border-transparent border-b-black/5 dark:border-b-white/5">
-                            <div className="flex items-center gap-2">
-                              <div className={`h-2 w-2 rounded-full shrink-0 ${isCompleted ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>
-                              <span>{ex.name}</span>
-                            </div>
-                            <span className="text-muted-foreground">{ex.sets}x{ex.reps}</span>
-                          </div>
-                        )
-                      }) : <p className="text-muted-foreground text-xs">No hay ejercicios agregados.</p>}
-                    </div>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Carga Máxima (PR)
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {exerciseProgress.length === 0 ? (
+                <div className="text-sm text-muted-foreground mt-4">Sin registros de carga.</div>
+              ) : (
+                <>
+                  <div className="mb-2">
+                    <select 
+                      value={selectedPrIndex}
+                      onChange={(e) => setSelectedPrIndex(Number(e.target.value))}
+                      className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs text-foreground w-full focus:outline-none focus:border-primary [&>option]:bg-white [&>option]:dark:bg-zinc-900 [&>option]:text-black [&>option]:dark:text-white"
+                    >
+                      {Array.from(new Set(exerciseProgress.map(ep => ep.exerciseId))).map((exId, i) => (
+                        <option key={exId} value={i}>{exId}</option>
+                      ))}
+                    </select>
                   </div>
-                );
-              })()}
-            </div>
-            
-            <Link href="/rutina" className="block text-center w-full py-2 px-4 rounded bg-primary text-primary-foreground mt-4 hover:bg-primary/90 font-medium">Ver Rutina Completa</Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Asistencias Mes
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12 / 20</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Progreso hacia tu meta mensual
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-primary/50 bg-primary/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-primary">
-              MembresÃ­a
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">Activa</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Vence en 14 dÃ­as
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Carga MÃ¡xima (PR)
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="mb-2">
-              <select 
-                value={selectedPrIndex}
-                onChange={(e) => setSelectedPrIndex(Number(e.target.value))}
-                className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs text-foreground w-full focus:outline-none focus:border-primary [&>option]:bg-white [&>option]:dark:bg-zinc-900 [&>option]:text-black [&>option]:dark:text-white"
-              >
-                {topExercises.map((ex, i) => (
-                  <option key={ex.id} value={i}>{ex.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-between items-end">
-              <div>
-                <div className="text-2xl font-bold">{prData[prData.length - 1].weight} kg</div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  {isImproving ? <span className="text-green-500">â² Mejorando</span> : <span className="text-yellow-500">â¼ Estancado/BajÃ³</span>}
-                </p>
-              </div>
-              <div className="h-10 w-24">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={prData}>
-                    <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
-                    <Line type="monotone" dataKey="weight" stroke={strokeColor} strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  {(() => {
+                    const uniqueExercises = Array.from(new Set(exerciseProgress.map(ep => ep.exerciseId)));
+                    const selectedExId = uniqueExercises[selectedPrIndex] || uniqueExercises[0];
+                    const prData = exerciseProgress.filter(ep => ep.exerciseId === selectedExId).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    
+                    if (!prData || prData.length === 0) return null;
+                    
+                    const isImproving = prData.length > 1 && prData[prData.length - 1].weight >= prData[prData.length - 2].weight;
+                    const strokeColor = isImproving ? "#22c55e" : "#eab308";
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <div className="text-2xl font-bold">{prData[prData.length - 1].weight} kg</div>
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              {isImproving ? <span className="text-green-500">↑ Mejorando</span> : <span className="text-yellow-500">→ Estancado/Bajó</span>}
+                            </p>
+                          </div>
+                          <div className="h-12 w-24">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={prData}>
+                                <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
+                                <Line type="monotone" dataKey="weight" stroke={strokeColor} strokeWidth={2} dot={false} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </>
+              )}
+            </CardContent>
+          </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -253,61 +222,40 @@ export function AthleteDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-secondary/50 border">
-                <h4 className="font-medium text-primary mb-1">DÃ­a 4: Pierna y GlÃºteo</h4>
-                <p className="text-sm text-muted-foreground mb-3">Enfocado en hipertrofia y fuerza mÃ¡xima.</p>
-                
-                <div className="space-y-2 text-sm mb-4">
-                  {[
-                    { name: "1. Sentadilla Libre", reps: "4 x 10-12" },
-                    { name: "2. Prensa Inclinada", reps: "4 x 12" },
-                    { name: "3. ExtensiÃ³n de CuÃ¡driceps", reps: "3 x 15" },
-                    { name: "4. Hip Thrust", reps: "4 x 10" }
-                  ].map((ex, i) => {
-                    const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
-                    const todayState = savedStates?.today?.[i] || 'pending'
-                    const stateColor = todayState === 'completed' ? 'text-green-500 line-through opacity-60' 
-                      : todayState === 'failed' ? 'text-red-500 line-through opacity-60'
-                      : todayState === 'progress' ? 'text-yellow-500' : ''
-                    const dotColor = todayState === 'completed' ? 'bg-green-500' 
-                      : todayState === 'failed' ? 'bg-red-500'
-                      : todayState === 'progress' ? 'bg-yellow-500' : 'bg-muted-foreground'
-                    return (
-                    <div key={i} 
-                         className="flex justify-between items-center p-2 rounded border border-transparent border-b-black/5 dark:border-b-white/5">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full shrink-0 ${dotColor}`}></div>
-                        <span className={stateColor}>{ex.name}</span>
-                      </div>
-                      <span className="text-muted-foreground">{ex.reps}</span>
+              {(() => {
+                const todayStr = new Date().toDateString();
+                const todayRoutine = liveRoutines.find(r => new Date(r.date).toDateString() === todayStr);
+                if (!todayRoutine) {
+                  return (
+                    <div className="p-4 rounded-lg bg-secondary/50 border text-center text-muted-foreground">
+                      No tienes rutina asignada para hoy.
                     </div>
-                  )})}
-                </div>
-
-                <div className="flex gap-2">
-                  {routineStatus === 'pending' && (
-                    <button 
-                      onClick={() => setRoutineStatus('in-progress')}
-                      className="w-full py-2 bg-primary/20 text-primary font-bold rounded-lg hover:bg-primary/30 transition text-sm"
-                    >
-                      Empezar Entrenamiento
-                    </button>
-                  )}
-                  {routineStatus === 'in-progress' && (
-                    <button 
-                      onClick={() => setRoutineStatus('completed')}
-                      className="w-full py-2 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition text-sm flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="h-4 w-4" /> Marcar como Completado
-                    </button>
-                  )}
-                  {routineStatus === 'completed' && (
-                    <div className="w-full py-2 bg-green-500/20 text-green-500 font-bold rounded-lg text-sm flex items-center justify-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" /> Entrenamiento Finalizado
+                  );
+                }
+                return (
+                  <div className="p-4 rounded-lg bg-secondary/50 border">
+                    <h4 className="font-medium text-primary mb-1">{todayRoutine.name || 'Entrenamiento del día'}</h4>
+                    <p className="text-sm text-muted-foreground mb-3">{todayRoutine.description || 'Cumple con tus objetivos diarios.'}</p>
+                    
+                    <div className="space-y-2 text-sm mb-4">
+                      {todayRoutine.exercises && todayRoutine.exercises.map((ex: any, i: number) => (
+                        <div key={i} className="flex justify-between items-center p-2 rounded border border-transparent border-b-black/5 dark:border-b-white/5">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full shrink-0 bg-muted-foreground"></div>
+                            <span>{ex.name || ex.exercise?.name || 'Ejercicio ' + (i+1)}</span>
+                          </div>
+                          <span className="text-muted-foreground">{ex.sets}x{ex.reps}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              </div>
+                    <Link href="/rutina">
+                      <button className="w-full py-2 bg-primary/20 text-primary font-bold rounded-lg hover:bg-primary/30 transition text-sm">
+                        Ir a la Rutina Completa
+                      </button>
+                    </Link>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -319,44 +267,23 @@ export function AthleteDashboard() {
           <CardContent>
             <div className="space-y-4">
               {(() => {
-                const savedStates = JSON.parse(localStorage.getItem('gympro_exercise_states') || '{}')
-                const todayExercises = [
-                  "Sentadilla Libre", "Prensa Inclinada", "ExtensiÃ³n de CuÃ¡driceps", "Hip Thrust"
-                ]
-                const completedToday = todayExercises
-                  .map((name, i) => ({ name, state: savedStates?.today?.[i] || 'pending' }))
-                  .filter(e => e.state === 'completed')
-
-                const pastActivities = [
-                  { date: "Ayer", type: "Espalda y BÃ­ceps", status: "Completado" },
-                  { date: "Hace 2 dÃ­as", type: "Pecho y TrÃ­ceps", status: "Completado" },
-                  { date: "Hace 3 dÃ­as", type: "Batido Post-Entreno", status: "Completado" },
-                ]
-
-                const todayItems = completedToday.map(e => ({ date: "Hoy", type: e.name, status: "Completado" }))
-                const allItems = todayItems.length > 0 ? [...todayItems, ...pastActivities] : [
-                  { date: "Hoy", type: "AÃºn no has completado ejercicios", status: "Pendiente" },
-                  ...pastActivities
-                ]
-
-                return allItems.map((item, i) => (
+                if (liveRoutines.length === 0) {
+                  return <div className="text-sm text-slate-500 dark:text-slate-400">Aún no hay actividades registradas.</div>;
+                }
+                return liveRoutines.slice(0, 3).map((routine, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-black/5 dark:border-white/5 hover:bg-secondary/20 transition">
                     <div className="flex items-center gap-3">
-                      <div className={`h-2 w-2 rounded-full ${item.status === 'Completado' ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
                       <div>
-                        <p className="font-medium text-sm">{item.type}</p>
-                        <p className="text-xs text-muted-foreground">{item.date}</p>
+                        <p className="font-medium text-sm">{routine.name || 'Rutina'}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(routine.date).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      item.status === 'Completado' 
-                        ? 'bg-green-500/10 text-green-500' 
-                        : 'bg-black/5 dark:bg-white/5 text-muted-foreground'
-                    }`}>
-                      {item.status}
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-500">
+                      Asignada
                     </span>
                   </div>
-                ))
+                ));
               })()}
             </div>
           </CardContent>
@@ -364,46 +291,49 @@ export function AthleteDashboard() {
       </div>
 
       {/* Mis Compras Section */}
-      <Card className="mt-6 border-primary/20 bg-primary/5">
+      <Card className="mt-6 border-black/10 dark:border-white/10 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            Mis Compras y Facturas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+              <Package className="h-5 w-5 text-primary" />
+              Mis Compras y Facturas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
           {purchases.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No tienes compras recientes.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No tienes compras recientes.</p>
           ) : (
-            <div className="space-y-4">
-              {purchases.map(tx => (
-                <div key={tx.id} className="bg-card p-4 rounded-xl border border-black/10 dark:border-white/10 flex flex-col md:flex-row gap-4 justify-between">
+            <div>
+              <div className="space-y-4">
+              {purchases.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(tx => (
+                <div key={tx.id} className="bg-transparent py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 justify-between last:border-0">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm">Factura: {tx.id}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</span>
-                      {tx.status === 'PENDING_PICKUP' ? (
-                        <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> PENDIENTE RETIRO</span>
-                      ) : (
-                        <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full font-bold">COMPLETADA</span>
-                      )}
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">Factura: {tx.id}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(tx.date).toLocaleDateString()}</span>
+                      {tx.status === 'PENDING_DELIVERY' ? (
+                          <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> PENDIENTE RETIRO</span>
+                        ) : tx.status === 'CANCELED' ? (
+                          <span className="text-[10px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-bold">VENCIDA</span>
+                        ) : (
+                          <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full font-bold">COMPLETADA</span>
+                        )}
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
                       {tx.items.map(item => {
                         const img = getProductImage(item.productId)
                         return (
-                          <div key={item.productId} className="flex items-center gap-2 bg-secondary/30 p-2 rounded-lg border border-black/5 dark:border-white/5">
+                          <div key={item.productId} className="flex items-center gap-3 py-1">
                             {img ? (
-                              <img src={img} alt={item.name} className="h-10 w-10 object-contain rounded bg-black/5 dark:bg-white/5 p-1" />
+                              <img src={img} alt={item.name} className="h-10 w-10 object-contain rounded-md bg-transparent" />
                             ) : (
-                              <div className="h-10 w-10 bg-black/5 dark:bg-white/5 rounded flex items-center justify-center">
-                                <ShoppingCart className="h-5 w-5 text-muted-foreground opacity-50" />
+                              <div className="h-10 w-10 bg-transparent flex items-center justify-center">
+                                <ShoppingCart className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                               </div>
                             )}
                             <div>
-                              <p className="text-xs font-bold leading-tight max-w-[120px] truncate" title={item.name}>{item.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{item.qty}x</p>
+                              <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight max-w-[120px] truncate" title={item.name}>{item.name}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{item.qty}x</p>
                             </div>
                           </div>
                         )
@@ -413,27 +343,53 @@ export function AthleteDashboard() {
                   
                   <div className="flex flex-col justify-center items-end gap-2 border-t md:border-t-0 md:border-l border-black/10 dark:border-white/10 pt-3 md:pt-0 md:pl-4">
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground mb-1">Pago con {tx.paymentMethod}</p>
-                      <p className="font-black text-xl text-primary">${tx.total.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Pago con {tx.paymentMethod}</p>
+                      <p className="font-black text-lg text-primary">${tx.total.toFixed(2)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => setShowTicketModal(tx)}
-                        className="bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition"
-                      >
-                        <Eye className="h-3 w-3" /> Ver Ticket
-                      </button>
+                      
+                        <button
+                          onClick={() => setShowTicketModal(tx)}
+                          className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition shadow-sm"
+                        >
+                          <Eye className="h-3 w-3" /> Ticket
+                        </button>
+                        {tx.status === 'PENDING_DELIVERY' && tx.paymentMethod === 'Efectivo' && (
+                          <button
+                            onClick={() => handleCancelTx(tx)}
+                            className="bg-transparent border border-red-500 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+
                     </div>
-                    {tx.pickupCode && tx.status === 'PENDING_PICKUP' && (
-                      <div className="bg-white text-black px-3 py-2 rounded-lg border-2 border-dashed border-black text-center mt-1">
-                        <p className="text-[9px] font-bold">CÃDIGO DE RETIRO</p>
-                        <p className="font-mono font-black text-lg">{tx.pickupCode}</p>
-                      </div>
-                    )}
+                    
                   </div>
                 </div>
               ))}
             </div>
+
+                {purchases.length > itemsPerPage && (
+                  <div className="flex justify-between items-center mt-4 border-t border-black/10 dark:border-white/10 pt-4">
+                    <button 
+                      disabled={currentPage === 1} 
+                      onClick={() => setCurrentPage(p => p - 1)}
+                      className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-30 transition shadow-sm"
+                    >
+                      ← Anterior
+                    </button>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Página {currentPage} de {Math.ceil(purchases.length / itemsPerPage)}</span>
+                    <button 
+                      disabled={currentPage === Math.ceil(purchases.length / itemsPerPage)} 
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-30 transition shadow-sm"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                )}
+              </div>
           )}
         </CardContent>
       </Card>
@@ -447,14 +403,14 @@ export function AthleteDashboard() {
               <div className="text-center mb-4 border-b border-dashed border-black pb-4">
                 <h2 className="font-bold text-xl uppercase tracking-widest">TICKET DE COMPRA</h2>
                 <p className="text-black mt-1 font-bold">{showTicketModal.id}</p>
-                {showTicketModal.pickupCode && showTicketModal.status === 'PENDING_PICKUP' && (
+                {showTicketModal.id.slice(-5).toUpperCase() && showTicketModal.status === 'PENDING_DELIVERY' && (
                   <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
-                    <p className="font-bold text-[10px]">CÃDIGO DE RETIRO</p>
-                    <p className="text-xl font-black">{showTicketModal.pickupCode}</p>
+                    <p className="font-bold text-[10px]">CÓDIGO DE RETIRO</p>
+                    <p className="text-xl font-black">{showTicketModal.id.slice(-5).toUpperCase()}</p>
                   </div>
                 )}
                 <p className="text-black text-xs">{new Date(showTicketModal.date).toLocaleString()}</p>
-                <p className="text-black text-xs font-bold mt-1">Estatus: {showTicketModal.status === 'PENDING_PICKUP' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
+                <p className="text-black text-xs font-bold mt-1">Estatus: {showTicketModal.status === 'PENDING_DELIVERY' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
               </div>
 
               <div className="space-y-2 mb-4 text-black">
@@ -495,7 +451,7 @@ export function AthleteDashboard() {
       {showQRModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl flex flex-col items-center text-black relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black mb-1">Tu CÃ³digo de Acceso</h3>
+            <h3 className="text-xl font-black mb-1">Tu Código de Acceso</h3>
             <p className="text-sm text-gray-500 mb-6 text-center">Muestra este cÃ³digo en recepciÃ³n para marcar tu entrada.</p>
             
             <div className="bg-gray-100 p-4 rounded-xl mb-6">

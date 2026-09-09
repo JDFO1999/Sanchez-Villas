@@ -200,7 +200,7 @@ export default function TiendaPOSPage() {
     }
     
     if (paymentMethod === 'Seleccionar') {
-      showToast("Debe seleccionar un mÃ©todo de pago.", "error")
+      showToast("Debe seleccionar un método de pago.", "error")
       return
     }
 
@@ -307,12 +307,18 @@ export default function TiendaPOSPage() {
         })));
       }
       setCart([])
-      setShowReceipt(res.transaction)
-      setShowAdminCart(false)
-      setTxReference("")
-      setTxReceiptImage("")
-      showToast("Compra completada exitosamente.", "success")
-        router.refresh()
+      
+      if (isAthlete) {
+        showToast("Compra completada exitosamente. Revisa tus Compras Recientes.", "success");
+        window.location.href = '/';
+      } else {
+        setShowReceipt(res.transaction);
+        setShowAdminCart(false);
+        setTxReference("");
+        setTxReceiptImage("");
+        showToast("Compra completada exitosamente.", "success");
+        router.refresh();
+      }
       
       if (!isAthlete && settings.storeUseThermalPrinter) {
         setTimeout(() => {
@@ -585,7 +591,7 @@ export default function TiendaPOSPage() {
                 <button 
                   onClick={() => {
                     if (paymentMethod === 'Seleccionar') {
-                      showToast("Debes seleccionar un mÃ©todo de pago.", "error");
+                      showToast("Debes seleccionar un método de pago.", "error");
                       return;
                     }
                     if (['Transferencia', 'Pago Móvil', 'Binance'].includes(paymentMethod)) {
@@ -607,66 +613,7 @@ export default function TiendaPOSPage() {
           </div>
         )}
       
-      {/* TICKET / RECIBO MODAL PARA ATLETA INYECTADO */}
-      {showReceipt && (() => {
-        return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
-            <div className="bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl max-w-sm my-auto rounded-xl">
-              <button onClick={() => {
-                setShowReceipt(null);
-                window.location.reload(); // Refresh the page to clear the state and show the new purchases
-              }} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl">&times;</button>
-              
-              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
-                <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
-                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
-                <div className="mt-4 mb-2 p-4 border-2 border-dashed border-black bg-gray-100 rounded-lg">
-                  <p className="font-bold text-lg mb-1">CÓDIGO DE RETIRO</p>
-                  <p className="text-4xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
-                </div>
-                <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
-              </div>
-
-              <div className="space-y-2 mb-6 text-black">
-                <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
-                  <span>CANT. DESC.</span>
-                  <span>TOTAL</span>
-                </div>
-                {showReceipt.items.map((item: any) => (
-                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                    <div className="flex gap-2 pr-2">
-                      <span className="font-bold">{item.qty}x</span>
-                      <span>{item.name}</span>
-                    </div>
-                    <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
-                  <span>TOTAL</span>
-                  <div className="text-right">
-                    <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
-                  </div>
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span>Pago con:</span>
-                  <span className="uppercase">{showReceipt.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between text-orange-600 mt-2 text-lg">
-                  <span>Estatus:</span>
-                  <span className="uppercase">PENDIENTE DE RETIRO</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      
 </div>
     )
   }
@@ -866,7 +813,7 @@ export default function TiendaPOSPage() {
                 if (isExpired) {
                   return (
                     <div className="mt-2 bg-red-500/20 border border-red-500/50 p-2 rounded flex gap-2 items-start text-xs text-red-500">
-                      <span className="font-bold uppercase">Â¡AtenciÃ³n!</span>
+                      <span className="font-bold uppercase">¡AtenciÃ³n!</span>
                       <span>MembresÃ­a Vencida ({athlete.membershipEnd}). Ofrece la renovaciÃ³n.</span>
                     </div>
                   );
@@ -1287,9 +1234,9 @@ export default function TiendaPOSPage() {
                 <button 
                   onClick={() => {
                     const client = showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId) : null;
-                    const phone = client?.phone || prompt("Ingrese nÃºmero de telÃ©fono (con cÃ³digo de paÃ­s ej. 57300...):");
+                    const phone = client?.phone || prompt("Ingrese número de teléfono (con cÃ³digo de país ej. 57300...):");
                     if (phone) {
-                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* estÃ¡ listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0AÂ¡Gracias por preferirnos!`;
+                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0A¡Gracias por preferirnos!`;
                       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                     }
                   }}

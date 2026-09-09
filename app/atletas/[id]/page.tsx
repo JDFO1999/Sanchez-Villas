@@ -64,9 +64,9 @@ export default function AtletaPerfilPage() {
         setAthlete({
           ...res.athlete,
           membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
-          membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan EstÃ¡ndar",
+          membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan Estándar",
           biometrics: res.athlete.biometrics || [],
-          attendance: res.athlete.attendance || []
+          attendance: res.athlete.attendances || []
         } as any)
       }
     }
@@ -105,9 +105,9 @@ export default function AtletaPerfilPage() {
       setAthlete({
         ...res.athlete,
         membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
-        membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan EstÃ¡ndar",
+        membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan Estándar",
         biometrics: res.athlete.biometrics || [],
-        attendance: res.athlete.attendance || []
+        attendance: res.athlete.attendances || []
       } as any)
     }
 
@@ -134,7 +134,7 @@ export default function AtletaPerfilPage() {
     import('@/app/actions/users').then(m => m.updateAthlete(updated.id, updated))
     setAthlete(updated)
     setShowAdminCoachModal(false)
-    alert("Entrenador asignado con Ã©xito.")
+    alert("Entrenador asignado con éxito.")
   }
 
   const handleAssignRoutine = (e: React.FormEvent) => {
@@ -152,19 +152,27 @@ export default function AtletaPerfilPage() {
     const { requestCoachChange } = await import('@/app/actions/users')
     const res = await requestCoachChange(id, requestTarget)
     if (res.success) {
-      alert("Solicitud enviada al Administrador con Ã©xito.")
+      alert("Solicitud enviada al Administrador con éxito.")
       setShowCoachRequest(false)
       setRequestReason("")
     } else {
-      alert(res.error || "OcurriÃ³ un error al enviar la solicitud")
+      alert(res.error || "Ocurrió un error al enviar la solicitud")
     }
   }
 
   // Calculate days remaining
-  const endDate = new Date(athlete.membershipEnd)
-  const today = new Date()
-  const diffTime = endDate.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const endDateStr = athlete.membershipEnd;
+  const endDate = endDateStr && endDateStr !== "1970-01-01T00:00:00.000Z" ? new Date(endDateStr) : null;
+  const today = new Date();
+  const diffTime = endDate ? endDate.getTime() - today.getTime() : -1;
+  const diffDays = endDate ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
+  
+  const createdDate = new Date(athlete.createdAt || new Date());
+  const totalDaysRegistered = Math.max(1, Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const totalAttendances = athlete.attendance?.length || 0;
+  const calculatedAttendancePct = Math.min(100, Math.round((totalAttendances / totalDaysRegistered) * 100));
+  const attendanceText = calculatedAttendancePct >= 70 ? "Buena" : calculatedAttendancePct >= 40 ? "Regular" : "Baja";
+  
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto relative">
@@ -174,7 +182,7 @@ export default function AtletaPerfilPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Solicitar Cambio de Entrenador</h3>
-            <p className="text-sm text-muted-foreground mb-4">Esta solicitud serÃ¡ revisada por la administraciÃ³n del gimnasio.</p>
+            <p className="text-sm text-muted-foreground mb-4">Esta solicitud será revisada por la administración del gimnasio.</p>
             <form onSubmit={handleSendRequest} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Entrenador Deseado</label>
@@ -197,7 +205,7 @@ export default function AtletaPerfilPage() {
                   rows={3} 
                   value={requestReason}
                   onChange={e => setRequestReason(e.target.value)}
-                  placeholder="Explica brevemente por quÃ© deseas cambiar..."
+                  placeholder="Explica brevemente por qué deseas cambiar..."
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
                 />
               </div>
@@ -252,10 +260,10 @@ export default function AtletaPerfilPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2">Asignar Rutina</h3>
-            <p className="text-sm text-muted-foreground mb-4">Configura los parÃ¡metros del entrenamiento.</p>
+            <p className="text-sm text-muted-foreground mb-4">Configura los parámetros del entrenamiento.</p>
             <form onSubmit={handleAssignRoutine} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">CatÃ¡logo de Rutinas</label>
+                <label className="text-sm font-medium mb-1 block">Catálogo de Rutinas</label>
                 <select value={routineType} onChange={e => setRoutineType(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
                   <option value="Hipertrofia">Rutina de Hipertrofia (Fuerza)</option>
                   <option value="Resistencia">Rutina HIIT (Resistencia)</option>
@@ -355,7 +363,7 @@ export default function AtletaPerfilPage() {
             </p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-                ðŸ”¥ Racha de Asistencia: 4 DÃ­as
+                🔥 Racha de Asistencia: {athlete.attendance?.length || 0} Días
               </span>
             </div>
           </div>
@@ -386,19 +394,19 @@ export default function AtletaPerfilPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Columna Izquierda: MembresÃ­a y Asistencia */}
+        {/* Columna Izquierda: Membresía y Asistencia */}
         <div className="space-y-6">
           <Card className="glass border-primary/20">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" /> MembresÃ­a
+                <Calendar className="h-5 w-5 text-primary" /> Membresía
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Estado</p>
                 <p className={`font-bold text-xl ${diffDays > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffDays > 0 ? `${diffDays} dÃ­as restantes` : 'Vencida'}
+                  {diffDays > 0 ? `${diffDays} días restantes` : 'Vencida'}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
@@ -408,7 +416,7 @@ export default function AtletaPerfilPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimiento</p>
-                  <p className="font-medium text-sm">{new Date(athlete.membershipEnd).toLocaleDateString()}</p>
+                  <p className="font-medium text-sm">{endDate ? endDate.toLocaleDateString() : 'Sin Plan Activo'}</p>
                 </div>
               </div>
             </CardContent>
@@ -422,17 +430,17 @@ export default function AtletaPerfilPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-end justify-between mb-2">
-                <span className="text-3xl font-bold">{athlete.attendancePercentage}%</span>
-                <span className="text-sm text-green-500 font-medium">Buena</span>
+                <span className="text-3xl font-bold">{calculatedAttendancePct}%</span>
+                <span className={`text-sm font-medium ${calculatedAttendancePct >= 70 ? 'text-green-500' : calculatedAttendancePct >= 40 ? 'text-yellow-500' : 'text-red-500'}`}>{attendanceText}</span>
               </div>
               <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${athlete.attendancePercentage}%` }} />
+                <div className="h-full bg-primary rounded-full" style={{ width: `${calculatedAttendancePct}%` }} />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Columna Derecha: BiometrÃ­a e Historial */}
+        {/* Columna Derecha: Biometría e Historial */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="glass">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -451,7 +459,7 @@ export default function AtletaPerfilPage() {
             <CardContent>
               {showForm ? (
                 <form onSubmit={handleAddBiometrics} className="space-y-4 p-4 rounded-xl bg-black/5 dark:bg-black/40 border border-black/5 dark:border-white/5">
-                  <h4 className="font-medium text-sm text-primary mb-2">Nuevo Registro BiomÃ©trico</h4>
+                  <h4 className="font-medium text-sm text-primary mb-2">Nuevo Registro Biométrico</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-muted-foreground">Peso (kg)</label>
@@ -462,11 +470,11 @@ export default function AtletaPerfilPage() {
                       <input type="number" step="1" required value={newHeight} onChange={e => setNewHeight(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm mt-1" />
                     </div>
                     
-                    {/* Campos dinÃ¡micos agregados manualmente por el entrenador para este atleta */}
+                    {/* Campos dinámicos agregados manualmente por el entrenador para este atleta */}
                     {newCustomFields.map((field, idx) => (
                       <div key={idx} className="col-span-2 grid grid-cols-3 gap-2 items-end">
                         <div>
-                          <label className="text-xs text-muted-foreground">CategorÃ­a</label>
+                          <label className="text-xs text-muted-foreground">Categoría</label>
                           <input type="text" placeholder="Ej. Brazo" value={field.name} onChange={e => {
                             const newFields = [...newCustomFields]
                             newFields[idx].name = e.target.value
@@ -504,7 +512,7 @@ export default function AtletaPerfilPage() {
                     ))}
                   </div>
                   <button type="button" onClick={() => setNewCustomFields([...newCustomFields, {name: '', unit: 'cm', value: ''}])} className="text-xs bg-primary/20 text-primary font-bold py-1.5 px-3 rounded-lg hover:bg-primary/30 transition">
-                    + AÃ±adir Otra Medida
+                    + Añadir Otra Medida
                   </button>
                   <button type="submit" className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-medium py-2 px-4 rounded-lg text-sm w-full mt-2">
                     Guardar Registro
@@ -545,7 +553,7 @@ export default function AtletaPerfilPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay registros biomÃ©tricos.</p>
+                <p className="text-sm text-muted-foreground">No hay registros biométricos.</p>
               )}
             </CardContent>
           </Card>
