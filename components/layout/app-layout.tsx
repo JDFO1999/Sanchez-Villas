@@ -142,7 +142,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       >
 <div className={`flex flex-col h-full overflow-hidden whitespace-nowrap`}>
         <div className={`flex items-center h-16 border-b ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
-            <div className={	ransition-all duration-300 }><LogoComponent /></div>
+            <div className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}><LogoComponent /></div>
           <button 
             className="lg:hidden text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
