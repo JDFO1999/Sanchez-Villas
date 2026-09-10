@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span className={	ransition-all duration-300 }>{item.name}</span>
+                  <span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>{item.name}</span>
                 </Link>
               )
             })}
@@ -247,7 +247,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <item.icon className="h-5 w-5" />
-                  <span className={	ransition-all duration-300 }>{item.name}</span>
+                <span className="text-[10px] font-medium"><span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>{item.name}</span></span>
               </Link>
             )
           })}
