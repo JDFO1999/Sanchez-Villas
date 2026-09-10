@@ -122,7 +122,7 @@ export default function EmpleadosPage() {
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Comisiones</h1>
           <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
-        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 transition flex items-center gap-2">
+        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-transparent border border-green-500 text-green-500 px-3 py-1.5 rounded-lg font-bold hover:bg-green-500/10 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
         </button>
       </div>
@@ -272,7 +272,7 @@ export default function EmpleadosPage() {
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-4">
                 <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Guardar Empleado</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-green-500 text-green-500 font-bold hover:bg-green-500/10 transition">Guardar Empleado</button>
               </div>
             </form>
           </div>

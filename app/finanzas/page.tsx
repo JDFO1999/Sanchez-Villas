@@ -660,7 +660,7 @@ export default function FinanzasPage() {
         </div>
         <button 
           onClick={() => handleDownloadReport('Todas las secciones')}
-          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
+          className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2"
         >
           <Download className="h-4 w-4" /> Reporte General (PDF)
         </button>
@@ -964,7 +964,7 @@ export default function FinanzasPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Registro de Gastos</h2>
             <div className="flex gap-2">
-              <button onClick={() => setShowExpenseModal(true)} className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition flex items-center gap-2">
+              <button onClick={() => setShowExpenseModal(true)} className="bg-transparent border-2 border-green-500 text-green-500 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-500/10 transition flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Nuevo Gasto
               </button>
               <button onClick={() => handleDownloadReport('Egresos')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
@@ -1319,12 +1319,11 @@ export default function FinanzasPage() {
                     // Solo transacciones pagadas por clientes de este coach
                     const coachTx = monthTransactions.filter(tx => tx.customer?.coachId === emp.id)
                     
-                    let commission = 0; if (emp.commissionType === 'flat') { commission = empAssignedAthletes.length * commissionRate; } else { for (const tx of coachTx) { for (const item of tx.items) { if (item.productId === 'MEMB' || item.productId === 'COACH') { commission += item.subtotal * (commissionRate / 100); } } } } 
+                    const empAssignedAthletes = athletes.filter(a => a.coachId === emp.id);
+                      let commission = 0; if (emp.commissionType === 'flat') { commission = empAssignedAthletes.length * commissionRate; } else { for (const tx of coachTx) { for (const item of tx.items) { if (item.productId === 'MEMB' || item.productId === 'COACH') { commission += item.subtotal * (commissionRate / 100); } } } } 
                       const totalPay = baseSalary + commission
                     const currentMonth = new Date().toISOString().substring(0, 7)
-                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
-
-                    const empAssignedAthletes = athletes.filter(a => a.coachId === emp.id)
+                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
 
                     return (
                       <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
@@ -1365,7 +1364,7 @@ export default function FinanzasPage() {
                             Configurar
                           </button>
                           {!isPaidThisMonth ? (
-                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">
+                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-transparent border border-green-500 text-green-500 text-xs font-bold rounded hover:bg-green-500/10 transition">
                               Pagar Nómina
                             </button>
                           ) : (
@@ -1614,7 +1613,7 @@ export default function FinanzasPage() {
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-6">
                 <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Guardar Configuración</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-green-500 text-green-500 font-bold hover:bg-green-500/10 transition">Guardar Configuración</button>
               </div>
             </form>
           </div>
@@ -1667,7 +1666,7 @@ export default function FinanzasPage() {
 
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
                 <button type="button" onClick={() => setShowProcessPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-green-500 text-white font-bold hover:bg-green-600">Pagar y Generar Recibo</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border-2 border-green-500 text-green-500 font-bold hover:bg-green-500/10">Pagar y Generar Recibo</button>
               </div>
             </form>
           </div>
