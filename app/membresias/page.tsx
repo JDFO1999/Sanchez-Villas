@@ -335,7 +335,7 @@ export default function MembresíasPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                         <label className="text-xs font-medium text-muted-foreground block">
-                          {renovarPaymentMethod === 'Tarjeta' ? 'Nº de TransaccióntMethod})`}
+                          {renovarPaymentMethod === 'Tarjeta' ? 'Nº de Transacción' : `Nº de Referencia (${renovarPaymentMethod})`}
                         </label>
                         {(() => {
                           const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
