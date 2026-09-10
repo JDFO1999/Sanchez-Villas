@@ -138,11 +138,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] whitespace-nowrap ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} w-64 ${isSidebarCollapsed ? "lg:w-0 lg:overflow-hidden lg:border-none" : "lg:static"} lg:translate-x-0`}
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] whitespace-nowrap ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} w-64 ${isSidebarCollapsed ? "lg:w-20" : "lg:static"} lg:translate-x-0`}
       >
 <div className={`flex flex-col h-full overflow-hidden whitespace-nowrap`}>
         <div className={`flex items-center h-16 border-b ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
-          <LogoComponent />
+            <div className={	ransition-all duration-300 }><LogoComponent /></div>
           <button 
             className="lg:hidden text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>{item.name}</span>
+                  <span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>{item.name}</span>
                 </Link>
               )
             })}
@@ -174,7 +174,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           
           <div className="px-6 py-4 border-t flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <span className={`text-sm text-muted-foreground font-medium transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>Tema</span>
+              <span className={`text-sm text-muted-foreground font-medium transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>Tema</span>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
@@ -188,7 +188,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               className="text-sm text-red-500 hover:text-red-400 text-left font-medium flex items-center gap-2"
             >
               <Dumbbell className="h-4 w-4" /> {/* Or use LogOut icon if available */}
-              <span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>Cerrar Sesión</span>
+              <span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>Cerrar Sesión</span>
             </button>
           </div>
 
@@ -214,7 +214,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Menu className="h-6 w-6" />
               </button>
-              <div className={!isSidebarCollapsed ? "lg:hidden" : ""}>
+              <div className="lg:hidden">
                 <LogoComponent />
               </div>
             </div>
@@ -249,7 +249,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <item.icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium"><span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"}`}>{item.name}</span></span>
+                <span className="text-[10px] font-medium"><span className={`transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>{item.name}</span></span>
               </Link>
             )
           })}
