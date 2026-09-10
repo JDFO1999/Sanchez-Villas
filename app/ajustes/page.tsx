@@ -51,8 +51,8 @@ export default function AjustesPage() {
   
   const [footerMission, setFooterMission] = useState(settings.footerMission || "")
   const [footerVision, setFooterVision] = useState(settings.footerVision || "")
-  const [footerSocialLinks, setFooterSocialLinks] = useState(settings.footerSocialLinks || {instagram:'', facebook:'', tiktok:''})
-  const [footerPartners, setFooterPartners] = useState<string[]>(settings.footerPartners || [])
+  const [footerSocialLinks, setFooterSocialLinks] = useState(Array.isArray(settings.footerSocialLinks) ? settings.footerSocialLinks : [])
+  const [footerPartners, setFooterPartners] = useState(Array.isArray(settings.footerPartners) ? settings.footerPartners.map(p => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p) : [])
   const [partnerInput, setPartnerInput] = useState("")
   const [storeUseThermalPrinter, setStoreUseThermalPrinter] = useState(settings.storeUseThermalPrinter ?? true)
   
