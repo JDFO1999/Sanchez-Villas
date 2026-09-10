@@ -138,7 +138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-all duration-300 ease-in-out lg:static ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isSidebarCollapsed ? "w-20" : "w-64"}`}
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-all duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 ${isSidebarCollapsed ? "w-0 overflow-hidden border-none" : "w-64 lg:static"}`}
       >
         <div className={`flex items-center h-16 border-b ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
           <LogoComponent />
@@ -204,7 +204,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Mobile */}
-        <header className="lg:hidden flex items-center justify-between h-16 px-4 border-b bg-card">
+        <header className={`flex items-center justify-between h-16 px-4 border-b bg-card ${isSidebarCollapsed ? 'flex' : 'lg:hidden'}`}>
           <LogoComponent />
           <div className="flex items-center gap-4">
             <button
@@ -215,7 +215,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
             <button 
               className="text-muted-foreground"
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => { setSidebarOpen(true); setIsSidebarCollapsed(false); localStorage.setItem('gympro_sidebar_collapsed', 'false'); }}
             >
               <Menu className="h-6 w-6" />
             </button>
