@@ -1,7 +1,8 @@
 ﻿"use client"
 
 // Imports
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react";
+import { getPendingTransactions } from "@/app/actions/store";
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
@@ -24,6 +25,7 @@ export default function TiendaPOSPage() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [showPendingOrders, setShowPendingOrders] = useState(false);
   const [pendingSearch, setPendingSearch] = useState('');
+  const fetchPendingOrders = async () => { const data = await getPendingTransactions(); setPendingOrders(data); };
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   
   // Client Search & Walk-in
@@ -141,7 +143,7 @@ export default function TiendaPOSPage() {
       setPendingCartProduct(null)
       showToast("Venta sin stock autorizada.", "success")
     } else {
-      showToast("CÃ©dula de administrador invÃ¡lida.", "error")
+      showToast("Cédula de administrador invÃ¡lida.", "error")
     }
   }
 
@@ -309,14 +311,14 @@ export default function TiendaPOSPage() {
       setCart([])
       
       if (isAthlete) {
-        showToast("Compra completada exitosamente. Revisa tus Compras Recientes.", "success");
+        showToast("Compra completada eéxitosamente. Revisa tus Compras Recientes.", "success");
         window.location.href = '/';
       } else {
         setShowReceipt(res.transaction);
         setShowAdminCart(false);
         setTxReference("");
         setTxReceiptImage("");
-        showToast("Compra completada exitosamente.", "success");
+        showToast("Compra completada eéxitosamente.", "success");
         router.refresh();
       }
       
@@ -775,7 +777,7 @@ export default function TiendaPOSPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Buscar por cÃ©dula o nombre..."
+                  placeholder="Buscar por cédula o nombre..."
                   value={clientSearchQuery}
                   onChange={e => {
                     setClientSearchQuery(e.target.value)
@@ -963,7 +965,7 @@ export default function TiendaPOSPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Buscar por Cï¿½dula, Nombre o Cï¿½digo de Pedido..." 
+                  placeholder="Buscar por Cédula, Nombre o Cï¿½digo de Pedido..." 
                   value={pendingSearch}
                   onChange={(e) => setPendingSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-orange-500"
@@ -1016,7 +1018,7 @@ export default function TiendaPOSPage() {
                               const { deliverTransaction } = await import('@/app/actions/store');
                               const res = await deliverTransaction(order.id, user.id);
                               if (res.success) {
-                                showToast('Pedido entregado con ï¿½xito y asignado a tu caja.', 'success');
+                                showToast('Pedido entregado con ï¿½éxito y asignado a tu caja.', 'success');
                                 fetchPendingOrders();
                               } else {
                                 showToast(res.error || 'Error al entregar pedido.', 'error');
@@ -1043,12 +1045,12 @@ export default function TiendaPOSPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-2 text-red-500">AutorizaciÃ³n Requerida</h3>
-            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese CÃ©dula o pase cÃ³digo de Administrador para facturar sin stock.</p>
+            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase cÃ³digo de Administrador para facturar sin stock.</p>
             <form onSubmit={handleAdminOverride} className="space-y-4">
               <input 
                 type="password" 
                 autoFocus
-                placeholder="CÃ©dula de Administrador..." 
+                placeholder="Cédula de Administrador..." 
                 value={adminCedula}
                 onChange={e => setAdminCedula(e.target.value)}
                 className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
@@ -1095,7 +1097,7 @@ export default function TiendaPOSPage() {
                 }
               }} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">CÃ©dula</label>
+                <label className="text-xs text-muted-foreground">Cédula</label>
                 <div className="flex gap-2">
                   <select 
                     value={walkInCedulaType} 

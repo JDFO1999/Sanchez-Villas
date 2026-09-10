@@ -437,7 +437,7 @@ export default function MembresíasPage() {
                   <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">CÃ©dula</label>
+                  <label className="text-xs font-medium mb-1 block">Cédula</label>
                   <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
@@ -575,7 +575,7 @@ export default function MembresíasPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Buscar por cÃ©dula o nombre..." 
+              placeholder="Buscar por cédula o nombre..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"

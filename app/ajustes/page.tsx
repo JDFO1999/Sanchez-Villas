@@ -67,6 +67,7 @@ export default function AjustesPage() {
   
   const [coachCustomPricing, setCoachCustomPricing] = useState(settings.coachCustomPricing ?? false)
   const [gymCommissionPercentage, setGymCommissionPercentage] = useState(settings.gymCommissionPercentage ?? 30)
+  const [biometricFields, setBiometricFields] = useState<string[]>(settings.biometricFields || ['Pecho', 'Cintura', 'Cadera'])
 
   // Ocultar si no es admin
   if (user?.role !== 'admin') {
