@@ -13,9 +13,10 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 
 export const metadata: Metadata = {
-  title: "GymPro - Sistema de Gestión",
+  title: "Sistema de Gestión",
   description: "Sistema integral de administración para gimnasios",
 };
+
 
 export default function RootLayout({
   children,
