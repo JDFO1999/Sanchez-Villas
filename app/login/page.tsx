@@ -100,7 +100,7 @@ export default function LoginPage() {
 
           <div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseña</label>
+              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseñabel>
               <div className="relative">
                 <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
                 <input
@@ -128,7 +128,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center"
+            className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center"
           >
             {isLoading ? (
               <Dumbbell className="h-5 w-5 animate-spin" />
@@ -136,21 +136,14 @@ export default function LoginPage() {
               "Iniciar Sesión"
             )}
           </button>
-          <div className="mt-4 text-center">
+          </form>
+        <div className="mt-4 text-center">
             <span className="text-sm text-muted-foreground">¿Eres un nuevo atleta? </span>
             <Link href="/registro" className="text-sm text-primary hover:underline font-medium">
               Regístrate aquí
             </Link>
           </div>
-        </form>
 
-        <div className="mt-8 pt-6 border-t border-black/10 dark:border-white/10 w-full text-center text-xs text-muted-foreground">
-          <p>Credenciales de prueba:</p>
-          <div className="mt-2 grid grid-cols-2 gap-2 text-left bg-black/5 dark:bg-black/40 p-3 rounded-lg">
-            <div><span className="text-primary">Admin:</span> 1234 / admin</div>
-            <div><span className="text-primary">Coach:</span> 5678 / entrenador</div>
-            <div className="col-span-2"><span className="text-primary">Atleta:</span> 9012 / atleta</div>
-          </div>
         </div>
       </div>
     </div>
