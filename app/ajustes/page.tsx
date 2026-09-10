@@ -205,7 +205,7 @@ export default function AjustesPage() {
                       {faviconUrl ? <img src={faviconUrl} alt="Favicon" className="w-full h-full object-contain" /> : <span className="text-xs">Subir</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleFaviconUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {faviconUrl && <button type="button" onClick={() => setFaviconUrl("")} className="mt-2 text-xs text-red-500 hover:underline">Quitar</button>}
+                    {faviconUrl && <button type="button" onClick={() => setFaviconUrl("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
                   </div>
 
                   {/* Logo Claro */}
@@ -215,7 +215,7 @@ export default function AjustesPage() {
                       {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" /> : <span className="text-xs text-black">Subir</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {logoUrl && <button type="button" onClick={() => setLogoUrl("")} className="mt-2 text-xs text-red-500 hover:underline">Quitar</button>}
+                    {logoUrl && <button type="button" onClick={() => setLogoUrl("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
                   </div>
 
                   {/* Logo Oscuro */}
@@ -225,7 +225,7 @@ export default function AjustesPage() {
                       {logoUrlDark ? <img src={logoUrlDark} alt="Logo Dark" className="w-full h-full object-contain p-1" /> : <span className="text-xs text-white">Subir (Opcional)</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleLogoDarkUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {logoUrlDark && <button type="button" onClick={() => setLogoUrlDark("")} className="mt-2 text-xs text-red-500 hover:underline">Quitar</button>}
+                    {logoUrlDark && <button type="button" onClick={() => setLogoUrlDark("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
                   </div>
                 </div>
 
