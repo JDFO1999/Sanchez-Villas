@@ -1,4 +1,6 @@
-"use client"
+﻿const fs = require('fs');
+
+let s = `"use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
@@ -92,9 +94,9 @@ export const defaultSettings: AppSettings = {
   storeTicketWidth: '80mm',
   storeUseThermalPrinter: true,
   storePaymentInstructions: {
-    pagoMovil: 'Banco: Banesco (0134)\nCédula: V-12345678\nTeléfono: 0414-1234567',
-    binance: 'Email: pagos@maximumstore.com\nPay ID: 123456789',
-    transferencia: 'Banco: Mercantil\nCuenta: 0105-0000-0000-0000-0000\nNombre: Maximum Store C.A.\nRIF: J-12345678-9'
+    pagoMovil: 'Banco: Banesco (0134)\\nCédula: V-12345678\\nTeléfono: 0414-1234567',
+    binance: 'Email: pagos@maximumstore.com\\nPay ID: 123456789',
+    transferencia: 'Banco: Mercantil\\nCuenta: 0105-0000-0000-0000-0000\\nNombre: Maximum Store C.A.\\nRIF: J-12345678-9'
   },
   storePaymentQRs: {
     pagoMovil: '',
@@ -146,7 +148,7 @@ function hexToHSL(hex: string) {
   s = +(s * 100).toFixed(1);
   l = +(l * 100).toFixed(1);
 
-  return `${h} ${s}% ${l}%`;
+  return \`\${h} \${s}% \${l}%\`;
 }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -178,19 +180,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   return (
     <SettingsContext.Provider value={{ settings, updateSettings, isLoading }}>
       {!isLoading && (
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{__html: \`
           :root {
-            --primary: ${primaryHsl} !important;
-            --secondary: ${secondaryHsl} !important;
-            --border: ${borderHsl} !important;
-            --is-glass: ${settings.isGlass ? 1 : 0};
+            --primary: \${primaryHsl} !important;
+            --secondary: \${secondaryHsl} !important;
+            --border: \${borderHsl} !important;
+            --is-glass: \${settings.isGlass ? 1 : 0};
           }
           .dark {
-            --primary: ${primaryHsl} !important;
-            --secondary: ${secondaryHsl} !important;
-            --border: ${borderHsl} !important;
+            --primary: \${primaryHsl} !important;
+            --secondary: \${secondaryHsl} !important;
+            --border: \${borderHsl} !important;
           }
-        `}} />
+        \`}} />
       )}
       {children}
     </SettingsContext.Provider>
@@ -204,3 +206,7 @@ export function useSettings() {
   }
   return context
 }
+`;
+
+fs.writeFileSync('lib/settings-context.tsx', s, 'utf8');
+console.log("Rewrote settings context");

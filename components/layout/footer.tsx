@@ -49,21 +49,19 @@ export function Footer() {
             )}
 
             <div className="flex gap-4 pt-2">
-              {settings.footerSocialLinks?.instagram && (
-                <a href={settings.footerSocialLinks.instagram} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white transition">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+              
+              
+              
+              {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link) => (
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white transition flex items-center justify-center">
+                  {link.iconUrl ? (
+                    <img src={link.iconUrl} alt={link.name} style={{ width: link.width, height: link.height }} className="object-contain" />
+                  ) : (
+                    <span className="text-xs font-bold">{link.name.substring(0,2)}</span>
+                  )}
                 </a>
-              )}
-              {settings.footerSocialLinks?.facebook && (
-                <a href={settings.footerSocialLinks.facebook} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white transition">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                </a>
-              )}
-              {settings.footerSocialLinks?.tiktok && (
-                <a href={settings.footerSocialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white transition flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
-                </a>
-              )}
+              ))}
+
             </div>
           </div>
 
@@ -72,11 +70,19 @@ export function Footer() {
             <div className="space-y-6">
               <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100">Socios Comerciales</h4>
               <div className="flex flex-wrap gap-4 items-center">
-                {settings.footerPartners.map((partner, idx) => (
-                  <div key={idx} className="bg-white dark:bg-white/5 p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5 hover:scale-105 transition">
-                    <img src={partner} alt="Socio" className="h-10 w-auto object-contain" />
+                
+                {settings.footerPartners.map((partner) => (
+                  <div key={partner.id} className="bg-white dark:bg-white/5 p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5 hover:scale-105 transition">
+                    {partner.link ? (
+                      <a href={partner.link} target="_blank" rel="noopener noreferrer">
+                        <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain" />
+                      </a>
+                    ) : (
+                      <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain" />
+                    )}
                   </div>
                 ))}
+
               </div>
             </div>
           )}

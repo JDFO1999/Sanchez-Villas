@@ -632,7 +632,7 @@ export default function AjustesPage() {
                             setPartnerInput("");
                           }
                         }}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold"
+                        className="bg-transparent border border-primary text-primary hover:bg-primary/10 font-bold px-4 py-2 rounded-lg transition"
                       >
                         Añadir
                       </button>
@@ -658,7 +658,7 @@ export default function AjustesPage() {
             <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
               <button 
                 type="submit" 
-                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3 px-6 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2"
+                className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3 px-6 rounded-lg transition flex items-center gap-2"
               >
                 <Save className="h-5 w-5" />
                 Guardar Cambios
@@ -693,7 +693,7 @@ export default function AjustesPage() {
                     <p className="text-xs text-muted-foreground mt-1">Permisos: {r.permissions.length}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setRoleForm(r); setShowRoleModal(true); }} className="text-xs bg-black/10 dark:bg-white/10 px-3 py-1.5 rounded-lg hover:bg-black/20 dark:hover:bg-white/20 transition font-bold">Editar</button>
+                    <button onClick={() => { setRoleForm(r); setShowRoleModal(true); }} className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1.5 rounded-lg transition font-bold">Editar</button>
                     {r.id !== 'admin' && r.id !== 'employee' && (
                       <button onClick={() => handleDeleteRole(r.id)} className="text-xs bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition font-bold">Borrar</button>
                     )}
@@ -767,7 +767,7 @@ export default function AjustesPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-black/10 dark:border-white/10">
-                <button type="button" onClick={() => setShowRoleModal(false)} className="px-4 py-2 bg-black/10 dark:bg-white/10 rounded-lg text-sm hover:bg-black/20 dark:hover:bg-white/20">Cancelar</button>
+                <button type="button" onClick={() => setShowRoleModal(false)} className="bg-transparent border border-slate-500 text-slate-500 hover:bg-slate-500/10 px-4 py-2 rounded-lg text-sm transition">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-transparent border border-green-500 text-green-500 font-bold rounded-lg text-sm hover:bg-green-500/10">Guardar Rol</button>
               </div>
             </form>
@@ -804,7 +804,7 @@ export default function AjustesPage() {
                       <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded font-bold uppercase">Acceso Total</span>
                     )}
                     {emp.role !== 'admin' && (
-                      <button className="text-xs bg-black/10 dark:bg-white/10 hover:bg-white/20 px-3 py-1 rounded transition">Editar Permisos</button>
+                      <button className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1 rounded transition">Editar Permisos</button>
                     )}
                   </div>
                   

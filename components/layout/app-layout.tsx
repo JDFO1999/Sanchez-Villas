@@ -140,6 +140,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] whitespace-nowrap ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} w-64 ${isSidebarCollapsed ? "lg:w-0 lg:overflow-hidden lg:border-none" : "lg:static"} lg:translate-x-0`}
       >
+<div className={`flex flex-col h-full transition-opacity duration-300 ease-in-out ${isSidebarCollapsed ? 'lg:opacity-0 delay-0' : 'lg:opacity-100 delay-200'}`}>
         <div className={`flex items-center h-16 border-b ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
           <LogoComponent />
           <button 
@@ -192,7 +193,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           </div>
-        </aside>
+        
+</div>
+</aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
