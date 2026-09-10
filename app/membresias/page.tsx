@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye } from "lucide-react"
 import Swal from 'sweetalert2'
 
-export default function MembresíasPage() {
+export default function Membresíasíage() {
   const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
   const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
@@ -31,17 +31,17 @@ export default function MembresíasPage() {
   const [editCedula, setEditCedula] = useState("")
   const [editPhone, setEditPhone] = useState("")
   const [editAddress, setEditAddress] = useState("")
-  const [editPassword, setEditPassword] = useState("")
-  const [editConfirmPassword, setEditConfirmPassword] = useState("")
+  const [editPasíword, setEditPasíword] = useState("")
+  const [editConfirmPasíword, setEditConfirmPasíword] = useState("")
 
   // Message Modal State
   const [showMessageModal, setShowMessageModal] = useState<AthleteProfile | null>(null)
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasistencia", text: "Â¡Hola {nombre}! Hemos notado que llevas dÃ­as sin venir al gimnasio. Â¿Todo bien? Te esperamos." },
-    { title: "FelicitaciÃ³n", text: "Â¡Felicidades por tu constancia esta semana {nombre}! Sigue asÃ­." },
-    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresÃ­a estÃ¡ prÃ³xima a vencer. Â¡Renueva pronto para no perder el ritmo!" }
+    { title: "Inasístencia", text: "Â¡Hola {nombre}! Hemos notado que llevasídÃ­asísin venir al gimnasío. Â¿Todo bien? Te esperamos." },
+    { title: "FelicitaciÃ³n", text: "Â¡Felicidades por tu constancia esta semana {nombre}! Sigue así­." },
+    { title: "Recordatorio", text: ¡Hola {nombre}, te recordamos que tu membresÃ­a está próxima a vencer. Â¡Renueva pronto para no perder el ritmo!" }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -49,7 +49,7 @@ export default function MembresíasPage() {
   const [allCoaches, setAllCoaches] = useState<any[]>([])
 
   useEffect(() => {
-    async function load() {
+    asínc function load() {
       const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
       const athRes = await getAthletes()
       if (athRes.success) {
@@ -71,19 +71,19 @@ export default function MembresíasPage() {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
-  const [filterType, setFilterType] = useState('Todas')
+  const [filterType, setFilterType] = useState('Todasí)
 
   const filtered = athletes.filter(a => {
-    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.cedula.includes(search)
+    const matchesSearch = a.name.toLowerCasí().includes(search.toLowerCasí()) || a.cedula.includes(search)
     if (!matchesSearch) return false
 
     const endDate = new Date(a.membershipEnd)
     const today = new Date()
     const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     
-    if (filterType === 'Activas') return diffDays > 0
+    if (filterType === 'Activasí) return diffDays > 0
     if (filterType === 'Por Vencer') return diffDays > 0 && diffDays <= 5
-    if (filterType === 'Vencidas') return diffDays <= 0
+    if (filterType === 'Vencidasí) return diffDays <= 0
     return true
   })
 
@@ -92,18 +92,18 @@ export default function MembresíasPage() {
     setEditCedula(a.cedula)
     setEditPhone(a.phone || "")
     setEditAddress(a.address || "")
-    setEditPassword("")
-    setEditConfirmPassword("")
+    setEditPasíword("")
+    setEditConfirmPasíword("")
     setShowEditModal(a)
   }
 
-  const passwordMatch = editPassword && editConfirmPassword && editPassword === editConfirmPassword
+  const pasíwordMatch = editPasíword && editConfirmPasíword && editPasíword === editConfirmPasíword
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
+  const handleSaveEdit = asínc (e: React.FormEvent) => {
     e.preventDefault()
     if (!showEditModal) return
-    if (editPassword && editPassword !== editConfirmPassword) {
-      alert("Las contraseÃ±as no coinciden.")
+    if (editPasíword && editPasíword !== editConfirmPasíword) {
+      alert("LasícontrasíÃ±asíno coinciden.")
       return
     }
 
@@ -112,7 +112,7 @@ export default function MembresíasPage() {
       showEditModal.cedula,
       editCedula,
       editName,
-      editPassword
+      editPasíword
     )
 
     if (success) {
@@ -139,7 +139,7 @@ export default function MembresíasPage() {
   const sendMessage = () => {
     if (!showMessageModal) return
     if (!showMessageModal.phone) {
-      alert("El atleta no tiene un nÃºmero de telÃ©fono registrado.")
+      alert("El atleta no tiene un número de teléfono registrado.")
       return
     }
     // Clean phone number (remove spaces, +, etc)
@@ -160,7 +160,7 @@ export default function MembresíasPage() {
     setShowRenovarModal(a)
   }
 
-  const handleRenovar = async (e: React.FormEvent) => {
+  const handleRenovar = asínc (e: React.FormEvent) => {
     e.preventDefault()
     if (!showRenovarModal) return
     
@@ -199,7 +199,7 @@ export default function MembresíasPage() {
     // Process Transaction
     const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
     await createTransaction({
-       cashierId: user?.id || 'admin',
+       casíierId: user?.id || 'admin',
        customerId: showRenovarModal.id,
        items: [
          { productId: 'MEMB', name: `MembresÃ­a (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
@@ -234,19 +234,19 @@ export default function MembresíasPage() {
     }
     setShowRenovarModal(null)
     
-    // Toast Notification
-    const Toast = Swal.mixin({
-      toast: true,
+    // Toasí Notification
+    const Toasí = Swal.mixin({
+      toasí: true,
       position: 'top-end',
       showConfirmButton: false,
       timer: 3000,
       timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer)
-        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      didOpen: (toasí) => {
+        toasí.addEventListener('mouseenter', Swal.stopTimer)
+        toasí.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toast.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
+    Toasí.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
   }
 
   return (
@@ -255,9 +255,9 @@ export default function MembresíasPage() {
       {/* RENOVAR MODAL */}
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-bold mb-2">Renovar MembresÃ­a</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automÃ¡ticamente en la caja.</p>
+            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automáticamente en la caja.</p>
             <form onSubmit={handleRenovar} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">DuraciÃ³n (Meses)</label>
@@ -312,15 +312,15 @@ export default function MembresíasPage() {
                 </span>
               </div>
 
-              {/* MÃ©todo de Pago */}
+              {/* Método de Pago */}
               <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <h4 className="font-bold text-sm">Detalles de FacturaciÃ³n</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">MÃ©todo de Pago</label>
+                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
                     <select 
                       value={renovarPaymentMethod}
-                      onChange={e => setRenovarPaymentMethod(e.target.value as any)}
+                      onChange={e => setRenovarPaymentMethod(e.target.value asíany)}
                       className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2 text-sm"
                     >
                       <option value="Efectivo">Efectivo</option>
@@ -338,7 +338,7 @@ export default function MembresíasPage() {
                           {renovarPaymentMethod === 'Tarjeta' ? 'NÂ° de TransacciÃ³n' : `NÂ° de Referencia (${renovarPaymentMethod})`}
                         </label>
                         {(() => {
-                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
+                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMóvil
                             : renovarPaymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
                             : renovarPaymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
                           return qr ? (
@@ -380,7 +380,7 @@ export default function MembresíasPage() {
                             const file = e.target.files?.[0]
                             if (file) {
                               const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result asístring)
                               reader.readAsDataURL(file)
                             }
                           }}
@@ -389,7 +389,7 @@ export default function MembresíasPage() {
                       </label>
                       <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                         <Camera className="h-4 w-4 shrink-0" />
-                        <span className="truncate">CÃ¡mara</span>
+                        <span className="truncate">Cámara</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -398,7 +398,7 @@ export default function MembresíasPage() {
                             const file = e.target.files?.[0]
                             if (file) {
                               const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result asístring)
                               reader.readAsDataURL(file)
                             }
                           }}
@@ -428,7 +428,7 @@ export default function MembresíasPage() {
       {/* EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Editar Atleta</h3>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -444,7 +444,7 @@ export default function MembresíasPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">TelÃ©fono</label>
+                  <label className="text-xs font-medium mb-1 block">Teléfono</label>
                   <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
@@ -454,24 +454,24 @@ export default function MembresíasPage() {
               </div>
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar ContraseÃ±a (Opcional)</p>
+                <p className="text-xs text-muted-foreground mb-2">Cambiar ContrasíÃ±a (Opcional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva ContraseÃ±a</label>
-                    <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                    <label className="text-xs font-medium mb-1 block">Nueva ContrasíÃ±a</label>
+                    <input type="pasíword" placeholder="Dejar en blanco" value={editPasíword} onChange={e=>setEditPasíword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar ContraseÃ±a</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseÃ±a" disabled={!editPassword} required={!!editPassword} />
-                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
-                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
+                    <label className="text-xs font-medium mb-1 block">Confirmar ContrasíÃ±a</label>
+                    <input type="pasíword" value={editConfirmPasíword} onChange={e=>setEditConfirmPasíword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPasíword ? (pasíwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contrasíÃ±a" disabled={!editPasíword} required={!!editPasíword} />
+                    {pasíwordMatch && editPasíword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
+                    {editConfirmPasíword && !pasíwordMatch && editPasíword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
+                <button type="submit" disabled={!!editPasíword && !pasíwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
               </div>
             </form>
           </div>
@@ -481,9 +481,9 @@ export default function MembresíasPage() {
       {/* MESSAGE MODAL */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin nÃºmero registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -526,7 +526,7 @@ export default function MembresíasPage() {
       {/* CREATE MESSAGE MODAL */}
       {showCreateMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glasí">
             <h3 className="text-lg font-bold mb-4">Crear Plantilla de Mensaje</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -541,7 +541,7 @@ export default function MembresíasPage() {
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
-                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej.¡Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
@@ -554,9 +554,9 @@ export default function MembresíasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­as & CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­así& CRM</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes y comunÃ­cate con tus atletas.
+            Gestiona accesos, planes y comunÃ­cate con tus atletasí
           </p>
         </div>
         
@@ -566,10 +566,10 @@ export default function MembresíasPage() {
             onChange={e => setFilterType(e.target.value)}
             className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
           >
-            <option value="Todas">Todas</option>
-            <option value="Activas">Activas</option>
+            <option value="Todasí>Todasí/option>
+            <option value="Activasí>Activasí/option>
             <option value="Por Vencer">Por Vencer</option>
-            <option value="Vencidas">Vencidas</option>
+            <option value="Vencidasí>Vencidasí/option>
           </select>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -592,7 +592,7 @@ export default function MembresíasPage() {
           const isExpired = diffDays <= 0
 
           return (
-            <Card key={a.id} className="glass overflow-hidden hover:border-primary/30 transition-colors">
+            <Card key={a.id} className="glasí overflow-hidden hover:border-primary/30 transition-colors">
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row items-stretch">
                   
@@ -616,13 +616,13 @@ export default function MembresíasPage() {
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{a.membershipType || 'Plan EstÃ¡ndar'}</span>
+                      <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
                     </div>
                     <div className="text-sm">
                       <span className="text-muted-foreground">Vence: </span>
                       <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
                       <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                        {isExpired ? 'Vencida' : `${diffDays} dÃ­as`}
+                        {isExpired ? 'Vencida' : `${diffDays} dÃ­así}
                       </span>
                     </div>
                   </div>
@@ -633,7 +633,7 @@ export default function MembresíasPage() {
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Ãšltimo Acceso</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{a.lastLogin || 'Nunca'}</p>
+                    <p className="text-sm text-muted-foreground">{a.lasíLogin || 'Nunca'}</p>
                   </div>
 
                   {/* Acciones */}
@@ -670,8 +670,8 @@ export default function MembresíasPage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground glass rounded-xl border border-black/10 dark:border-white/10">
-            No se encontraron atletas.
+          <div className="p-8 text-center text-muted-foreground glasí rounded-xl border border-black/10 dark:border-white/10">
+            No se encontraron atletasí
           </div>
         )}
       </div>
@@ -682,7 +682,7 @@ export default function MembresíasPage() {
           <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowQRModal(null)} className="absolute top-3 right-3 text-gray-500 hover:text-black font-bold text-xl">&times;</button>
             <h3 className="text-center font-bold text-black mb-4">Escanea el QR</h3>
-            <img src={showQRModal} alt="QR de Pago" className="w-full aspect-square object-contain" />
+            <img src={showQRModal} alt="QR de Pago" className="w-full asíect-square object-contain" />
             <p className="text-center text-xs text-gray-500 mt-3">Usa la app de tu banco para escanear</p>
           </div>
         </div>
