@@ -134,6 +134,8 @@ export default function AjustesPage() {
     showToast("Ajustes guardados correctamente.", "success")
   }
 
+  const handleFaviconUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onloadend = () => setFaviconUrl(r.result as string); r.readAsDataURL(f); } }
+  const handleLogoDarkUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onloadend = () => setLogoUrlDark(r.result as string); r.readAsDataURL(f); } }
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -680,7 +682,7 @@ export default function AjustesPage() {
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
                                     const arr = [...footerSocialLinks];
-                                    arr[idx].iconUrl = reader.result;
+                                    arr[idx].iconUrl = reader.result as string;
                                     setFooterSocialLinks(arr);
                                   };
                                   reader.readAsDataURL(file);
@@ -730,7 +732,7 @@ export default function AjustesPage() {
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
                                     const arr = [...footerPartners];
-                                    arr[idx].imageUrl = reader.result;
+                                    arr[idx].imageUrl = reader.result as string;
                                     setFooterPartners(arr);
                                   };
                                   reader.readAsDataURL(file);
