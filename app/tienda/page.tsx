@@ -340,8 +340,8 @@ export default function TiendaPOSPage() {
       <div className="space-y-6 max-w-6xl mx-auto pb-20">
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">CatÃ¡logo {settings.appName}</h1>
-            <p className="text-muted-foreground mt-1">Reserva tus productos desde aquÃ­ y retÃ­ralos en recepciÃ³n.</p>
+            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent drop-shadow-sm">Catálogo {settings.appName}</h1>
+            <p className="text-muted-foreground mt-1">Reserva tus productos desde aquí y retíralos en recepción.</p>
           </div>
           <div className="relative flex gap-2">
             <button 
@@ -363,7 +363,7 @@ export default function TiendaPOSPage() {
               <User className="h-5 w-5" />
               <span>Pagar Mensualidad</span>
             </button>
-            <button onClick={() => setShowAthleteCart(true)} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20">
+            <button onClick={() => setShowAthleteCart(true)} className="bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm">
               <ShoppingCart className="h-5 w-5" />
               <span>Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -478,7 +478,7 @@ export default function TiendaPOSPage() {
               </div>
               <div className="p-4 border-t border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40 space-y-4 flex-shrink-0 overflow-y-auto max-h-[50vh]">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground block">MÃ©todo de Pago</label>
+                  <label className="text-xs font-medium text-muted-foreground block">Método de Pago</label>
                   <select 
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
@@ -604,7 +604,7 @@ export default function TiendaPOSPage() {
                     setShowAthleteCart(false);
                   }}
                   disabled={cart.length === 0}
-                  className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-black py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed drop-shadow-md"
+                  className="w-full bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-black py-3.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Enviar Pedido
                 </button>
@@ -627,8 +627,8 @@ export default function TiendaPOSPage() {
           <StoreNav />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
-            <button onClick={() => setShowAdminCart(true)} className={`border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary/90 transition shadow-lg shadow-primary/20 ${cartAnim ? 'animate-bounce' : ''}`}>
+          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-orange-500 text-orange-600 dark:text-orange-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+            <button onClick={() => setShowAdminCart(true)} className={`bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm ${cartAnim ? 'animate-bounce' : ''}`}>
               <ShoppingCart className="h-5 w-5" />
               <span>Pagar / Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -771,7 +771,7 @@ export default function TiendaPOSPage() {
                   <UserPlus className="h-3 w-3" /> Nuevo
                 </button>
               </label>
-              <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-500/20 mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+              <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-orange-500 text-orange-600 dark:text-orange-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
@@ -823,7 +823,7 @@ export default function TiendaPOSPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">MÃ©todo de Pago</label>
+              <label className="text-xs font-medium text-muted-foreground">Método de Pago</label>
               <div className="flex gap-2 flex-wrap">
                 {['Efectivo', 'Tarjeta', 'Transferencia', 'Pago Móvil', 'Binance'].map(m => (
                   <button 
@@ -938,7 +938,7 @@ export default function TiendaPOSPage() {
             <button 
               onClick={handleCheckout}
               disabled={cart.length === 0}
-              className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-black py-3.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="h-5 w-5" /> Cobrar Total
             </button>
@@ -1136,7 +1136,7 @@ export default function TiendaPOSPage() {
               </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => setShowWalkInModal(false)} className="px-4 py-2 text-sm rounded bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold hover:bg-primary/90">Guardar</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-xl bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold hover:bg-green-50 dark:hover:bg-green-500/10 transition">Guardar</button>
               </div>
             </form>
           </div>
