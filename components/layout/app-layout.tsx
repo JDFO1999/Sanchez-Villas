@@ -191,36 +191,40 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Collapse Toggle */}
-          <button 
-            onClick={toggleSidebarCollapse}
-            className="w-full p-4 flex items-center justify-center text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-t border-black/5 dark:border-white/5"
-          >
-            <svg className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-        </div>
-      </aside>
+          </div>
+        </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Mobile */}
-        <header className={`flex items-center justify-between h-16 px-4 border-b bg-card ${isSidebarCollapsed ? 'flex' : 'lg:hidden'}`}>
-          <LogoComponent />
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="text-muted-foreground"
-            >
-              {theme === "dark" ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-            </button>
-            <button 
-              className="text-muted-foreground"
-              onClick={() => { setSidebarOpen(true); setIsSidebarCollapsed(false); localStorage.setItem('gympro_sidebar_collapsed', 'false'); }}
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-          </div>
-        </header>
+        <header className="flex items-center justify-between h-16 px-4 border-b bg-card">
+            <div className="flex items-center gap-4">
+              <button 
+                className="text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                    setSidebarOpen(true);
+                  } else {
+                    toggleSidebarCollapse();
+                  }
+                }}
+              >
+                <Menu className="h-6 w-6" />
+              </button>
+              <div className={!isSidebarCollapsed ? "lg:hidden" : ""}>
+                <LogoComponent />
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
+              >
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+            </div>
+          </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-20 lg:pb-8">
           {children}
