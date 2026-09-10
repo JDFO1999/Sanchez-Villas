@@ -160,7 +160,7 @@ export default function AjustesPage() {
       }
       reader.readAsDataURL(file)
     }
-  }} />
+  } } />
                             </div>
                             <div className="flex-1 space-y-2">
                               <input type="text" placeholder="Nombre (Ej. Instagram)" value={link.name} onChange={e => { const arr = [...footerSocialLinks]; arr[idx].name = e.target.value; setFooterSocialLinks(arr); }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
@@ -210,7 +210,7 @@ export default function AjustesPage() {
                                   };
                                   reader.readAsDataURL(file);
                                 }
-                              }} />
+                              } } />
                             </div>
                             <div className="flex-1 space-y-2 flex flex-col justify-center">
                               <input type="text" placeholder="URL (Opcional)" value={partner.link || ''} onChange={e => { const arr = [...footerPartners]; arr[idx].link = e.target.value; setFooterPartners(arr); }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
