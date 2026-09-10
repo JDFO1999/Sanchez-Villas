@@ -676,7 +676,7 @@ export default function AjustesPage() {
           <button 
             type="button" 
             onClick={() => { setRoleForm({ id: '', name: '', permissions: [] }); setShowRoleModal(true); }}
-            className="text-xs bg-green-500 text-white font-bold px-3 py-1.5 rounded hover:bg-green-600 transition"
+            className="text-xs bg-transparent border border-green-500 text-green-500 font-bold px-3 py-1.5 rounded hover:bg-green-500/10 transition"
           >
             + Nuevo Rol
           </button>
@@ -768,7 +768,7 @@ export default function AjustesPage() {
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-black/10 dark:border-white/10">
                 <button type="button" onClick={() => setShowRoleModal(false)} className="px-4 py-2 bg-black/10 dark:bg-white/10 rounded-lg text-sm hover:bg-black/20 dark:hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-green-500 text-white font-bold rounded-lg text-sm hover:bg-green-600">Guardar Rol</button>
+                <button type="submit" className="px-4 py-2 bg-transparent border border-green-500 text-green-500 font-bold rounded-lg text-sm hover:bg-green-500/10">Guardar Rol</button>
               </div>
             </form>
           </div>

@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye } from "lucide-react"
 import Swal from 'sweetalert2'
 
-export default function Membresíasíage() {
+export default function MembresíasPage() {
   const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
   const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
@@ -31,17 +31,17 @@ export default function Membresíasíage() {
   const [editCedula, setEditCedula] = useState("")
   const [editPhone, setEditPhone] = useState("")
   const [editAddress, setEditAddress] = useState("")
-  const [editPasíword, setEditPasíword] = useState("")
-  const [editConfirmPasíword, setEditConfirmPasíword] = useState("")
+  const [editPassword, setEditPassword] = useState("")
+  const [editConfirmPassword, setEditConfirmPassword] = useState("")
 
   // Message Modal State
   const [showMessageModal, setShowMessageModal] = useState<AthleteProfile | null>(null)
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasístencia", text: "Â¡Hola {nombre}! Hemos notado que llevasídÃ­asísin venir al gimnasío. Â¿Todo bien? Te esperamos." },
-    { title: "FelicitaciÃ³n", text: "Â¡Felicidades por tu constancia esta semana {nombre}! Sigue así­." },
-    { title: "Recordatorio", text: ¡Hola {nombre}, te recordamos que tu membresÃ­a está próxima a vencer. Â¡Renueva pronto para no perder el ritmo!" }
+    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
+    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
+    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -49,7 +49,7 @@ export default function Membresíasíage() {
   const [allCoaches, setAllCoaches] = useState<any[]>([])
 
   useEffect(() => {
-    asínc function load() {
+    async function load() {
       const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
       const athRes = await getAthletes()
       if (athRes.success) {
@@ -71,19 +71,19 @@ export default function Membresíasíage() {
     return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
-  const [filterType, setFilterType] = useState('Todasí)
+  const [filterType, setFilterType] = useState('Todas')
 
   const filtered = athletes.filter(a => {
-    const matchesSearch = a.name.toLowerCasí().includes(search.toLowerCasí()) || a.cedula.includes(search)
+    const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.cedula.includes(search)
     if (!matchesSearch) return false
 
     const endDate = new Date(a.membershipEnd)
     const today = new Date()
     const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     
-    if (filterType === 'Activasí) return diffDays > 0
+    if (filterType === 'Activas') return diffDays > 0
     if (filterType === 'Por Vencer') return diffDays > 0 && diffDays <= 5
-    if (filterType === 'Vencidasí) return diffDays <= 0
+    if (filterType === 'Vencidas') return diffDays <= 0
     return true
   })
 
@@ -92,18 +92,18 @@ export default function Membresíasíage() {
     setEditCedula(a.cedula)
     setEditPhone(a.phone || "")
     setEditAddress(a.address || "")
-    setEditPasíword("")
-    setEditConfirmPasíword("")
+    setEditPassword("")
+    setEditConfirmPassword("")
     setShowEditModal(a)
   }
 
-  const pasíwordMatch = editPasíword && editConfirmPasíword && editPasíword === editConfirmPasíword
+  const passwordMatch = editPassword && editConfirmPassword && editPassword === editConfirmPassword
 
-  const handleSaveEdit = asínc (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showEditModal) return
-    if (editPasíword && editPasíword !== editConfirmPasíword) {
-      alert("LasícontrasíÃ±asíno coinciden.")
+    if (editPassword && editPassword !== editConfirmPassword) {
+      alert("Las contraseñas no coinciden.")
       return
     }
 
@@ -112,7 +112,7 @@ export default function Membresíasíage() {
       showEditModal.cedula,
       editCedula,
       editName,
-      editPasíword
+      editPassword
     )
 
     if (success) {
@@ -139,7 +139,7 @@ export default function Membresíasíage() {
   const sendMessage = () => {
     if (!showMessageModal) return
     if (!showMessageModal.phone) {
-      alert("El atleta no tiene un número de teléfono registrado.")
+      alert("El atleta no tiene un nÃºmero de telÃ©fono registrado.")
       return
     }
     // Clean phone number (remove spaces, +, etc)
@@ -160,7 +160,7 @@ export default function Membresíasíage() {
     setShowRenovarModal(a)
   }
 
-  const handleRenovar = asínc (e: React.FormEvent) => {
+  const handleRenovar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showRenovarModal) return
     
@@ -199,7 +199,7 @@ export default function Membresíasíage() {
     // Process Transaction
     const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
     await createTransaction({
-       casíierId: user?.id || 'admin',
+       cashierId: user?.id || 'admin',
        customerId: showRenovarModal.id,
        items: [
          { productId: 'MEMB', name: `MembresÃ­a (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
@@ -234,19 +234,19 @@ export default function Membresíasíage() {
     }
     setShowRenovarModal(null)
     
-    // Toasí Notification
-    const Toasí = Swal.mixin({
-      toasí: true,
+    // Toast Notification
+    const Toast = Swal.mixin({
+      toast: true,
       position: 'top-end',
       showConfirmButton: false,
       timer: 3000,
       timerProgressBar: true,
-      didOpen: (toasí) => {
-        toasí.addEventListener('mouseenter', Swal.stopTimer)
-        toasí.addEventListener('mouseleave', Swal.resumeTimer)
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toasí.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
+    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
   }
 
   return (
@@ -255,12 +255,12 @@ export default function Membresíasíage() {
       {/* RENOVAR MODAL */}
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-2">Renovar MembresÃ­a</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automáticamente en la caja.</p>
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
             <form onSubmit={handleRenovar} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">DuraciÃ³n (Meses)</label>
+                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
                 <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
               </div>
               <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
@@ -272,7 +272,7 @@ export default function Membresíasíage() {
                   className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
                 />
                 <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
-                  AÃ±adir Entrenador Personal
+                  Añadir Entrenador Personal
                 </label>
               </div>
 
@@ -320,7 +320,7 @@ export default function Membresíasíage() {
                     <label className="text-xs font-medium mb-1 block">Método de Pago</label>
                     <select 
                       value={renovarPaymentMethod}
-                      onChange={e => setRenovarPaymentMethod(e.target.value asíany)}
+                      onChange={e => setRenovarPaymentMethod(e.target.value as any)}
                       className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2 text-sm"
                     >
                       <option value="Efectivo">Efectivo</option>
@@ -335,10 +335,10 @@ export default function Membresíasíage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                         <label className="text-xs font-medium text-muted-foreground block">
-                          {renovarPaymentMethod === 'Tarjeta' ? 'NÂ° de TransacciÃ³n' : `NÂ° de Referencia (${renovarPaymentMethod})`}
+                          {renovarPaymentMethod === 'Tarjeta' ? 'Nº de TransaccióntMethod})`}
                         </label>
                         {(() => {
-                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMóvil
+                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
                             : renovarPaymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
                             : renovarPaymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
                           return qr ? (
@@ -380,7 +380,7 @@ export default function Membresíasíage() {
                             const file = e.target.files?.[0]
                             if (file) {
                               const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result asístring)
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
                               reader.readAsDataURL(file)
                             }
                           }}
@@ -398,7 +398,7 @@ export default function Membresíasíage() {
                             const file = e.target.files?.[0]
                             if (file) {
                               const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result asístring)
+                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
                               reader.readAsDataURL(file)
                             }
                           }}
@@ -428,7 +428,7 @@ export default function Membresíasíage() {
       {/* EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí overflow-y-auto max-h-[90vh]">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Editar Atleta</h3>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -448,30 +448,30 @@ export default function Membresíasíage() {
                   <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">DirecciÃ³n</label>
+                  <label className="text-xs font-medium mb-1 block">Dirección</label>
                   <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar ContrasíÃ±a (Opcional)</p>
+                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva ContrasíÃ±a</label>
-                    <input type="pasíword" placeholder="Dejar en blanco" value={editPasíword} onChange={e=>setEditPasíword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                    <label className="text-xs font-medium mb-1 block">Nueva Contraseñabel>
+                    <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar ContrasíÃ±a</label>
-                    <input type="pasíword" value={editConfirmPasíword} onChange={e=>setEditConfirmPasíword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPasíword ? (pasíwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contrasíÃ±a" disabled={!editPasíword} required={!!editPasíword} />
-                    {pasíwordMatch && editPasíword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
-                    {editConfirmPasíword && !pasíwordMatch && editPasíword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
+                    <label className="text-xs font-medium mb-1 block">Confirmar Contraseñabel>
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseñassword} />
+                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
+                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
                 </div>
               </div>
               
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" disabled={!!editPasíword && !pasíwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
+                <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
               </div>
             </form>
           </div>
@@ -481,9 +481,9 @@ export default function Membresíasíage() {
       {/* MESSAGE MODAL */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glasí">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin número registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -526,7 +526,7 @@ export default function Membresíasíage() {
       {/* CREATE MESSAGE MODAL */}
       {showCreateMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glasí">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
             <h3 className="text-lg font-bold mb-4">Crear Plantilla de Mensaje</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -536,12 +536,12 @@ export default function Membresíasíage() {
               setNewMessageText("");
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">TÃ­tulo del botÃ³n</label>
-                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. PromociÃ³n" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <label className="text-xs font-medium mb-1 block">Título del botón</label>
+                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. Promociónded p-2 text-sm focus:border-primary" />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
-                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej.¡Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promociónded p-2 text-sm focus:border-primary" />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
@@ -554,9 +554,9 @@ export default function Membresíasíage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­así& CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresías & CRM</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes y comunÃ­cate con tus atletasí
+            Gestiona accesos, planes y comunícate con tus atletas.
           </p>
         </div>
         
@@ -566,10 +566,10 @@ export default function Membresíasíage() {
             onChange={e => setFilterType(e.target.value)}
             className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
           >
-            <option value="Todasí>Todasí/option>
-            <option value="Activasí>Activasí/option>
+            <option value="Todas">Todas</option>
+            <option value="Activas">Activas</option>
             <option value="Por Vencer">Por Vencer</option>
-            <option value="Vencidasí>Vencidasí/option>
+            <option value="Vencidas">Vencidas</option>
           </select>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -592,7 +592,7 @@ export default function Membresíasíage() {
           const isExpired = diffDays <= 0
 
           return (
-            <Card key={a.id} className="glasí overflow-hidden hover:border-primary/30 transition-colors">
+            <Card key={a.id} className="glass overflow-hidden hover:border-primary/30 transition-colors">
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row items-stretch">
                   
@@ -622,7 +622,7 @@ export default function Membresíasíage() {
                       <span className="text-muted-foreground">Vence: </span>
                       <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
                       <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                        {isExpired ? 'Vencida' : `${diffDays} dÃ­así}
+                        {isExpired ? 'Vencida' : `${diffDays} dÃ­as`}
                       </span>
                     </div>
                   </div>
@@ -633,7 +633,7 @@ export default function Membresíasíage() {
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Ãšltimo Acceso</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{a.lasíLogin || 'Nunca'}</p>
+                    <p className="text-sm text-muted-foreground">{a.lastLogin || 'Nunca'}</p>
                   </div>
 
                   {/* Acciones */}
@@ -670,19 +670,19 @@ export default function Membresíasíage() {
         })}
 
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground glasí rounded-xl border border-black/10 dark:border-white/10">
-            No se encontraron atletasí
+          <div className="p-8 text-center text-muted-foreground glass rounded-xl border border-black/10 dark:border-white/10">
+            No se encontraron atletas.
           </div>
         )}
       </div>
       
-      {/* MODAL QR FULLSCREENº */}
+      {/* MODAL QR FULLSCREEN */}
       {showQRModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-6 backdrop-blur-md" onClick={() => setShowQRModal(null)}>
           <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowQRModal(null)} className="absolute top-3 right-3 text-gray-500 hover:text-black font-bold text-xl">&times;</button>
             <h3 className="text-center font-bold text-black mb-4">Escanea el QR</h3>
-            <img src={showQRModal} alt="QR de Pago" className="w-full asíect-square object-contain" />
+            <img src={showQRModal} alt="QR de Pago" className="w-full aspect-square object-contain" />
             <p className="text-center text-xs text-gray-500 mt-3">Usa la app de tu banco para escanear</p>
           </div>
         </div>
