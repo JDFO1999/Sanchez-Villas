@@ -47,6 +47,14 @@ export interface AppSettings {
   coachCustomPricing: boolean // Si es true, el entrenador pone su propio precio
   gymCommissionPercentage: number // % que se queda el gimnasio de ese precio
   biometricFields: string[]
+  footerMission: string
+  footerVision: string
+  footerSocialLinks: {
+    instagram: string
+    facebook: string
+    tiktok: string
+  }
+  footerPartners: string[]
 }
 
 interface SettingsContextType {

@@ -21,6 +21,7 @@ import {
   ScanLine
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { Footer } from "./footer"
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -32,6 +33,21 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  // Initialize from localStorage if exists
+  useEffect(() => {
+    const stored = localStorage.getItem('gympro_sidebar_collapsed')
+    if (stored === 'true') {
+      setIsSidebarCollapsed(true)
+    }
+  }, [])
+  
+  const toggleSidebarCollapse = () => {
+    const newState = !isSidebarCollapsed
+    setIsSidebarCollapsed(newState)
+    localStorage.setItem('gympro_sidebar_collapsed', String(newState))
+  }
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const { user, isLoading, logout } = useAuth()
@@ -176,6 +192,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               Cerrar Sesión
             </button>
           </div>
+
+          {/* Collapse Toggle */}
+          <button 
+            onClick={toggleSidebarCollapse}
+            className="w-full p-4 flex items-center justify-center text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-t border-black/5 dark:border-white/5"
+          >
+            <svg className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
         </div>
       </aside>
 
@@ -202,6 +226,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-20 lg:pb-8">
           {children}
+          <Footer />
         </main>
 
         {/* Bottom Navigation for Mobile */}

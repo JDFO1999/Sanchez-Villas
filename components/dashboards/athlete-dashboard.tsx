@@ -448,7 +448,7 @@ export function AthleteDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
           <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl flex flex-col items-center text-black relative" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-black mb-1">Tu Código de Acceso</h3>
-            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este cÃ³digo en recepciÃ³n para marcar tu entrada.</p>
+            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este código en recepción para marcar tu entrada.</p>
             
             <div className="bg-gray-100 p-4 rounded-xl mb-6">
               <QRCodeSVG value={user?.cedula || ''} size={200} level="H" />
