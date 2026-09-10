@@ -381,7 +381,7 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'athlete' && athlete.coachId && (
-            <button onClick={() => setShowCoachRequest(true)} className="bg-secondary text-foreground px-4 py-2 rounded-lg font-medium hover:bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 transition">
+            <button onClick={() => setShowCoachRequest(true)} className="bg-transparent border-2 border-primary text-primary px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary/10 transition">
               Solicitar Cambio de Coach
             </button>
           )}
