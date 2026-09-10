@@ -1,277 +1,180 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
+import { AppLayout } from "@/components/layout/app-layout"
 import { useAuth } from "@/lib/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PlayCircle, Clock, Calendar, CheckCircle, Info, Apple, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Dumbbell, CheckCircle2, Clock, CalendarDays, Activity, ChevronRight, Apple } from "lucide-react"
+import { getAthleteData, markRoutineCompleted } from "@/app/actions/routines"
 
-
-  
 export default function RutinaPage() {
-  const { user } = useAuth();
-  const [selectedDay, setSelectedDay] = useState<'yesterday' | 'today' | 'tomorrow'>('today');
-  const [realRoutines, setRealRoutines] = useState<any[]>([]);
-  const [todayRoutine, setTodayRoutine] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-  const [yesterdayRoutine, setYesterdayRoutine] = useState<any>(null);
-  const [tomorrowRoutine, setTomorrowRoutine] = useState<any>(null);
-  useEffect(() => {
-    if (user?.id) {
-      import("@/app/actions/users").then(async ({ getAthleteDashboardData }) => {
-        const res = await getAthleteDashboardData(user.id);
-          setLoading(false);
-        if (res.success && res.routines) {
-          setRealRoutines(res.routines);
-          const todayStr = new Date().toISOString().split("T")[0];
-          const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-          const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
-          const t = res.routines.find((r: any) => r.date.startsWith(todayStr)); setTodayRoutine(t ? {...t, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
-          const y = res.routines.find((r: any) => r.date.startsWith(yesterdayStr)); setYesterdayRoutine(y ? {...y, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
-          const tm = res.routines.find((r: any) => r.date.startsWith(tomorrowStr)); setTomorrowRoutine(tm ? {...tm, diet: res.diets.length > 0 ? res.diets[0].description : "Sin dieta asignada"} : { exercises: [], title: "Sin asignar", duration: "-", completed: false, diet: "Sin dieta asignada" });
-        }
-      });
-    }
-  }, [user]);
-  const routinesData: Record<string, any> = {
-    yesterday: yesterdayRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" },
-    today: todayRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" },
-    tomorrow: tomorrowRoutine || { exercises: [], title: loading ? "Cargando..." : "Sin asignar", duration: "-", diet: "Sin dieta asignada" }
-  };
-
-  type ExState = 'pending' | 'progress' | 'completed' | 'failed'
-
-  // Load from localStorage on mount
-  const [exerciseStates, setExerciseStates] = useState<Record<string, Record<number, ExState>>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gympro_exercise_states')
-      if (saved) return JSON.parse(saved)
-    }
-    return {
-      yesterday: { 0: 'completed', 1: 'completed', 2: 'completed' },
-      today: {},
-      tomorrow: {}
-    }
-  })
-
-  const [routineCompleted, setRoutineCompleted] = useState<Record<string, boolean>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('gympro_routine_completed')
-      if (saved) return JSON.parse(saved)
-    }
-    return { yesterday: true, today: false, tomorrow: false }
-  })
-
-  // Save to localStorage whenever states change
-  useEffect(() => {
-    localStorage.setItem('gympro_exercise_states', JSON.stringify(exerciseStates))
-  }, [exerciseStates])
+  const { user } = useAuth()
+  const [routines, setRoutines] = useState<any[]>([])
+  const [diets, setDiets] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<"ROUTINAS" | "DIETAS">("ROUTINAS")
 
   useEffect(() => {
-    localStorage.setItem('gympro_routine_completed', JSON.stringify(routineCompleted))
-  }, [routineCompleted])
-
-  const routine = routinesData[selectedDay]
-  const currentStates = exerciseStates[selectedDay] || {}
-  const allChecked = routine.exercises.length > 0 && routine.exercises.every((_, i) => currentStates[i] === 'completed')
-
-  const changeExerciseState = (idx: number, newState: ExState) => {
-    if (selectedDay !== 'today') {
-      import("sweetalert2").then((Swal) => {
-        const Toast = Swal.default.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
-        Toast.fire({ icon: 'warning', title: selectedDay === 'yesterday' ? 'No puedes modificar una rutina de ayer' : 'Esta rutina aún no ha comenzado' })
-      })
-      return
+    if (user?.id && user.role === "ATHLETE") {
+      loadData()
+    } else {
+      setIsLoading(false)
     }
-    setExerciseStates(prev => ({
-      ...prev,
-      [selectedDay]: {
-        ...prev[selectedDay],
-        [idx]: newState
-      }
-    }))
+  }, [user])
+
+  async function loadData() {
+    setIsLoading(true)
+    const res = await getAthleteData(user!.id)
+    if (res.success) {
+      setRoutines(res.routines || [])
+      setDiets(res.diets || [])
+    }
+    setIsLoading(false)
   }
 
-  const handleCompletar = () => {
-    if (selectedDay !== 'today') return
-    const newStates = { ...currentStates }
-    routine.exercises.forEach((_, i) => { newStates[i] = 'completed' })
-    
-    setExerciseStates(prev => ({
-      ...prev,
-      [selectedDay]: newStates
-    }))
-    
-    setRoutineCompleted(prev => ({
-      ...prev,
-      [selectedDay]: true
-    }))
+  const handleComplete = async (routineId: string) => {
+    const res = await markRoutineCompleted(routineId)
+    if (res.success) {
+      loadData()
+    }
   }
 
-  const isCompleted = routineCompleted[selectedDay] || (allChecked && Object.keys(currentStates).length > 0)
+  if (user?.role !== "ATHLETE") {
+    return (
+      <AppLayout>
+        <div className="p-8">
+          <h1 className="text-2xl font-bold">Acceso Denegado</h1>
+          <p className="text-muted-foreground">Esta pgina es exclusiva para atletas.</p>
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <AppLayout>
+      <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Tu Entrenamiento</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Tu Entrenamiento</h1>
           <p className="text-muted-foreground mt-1">
-            Revisa y completa tus rutinas asignadas.
+            Visualiza tus rutinas y dietas asignadas por tu coach.
           </p>
         </div>
-        
-        {isCompleted ? (
-          <div className="bg-green-500/20 text-green-500 border border-green-500/50 px-4 py-2 rounded-md font-medium flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5" />
-              ¡Rutina Completada!
-          </div>
-        ) : selectedDay === 'today' && routine.exercises.length > 0 ? (
+
+        <div className="flex gap-4 border-b border-black/10 dark:border-white/10 pb-2">
           <button 
-            onClick={handleCompletar}
-            className="border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground px-4 py-2 rounded-md font-medium shadow-sm hover:bg-primary/90 transition flex items-center gap-2"
+            onClick={() => setActiveTab("ROUTINAS")}
+            className={`px-4 py-2 font-bold transition-all border-b-2 ${activeTab === 'ROUTINAS' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-primary'}`}
           >
-            <PlayCircle className="h-5 w-5" />
-            Marcar todo como Realizado
+            Rutinas ({routines.length})
           </button>
-        ) : (
-          <div className="bg-black/10 dark:bg-white/10 text-muted-foreground px-4 py-2 rounded-md font-medium flex items-center gap-2">
-            {selectedDay === 'yesterday' ? 'Completado en el pasado' : 'Aún no disponible'}
-          </div>
-        )}
-      </div>
-
-      <div className="flex bg-black/5 dark:bg-black/40 p-1 rounded-lg w-fit border border-black/5 dark:border-white/5">
-        <button 
-          onClick={() => setSelectedDay('yesterday')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'yesterday' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
-        >
-          Ayer
-        </button>
-        <button 
-          onClick={() => setSelectedDay('today')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'today' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
-        >
-          Hoy
-        </button>
-        <button 
-          onClick={() => setSelectedDay('tomorrow')}
-          className={`px-6 py-2 rounded-md text-sm font-medium transition ${selectedDay === 'tomorrow' ? 'border border-primary/50 bg-transparent text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground shadow-sm' : 'hover:bg-black/5 dark:bg-white/5 text-muted-foreground'}`}
-        >
-          Mañana
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-6">
-          <Card className="border-primary/20 bg-primary/5 glass">
-            <CardHeader>
-              <CardTitle>Resumen del Día</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-primary">{routine.title}</h3>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{routine.duration}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  <span>{routine.date}</span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-black/10 dark:border-white/10">
-                <p className="text-sm font-medium mb-2">Pauta Nutricional (Dieta):</p>
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-black/40 text-sm text-muted-foreground flex gap-3 items-start">
-                  <Apple className="h-5 w-5 shrink-0 mt-0.5 text-green-500" />
-                  <p>{routine.diet}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <button 
+            onClick={() => setActiveTab("DIETAS")}
+            className={`px-4 py-2 font-bold transition-all border-b-2 ${activeTab === 'DIETAS' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-primary'}`}
+          >
+            Dietas ({diets.length})
+          </button>
         </div>
 
-        <Card className="md:col-span-2 glass">
-          <CardHeader>
-            <CardTitle>Ejercicios ({Object.values(currentStates).filter(s => s === 'completed').length}/{routine.exercises.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">{routine.exercises.length === 0 ? <div className="text-center py-12 text-muted-foreground"><Info className="h-12 w-12 mx-auto mb-4 opacity-20" /><p>No tienes ejercicios asignados para este día.</p></div> : null}
-              {routine.exercises.map((ex, idx) => {
-                const state = currentStates[idx] || 'pending'
-                const isChecked = state === 'completed'
-                const isFailed = state === 'failed'
-                const isProgress = state === 'progress'
-
-                let borderClass = 'border-black/5 dark:border-white/5 bg-secondary/10'
-                if (isChecked) borderClass = 'border-green-500/50 bg-green-500/10'
-                else if (isFailed) borderClass = 'border-red-500/50 bg-red-500/10'
-                else if (isProgress) borderClass = 'border-yellow-500/50 bg-yellow-500/10'
-
-                return (
-                  <div 
-                    key={idx} 
-                    className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition ${borderClass}`}
-                  >
-                    <div className="flex gap-4 items-start flex-1">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold shrink-0 transition-colors ${isChecked ? 'bg-green-500 text-white' : isFailed ? 'bg-red-500 text-white' : isProgress ? 'bg-yellow-500 text-white' : 'bg-primary/20 text-primary'}`}>
-                        {isChecked ? <CheckCircle2 className="h-5 w-5" /> : idx + 1}
-                      </div>
+        {isLoading ? (
+          <p className="text-muted-foreground">Cargando tus planes...</p>
+        ) : activeTab === "ROUTINAS" ? (
+          routines.length === 0 ? (
+            <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent p-8 text-center">
+              <Dumbbell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold">Sin Rutinas</h3>
+              <p className="text-muted-foreground text-sm mt-2">An no tienes rutinas asignadas por tu entrenador.</p>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {routines.map((routine) => (
+                <Card key={routine.id} className={`shadow-none border-2 rounded-xl bg-transparent transition-all ${routine.completed ? 'border-green-500/50 opacity-80' : 'border-primary/50'}`}>
+                  <CardHeader className="pb-4">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h4 className={`font-semibold ${isChecked ? 'text-green-500 line-through opacity-70' : isFailed ? 'text-red-500 line-through opacity-70' : isProgress ? 'text-yellow-600 dark:text-yellow-400' : ''}`}>{ex.name}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{ex.notes}</p>
+                        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                          {routine.completed && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+                          {routine.title}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-4 mt-2 font-medium">
+                          <span className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/> {new Date(routine.date).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-4 h-4"/> {routine.duration}</span>
+                          <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> Coach: {routine.coach?.name}</span>
+                        </CardDescription>
                       </div>
+                      {!routine.completed && (
+                        <button 
+                          onClick={() => handleComplete(routine.id)}
+                          className="border border-green-500 text-green-500 hover:bg-green-500/10 px-4 py-2 rounded-lg font-bold transition bg-transparent"
+                        >
+                          Completar Hoy
+                        </button>
+                      )}
                     </div>
-                    
-                    <div className="flex flex-col gap-3 shrink-0">
-                      <div className={`flex items-center gap-4 ${isChecked || isFailed ? 'opacity-50' : ''}`}>
-                        <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
-                          <p className="text-xs text-muted-foreground">Series</p>
-                          <p className="font-bold">{ex.sets}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {routine.exercises?.map((ex: any, idx: number) => (
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 group hover:border-primary/50 transition">
+                          <div className="flex items-center gap-4">
+                            <div className="bg-primary/20 text-primary w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg">{ex.name}</h4>
+                              {ex.notes && <p className="text-sm text-muted-foreground mt-1">{ex.notes}</p>}
+                            </div>
+                          </div>
+                          <div className="flex gap-6 mt-4 sm:mt-0 bg-white dark:bg-black/40 px-4 py-2 rounded-lg border border-black/10 dark:border-white/10 shrink-0">
+                            <div className="text-center">
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Series</span>
+                              <span className="text-xl font-black text-primary">{ex.sets}</span>
+                            </div>
+                            <div className="w-px bg-black/10 dark:bg-white/10"></div>
+                            <div className="text-center">
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">Reps</span>
+                              <span className="text-xl font-black text-primary">{ex.reps}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-center bg-black/5 dark:bg-black/40 px-3 py-1.5 rounded-lg min-w-[70px]">
-                          <p className="text-xs text-muted-foreground">Reps</p>
-                          <p className="font-bold">{ex.reps}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 mt-2 sm:mt-0 justify-end">
-                         <button 
-                            onClick={() => changeExerciseState(idx, 'failed')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isFailed ? 'bg-red-500 text-white' : 'bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/30 hover:bg-red-500/30'}`}
-                         >
-                           No Realizado
-                         </button>
-                         <button 
-                            onClick={() => changeExerciseState(idx, 'progress')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isProgress ? 'bg-yellow-500 text-white' : 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30'}`}
-                         >
-                           En Progreso
-                         </button>
-                         <button 
-                            onClick={() => changeExerciseState(idx, 'completed')}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${isChecked ? 'bg-green-500 text-white' : 'bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30 hover:bg-green-500/30'}`}
-                         >
-                           Realizado
-                         </button>
-                      </div>
+                      ))}
                     </div>
-                  </div>
-                )
-              })}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          )
+        ) : (
+          diets.length === 0 ? (
+            <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent p-8 text-center">
+              <Apple className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold">Sin Dietas</h3>
+              <p className="text-muted-foreground text-sm mt-2">An no tienes dietas asignadas por tu entrenador.</p>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {diets.map((diet) => (
+                <Card key={diet.id} className="shadow-none border-2 border-primary/50 rounded-xl bg-transparent">
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                      <Apple className="w-6 h-6 text-primary" />
+                      {diet.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-4 mt-2 font-medium">
+                      <span className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/> {new Date(diet.date).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> Coach: {diet.coach?.name}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="p-6 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 whitespace-pre-wrap font-medium">
+                      {diet.description}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )
+        )}
       </div>
-    </div>
+    </AppLayout>
   )
 }
-
-
-
-
-
-
-

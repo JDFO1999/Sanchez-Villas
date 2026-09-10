@@ -168,16 +168,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (parsed.footerPartners && !Array.isArray(parsed.footerPartners)) {
           parsed.footerPartners = [];
         } else if (Array.isArray(parsed.footerPartners)) {
-          parsed.footerPartners = parsed.footerPartners.map(p => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
+          parsed.footerPartners = parsed.footerPartners.map((p: any) => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
         }
         setSettings({ ...defaultSettings, ...parsed });
         if (typeof document !== 'undefined') {
           document.title = (parsed.appName || defaultSettings.appName) + " - Sistema de Gestión";
         }
         if (typeof document !== 'undefined') {
-          let link = document.querySelector("link[rel~='icon']");
+          let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
           if (!link) {
-            link = document.createElement('link');
+            link = document.createElement("link") as HTMLLinkElement;
             link.rel = 'icon';
             document.getElementsByTagName('head')[0].appendChild(link);
           }
@@ -197,9 +197,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       document.title = newSettings.appName + " - Sistema de Gestión";
     }
     if (typeof document !== 'undefined' && newSettings.faviconUrl !== undefined) {
-      let link = document.querySelector("link[rel~='icon']");
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
       if (!link) {
-        link = document.createElement('link');
+        link = document.createElement("link") as HTMLLinkElement;
         link.rel = 'icon';
         document.getElementsByTagName('head')[0].appendChild(link);
       }

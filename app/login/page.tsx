@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
+import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { Dumbbell, Lock, User as UserIcon } from "lucide-react"
 import Link from "next/link"
