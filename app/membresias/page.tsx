@@ -39,9 +39,9 @@ export default function MembresíasPage() {
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
-    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
-    { title: "Recordatorio", text: "Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
+    { title: "Inasistencia", text: "Â¡¡Hola {nombre}! Hemos notado que llevas dÃ­as sin venir al gimnasio. Â¿¿Todo bien? Te esperamos." },
+    { title: "FelicitaciÃ³n", text: "Â¡¡Felicidades por tu constancia esta semana {nombre}! Sigue asÃ­." },
+    { title: "Recordatorio", text: "¡Hola {nombre}, te recordamos que tu membresÃ­a estÃ¡ prÃ³xima a vencer. Â¡¡Renueva pronto para no perder el ritmo!" }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -103,7 +103,7 @@ export default function MembresíasPage() {
     e.preventDefault()
     if (!showEditModal) return
     if (editPassword && editPassword !== editConfirmPassword) {
-      alert("Las contraseñas no coinciden.")
+      alert("Las contraseÃ±as no coinciden.")
       return
     }
 
@@ -246,7 +246,7 @@ export default function MembresíasPage() {
         toast.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
+    Toast.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
   }
 
   return (
@@ -256,11 +256,11 @@ export default function MembresíasPage() {
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
+            <h3 className="text-xl font-bold mb-2">Renovar MembresÃ­a</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automÃ¡ticamente en la caja.</p>
             <form onSubmit={handleRenovar} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
+                <label className="text-sm font-medium mb-1 block">DuraciÃ³n (Meses)</label>
                 <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
               </div>
               <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
@@ -272,7 +272,7 @@ export default function MembresíasPage() {
                   className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
                 />
                 <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
-                  Añadir Entrenador Personal
+                  AÃ±adir Entrenador Personal
                 </label>
               </div>
 
@@ -312,12 +312,12 @@ export default function MembresíasPage() {
                 </span>
               </div>
 
-              {/* Método de Pago */}
+              {/* MÃ©todo de Pago */}
               <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <h4 className="font-bold text-sm">Detalles de FacturaciÃ³n</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
+                    <label className="text-xs font-medium mb-1 block">MÃ©todo de Pago</label>
                     <select 
                       value={renovarPaymentMethod}
                       onChange={e => setRenovarPaymentMethod(e.target.value as any)}
@@ -335,7 +335,7 @@ export default function MembresíasPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                         <label className="text-xs font-medium text-muted-foreground block">
-                          {renovarPaymentMethod === 'Tarjeta' ? 'Nº de Transacción' : `Nº de Referencia (${renovarPaymentMethod})`}
+                          {renovarPaymentMethod === 'Tarjeta' ? 'NÂ° de TransacciÃ³n' : `NÂ° de Referencia (${renovarPaymentMethod})`}
                         </label>
                         {(() => {
                           const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
@@ -389,7 +389,7 @@ export default function MembresíasPage() {
                       </label>
                       <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                         <Camera className="h-4 w-4 shrink-0" />
-                        <span className="truncate">Cámara</span>
+                        <span className="truncate">CÃ¡mara</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -437,32 +437,32 @@ export default function MembresíasPage() {
                   <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Cédula</label>
+                  <label className="text-xs font-medium mb-1 block">CÃ©dula</label>
                   <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Teléfono</label>
+                  <label className="text-xs font-medium mb-1 block">TelÃ©fono</label>
                   <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Dirección</label>
+                  <label className="text-xs font-medium mb-1 block">DirecciÃ³n</label>
                   <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
+                <p className="text-xs text-muted-foreground mb-2">Cambiar ContraseÃ±a (Opcional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva Contraseñabel>
+                    <label className="text-xs font-medium mb-1 block">Nueva ContraseÃ±a</label>
                     <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar Contraseñabel>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseñassword} />
+                    <label className="text-xs font-medium mb-1 block">Confirmar ContraseÃ±a</label>
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseÃ±a" disabled={!editPassword} required={!!editPassword} />
                     {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
                     {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
@@ -483,7 +483,7 @@ export default function MembresíasPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin número registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin nÃºmero registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -536,12 +536,12 @@ export default function MembresíasPage() {
               setNewMessageText("");
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">Título del botón</label>
-                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. Promociónded p-2 text-sm focus:border-primary" />
+                <label className="text-xs font-medium mb-1 block">TÃ­tulo del botÃ³n</label>
+                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. PromociÃ³n" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
-                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. Hola {nombre}, tenemos una promociónded p-2 text-sm focus:border-primary" />
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. ¡Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
@@ -554,9 +554,9 @@ export default function MembresíasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresías & CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­as & CRM</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes y comunícate con tus atletas.
+            Gestiona accesos, planes y comunÃ­cate con tus atletas.
           </p>
         </div>
         
@@ -575,7 +575,7 @@ export default function MembresíasPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Buscar por cédula o nombre..." 
+              placeholder="Buscar por cÃ©dula o nombre..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
@@ -616,7 +616,7 @@ export default function MembresíasPage() {
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
+                      <span className="text-sm font-medium">{a.membershipType || 'Plan EstÃ¡ndar'}</span>
                     </div>
                     <div className="text-sm">
                       <span className="text-muted-foreground">Vence: </span>
@@ -676,7 +676,7 @@ export default function MembresíasPage() {
         )}
       </div>
       
-      {/* MODAL QR FULLSCREEN */}
+      {/* MODAL QR FULLSCREENº */}
       {showQRModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-6 backdrop-blur-md" onClick={() => setShowQRModal(null)}>
           <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl" onClick={e => e.stopPropagation()}>
