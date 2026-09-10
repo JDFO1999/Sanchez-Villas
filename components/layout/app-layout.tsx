@@ -104,9 +104,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const LogoComponent = () => (
     <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary hover:opacity-80 transition">
       {settings.logoSettings?.showInNavbar && (
-        settings.logoUrl ? (
+        (settings.logoUrl || settings.logoUrlDark) ? (
           <img 
-            src={settings.logoUrl} 
+            src={(theme === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)} 
             alt="Logo" 
             style={{ 
               width: settings.logoSettings.widthNavbar, 

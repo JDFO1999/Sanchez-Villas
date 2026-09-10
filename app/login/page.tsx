@@ -10,6 +10,7 @@ import Link from "next/link"
 export default function LoginPage() {
   const { login } = useAuth()
   const { settings } = useSettings()
+  const { theme } = useTheme()
   const router = useRouter()
   
   const [cedula, setCedula] = useState("")
@@ -48,9 +49,9 @@ export default function LoginPage() {
 
       <div className="z-10 w-full max-w-md glass p-8 rounded-2xl flex flex-col items-center">
         {settings.logoSettings?.showInLogin && (
-          settings.logoUrl ? (
+          (settings.logoUrl || settings.logoUrlDark) ? (
             <img 
-              src={settings.logoUrl} 
+              src={(theme === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)} 
               alt="Logo" 
               style={{ 
                 width: settings.logoSettings.widthLogin, 

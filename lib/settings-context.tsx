@@ -7,6 +7,8 @@ type FontFamily = 'arvo' | 'inter' | 'roboto'
 export interface AppSettings {
   appName: string
   logoUrl: string
+  logoUrlDark?: string
+  faviconUrl?: string
   primaryColor: string
   secondaryColor: string
   borderColor: string
@@ -63,6 +65,8 @@ interface SettingsContextType {
 export const defaultSettings: AppSettings = {
   appName: 'GymPro',
   logoUrl: '',
+  logoUrlDark: '',
+  faviconUrl: '',
   primaryColor: '#D4AF37',
   secondaryColor: '#1A1A1A',
   borderColor: '#333333',
@@ -170,6 +174,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (typeof document !== 'undefined') {
           document.title = (parsed.appName || defaultSettings.appName) + " - Sistema de Gestión";
         }
+        if (typeof document !== 'undefined') {
+          let link = document.querySelector("link[rel~='icon']");
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.getElementsByTagName('head')[0].appendChild(link);
+          }
+          link.href = parsed.faviconUrl || defaultSettings.faviconUrl || '/favicon.ico';
+        }
       } catch (e) {
         console.error(e)
       }
@@ -182,6 +195,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings(updated)
     if (typeof document !== 'undefined' && newSettings.appName) {
       document.title = newSettings.appName + " - Sistema de Gestión";
+    }
+    if (typeof document !== 'undefined' && newSettings.faviconUrl !== undefined) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = newSettings.faviconUrl || '/favicon.ico';
     }
     localStorage.setItem('gympro_settings', JSON.stringify(updated))
   }
