@@ -138,11 +138,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <aside className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-all duration-300 ease-in-out lg:static ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} ${isSidebarCollapsed ? "w-20" : "w-64"}`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b">
+        <div className={`flex items-center h-16 border-b ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
           <LogoComponent />
           <button 
             className="lg:hidden text-muted-foreground hover:text-foreground"
