@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth, User as UserType } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
+import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode } from "lucide-react"
 import { useRouter } from "next/navigation"
