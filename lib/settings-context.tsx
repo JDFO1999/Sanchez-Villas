@@ -166,7 +166,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         } else if (Array.isArray(parsed.footerPartners)) {
           parsed.footerPartners = parsed.footerPartners.map(p => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
         }
-        setSettings({ ...defaultSettings, ...parsed })
+        setSettings({ ...defaultSettings, ...parsed });
+        if (typeof document !== 'undefined') {
+          document.title = (parsed.appName || defaultSettings.appName) + " - Sistema de Gestión";
+        }
       } catch (e) {
         console.error(e)
       }
@@ -177,6 +180,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     const updated = { ...settings, ...newSettings }
     setSettings(updated)
+    if (typeof document !== 'undefined' && newSettings.appName) {
+      document.title = newSettings.appName + " - Sistema de Gestión";
+    }
     localStorage.setItem('gympro_settings', JSON.stringify(updated))
   }
 
