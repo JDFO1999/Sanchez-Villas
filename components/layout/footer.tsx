@@ -53,7 +53,7 @@ export function Footer() {
               
               
               {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link) => (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white transition flex items-center justify-center">
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary transition-all duration-300 hover:scale-110 hover:-translate-y-2 hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)] flex items-center justify-center">
                   {link.iconUrl ? (
                     <img src={link.iconUrl} alt={link.name} style={{ width: link.width, height: link.height }} className="object-contain" />
                   ) : (
@@ -72,7 +72,7 @@ export function Footer() {
               <div className="flex flex-wrap gap-4 items-center">
                 
                 {settings.footerPartners.map((partner) => (
-                  <div key={partner.id} className="bg-white dark:bg-white/5 p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5 hover:scale-105 transition">
+                  <div key={partner.id} className="bg-white dark:bg-white/5 p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5 hover:scale-110 hover:-translate-y-2 hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)] transition-all duration-300">
                     {partner.link ? (
                       <a href={partner.link} target="_blank" rel="noopener noreferrer">
                         <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain" />

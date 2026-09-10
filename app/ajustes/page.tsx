@@ -40,9 +40,7 @@ export default function AjustesPage() {
   const [secondaryColor, setSecondaryColor] = useState(settings.secondaryColor)
   const [borderColor, setBorderColor] = useState(settings.borderColor)
   const [fontFamily, setFontFamily] = useState(settings.fontFamily)
-  const [logoUrl,
-          logoUrlDark,
-          faviconUrl, setLogoUrl] = useState(settings.logoUrl || "")
+  const [logoUrl, setLogoUrl] = useState(settings.logoUrl || "")
   const [logoUrlDark, setLogoUrlDark] = useState(settings.logoUrlDark || "")
   const [faviconUrl, setFaviconUrl] = useState(settings.faviconUrl || "")
   const [isGlass, setIsGlass] = useState(settings.isGlass)
@@ -674,7 +672,7 @@ export default function AjustesPage() {
                               {link.iconUrl ? (
                                 <img src={link.iconUrl} alt={link.name} className="w-full h-full object-contain p-2" />
                               ) : (
-                                <span className="text-xs text-muted-foreground">Icono</span>
+                                <div className="text-[10px] font-bold text-center text-primary leading-tight"><span className="text-xl block mb-1">↑</span>Subir<br/>Logo</div>
                               )}
                               <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                 const file = e.target.files?.[0];
@@ -724,7 +722,7 @@ export default function AjustesPage() {
                               {partner.imageUrl ? (
                                 <img src={partner.imageUrl} alt="Socio" className="w-full h-full object-contain p-1" />
                               ) : (
-                                <span className="text-xs text-muted-foreground text-center">Subir<br/>Logo</span>
+                                <div className="text-xs font-bold text-center text-primary leading-tight"><span className="text-2xl block mb-1">↑</span>Subir<br/>Logo</div>
                               )}
                               <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                 const file = e.target.files?.[0];
