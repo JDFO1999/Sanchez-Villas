@@ -193,21 +193,6 @@ export default function AjustesPage() {
               </div>
 
 
-                {/* Direccion del negocio (Footer) */}
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    <span>📍</span> Dirección del Negocio (visible en el Footer)
-                  </label>
-                  <input
-                    type="text"
-                    value={storeAddress}
-                    onChange={(e) => setStoreAddress(e.target.value)}
-                    placeholder="Ej. Av. Principal, Local 5, Ciudad..."
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary"
-                  />
-                </div>
-
-              {/* Branding and Logos */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold flex items-center gap-2 text-primary">Marca y Logos</h3>
                 
@@ -649,6 +634,19 @@ export default function AjustesPage() {
                 {/* Footer Settings */}
                 <div className="pt-6 border-t border-black/10 dark:border-white/10 mt-6 space-y-8">
                   <h3 className="text-lg font-bold flex items-center gap-2 text-primary">Footer y Marca</h3>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <span>📍</span> Dirección del Negocio
+                    </label>
+                    <input
+                      type="text"
+                      value={storeAddress}
+                      onChange={(e) => setStoreAddress(e.target.value)}
+                      placeholder="Ej. Av. Principal, Local 5, Ciudad..."
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary"
+                    />
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
