@@ -100,7 +100,7 @@ export default function LoginPage() {
 
           <div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseñabel>
+              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseña</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
                 <input
