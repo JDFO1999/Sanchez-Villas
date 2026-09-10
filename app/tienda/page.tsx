@@ -358,7 +358,7 @@ export default function TiendaPOSPage() {
                 });
                 setShowAthleteCart(true);
               }}
-              className="bg-secondary text-secondary-foreground font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-secondary/90 transition shadow-lg"
+              className="bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm"
             >
               <User className="h-5 w-5" />
               <span>Pagar Mensualidad</span>
@@ -407,11 +407,11 @@ export default function TiendaPOSPage() {
                 onClick={() => !isOutOfStock && addToCart(p)}
                 className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
               >
-                <div className="h-40 sm:h-28 w-full relative flex items-center justify-center p-3 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
+                <div className="h-40 sm:h-28 w-full relative flex items-center justify-center p-3 bg-slate-100 dark:bg-white/[0.02] group-hover:bg-slate-200 dark:group-hover:bg-white/[0.04] transition-colors">
                   {p.imageUrl ? (
                     <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
                   ) : (
-                    <ShoppingCart className="h-12 w-12 text-black/10 dark:text-white/5" />
+                    <ShoppingCart className="h-12 w-12 text-slate-300 dark:text-slate-800" />
                   )}
                   
                   {isOutOfStock && (
@@ -681,11 +681,11 @@ export default function TiendaPOSPage() {
                     onClick={() => !isOutOfStock && addToCart(p)}
                     className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
                   >
-                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors">
+                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-slate-100 dark:bg-white/[0.02] group-hover:bg-slate-200 dark:group-hover:bg-white/[0.04] transition-colors">
                       {p.imageUrl ? (
                         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
                       ) : (
-                        <ShoppingCart className="h-12 w-12 text-white/5" />
+                        <ShoppingCart className="h-12 w-12 text-slate-300 dark:text-slate-800" />
                       )}
                       
                       {isOutOfStock && (
