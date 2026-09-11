@@ -10,16 +10,25 @@ import Link from "next/link"
 export default function AtletasPage() {
   const { user } = useAuth()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
+  const [coaches, setCoaches] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     async function load() {
-      const { getAthletes } = await import('@/app/actions/users')
+      const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
+      const empRes = await getAllEmployees()
+      if (empRes.success) {
+        const map: Record<string, string> = {}
+        ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach') map[e.id] = e.name })
+        setCoaches(map)
+      }
       const res = await getAthletes()
       if (res.success) {
         setAthletes(res.athletes.map((a: any) => ({
           ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+          membershipStart: a.memberships?.[0]?.startDate || null,
+          planName: a.memberships?.[0]?.planName || null,
         })))
       }
     }
@@ -113,15 +122,34 @@ export default function AtletasPage() {
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
                   </div>
                   
-                  <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10 flex justify-between items-center text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Entrenador</p>
-                      <p className="font-medium">{atleta.coachId === '2' ? 'Carlos' : atleta.coachId ? 'Asignado' : 'Sin asignar'}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Membresía</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold mt-1 inline-block ${estadoColor}`}>
-                        {diffDays > 0 ? `${diffDays} días rest.` : 'Vencida'}
+                  <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
+                    {diffDays > 0 && (() => {
+                      const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
+                      const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))
+                      const pct = Math.min(100, Math.max(4, (diffDays / totalDays) * 100))
+                      return (
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">{atleta.planName || "Membresía"}</span>
+                            <span className={diffDays <= 7 ? "text-orange-500 font-bold" : "text-green-500 font-bold"}>{diffDays}d restantes</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${diffDays <= 7 ? "bg-orange-500" : "bg-green-500"}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    {diffDays <= 0 && (
+                      <div className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-500/10 rounded-lg px-3 py-1.5">
+                        <span>⚠️</span> Membresía Vencida
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground">
+                        🏋️ {atleta.coachId ? (coaches[atleta.coachId] || "Coach asignado") : "Sin entrenador"}
+                      </p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${estadoColor}`}>
+                        {diffDays > 7 ? "✓ Activa" : diffDays > 0 ? "⚠ Por vencer" : "✗ Vencida"}
                       </span>
                     </div>
                   </div>

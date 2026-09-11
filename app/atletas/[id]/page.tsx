@@ -412,7 +412,7 @@ export default function AtletaPerfilPage() {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio</p>
-                  <p className="font-medium text-sm">{new Date(athlete.membershipStart).toLocaleDateString()}</p>
+                  <p className="font-medium text-sm">{new Date(athlete.membershipStart || '').toLocaleDateString()}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimiento</p>

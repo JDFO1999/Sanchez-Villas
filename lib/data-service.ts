@@ -94,10 +94,11 @@ export interface AthleteProfile {
   coachId: string | null
   phone?: string
   address?: string
-  membershipStart: string
+  membershipStart?: string
   membershipEnd: string
-  membershipType?: string // Ej. "Mensual", "Anual"
-  lastLogin?: string // Ej. "2026-08-30 (Móvil)"
+  planName?: string | null
+  membershipType?: string
+  lastLogin?: string
   attendancePercentage: number
   biometrics: BiometricRecord[]
   profilePicture?: string
