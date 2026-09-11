@@ -11,33 +11,34 @@ model User {
   id               String   @id @default(cuid())
   cedula           String   @unique
   name             String
-  role             String   // admin, coach, athlete, cajero, recepcion
-  password         String   // Contraseña principal (ahora requerida)
-  accessPin        String?  // PIN / Código de Barras autogenerado para cajeros/recepción
-  baseSalary       Float?   // Sueldo base individual para empleados
-  commissionRate   Float?   // Comisión para coaches
+  role             String
+  password         String
+  accessPin        String?
+  baseSalary       Float?
+  commissionRate   Float?
   profilePicture   String?  @db.Text
-  gender           String?  // M o F
+  gender           String?
   email            String?
   phone            String?
+  address          String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  
-// Relaciones
-  memberships      Membership[]  @relation("AthleteMemberships")
+
+  // Relaciones
+  memberships      Membership[]    @relation("AthleteMemberships")
   biometrics       Biometric[]
-  transactions     Transaction[] @relation("CashierTransactions")
-  customerTx       Transaction[] @relation("CustomerTransactions")
+  transactions     Transaction[]   @relation("CashierTransactions")
+  customerTx       Transaction[]   @relation("CustomerTransactions")
   attendances      Attendance[]
   payrollReceipts  PayrollReceipt[]
   cashSessions     CashSession[]
-  
-  coachedAthletes  User[]        @relation("CoachToAthlete")
-  coach            User?         @relation("CoachToAthlete", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coachRequests    CoachRequest[]  @relation("AthleteCoachRequests")
+
+  coachedAthletes  User[]          @relation("CoachToAthlete")
+  coach            User?           @relation("CoachToAthlete", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   coachId          String?
   previousCoachId  String?
 
-  // Configuración Laboral Extra
   paymentFrequency String?
   commissionType   String?
   birthDate        String?
@@ -47,12 +48,22 @@ model User {
   lastPaidDate     DateTime?
   bankAccount      String?
   mobilePayment    String?
+
   // Rutinas y Dietas
-  athleteRoutines    Routine[]         @relation("AthleteRoutines")
-  coachRoutines      Routine[]         @relation("CoachRoutines")
-  athleteDiets       DietAssignment[]  @relation("AthleteDiets")
-  coachDiets         DietAssignment[]  @relation("CoachDiets")
+  athleteRoutines    Routine[]          @relation("AthleteRoutines")
+  coachRoutines      Routine[]          @relation("CoachRoutines")
+  athleteDiets       DietAssignment[]   @relation("AthleteDiets")
+  coachDiets         DietAssignment[]   @relation("CoachDiets")
   exerciseProgresses ExerciseProgress[] @relation("AthleteExerciseProgress")
+}
+
+model CoachRequest {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    User     @relation("AthleteCoachRequests", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  newCoachId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
 }
 
 model PayrollReceipt {
@@ -72,38 +83,39 @@ model PayrollReceipt {
 }
 
 model CashSession {
-  id                 String   @id @default(cuid())
-  cashierId          String
-  cashier            User     @relation(fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  startTime          DateTime @default(now())
-  endTime            DateTime?
-  startingCash       Float    @default(0)
-  declaredCash       Float?
-  expectedCash       Float?
-  expectedCard       Float?
-  expectedTransfer   Float?
-  status             String   @default("OPEN") // OPEN, CLOSED
-  transactions       Transaction[]
+  id               String        @id @default(cuid())
+  cashierId        String
+  cashier          User          @relation(fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  startTime        DateTime      @default(now())
+  endTime          DateTime?
+  startingCash     Float         @default(0)
+  declaredCash     Float?
+  expectedCash     Float?
+  expectedCard     Float?
+  expectedTransfer Float?
+  status           String        @default("OPEN")
+  transactions     Transaction[]
 }
 
 model RecurringExpense {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   description   String
   amount        Float
   category      String
   dayOfMonth    Int
   lastProcessed DateTime?
-  isActive      Boolean  @default(true)
+  isActive      Boolean   @default(true)
 }
 
 model Membership {
-  id         String   @id @default(cuid())
-  athleteId  String
-  athlete    User     @relation("AthleteMemberships", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  startDate  DateTime
-  endDate    DateTime
-  status     String   // ACTIVE, EXPIRED
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   User     @relation("AthleteMemberships", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  startDate DateTime
+  endDate   DateTime
+  status    String
+  planName  String?
+  createdAt DateTime @default(now())
 }
 
 model Biometric {
@@ -113,42 +125,44 @@ model Biometric {
   date         DateTime @default(now())
   weight       Float
   height       Float
-  customFields String?  
+  customFields String?
 }
 
 model Attendance {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  date      DateTime @default(now())
-  type      String   // IN, OUT
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  date   DateTime @default(now())
+  type   String
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  barcode     String   @unique
-  name        String
-  price       Float
-  cost        Float
-  stock       Int
-  category    String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  barcode   String   @unique
+  name      String
+  price     Float
+  cost      Float
+  stock     Int
+  category  String
+  imageUrl  String?  @db.Text
+  createdAt DateTime @default(now())
 }
 
 model Transaction {
-  id            String   @id @default(cuid())
-  date          DateTime @default(now())
+  id            String            @id @default(cuid())
+  date          DateTime          @default(now())
   cashierId     String?
-  cashier       User?    @relation("CashierTransactions", fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cashier       User?             @relation("CashierTransactions", fields: [cashierId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customerId    String?
-  customer      User?    @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer      User?             @relation("CustomerTransactions", fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   cashSessionId String?
-  cashSession   CashSession? @relation(fields: [cashSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cashSession   CashSession?      @relation(fields: [cashSessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subtotal      Float
   tax           Float
   total         Float
   paymentMethod String
   reference     String?
+  receiptImage  String?           @db.Text
   status        String
   items         TransactionItem[]
 }
@@ -171,37 +185,38 @@ model Expense {
   amount      Float
   category    String
 }
+
 model Routine {
-  id          String   @id @default(cuid())
-  athleteId   String
-  coachId     String
-  athlete     User     @relation("AthleteRoutines", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  coach       User     @relation("CoachRoutines", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  title       String
-  date        DateTime
-  duration    String
-  completed   Boolean  @default(false)
-  exercises   RoutineExercise[]
-  createdAt   DateTime @default(now())
+  id        String            @id @default(cuid())
+  athleteId String
+  coachId   String
+  athlete   User              @relation("AthleteRoutines", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coach     User              @relation("CoachRoutines", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  title     String
+  date      DateTime
+  duration  String
+  completed Boolean           @default(false)
+  exercises RoutineExercise[]
+  createdAt DateTime          @default(now())
 }
 
 model RoutineExercise {
-  id          String   @id @default(cuid())
-  routineId   String
-  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
-  name        String
-  sets        Int
-  reps        String
-  notes       String?
+  id        String  @id @default(cuid())
+  routineId String
+  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  name      String
+  sets      Int
+  reps      String
+  notes     String?
 }
 
 model ExerciseProgress {
-  id          String   @id @default(cuid())
-  athleteId   String
-  athlete     User     @relation("AthleteExerciseProgress", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id           String   @id @default(cuid())
+  athleteId    String
+  athlete      User     @relation("AthleteExerciseProgress", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   exerciseName String
-  weight      Float
-  date        DateTime @default(now())
+  weight       Float
+  date         DateTime @default(now())
 }
 
 model DietAssignment {
