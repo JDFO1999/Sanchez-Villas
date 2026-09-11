@@ -278,7 +278,7 @@ export async function requestCoachChange(athleteId: string, newCoachId: string) 
       data: {
         athleteId,
         coachId: newCoachId
-      }
+      } as any
     })
     return { success: true, request: req }
   } catch (error) {
@@ -293,7 +293,7 @@ export async function getPendingCoachRequests() {
       include: {
         athlete: { select: { id: true, name: true, cedula: true, coachId: true, coach: { select: { name: true } } } },
         coach: { select: { id: true, name: true } }
-      }
+      } as any
     })
     return { success: true, requests: reqs }
   } catch (error) {

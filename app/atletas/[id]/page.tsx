@@ -64,9 +64,9 @@ export default function AtletaPerfilPage() {
         setAthlete({
           ...res.athlete,
           membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
-          membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan Estándar",
+          membershipType: res.athlete.memberships?.[0]?.planName || "Plan Estándar",
           biometrics: res.athlete.biometrics || [],
-          attendance: res.athlete.attendances || []
+          attendances: res.athlete.attendances || []
         } as any)
       }
     }
@@ -105,9 +105,9 @@ export default function AtletaPerfilPage() {
       setAthlete({
         ...res.athlete,
         membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
-        membershipType: res.athlete.memberships?.[0]?.plan?.name || "Plan Estándar",
+        membershipType: res.athlete.memberships?.[0]?.planName || "Plan Estándar",
         biometrics: res.athlete.biometrics || [],
-        attendance: res.athlete.attendances || []
+        attendances: res.athlete.attendances || []
       } as any)
     }
 
@@ -145,12 +145,12 @@ export default function AtletaPerfilPage() {
 
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!requestTarget) {
+    if (!requestTarget || !id) {
       alert("Por favor selecciona un entrenador.")
       return
     }
     const { requestCoachChange } = await import('@/app/actions/users')
-    const res = await requestCoachChange(id, requestTarget)
+    const res = await requestCoachChange(id as string, requestTarget)
     if (res.success) {
       alert("Solicitud enviada al Administrador con éxito.")
       setShowCoachRequest(false)
@@ -169,7 +169,7 @@ export default function AtletaPerfilPage() {
   
   const createdDate = new Date(athlete.createdAt || new Date());
   const totalDaysRegistered = Math.max(1, Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const totalAttendances = athlete.attendance?.length || 0;
+  const totalAttendances = athlete.attendances?.length || 0;
   const calculatedAttendancePct = Math.min(100, Math.round((totalAttendances / totalDaysRegistered) * 100));
   const attendanceText = calculatedAttendancePct >= 70 ? "Buena" : calculatedAttendancePct >= 40 ? "Regular" : "Baja";
   
@@ -363,7 +363,7 @@ export default function AtletaPerfilPage() {
             </p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
-                🔥 Racha de Asistencia: {athlete.attendance?.length || 0} Días
+                🔥 Racha de Asistencia: {athlete.attendances?.length || 0} Días
               </span>
             </div>
           </div>

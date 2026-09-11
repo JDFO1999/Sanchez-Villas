@@ -301,7 +301,7 @@ export default function MembresíasPage() {
                     let coachPrice = 0
                     if (renovarIncludeCoach && renovarSelectedCoach) {
                       if (settings.coachCustomPricing) {
-                        const coachInfo = getAllEmployees ? getAllEmployees().find((e: any) => e.id === renovarSelectedCoach) : null;
+                        const coachInfo = allCoaches.find((e: any) => e.id === renovarSelectedCoach);
                         coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
                       } else {
                         coachPrice = 15 * renovarMonths

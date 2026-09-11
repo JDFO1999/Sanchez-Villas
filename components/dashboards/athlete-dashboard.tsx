@@ -82,7 +82,7 @@ export function AthleteDashboard() {
         import("@/lib/data-service").then(({ athleteService }) => {
         const ath = athleteService.getAthlete(user.id)
         if (ath && ath.coachId) {
-          setCoachName(ath.coach?.name || 'Entrenador asignado')
+          setCoachName("Entrenador asignado")
         }
       })
     }
@@ -310,9 +310,9 @@ export function AthleteDashboard() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-xs text-slate-900 dark:text-slate-100 uppercase">#{tx.id.slice(-6)}</span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400">{new Date(tx.date).toLocaleDateString()}</span>
-                      {tx.status === 'PENDING_DELIVERY' ? (
+                      {(tx.status as string) === 'PENDING_DELIVERY' ? (
                         <span className="text-[9px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><Clock className="h-3 w-3"/> PENDIENTE</span>
-                      ) : tx.status === 'CANCELED' ? (
+                      ) : (tx.status as string) === 'CANCELED' ? (
                         <span className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-500 border border-red-500/20 px-2 py-0.5 rounded-full font-bold">VENCIDA</span>
                       ) : (
                         <span className="text-[9px] bg-green-500/10 text-green-600 dark:text-green-500 border border-green-500/20 px-2 py-0.5 rounded-full font-bold">COMPLETADA</span>
@@ -352,7 +352,7 @@ export function AthleteDashboard() {
                       >
                         <Eye className="h-3 w-3" /> Ticket
                       </button>
-                      {tx.status === 'PENDING_DELIVERY' && tx.paymentMethod === 'Efectivo' && (
+                      {(tx.status as string) === 'PENDING_DELIVERY' && tx.paymentMethod === 'Efectivo' && (
                         <button
                           onClick={() => handleCancelTx(tx)}
                           className="bg-transparent border border-red-500 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 px-2.5 py-1 rounded-md text-[10px] font-bold transition shadow-sm"
@@ -399,14 +399,14 @@ export function AthleteDashboard() {
               <div className="text-center mb-4 border-b border-dashed border-black pb-4">
                 <h2 className="font-bold text-xl uppercase tracking-widest">TICKET DE COMPRA</h2>
                 <p className="text-black mt-1 font-bold">{showTicketModal.id}</p>
-                {showTicketModal.id.slice(-5).toUpperCase() && showTicketModal.status === 'PENDING_DELIVERY' && (
+                {showTicketModal.id.slice(-5).toUpperCase() && (showTicketModal.status as string) === 'PENDING_DELIVERY' && (
                   <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
                     <p className="font-bold text-[10px]">CÓDIGO DE RETIRO</p>
                     <p className="text-xl font-black">{showTicketModal.id.slice(-5).toUpperCase()}</p>
                   </div>
                 )}
                 <p className="text-black text-xs">{new Date(showTicketModal.date).toLocaleString()}</p>
-                <p className="text-black text-xs font-bold mt-1">Estatus: {showTicketModal.status === 'PENDING_DELIVERY' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
+                <p className="text-black text-xs font-bold mt-1">Estatus: {(showTicketModal.status as string) === 'PENDING_DELIVERY' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
               </div>
 
               <div className="space-y-2 mb-4 text-black">

@@ -128,7 +128,7 @@ export default function FinanzasPage() {
   const COLORS_IN = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
   const ingresosPorCategoria = transactions.reduce((acc, tx) => {
-    tx.items.forEach(item => {
+    tx.items.forEach((item: any) => {
       let cat = 'Tienda'
       const pId = String(item.productId || '').toLowerCase()
       const pName = String(item.productName || '').toLowerCase()
@@ -400,7 +400,7 @@ export default function FinanzasPage() {
       </div>
     `
     import('html2pdf.js').then((html2pdf) => {
-      const opt = { margin: 0, jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' } }
+      const opt = { margin: 0, jsPDF: { unit: 'mm', format: [80, 200] as [number, number], orientation: 'portrait' as const } }
       html2pdf.default().set(opt).from(element).save(`Ticket_Cierre_${new Date().toISOString().split('T')[0]}.pdf`)
     })
   }
@@ -1323,7 +1323,8 @@ export default function FinanzasPage() {
                       let commission = 0; if (emp.commissionType === 'flat') { commission = empAssignedAthletes.length * commissionRate; } else { for (const tx of coachTx) { for (const item of tx.items) { if (item.productId === 'MEMB' || item.productId === 'COACH') { commission += item.subtotal * (commissionRate / 100); } } } } 
                       const totalPay = baseSalary + commission
                     const currentMonth = new Date().toISOString().substring(0, 7)
-                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
+                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
+
 
                     return (
                       <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
@@ -1561,7 +1562,7 @@ export default function FinanzasPage() {
                             onClick={() => {
                               let current = payrollForm.nonWorkingDays ? payrollForm.nonWorkingDays.split(',') : []
                               if (isSelected) {
-                                current = current.filter(d => d !== day.id && d !== '')
+                                current = current.filter((d: any) => d !== day.id && d !== '')
                               } else {
                                 current.push(day.id)
                               }

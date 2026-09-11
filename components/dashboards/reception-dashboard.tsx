@@ -111,7 +111,7 @@ export function ReceptionDashboard() {
       if (res.success) {
         setCashSession(null)
         
-        const diff = Number(declaredCash) - res.session?.expectedCash
+        const diff = Number(declaredCash) - (res.session?.expectedCash ?? 0)
         const diffText = diff === 0 
           ? '<b class="text-green-500">¡Caja Cuadrada Perfectamente!</b>' 
           : diff > 0 
@@ -122,7 +122,7 @@ export function ReceptionDashboard() {
           title: 'Turno Cerrado',
           html: `
             Resumen del Turno:<br/>
-            Efectivo Esperado: $${res.session?.expectedCash.toFixed(2)}<br/>
+            Efectivo Esperado: $${(res.session?.expectedCash ?? 0).toFixed(2)}<br/>
             Efectivo Declarado: $${Number(declaredCash).toFixed(2)}<br/><br/>
             ${diffText}
           `,

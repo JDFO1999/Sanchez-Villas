@@ -25,7 +25,7 @@ export default function TiendaPOSPage() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [showPendingOrders, setShowPendingOrders] = useState(false);
   const [pendingSearch, setPendingSearch] = useState('');
-  const fetchPendingOrders = async () => { const data = await getPendingTransactions(); setPendingOrders(data); };
+  const fetchPendingOrders = async () => { const data = await getPendingTransactions(); setPendingOrders((data as any).transactions || []); };
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   
   // Client Search & Walk-in
@@ -86,8 +86,10 @@ export default function TiendaPOSPage() {
         sellPrice: p.price,
         currentStock: p.stock,
         minStockAlert: 5,
-        imageUrl: p.imageUrl
-      })) : []
+        imageUrl: p.imageUrl,
+        department: p.category,
+        costPrice: p.cost
+      })) as any[] : []
       setProducts(loadedProducts)
       if (athRes.success) setAthletes(athRes.athletes as any)
       
@@ -236,7 +238,7 @@ export default function TiendaPOSPage() {
       const { validatePinAction } = await import('@/app/actions/auth')
       const res = await validatePinAction(pin)
 
-      if (!res.success) {
+      if (!res.success || !res.user) {
         Swal.fire('Error', res.error || "PIN incorrecto. Venta cancelada.", 'error')
         return
       }
@@ -260,7 +262,7 @@ export default function TiendaPOSPage() {
     const tx: Transaction = {
       id: `TX-${Date.now()}`,
       date: new Date().toISOString(),
-      cashierId: cashierIdToUse,
+      cashierId: cashierIdToUse ?? "",
       customerId: isAthlete ? user?.id : (selectedAthleteId || undefined),
       items: cart,
       subtotal,
@@ -305,7 +307,9 @@ export default function TiendaPOSPage() {
           sellPrice: p.price,
           currentStock: p.stock,
           minStockAlert: 5,
-          imageUrl: p.imageUrl || null
+          imageUrl: p.imageUrl || null,
+          department: p.category,
+          costPrice: p.cost
         })));
       }
       setCart([])
@@ -314,7 +318,7 @@ export default function TiendaPOSPage() {
         showToast("Compra completada eéxitosamente. Revisa tus Compras Recientes.", "success");
         window.location.href = '/';
       } else {
-        setShowReceipt(res.transaction);
+        setShowReceipt(res.transaction as any);
         setShowAdminCart(false);
         setTxReference("");
         setTxReceiptImage("");

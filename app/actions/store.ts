@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
@@ -6,7 +6,16 @@ import { saveBase64Image } from "@/lib/image-utils"
 
 export async function getProducts() {
   try {
-    const products = await prisma.product.findMany()
+    const dbProducts = await prisma.product.findMany()
+    const products = dbProducts.map(p => ({
+      ...p,
+      sellPrice: p.price,
+      buyPrice: p.cost,
+      costPrice: p.cost,
+      currentStock: p.stock,
+      department: p.category,
+      minStockAlert: 5
+    }))
     return { success: true, products }
   } catch (error: any) {
     return { success: false, error: error.message, products: [] }

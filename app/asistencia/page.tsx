@@ -34,7 +34,7 @@ export default function AsistenciaPage() {
       const { validatePinAction } = await import('@/app/actions/auth')
       const authRes = await validatePinAction(pin)
       
-      if (!authRes.success || authRes.user.role !== 'admin') {
+      if (!authRes.success || !authRes.user || authRes.user.role !== 'admin') {
         Swal.fire('Denegado', 'PIN incorrecto o no tiene permisos de Administrador.', 'error')
         return
       }
@@ -47,8 +47,8 @@ export default function AsistenciaPage() {
       setStatus('success')
       setMessage('¡Bienvenido!')
       setAthlete({
-        name: res.user.name,
-        membershipEnd: res.user.membershipEnd
+        name: (res.user?.name || ""),
+        membershipEnd: (res.user?.membershipEnd || "")
       })
     } else {
       setStatus('error')

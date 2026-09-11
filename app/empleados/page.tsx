@@ -107,7 +107,7 @@ export default function EmpleadosPage() {
         ...empForm,
         name: atleta.name,
         cedula: atleta.cedula,
-        email: atleta.email || `${atleta.cedula}@atleta.com`,
+        email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
       });
       Swal.fire('¡Encontrado!', `Atleta ${atleta.name} encontrado y precargado.`, 'success');
     } else {
@@ -151,7 +151,7 @@ export default function EmpleadosPage() {
                       <div className="text-xs text-muted-foreground">C.C. {emp.cedula} | {emp.role.toUpperCase()}</div>
                     </td>
                     <td className="p-4">
-                      <div className="text-sm">{emp.email || 'Sin correo'}</div>
+                      <div className="text-sm">{(emp as any).email || 'Sin correo'}</div>
                       <div className="text-xs text-muted-foreground">{emp.phone || 'Sin teléfono'}</div>
                     </td>
                     <td className="p-4">

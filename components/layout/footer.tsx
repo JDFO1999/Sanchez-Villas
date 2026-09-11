@@ -91,7 +91,7 @@ export function Footer() {
 
         <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} {settings.appName}. Todos los derechos reservados.</p>
-          <p className="flex items-center gap-1">{settings.footerTagline || ""}</p>
+          <p className="flex items-center gap-1">{(settings as any).footerTagline || ""}</p>
         </div>
       </div>
     </footer>

@@ -103,6 +103,8 @@ export interface AthleteProfile {
   profilePicture?: string
   debt?: number // Para fiados/tienda
   previousCoachId?: string | null // Para saber qué entrenador tuvo antes
+  createdAt?: string | Date
+  attendances?: any[]
 }
 
 const ATHLETES_DB_KEY = "gympro_athletes_db";
