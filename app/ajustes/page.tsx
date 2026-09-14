@@ -458,15 +458,51 @@ export default function AjustesPage() {
                 <div className="space-y-2 md:col-span-2">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm font-medium block">Moneda Principal</label>
-                      <input type="text" value={storeCurrency} onChange={(e) => setStoreCurrency(e.target.value)} placeholder="Ej. USD, $" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                      <label className="text-sm font-medium block">Moneda Base (Precios del sistema)</label>
+                      <p className="text-xs text-muted-foreground mb-1">En la que se guardan los precios (Ej. 30 = 30 USD)</p>
+                      <div className="flex gap-2 mt-1">
+                        <select 
+                          value={['USD', 'BsS', 'EUR', 'COP'].includes(storeCurrency) ? storeCurrency : 'Otra'}
+                          onChange={(e) => setStoreCurrency(e.target.value === 'Otra' ? '' : e.target.value)}
+                          className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="BsS">BsS (Bs.)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="COP">COP</option>
+                          <option value="Otra">Otra...</option>
+                        </select>
+                        {!['USD', 'BsS', 'EUR', 'COP'].includes(storeCurrency) && (
+                          <input type="text" value={storeCurrency} onChange={(e) => setStoreCurrency(e.target.value)} placeholder="Ej. MXN" className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" />
+                        )}
+                      </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block">Moneda Secundaria</label>
-                      <input type="text" value={storeCurrencySecondary} onChange={(e) => setStoreCurrencySecondary(e.target.value)} placeholder="Ej. BsS, COP" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                      <label className="text-sm font-medium block">Moneda Secundaria (Para mostrar equivalencia)</label>
+                      <p className="text-xs text-muted-foreground mb-1">Se mostrará junto al precio principal</p>
+                      <div className="flex gap-2 mt-1">
+                        <select 
+                          value={['USD', 'BsS', 'EUR', 'COP'].includes(storeCurrencySecondary) ? storeCurrencySecondary : 'Otra'}
+                          onChange={(e) => setStoreCurrencySecondary(e.target.value === 'Otra' ? '' : e.target.value)}
+                          className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="BsS">BsS (Bs.)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="COP">COP</option>
+                          <option value="Otra">Otra...</option>
+                        </select>
+                        {!['USD', 'BsS', 'EUR', 'COP'].includes(storeCurrencySecondary) && (
+                          <input type="text" value={storeCurrencySecondary} onChange={(e) => setStoreCurrencySecondary(e.target.value)} placeholder="Ej. MXN" className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" />
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium block">Tasa de Cambio ({storeCurrencySecondary}/{storeCurrency})</label>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium block">Tasa de Cambio</label>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Para calcular la moneda secundaria, el sistema <strong>multiplica</strong> el precio base por este valor.<br/>
+                        Ejemplo: Si tu Moneda Base es USD y la Secundaria es BsS, pon <strong>40.5</strong> (1 USD = 40.5 BsS).
+                      </p>
                       <input type="number" step="0.01" value={storeExchangeRate} onChange={(e) => setStoreExchangeRate(Number(e.target.value))} placeholder="Ej. 40.5" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -39,9 +39,9 @@ export default function MembresíasPage() {
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasistencia", text: "Â¡¡Hola {nombre}! Hemos notado que llevas dÃ­as sin venir al gimnasio. Â¿¿Todo bien? Te esperamos." },
-    { title: "FelicitaciÃ³n", text: "Â¡¡Felicidades por tu constancia esta semana {nombre}! Sigue asÃ­." },
-    { title: "Recordatorio", text: "¡Hola {nombre}, te recordamos que tu membresÃ­a estÃ¡ prÃ³xima a vencer. Â¡¡Renueva pronto para no perder el ritmo!" }
+    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
+    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
+    { title: "Recordatorio", text: "¡Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -103,7 +103,7 @@ export default function MembresíasPage() {
     e.preventDefault()
     if (!showEditModal) return
     if (editPassword && editPassword !== editConfirmPassword) {
-      alert("Las contraseÃ±as no coinciden.")
+      alert("Las contraseñas no coinciden.")
       return
     }
 
@@ -139,7 +139,7 @@ export default function MembresíasPage() {
   const sendMessage = () => {
     if (!showMessageModal) return
     if (!showMessageModal.phone) {
-      alert("El atleta no tiene un nÃºmero de telÃ©fono registrado.")
+      alert("El atleta no tiene un número de teléfono registrado.")
       return
     }
     // Clean phone number (remove spaces, +, etc)
@@ -194,6 +194,17 @@ export default function MembresíasPage() {
         }
       }
 
+    const confirm = await Swal.fire({
+      title: '¿Confirmar Renovación?',
+      text: `El total a cobrar es de ${settings.storeCurrency} ${total}. ¿Deseas procesar el pago y la renovación?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, procesar',
+      cancelButtonText: 'Cancelar'
+    })
+    
+    if (!confirm.isConfirmed) return;
+
     const { createTransaction } = await import('@/app/actions/store')
     
     // Process Transaction
@@ -202,7 +213,7 @@ export default function MembresíasPage() {
        cashierId: user?.id || 'admin',
        customerId: showRenovarModal.id,
        items: [
-         { productId: 'MEMB', name: `MembresÃ­a (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
+         { productId: 'MEMB', name: `Membresía (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
          ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice, qty: 1, subtotal: coachPrice }] : [])
        ],
        subtotal: total,
@@ -246,7 +257,7 @@ export default function MembresíasPage() {
         toast.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toast.fire({ icon: 'success', title: 'RenovaciÃ³n y cobro exitosos' })
+    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
   }
 
   return (
@@ -256,11 +267,11 @@ export default function MembresíasPage() {
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-2">Renovar MembresÃ­a</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se crearÃ¡ el cobro automÃ¡ticamente en la caja.</p>
+            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
+            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
             <form onSubmit={handleRenovar} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">DuraciÃ³n (Meses)</label>
+                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
                 <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
               </div>
               <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
@@ -272,7 +283,7 @@ export default function MembresíasPage() {
                   className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
                 />
                 <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
-                  AÃ±adir Entrenador Personal
+                  Añadir Entrenador Personal
                 </label>
               </div>
 
@@ -312,12 +323,12 @@ export default function MembresíasPage() {
                 </span>
               </div>
 
-              {/* MÃ©todo de Pago */}
+              {/* Método de Pago */}
               <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
-                <h4 className="font-bold text-sm">Detalles de FacturaciÃ³n</h4>
+                <h4 className="font-bold text-sm">Detalles de Facturación</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">MÃ©todo de Pago</label>
+                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
                     <select 
                       value={renovarPaymentMethod}
                       onChange={e => setRenovarPaymentMethod(e.target.value as any)}
@@ -335,7 +346,7 @@ export default function MembresíasPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                         <label className="text-xs font-medium text-muted-foreground block">
-                          {renovarPaymentMethod === 'Tarjeta' ? 'NÂ° de TransacciÃ³n' : `NÂ° de Referencia (${renovarPaymentMethod})`}
+                          {renovarPaymentMethod === 'Tarjeta' ? 'N° de Transacción' : `N° de Referencia (${renovarPaymentMethod})`}
                         </label>
                         {(() => {
                           const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
@@ -372,10 +383,11 @@ export default function MembresíasPage() {
                     <label className="text-xs font-medium mb-2 block">Comprobante de Pago</label>
                     <div className="flex gap-2">
                       <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
-                        <span>Subir Archivo</span>
+                        <span>Subir Archivo o Tomar Foto</span>
                         <input 
                           type="file" 
                           accept="image/*"
+                          capture="environment"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
                             if (file) {
@@ -389,7 +401,7 @@ export default function MembresíasPage() {
                       </label>
                       <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                         <Camera className="h-4 w-4 shrink-0" />
-                        <span className="truncate">CÃ¡mara</span>
+                        <span className="truncate">Cámara</span>
                         <input
                           type="file"
                           accept="image/*"

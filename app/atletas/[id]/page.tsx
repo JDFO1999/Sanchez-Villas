@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -412,7 +412,7 @@ export default function AtletaPerfilPage() {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio</p>
-                  <p className="font-medium text-sm">{new Date(athlete.membershipStart || '').toLocaleDateString()}</p>
+                  <p className="font-medium text-sm">{athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970 ? new Date(athlete.membershipStart).toLocaleDateString() : 'Sin registro'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimiento</p>

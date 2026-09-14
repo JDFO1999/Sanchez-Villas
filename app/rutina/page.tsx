@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { AppLayout } from "@/components/layout/app-layout"
@@ -15,7 +15,7 @@ export default function RutinaPage() {
   const [activeTab, setActiveTab] = useState<"ROUTINAS" | "DIETAS">("ROUTINAS")
 
   useEffect(() => {
-    if (user?.id && user.role === "ATHLETE") {
+    if (user?.id && user.role === "athlete") {
       loadData()
     } else {
       setIsLoading(false)
@@ -39,20 +39,16 @@ export default function RutinaPage() {
     }
   }
 
-  if (user?.role !== "ATHLETE") {
+  if (user?.role !== "athlete") {
     return (
-      <AppLayout>
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Acceso Denegado</h1>
-          <p className="text-muted-foreground">Esta pgina es exclusiva para atletas.</p>
-        </div>
-      </AppLayout>
+      <div className="p-8">
+        <h1 className="text-2xl font-bold">Acceso Denegado</h1>
+        <p className="text-muted-foreground">Esta página es exclusiva para atletas.</p>
+      </div>
     )
   }
 
-  return (
-    <AppLayout>
-      <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
+  return (      <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
         <div>
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Tu Entrenamiento</h1>
           <p className="text-muted-foreground mt-1">
@@ -82,7 +78,7 @@ export default function RutinaPage() {
             <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent p-8 text-center">
               <Dumbbell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold">Sin Rutinas</h3>
-              <p className="text-muted-foreground text-sm mt-2">An no tienes rutinas asignadas por tu entrenador.</p>
+              <p className="text-muted-foreground text-sm mt-2">Aún no tienes rutinas asignadas por tu entrenador.</p>
             </Card>
           ) : (
             <div className="space-y-6">
@@ -148,7 +144,7 @@ export default function RutinaPage() {
             <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent p-8 text-center">
               <Apple className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold">Sin Dietas</h3>
-              <p className="text-muted-foreground text-sm mt-2">An no tienes dietas asignadas por tu entrenador.</p>
+              <p className="text-muted-foreground text-sm mt-2">Aún no tienes dietas asignadas por tu entrenador.</p>
             </Card>
           ) : (
             <div className="space-y-6">
@@ -175,6 +171,5 @@ export default function RutinaPage() {
           )
         )}
       </div>
-    </AppLayout>
   )
 }

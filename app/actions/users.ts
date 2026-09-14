@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import prisma from "@/lib/db"
 import { revalidatePath, unstable_noStore } from "next/cache"
@@ -91,6 +91,7 @@ export async function createAthlete(data: any) {
           ...(data.coachId ? { coach: { connect: { id: data.coachId } } } : {}),
           phone: data.phone || null,
           address: data.address || null,
+          email: data.email || null,
         }
     });
 

@@ -55,14 +55,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user && pathname !== '/login') {
+    if (!isLoading && !user && pathname !== '/login' && pathname !== '/registro') {
       router.push('/login')
     }
   }, [user, isLoading, pathname, router])
 
   if (isLoading) return <div className="h-screen w-screen flex items-center justify-center"><Dumbbell className="h-8 w-8 animate-spin text-primary" /></div>
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/registro') {
     return <>{children}</>
   }
 

@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const registerAthlete = async (cedula: string, clave: string, profile: any) => {
-    const res = await createAthlete({ cedula, password: clave, name: profile.name, gender: profile.gender || 'M' })
+    const res = await createAthlete({ cedula, password: clave, name: profile.name, gender: profile.gender || 'M', email: profile.email, phone: profile.phone, address: profile.address, coachId: profile.coachId })
     if (res.success && res.user) {
       return res.user as unknown as User
     }
