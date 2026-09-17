@@ -44,6 +44,8 @@ model User {
   birthDate        String?
   profession       String?
   specialties      String?
+  bio              String?  @db.Text
+  socialLinks      String?  @db.Text
   nonWorkingDays   String?
   lastPaidDate     DateTime?
   bankAccount      String?
@@ -125,6 +127,11 @@ model Biometric {
   date         DateTime @default(now())
   weight       Float
   height       Float
+  chest        Float?
+  waist        Float?
+  arms         Float?
+  legs         Float?
+  bodyFat      Float?
   customFields String?
 }
 
@@ -208,6 +215,7 @@ model RoutineExercise {
   sets      Int
   reps      String
   notes     String?
+  completed Boolean @default(false)
 }
 
 model ExerciseProgress {
@@ -226,7 +234,9 @@ model DietAssignment {
   athlete     User     @relation("AthleteDiets", fields: [athleteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   coach       User     @relation("CoachDiets", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   title       String
-  description String   @db.Text
+  description String?  @db.Text
+  weeklyPlan  String?  @db.Text
   date        DateTime
   createdAt   DateTime @default(now())
 }
+

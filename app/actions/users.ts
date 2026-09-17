@@ -1,4 +1,7 @@
+import { processBase64Image } from "./upload";
 "use server"
+
+import bcrypt from "bcryptjs";
 
 import prisma from "@/lib/db"
 import { revalidatePath, unstable_noStore } from "next/cache"
@@ -10,7 +13,7 @@ export async function createEmployee(data: any) {
         name: data.name,
         cedula: data.cedula,
         role: data.role,
-        password: data.clave || '1234',
+        password: await bcrypt.hash(data.clave || "1234", 10),
         accessPin: data.pin || null,
         baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : null,
         commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
@@ -41,7 +44,7 @@ export async function updateEmployee(id: string, data: any) {
         name: data.name,
         role: data.role,
         cedula: data.cedula,
-        ...(data.clave ? { password: data.clave } : {}),
+        ...(data.clave ? { password: await bcrypt.hash(data.clave, 10) } : {}),
         baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : null,
         commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
         commissionType: data.commissionType || 'flat',
@@ -56,7 +59,7 @@ export async function updateEmployee(id: string, data: any) {
         phone: data.phone || null,
         accessPin: data.pin !== undefined ? data.pin : undefined,
         // Update password if provided
-        ...(data.clave ? { password: data.clave } : {})
+        ...(data.clave ? { password: await bcrypt.hash(data.clave, 10) } : {})
       }
     });
     revalidatePath("/empleados")
@@ -86,7 +89,7 @@ export async function createAthlete(data: any) {
           name: data.name,
           cedula: data.cedula,
           role: 'athlete',
-          password: data.password || data.cedula, 
+          password: await bcrypt.hash(data.password || data.cedula || "1234", 10), 
           gender: data.gender,
           ...(data.coachId ? { coach: { connect: { id: data.coachId } } } : {}),
           phone: data.phone || null,
@@ -414,3 +417,15 @@ export async function updateProfilePicture(athleteId: string, base64Image: strin
 }
 
 
+
+export async function updateCoachProfile(id: string, data: { bio?: string, socialLinks?: string }) {
+  try {
+    await prisma.user.update({
+      where: { id },
+      data
+    })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}

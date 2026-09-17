@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { loginAction, getUserById } from '@/app/actions/auth'
+import { loginAction, getAthleteById } from '@/app/actions/auth'
 import { createEmployee, updateEmployee, getAllEmployees, createAthlete, updateAthlete } from '@/app/actions/users'
 
 export type Role = string | null
@@ -62,35 +62,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  
   useEffect(() => {
-    async function loadUser() {
-      const storedUserId = localStorage.getItem('gympro_session_id')
-      if (storedUserId) {
-        const res = await getUserById(storedUserId)
-        if (res.success && res.user) {
-          setUser(res.user as unknown as User)
-        } else {
-          localStorage.removeItem('gympro_session_id')
+    async function loadSession() {
+      const { getSessionData } = await import('@/app/actions/auth')
+      const sessionRes = await getSessionData()
+      
+      if (sessionRes.success && sessionRes.user) {
+        setUser(sessionRes.user as any)
+      } else {
+        const storedUserId = localStorage.getItem('gympro_session_id')
+        if (storedUserId) {
+          const { getAthleteById } = await import('@/app/actions/users')
+          const res = await getAthleteById(storedUserId)
+          if (res.success && res.user) {
+            setUser(res.user as any)
+          }
         }
       }
       setIsLoading(false)
     }
-    loadUser()
+    loadSession()
   }, [])
-
-  const registerAthlete = async (cedula: string, clave: string, profile: any) => {
-    const res = await createAthlete({ cedula, password: clave, name: profile.name, gender: profile.gender || 'M', email: profile.email, phone: profile.phone, address: profile.address, coachId: profile.coachId })
-    if (res.success && res.user) {
-      return res.user as unknown as User
-    }
-    return false
-  }
-
-  const adminUpdateAthleteCredentials = async (oldCedula: string, newCedula: string, newName: string, newClave: string) => {
-    // This is problematic without knowing the athlete ID, but for now we just return false if not supported 
-    // In a real app we'd fetch by cedula and then update.
-    return false; // Will replace later if needed
-  }
 
   const loginFn = async (cedula: string, clave: string) => {
     const res = await loginAction(cedula, clave)

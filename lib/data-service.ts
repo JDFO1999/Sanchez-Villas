@@ -77,13 +77,17 @@ export const dataService = {
 // -----------------------------------------------------
 
 export interface BiometricRecord {
+  id: string
   date: string
   weight: number
   height: number
   chest?: number
   waist?: number
   hips?: number
-  customFields?: Record<string, any>
+  arms?: number
+  legs?: number
+  bodyFat?: number
+  customFields?: Record<string, string>
 }
 
 export interface AthleteProfile {
@@ -130,8 +134,8 @@ export const athleteService = {
           lastLogin: 'Ayer (Móvil)',
           attendancePercentage: 85,
           biometrics: [
-            { date: '2026-08-01', weight: 80, height: 180 },
-            { date: '2026-08-15', weight: 79, height: 180 }
+            { id: 'b1', date: '2026-08-01', weight: 80, height: 180 },
+            { id: 'b2', date: '2026-08-15', weight: 79, height: 180 }
           ]
         },
         {
@@ -148,7 +152,7 @@ export const athleteService = {
           lastLogin: 'Hace 2 horas (Web)',
           attendancePercentage: 92,
           biometrics: [
-            { date: '2026-08-15', weight: 62, height: 165, chest: 90, waist: 65, hips: 95 }
+            { id: 'b3', date: '2026-08-15', weight: 62, height: 165, chest: 90, waist: 65, legs: 95 }
           ]
         }
       ];

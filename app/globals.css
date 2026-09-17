@@ -1,38 +1,43 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 0%;
+  /* Fondo Gris Plata / Moderno Técnico (#F3F4F6) */
+  --background: 220 14% 96%;
+  /* Texto Gris Oscuro (#1F2937) - Muy descansado para leer */
+  --foreground: 215 28% 17%;
 
+  /* Tarjetas blancas puras para separar del fondo gris */
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 0%;
+  --card-foreground: 215 28% 17%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 0%;
+  --popover-foreground: 215 28% 17%;
 
-  /* Dorado para acentos clave */
-  --primary: 43 74% 49%; /* Aprox #D4AF37, un poco más vibrante */
-  --primary-foreground: 0 0% 98%;
+  /* Dorado principal - Acentos vibrantes */
+  --primary: 43 74% 49%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Gris para secundarios */
-  --secondary: 0 0% 90%;
-  --secondary-foreground: 0 0% 9%;
+  /* Secundarios (Gris técnico suave) */
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 215 28% 17%;
 
-  --muted: 0 0% 96.1%;
-  --muted-foreground: 0 0% 45.1%;
+  /* Elementos muteados */
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 35%; /* Oscurecido para mejor contraste en modo claro */
 
   --accent: 43 74% 49%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 89.8%;
-  --input: 0 0% 89.8%;
+  /* Bordes en gris claro técnico, pero manteniendo el aro activo en dorado */
+  --border: 214 32% 84%; /* Oscurecido para delimitar mejor */
+  --input: 214 32% 91%;
   --ring: 43 74% 49%;
 
   --radius: 0.5rem;
@@ -75,68 +80,57 @@
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
   }
-  
-  /* Modern/Premium Background Effect for Dark Mode */
-  .dark body {
-    background-color: #000000;
-    background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
-                      radial-gradient(circle at 0% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
-    background-attachment: fixed;
-  }
-
-  /* Glassmorphism Classes */
-  .glass {
-    @apply bg-card/60 backdrop-blur-md border border-black/10 dark:border-white/10 shadow-lg;
-  }
-  
-  .dark .glass {
-    @apply bg-card/40 backdrop-blur-xl border border-white/10;
-  }
 }
 
-.font-arvo { font-family: var(--font-arvo), serif !important; }
-.font-inter { font-family: var(--font-inter), sans-serif !important; }
-.font-roboto { font-family: var(--font-roboto), sans-serif !important; }
+/* Efecto de borde oro degradado global para tarjetas e inputs */
+.border-gold-gradient {
+  border: 1px solid transparent;
+  background-image: linear-gradient(hsl(var(--background)), hsl(var(--background))), linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #996515 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
 
-@media print {
-  @page { margin: 0; }
-  body { background-color: white !important; }
+.card-gold-gradient {
+  border: 1px solid transparent;
+  background-image: linear-gradient(hsl(var(--card)), hsl(var(--card))), linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #996515 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Estilos Glass / Translucidos */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+.dark .glass {
+  background: rgba(10, 10, 10, 0.6);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }

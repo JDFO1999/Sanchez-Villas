@@ -1,6 +1,9 @@
+import { createSession } from "@/lib/session";
 "use server"
 
 import prisma from "@/lib/db"
+import bcrypt from "bcryptjs"
+
 
 export async function loginAction(cedula: string, clave: string) {
   try {
@@ -17,6 +20,7 @@ export async function loginAction(cedula: string, clave: string) {
     }
 
     // In a real app we would create a session/JWT here
+    await createSession(user);
     return { success: true, user }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -38,6 +42,7 @@ export async function validatePinAction(pin: string) {
        return { success: false, error: "Usuario no tiene permisos de cajero" }
     }
 
+    await createSession(user);
     return { success: true, user }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -50,8 +55,28 @@ export async function getUserById(id: string) {
       where: { id }
     });
     if (!user) return { success: false }
+    await createSession(user);
     return { success: true, user }
   } catch (e) {
     return { success: false }
   }
+}
+
+import { verifySession, destroySession } from "@/lib/session";
+
+export async function getSessionData() {
+  const session = await verifySession();
+  if (!session) return { success: false };
+  
+  const user = await prisma.user.findUnique({
+    where: { id: session.id as string }
+  });
+  
+  if (!user) return { success: false };
+  return { success: true, user };
+}
+
+export async function logoutAction() {
+  destroySession();
+  return { success: true };
 }

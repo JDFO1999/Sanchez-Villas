@@ -7,6 +7,8 @@ import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
+import { updateCoachProfile } from "@/app/actions/users"
+import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 
@@ -28,6 +30,28 @@ export default function AtletaPerfilPage() {
   const [newWaist, setNewWaist] = useState("")
   const [newHips, setNewHips] = useState("")
   const [newCustomFields, setNewCustomFields] = useState<{name: string, unit: string, value: string}[]>([])
+
+  
+  const [showEditCoach, setShowEditCoach] = useState(false)
+  const [editBio, setEditBio] = useState("")
+  const [editSocial, setEditSocial] = useState<{platform: string, url: string}[]>([])
+
+  const handleUpdateCoach = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const socialStr = JSON.stringify(editSocial)
+    const res = await updateCoachProfile(athlete!.id, { bio: editBio, socialLinks: socialStr })
+    if (res.success) {
+      setAthlete({...athlete, bio: editBio, socialLinks: socialStr} as any)
+      setShowEditCoach(false)
+      alert("Perfil actualizado correctamente")
+    } else {
+      alert("Error actualizando perfil")
+    }
+  }
+
+  const handleAddSocial = () => {
+    setEditSocial([...editSocial, { platform: "Instagram", url: "" }])
+  }
 
   const [showCoachRequest, setShowCoachRequest] = useState(false)
   const [requestReason, setRequestReason] = useState("")
@@ -178,6 +202,86 @@ export default function AtletaPerfilPage() {
     <div className="space-y-6 max-w-5xl mx-auto relative">
       
       {/* Modal Request */}
+      
+      {showEditCoach && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-card border border-border rounded-xl max-w-md w-full shadow-2xl glass max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-black mb-1">Editar Perfil de Entrenador</h3>
+              <p className="text-sm text-muted-foreground">Actualiza tu información pública.</p>
+            </div>
+            
+            <div className="overflow-y-auto p-6 custom-scrollbar">
+              <form id="edit-coach-form" onSubmit={handleUpdateCoach} className="space-y-5">
+                <div>
+                  <label className="text-sm font-bold block mb-1">Biografía / Descripción</label>
+                  <textarea 
+                    rows={4} 
+                    value={editBio}
+                    onChange={e => setEditBio(e.target.value)}
+                    placeholder="Soy especialista en musculación..."
+                    className="w-full bg-card border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-bold block">Redes Sociales</label>
+                    <button type="button" onClick={handleAddSocial} className="text-[10px] uppercase font-bold bg-primary/20 text-primary px-2 py-1 rounded hover:bg-primary/30 transition">
+                      + Añadir Red
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {editSocial.length === 0 && <p className="text-xs text-muted-foreground italic">No tienes redes configuradas.</p>}
+                    {editSocial.map((link, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <select 
+                          value={link.platform}
+                          onChange={(e) => {
+                            const newS = [...editSocial];
+                            newS[i].platform = e.target.value;
+                            setEditSocial(newS);
+                          }}
+                          className="w-1/3 bg-card border border-border rounded p-2 text-xs focus:border-primary focus:outline-none"
+                        >
+                          <option value="Instagram">Instagram</option>
+                          <option value="TikTok">TikTok</option>
+                          <option value="Twitter">Twitter/X</option>
+                          <option value="YouTube">YouTube</option>
+                          <option value="LinkedIn">LinkedIn</option>
+                          <option value="Web">Web</option>
+                        </select>
+                        <input 
+                          type="url"
+                          required
+                          value={link.url}
+                          onChange={(e) => {
+                            const newS = [...editSocial];
+                            newS[i].url = e.target.value;
+                            setEditSocial(newS);
+                          }}
+                          placeholder="https://..."
+                          className="w-full bg-card border border-border rounded p-2 text-xs focus:border-primary focus:outline-none"
+                        />
+                        <button type="button" onClick={() => setEditSocial(editSocial.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-700 bg-red-500/10 p-2 rounded">
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-6 border-t border-border flex justify-end gap-3 bg-black/5 dark:bg-black/20">
+              <button type="button" onClick={() => setShowEditCoach(false)} className="px-4 py-2 text-sm bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg transition font-bold">Cancelar</button>
+              <button type="submit" form="edit-coach-form" className="px-6 py-2 text-sm bg-primary text-black font-black rounded-lg hover:opacity-90 transition">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCoachRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
@@ -257,46 +361,17 @@ export default function AtletaPerfilPage() {
 
       {/* Modal Assign Routine */}
       {showRoutineModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-2">Asignar Rutina</h3>
-            <p className="text-sm text-muted-foreground mb-4">Configura los parámetros del entrenamiento.</p>
-            <form onSubmit={handleAssignRoutine} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Catálogo de Rutinas</label>
-                <select value={routineType} onChange={e => setRoutineType(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
-                  <option value="Hipertrofia">Rutina de Hipertrofia (Fuerza)</option>
-                  <option value="Resistencia">Rutina HIIT (Resistencia)</option>
-                  <option value="Movilidad">Yoga y Movilidad</option>
-                  <option value="Personalizada">Personalizada / Mixta</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Fecha Inicio</label>
-                  <input type="date" required value={routineStart} onChange={e => setRoutineStart(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Fecha Fin</label>
-                  <input type="date" required value={routineEnd} onChange={e => setRoutineEnd(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Tiempo de Descanso</label>
-                <select value={routineRest} onChange={e => setRoutineRest(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2.5 text-sm">
-                  <option value="30s">Corto (30 seg)</option>
-                  <option value="60s">Medio (60 seg)</option>
-                  <option value="90s">Largo (90 seg)</option>
-                  <option value="120s">Muy Largo (2 min)</option>
-                </select>
-              </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowRoutineModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Asignar</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <RoutineAssignmentModal
+          isOpen={showRoutineModal}
+          onClose={() => setShowRoutineModal(false)}
+          coachId={(user as any)?.id || ''}
+          athletes={[athlete]}
+          defaultAthleteId={athlete.id}
+          onSuccess={() => {
+            setShowRoutineModal(false);
+            alert("¡Plan asignado con éxito!");
+          }}
+        />
       )}
 
       {user?.role !== 'athlete' && (
@@ -369,9 +444,24 @@ export default function AtletaPerfilPage() {
           </div>
         </div>
         
-        <div className="flex gap-3">
-          {(user?.role === 'admin' || user?.role === 'employee') && (
-            <button onClick={() => setShowRoutineModal(true)} className="bg-primary/20 text-primary px-4 py-2 rounded-lg font-medium hover:bg-primary/30 transition">
+        <div className="flex gap-3 flex-wrap">
+
+          {user?.id === athlete.id && (athlete as any).role === 'coach' && (
+            <button onClick={() => {
+              setEditBio((athlete as any).bio || "");
+              try {
+                setEditSocial(JSON.parse((athlete as any).socialLinks || "[]"));
+              } catch {
+                setEditSocial([]);
+              }
+              setShowEditCoach(true);
+            }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition">
+              Editar Perfil
+            </button>
+          )}
+
+          {(user?.role === 'admin' || user?.role === 'coach') && (
+            <button onClick={() => setShowRoutineModal(true)} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition">
               Asignar Rutina
             </button>
           )}
@@ -386,7 +476,7 @@ export default function AtletaPerfilPage() {
             </button>
           )}
           {user?.role === 'athlete' && !athlete.coachId && (
-            <button onClick={() => setShowAdminCoachModal(true)} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition shadow">
+            <button onClick={() => setShowAdminCoachModal(true)} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition">
               Seleccionar Entrenador (Opcional)
             </button>
           )}
@@ -447,7 +537,7 @@ export default function AtletaPerfilPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" /> Medidas Actuales
               </CardTitle>
-              {(user?.role === 'admin' || user?.role === 'employee') && (
+              {(user?.role === 'admin' || user?.role === 'coach') && (
                 <button 
                   onClick={() => setShowForm(!showForm)}
                   className="text-sm bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-3 py-1.5 rounded-lg hover:bg-black/10 dark:bg-white/10 transition"

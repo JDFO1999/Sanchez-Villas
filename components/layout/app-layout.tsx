@@ -80,6 +80,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
       { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
     ]
+  } else if (user?.role === 'coach') {
+    currentNavItems = [
+      { name: "Panel Principal", href: "/", icon: Home },
+      { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
+      { name: "Mis Atletas", href: "/mis-atletas", icon: Users },
+      { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
+    ]
   } else {
     currentNavItems = [
       { name: "Panel Principal", href: "/", icon: Home },

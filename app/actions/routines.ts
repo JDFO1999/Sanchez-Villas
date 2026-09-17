@@ -1,19 +1,19 @@
+import { verifySession } from "@/lib/session";
 ﻿"use server"
 
 import prisma from "@/lib/db"
 
 export async function getCoachAthletes(coachId: string) {
+  if (!coachId) return { success: true, athletes: [] };
   try {
     const athletes = await prisma.user.findMany({
       where: {
-        role: "ATHLETE",
+        role: "athlete",
         coachId: coachId
       },
-      select: {
-        id: true,
-        name: true,
-        cedula: true,
-      }
+      select: { id: true, name: true, cedula: true, createdAt: true, profilePicture: true, _count: { select: { athleteRoutines: true, athleteDiets: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100
     })
     return { success: true, athletes }
   } catch (error: any) {
@@ -57,6 +57,12 @@ export async function createRoutine(data: {
   exercises: { name: string, sets: number, reps: string, notes: string }[]
 }) {
   try {
+    const session = await verifySession();
+    if (!session || (session.role !== "coach" && session.role !== "admin")) return { success: false, error: "No autorizado" };
+    // Enforce that coachId matches the session ID if they are a coach
+    if (session.role === "coach" && data.coachId !== session.id) {
+      return { success: false, error: "IDOR detectado: No puedes asignar rutinas en nombre de otro entrenador" };
+    }
     const routine = await prisma.routine.create({
       data: {
         athleteId: data.athleteId,
@@ -79,16 +85,23 @@ export async function createDiet(data: {
   athleteId: string
   coachId: string
   title: string
-  description: string
+  description?: string
+  weeklyPlan?: string
   date: Date
 }) {
   try {
+    const session = await verifySession();
+    if (!session || (session.role !== "coach" && session.role !== "admin")) return { success: false, error: "No autorizado" };
+    if (session.role === "coach" && data.coachId !== session.id) {
+      return { success: false, error: "IDOR detectado: No puedes asignar dietas en nombre de otro entrenador" };
+    }
     const diet = await prisma.dietAssignment.create({
       data: {
         athleteId: data.athleteId,
         coachId: data.coachId,
         title: data.title,
         description: data.description,
+        weeklyPlan: data.weeklyPlan,
         date: data.date
       }
     })
@@ -128,6 +141,18 @@ export async function markRoutineCompleted(routineId: string) {
     await prisma.routine.update({
       where: { id: routineId },
       data: { completed: true }
+    })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function toggleExerciseCompleted(exerciseId: string, completed: boolean) {
+  try {
+    await prisma.routineExercise.update({
+      where: { id: exerciseId },
+      data: { completed }
     })
     return { success: true }
   } catch (error: any) {

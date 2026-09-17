@@ -11,11 +11,13 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@yudiel/react-qr-scanner": "^2.6.0",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "html2pdf.js": "^0.14.0",
     "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.12",
     "jsbarcode": "^3.12.3",
     "lightningcss": "^1.33.0",
     "lucide-react": "^1.39.0",
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dumbbell, CheckCircle2, Clock, CalendarDays, Activity, ChevronRight, Apple } from "lucide-react"
-import { getAthleteData, markRoutineCompleted } from "@/app/actions/routines"
+import { getAthleteData, markRoutineCompleted, toggleExerciseCompleted } from "@/app/actions/routines"
 
 export default function RutinaPage() {
   const { user } = useAuth()
@@ -30,6 +30,14 @@ export default function RutinaPage() {
       setDiets(res.diets || [])
     }
     setIsLoading(false)
+  }
+
+  
+  const handleToggleExercise = async (exerciseId: string, currentStatus: boolean) => {
+    const res = await toggleExerciseCompleted(exerciseId, !currentStatus);
+    if (res.success) {
+      loadData();
+    }
   }
 
   const handleComplete = async (routineId: string) => {

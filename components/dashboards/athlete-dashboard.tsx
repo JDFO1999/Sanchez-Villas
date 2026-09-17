@@ -72,6 +72,7 @@ export function AthleteDashboard() {
           if (stats.success) {
             setLiveRoutines(stats.routines || []);
             setLiveDiets(stats.diets || []);
+            setLiveDiets(stats.diets || []);
             console.log('API returned purchases:', stats.purchases);
               setPurchases(stats.purchases || []);
             setAttendances(stats.attendances || []);
