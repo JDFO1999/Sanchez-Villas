@@ -7,6 +7,7 @@ import { useSettings } from "@/lib/settings-context"
 import { useAuth } from "@/lib/auth-context"
 import {
   Dumbbell,
+  Unplug,
   Home,
   Users,
   CreditCard,
@@ -196,7 +197,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 className={`text-sm text-red-500 hover:text-red-400 font-medium flex items-center gap-2 px-1 ${isSidebarCollapsed ? 'justify-center' : 'text-left'}`}
                 title="Cerrar sesión"
               >
-                <Dumbbell className="h-4 w-4 shrink-0" />
+                <Unplug className="h-5 w-5 shrink-0" />
                 <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>
                   Cerrar Sesión
                 </span>

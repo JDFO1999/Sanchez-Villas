@@ -48,7 +48,7 @@ export default function RutinaPage() {
     )
   }
 
-  return (      <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
+  return (      <div className="p-4 sm:p-8 space-y-6 max-w-full mx-auto">
         <div>
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Tu Entrenamiento</h1>
           <p className="text-muted-foreground mt-1">

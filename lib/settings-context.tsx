@@ -27,6 +27,21 @@ export interface AppSettings {
     objectFit: 'contain' | 'cover' | 'fill'
     fadeEffect: boolean
   }
+  footerLogoSettings?: {
+    showLogo: boolean
+    position: 'side' | 'top'
+    width: number
+    height: number
+    glassEffect: boolean
+    glowEffect: boolean
+    alignment?: 'left' | 'center' | 'right'
+    showText?: boolean
+    textSize?: number
+    textEffect?: 'gradient' | 'minimalist' | 'neon' | 'none'
+    footerAlignment?: 'left' | 'center' | 'right'
+    footerPadding?: number
+    footerMarginTop?: number
+  }
   storeCurrency: string
   storeCurrencySecondary: string
   storeExchangeRate: number

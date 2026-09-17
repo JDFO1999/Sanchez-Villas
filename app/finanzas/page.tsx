@@ -506,7 +506,7 @@ export default function FinanzasPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20 relative">
+    <div className="space-y-6 max-w-full mx-auto pb-20 relative">
       
       {showReceipt && (() => {
         const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';

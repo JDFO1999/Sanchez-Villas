@@ -343,7 +343,7 @@ export default function TiendaPOSPage() {
   // ===== VISTA CATÃLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto pb-20">
+      <div className="space-y-6 max-w-full mx-auto pb-20">
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent drop-shadow-sm">Catálogo {settings.appName}</h1>
@@ -626,7 +626,7 @@ export default function TiendaPOSPage() {
 
   // ===== VISTA POS PARA EMPLEADOS / ADMIN =====
   return (
-    <div className="space-y-4 max-w-[1400px] mx-auto h-[calc(100vh-100px)] flex flex-col">
+    <div className="space-y-4 max-w-full mx-auto h-[calc(100vh-100px)] flex flex-col">
       <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm mb-4">Tienda {settings.appName}</h1>
