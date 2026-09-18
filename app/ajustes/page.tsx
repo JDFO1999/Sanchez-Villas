@@ -187,7 +187,7 @@ export default function AjustesPage() {
         </div>
         <form onSubmit={handleSave} className="space-y-6">
             
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${activeTab === "general" ? "block" : "hidden"}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${activeTab === "general" ? "" : "hidden"}`}>
               {/* Nombre de la App */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
