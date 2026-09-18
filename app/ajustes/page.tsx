@@ -37,6 +37,7 @@ export default function AjustesPage() {
   }, [])
 
   const [appName, setAppName] = useState(settings.appName)
+  const [activeTab, setActiveTab] = useState("general")
   const [primaryColor, setPrimaryColor] = useState(settings.primaryColor)
   const [secondaryColor, setSecondaryColor] = useState(settings.secondaryColor)
   const [borderColor, setBorderColor] = useState(settings.borderColor)
@@ -178,9 +179,15 @@ export default function AjustesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSave} className="space-y-6">
+                  {/* TABS HEADER */}
+        <div className="flex overflow-x-auto border-b border-black/10 dark:border-white/10 mb-8 scrollbar-hide">
+          <button type="button" onClick={() => setActiveTab('general')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>General</button>
+          <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Navbar y Apariencia</button>
+          <button type="button" onClick={() => setActiveTab('footer')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Footer y Redes</button>
+        </div>
+        <form onSubmit={handleSave} className="space-y-6">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${activeTab === "general" ? "block" : "hidden"}`}>
               {/* Nombre de la App */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -674,7 +681,7 @@ export default function AjustesPage() {
                   <h3 className="text-lg font-bold flex items-center gap-2 text-primary">Footer y Marca</h3>
 
                     <div className="space-y-4">
-                      <h4 className="text-sm font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Ajustes Estéticos del Logo (Previsualización en Vivo)</h4>
+                      <h4 className="text-sm font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Ajustes de Marca (Footer)</h4>
                       <div className="flex gap-4 items-start">
                         <div className="flex-1 space-y-4">
                           <label className="flex items-center gap-2 cursor-pointer">

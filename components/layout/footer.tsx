@@ -20,6 +20,7 @@ export function BaseFooter({
       style={{
         paddingTop: `${pY * 0.25}rem`,
         paddingBottom: `${pY * 0.25}rem`,
+        backgroundColor: settings.footerLogoSettings?.bgColor && settings.footerLogoSettings.bgColor !== "#000000" ? settings.footerLogoSettings.bgColor : undefined,
         marginTop: `${mT * 0.25}rem`
       }}
     >
@@ -38,7 +39,7 @@ export function BaseFooter({
                 </div>
               )}
               <div className="flex flex-col gap-3">
-                {settings.footerLogoSettings?.showText !== false && (
+                {settings.footerLogoSettings?.showText !== false && settings.footerLogoSettings?.showAppName !== false && (
                   <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
                 )}
                 {settings.footerMission && (
@@ -221,7 +222,7 @@ export function BaseFooter({
         )}
 
         <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-4 text-xs text-slate-500 w-full text-center">
-          <p>© {new Date().getFullYear()} {settings.appName}. Todos los derechos reservados.</p>
+          <p>{settings.footerLogoSettings?.copyrightText || `© ${new Date().getFullYear()} ${settings.appName}. Todos los derechos reservados.`}</p>
         </div>
       </div>
     </footer>
