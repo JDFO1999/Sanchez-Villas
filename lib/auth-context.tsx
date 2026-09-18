@@ -1,7 +1,8 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { loginAction, getAthleteById } from '@/app/actions/auth'
+import { loginAction } from '@/app/actions/auth'
+import { getAthleteById } from '@/app/actions/users'
 import { createEmployee, updateEmployee, getAllEmployees, createAthlete, updateAthlete } from '@/app/actions/users'
 
 export type Role = string | null
@@ -75,8 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedUserId) {
           const { getAthleteById } = await import('@/app/actions/users')
           const res = await getAthleteById(storedUserId)
-          if (res.success && res.user) {
-            setUser(res.user as any)
+          if (res.success && ((res as any).user || (res as any).athlete)) {
+            setUser(((res as any).user || (res as any).athlete) as any)
           }
         }
       }
@@ -87,9 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginFn = async (cedula: string, clave: string) => {
     const res = await loginAction(cedula, clave)
-    if (res.success && res.user) {
-      setUser(res.user as unknown as User)
-      localStorage.setItem('gympro_session_id', res.user.id)
+    if (res.success && ((res as any).user || (res as any).athlete)) {
+      setUser(((res as any).user || (res as any).athlete) as unknown as User)
+      localStorage.setItem('gympro_session_id', ((res as any).user || (res as any).athlete).id)
       return true
     }
     return false
@@ -133,8 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       login: loginFn, 
       logout, 
-      registerAthlete, 
-      adminUpdateAthleteCredentials,
+      registerAthlete: createAthlete as any, 
+      adminUpdateAthleteCredentials: updateAthlete as any,
       updateEmployeePermissions,
       getAllEmployees: getAllEmployeesFn,
       addEmployee: addEmployeeFn,

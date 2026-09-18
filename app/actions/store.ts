@@ -1,6 +1,5 @@
+"use server";
 import { verifySession } from "@/lib/session";
-"use server"
-
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { saveBase64Image } from "@/lib/image-utils"
@@ -133,6 +132,16 @@ export async function createTransaction(data: any) {
             })
           }
         }
+      }
+
+            // 3. Update debt if FIADO
+      if (data.paymentMethod === 'FIADO' && data.customerId) {
+        await tx.user.update({
+          where: { id: data.customerId },
+          data: {
+            storeDebt: { increment: parseFloat(data.total) }
+          }
+        })
       }
 
       return newTx;

@@ -1,6 +1,5 @@
+"use server";
 import { processBase64Image } from "./upload";
-"use server"
-
 import bcrypt from "bcryptjs";
 
 import prisma from "@/lib/db"

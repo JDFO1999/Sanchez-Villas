@@ -21,6 +21,7 @@ model User {
   email            String?
   phone            String?
   address          String?
+  storeDebt        Float    @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

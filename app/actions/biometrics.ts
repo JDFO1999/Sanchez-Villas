@@ -1,5 +1,4 @@
-﻿"use server"
-
+"use server";
 import prisma from "@/lib/db"
 
 export async function addBiometric(data: {

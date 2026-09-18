@@ -30,7 +30,7 @@ export async function createSession(user: Partial<User>) {
   
   const session = await encrypt(sessionData);
   
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.set("session", session, {
     expires,
     httpOnly: true,
@@ -41,7 +41,7 @@ export async function createSession(user: Partial<User>) {
 }
 
 export async function verifySession() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const cookie = cookieStore.get("session")?.value;
   if (!cookie) return null;
   
@@ -53,8 +53,8 @@ export async function verifySession() {
   }
 }
 
-export function destroySession() {
-  const cookieStore = cookies();
+export async function destroySession() {
+  const cookieStore = await cookies();
   cookieStore.set("session", "", {
     expires: new Date(0),
     httpOnly: true,

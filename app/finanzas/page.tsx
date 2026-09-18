@@ -1292,7 +1292,7 @@ export default function FinanzasPage() {
       {activeTab === 'nomina' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-end">
-            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-primary/90 flex items-center gap-2">
+            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-4 py-2 rounded-lg font-bold transition flex items-center gap-2">
               <Plus className="h-4 w-4" /> Agregar Empleado a Nómina
             </button>
           </div>
@@ -1591,7 +1591,7 @@ export default function FinanzasPage() {
                         </div>
                         <div>
                           <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Comisión</label>
-                          <select value={payrollForm.commissionType} onChange={e => setPayrollForm({...payrollForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
+                          <select value={payrollForm.commissionType || 'flat'} onChange={e => setPayrollForm({...payrollForm, commissionType: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
                             <option value="flat">Monto Fijo</option>
                             <option value="percentage">Porcentaje (%)</option>
                           </select>

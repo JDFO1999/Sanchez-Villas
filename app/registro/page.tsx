@@ -115,36 +115,36 @@ export default function RegistroPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Nombre y Apellido</label>
-              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
+              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Cédula</label>
-              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
+              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Teléfono / WhatsApp</label>
-              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. 0414-1234567" required />
+              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. 0414-1234567" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Correo Electrónico</label>
-              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="tu@correo.com" required />
+              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="tu@correo.com" required />
             </div>
           </div>
           
           <div className="grid grid-cols-1 gap-4">
             <div className="col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Dirección</label>
-              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
+              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Contraseña</label>
-              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
+              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
             </div>
             <div className="relative">
               <label className="text-xs font-medium text-foreground mb-1 block">Confirmar Contraseña</label>
@@ -158,7 +158,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Género</label>
               <div className="relative">
-                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8">
+                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8">
                   <option value="M">Masculino</option>
                   <option value="F">Femenino</option>
                 </select>
@@ -170,7 +170,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Entrenador (Opcional)</label>
               <div className="relative">
-                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
+                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
                   <option value="">-- Sin entrenador --</option>
                   <option value="4">Carlos (Staff)</option>
                 </select>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth, User as UserType } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
+import { BaseFooter } from "@/components/layout/footer"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode } from "lucide-react"
@@ -695,20 +696,14 @@ export default function AjustesPage() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <span className="text-xs text-muted-foreground block">Efectos Avanzados (Diseño)</span>
-                            <div className="flex flex-col gap-2">
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={footerLogoSettings.glassEffect} onChange={e => setFooterLogoSettings((s: any) => ({...s, glassEffect: e.target.checked}))} className="rounded border-black/20" />
-                                <span className="text-xs">Efecto Glassmorphism (Fondo Translúcido)</span>
-                              </label>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={footerLogoSettings.glowEffect} onChange={e => setFooterLogoSettings((s: any) => ({...s, glowEffect: e.target.checked}))} className="rounded border-black/20" />
-                                <span className="text-xs">Efecto Glow / Neon (Resplandor animado)</span>
-                              </label>
+                            <span className="text-xs text-muted-foreground block font-bold text-primary mb-2">Tema del Footer</span>
+                              <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'modern'}))} className={`p-3 border rounded-lg text-xs font-bold ${(footerLogoSettings.layoutTheme || 'modern') === 'modern' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Moderno (Actual)</button>
+                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'classic'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'classic' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Clásico</button>
+                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'minimalist'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'minimalist' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Minimalista</button>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5 w-full mt-4">
+                            <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5 w-full mt-4">
                             <label className="text-xs text-muted-foreground block font-bold text-primary">Estructura Global del Footer (Padding, Margen y Alineación)</label>
                             
                             <div className="space-y-2">
@@ -920,6 +915,23 @@ export default function AjustesPage() {
                     </div>
                   </div>
                 </div>
+
+                    {/* VISTA PREVIA COMPLETA DEL FOOTER */}
+                    <div className="mt-8 pt-8 border-t border-black/10 dark:border-white/10 mb-8">
+                      <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Vista Previa del Footer (Tiempo Real)</h3>
+                      <div className="w-full bg-card/50 border border-black/10 dark:border-white/5 backdrop-blur-md rounded-xl overflow-hidden" style={{ transform: 'scale(0.85)', transformOrigin: 'top' }}>
+                        <BaseFooter settings={{
+                          footerLogoSettings,
+                          logoUrl,
+                          appName,
+                          footerMission,
+                          footerVision,
+                          footerSocialLinks,
+                          footerPartners,
+                          storeAddress
+                        }} />
+                      </div>
+                    </div>
 <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
               <button 
                 type="submit" 

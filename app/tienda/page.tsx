@@ -278,7 +278,7 @@ export default function TiendaPOSPage() {
     if (paymentMethod === 'Crédito/Fiado' && selectedAthleteId && !isAthlete) {
       // Find athlete and save debt
       const { updateAthlete } = await import('@/app/actions/users');
-      // For now we don't have debt in schema, skipping real debt update for mockup
+      
     }
 
     const { createTransaction, getProducts } = await import('@/app/actions/store');
