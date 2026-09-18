@@ -236,7 +236,9 @@ export default function AjustesPage() {
                     {logoUrlDark && <button type="button" onClick={() => setLogoUrlDark("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
                   </div>
                 </div>
+              </div>
 
+              <div className={`space-y-4 ${activeTab === "navbar" ? "" : "hidden"}`}>
                 {/* Live Preview & Sizes */}
                 <div className="pt-4 border-t border-black/5 dark:border-white/5">
                   <h4 className="text-sm font-bold text-primary mb-4">Ajustes Estéticos del Logo (Previsualización en Vivo)</h4>
