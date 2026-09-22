@@ -1,22 +1,10 @@
 "use client"
 
-import { 
-  Users, 
-  TrendingUp, 
-  Banknote, 
-  AlertCircle,
-  ArrowUpRight,
-  ShoppingCart,
-  Download,
-  FileText,
-  FileSpreadsheet,
-  Calendar,
-  CheckCircle2,
-  X
-} from "lucide-react"
+import { Users, TrendingUp, Banknote, AlertCircle, ArrowUpRight, ShoppingCart, Download, FileText, FileSpreadsheet, Calendar, CheckCircle2, X, CalendarDays } from "lucide-react"
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
 import { useSettings } from "@/lib/settings-context"
+import { Loader } from "@/components/ui/loader"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -204,10 +192,34 @@ export function AdminDashboard() {
                   <div className="flex gap-2 w-full sm:w-auto">
                     <button 
                       onClick={async () => {
-                        const { resolveCoachRequest } = await import('@/app/actions/users')
-                        const res = await resolveCoachRequest(req.id, "APPROVED", req.athleteId, req.coachId)
-                        if (res.success) {
-                          setCoachRequests(prev => prev.filter(r => r.id !== req.id))
+                        const feeResult = await Swal.fire({
+                          title: '¿Asignar Cuota?',
+                          text: 'Ingresa el monto de la cuota para este nuevo entrenador (escribe 0 si es gratis o si paga la suscripción normal).',
+                          input: 'number',
+                          inputAttributes: {
+                            min: '0',
+                            step: '0.01'
+                          },
+                          showCancelButton: true,
+                          confirmButtonText: 'Aprobar y Generar Cobro',
+                          cancelButtonText: 'Cancelar'
+                        });
+
+                        if (feeResult.isConfirmed) {
+                          const fee = parseFloat(feeResult.value || "0");
+                          const { resolveCoachRequest } = await import('@/app/actions/users');
+                          const res = await resolveCoachRequest(req.id, "APPROVED_PENDING_PAYMENT", req.athleteId, req.coachId, fee);
+                          
+                          if (res.success) {
+                            setCoachRequests(prev => prev.filter(r => r.id !== req.id));
+                            if (fee > 0) {
+                              Swal.fire('¡Aprobado!', 'El atleta debe pagar en Recepción o Tienda para oficializar el cambio.', 'success');
+                            } else {
+                              Swal.fire('¡Aprobado!', 'El atleta ha sido reasignado gratuitamente al instante.', 'success');
+                            }
+                          } else {
+                            Swal.fire('Error', res.error, 'error');
+                          }
                         }
                       }}
                       className="flex-1 sm:flex-none bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition"
@@ -290,7 +302,7 @@ export function AdminDashboard() {
               className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isGenerating ? (
-                <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                <Loader size={20} color="currentColor" />
               ) : (
                 <>
                   <CheckCircle2 className="h-5 w-5" /> Generar y Descargar
@@ -503,16 +515,37 @@ export function AdminDashboard() {
             <CardTitle className="text-orange-500">Membresías por Vencer</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3">
-              {dynamicStats.membresiasPorVencer.map((mem, i) => (
-                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
-                  <span className="font-medium">{mem.nombre}</span>
-                  <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded-full font-bold">
-                    Vence en {mem.venceEn}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {dynamicStats.membresiasPorVencer.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center bg-black/5 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mb-3">
+                  <CheckCircle2 className="w-6 h-6 text-orange-500 opacity-80" />
+                </div>
+                <h4 className="text-sm font-bold text-orange-600 dark:text-orange-400 mb-1">¡Todo está al día!</h4>
+                <p className="text-xs text-muted-foreground px-4">En este momento no hay atletas con membresías próximas a expirar.</p>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {dynamicStats.membresiasPorVencer.map((mem, i) => (
+                  <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
+                    <span className="font-medium">{mem.nombre}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded-full font-bold">
+                        Vence en {mem.venceEn}
+                      </span>
+                      <a 
+                        href={`https://wa.me/58${mem.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent("¡Hola " + mem.nombre + "! Recordatorio de GymPro: Tu membresía vence en " + mem.venceEn + ". ¡Te esperamos para renovar!")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-full transition"
+                        title="Enviar Recordatorio por WhatsApp"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
@@ -521,19 +554,29 @@ export function AdminDashboard() {
             <CardTitle className="text-green-500">Membresías Nuevas</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3">
-              {dynamicStats.membresiasNuevas.map((mem, i) => (
-                <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
-                  <div>
-                    <span className="font-medium block">{mem.nombre}</span>
-                    <span className="text-xs text-muted-foreground">{mem.plan}</span>
-                  </div>
-                  <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full">
-                    {mem.hace}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {dynamicStats.membresiasNuevas.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center bg-black/5 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mb-3">
+                  <CalendarDays className="w-6 h-6 text-green-500 opacity-80" />
+                </div>
+                <h4 className="text-sm font-bold text-green-600 dark:text-green-400 mb-1">Esperando nuevas afiliaciones</h4>
+                <p className="text-xs text-muted-foreground px-4">Aún no se han registrado inscripciones recientes en el gimnasio.</p>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {dynamicStats.membresiasNuevas.map((mem, i) => (
+                  <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
+                    <div>
+                      <span className="font-medium block">{mem.nombre}</span>
+                      <span className="text-xs text-muted-foreground">{mem.plan}</span>
+                    </div>
+                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full">
+                      {mem.hace}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

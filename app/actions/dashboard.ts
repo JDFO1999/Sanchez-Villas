@@ -86,6 +86,7 @@ export async function getDashboardStats() {
         const days = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         return {
           nombre: a.name,
+          phone: a.phone || "0000000000",
           venceEn: `${days} días`
         }
       })

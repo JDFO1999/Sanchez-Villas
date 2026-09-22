@@ -31,7 +31,7 @@ export interface Transaction {
   paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
   reference?: string // For Transferencia, Pago Movil y Binance
   receiptImage?: string // For Transferencia, Pago Movil y Binance (Base64)
-  status?: 'COMPLETED' | 'PENDING_PICKUP'
+  status?: 'COMPLETED' | 'PENDING_PICKUP' | 'PENDING_DELIVERY' | 'CANCELED' | string
   pickupCode?: string
   deliveredBy?: string // Guardar nombre del empleado que entrega el pedido online
 }

@@ -66,7 +66,16 @@ export function RoutineAssignmentModal({
     if (!selectedAthlete || !title) return
     setIsSubmitting(true)
     
-    if (modalType === "ROUTINE") {
+    const hasRoutineData = exercises.some(ex => ex.name.trim() !== "");
+    const hasDietData = Object.values(weeklyPlan).some((day: any) => 
+      day.breakfast.trim() !== "" || day.lunch.trim() !== "" || day.dinner.trim() !== "" || day.snacks.trim() !== ""
+    );
+
+    let routineSuccess = true;
+    let dietSuccess = true;
+
+    // Save Routine if it has data or if we are explicitly on the routine tab
+    if (hasRoutineData || (modalType === "ROUTINE" && !hasDietData)) {
       const res = await createRoutine({
         athleteId: selectedAthlete,
         coachId,
@@ -74,26 +83,30 @@ export function RoutineAssignmentModal({
         duration,
         date: new Date(),
         exercises: exercises.filter(ex => ex.name.trim() !== "")
-      })
-      if (res.success) {
-        resetForm()
-        onClose()
-        if (onSuccess) onSuccess()
-      }
-    } else {
+      });
+      routineSuccess = res.success;
+    }
+
+    // Save Diet if it has data or if we are explicitly on the diet tab
+    if (hasDietData || (modalType === "DIET" && !hasRoutineData)) {
       const res = await createDiet({
         athleteId: selectedAthlete,
         coachId,
         title,
         weeklyPlan: JSON.stringify(weeklyPlan),
         date: new Date()
-      })
-      if (res.success) {
-        resetForm()
-        onClose()
-        if (onSuccess) onSuccess()
-      }
+      });
+      dietSuccess = res.success;
     }
+
+    if (routineSuccess && dietSuccess) {
+      resetForm()
+      onClose()
+      if (onSuccess) onSuccess()
+    } else {
+      alert("Error al guardar el plan.");
+    }
+    
     setIsSubmitting(false)
   }
 

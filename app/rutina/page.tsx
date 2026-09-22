@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Swal from "sweetalert2"
 import { AppLayout } from "@/components/layout/app-layout"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -41,9 +42,23 @@ export default function RutinaPage() {
   }
 
   const handleComplete = async (routineId: string) => {
-    const res = await markRoutineCompleted(routineId)
-    if (res.success) {
-      loadData()
+    const result = await Swal.fire({
+      title: '¿Completar Rutina?',
+      text: '¿Estás seguro de marcar toda la rutina como completada por hoy? Esta acción quedará registrada en tu historial.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Completar',
+      cancelButtonText: 'Aún no',
+      confirmButtonColor: '#22c55e',
+      cancelButtonColor: '#ef4444'
+    });
+
+    if (result.isConfirmed) {
+      const res = await markRoutineCompleted(routineId);
+      if (res.success) {
+        Swal.fire('¡Felicidades!', 'Rutina completada con éxito. ¡Sigue así!', 'success');
+        loadData();
+      }
     }
   }
 
@@ -105,14 +120,7 @@ export default function RutinaPage() {
                           <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> Coach: {routine.coach?.name}</span>
                         </CardDescription>
                       </div>
-                      {!routine.completed && (
-                        <button 
-                          onClick={() => handleComplete(routine.id)}
-                          className="border border-green-500 text-green-500 hover:bg-green-500/10 px-4 py-2 rounded-lg font-bold transition bg-transparent"
-                        >
-                          Completar Hoy
-                        </button>
-                      )}
+                      
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -142,7 +150,18 @@ export default function RutinaPage() {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
+                      {!routine.completed && (
+                        <div className="mt-6 flex justify-end">
+                          <button 
+                            onClick={() => handleComplete(routine.id)}
+                            className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-5 h-5" />
+                            Completar Rutina Hoy
+                          </button>
+                        </div>
+                      )}
+                    </CardContent>
                 </Card>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
+import { Loader } from "@/components/ui/loader"
 import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X } from "lucide-react"
 import Link from "next/link"
 
@@ -206,7 +207,7 @@ export default function LoginPage() {
             className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center"
           >
             {isLoading ? (
-              <Dumbbell className="h-5 w-5 animate-spin" />
+              <Loader size={20} color="currentColor" />
             ) : (
               "Iniciar Sesión"
             )}

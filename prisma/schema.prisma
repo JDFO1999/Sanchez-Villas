@@ -26,7 +26,8 @@ model User {
   updatedAt        DateTime @updatedAt
 
   // Relaciones
-  memberships      Membership[]    @relation("AthleteMemberships")
+  memberships     Membership[]    @relation("AthleteMemberships")
+
   biometrics       Biometric[]
   transactions     Transaction[]   @relation("CashierTransactions")
   customerTx       Transaction[]   @relation("CustomerTransactions")
@@ -240,4 +241,6 @@ model DietAssignment {
   date        DateTime
   createdAt   DateTime @default(now())
 }
+
+
 

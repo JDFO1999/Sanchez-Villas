@@ -1,4 +1,5 @@
 ﻿"use client"
+import { FullScreenLoader } from "@/components/ui/loader"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -61,7 +62,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router])
 
-  if (isLoading) return <div className="h-screen w-screen flex items-center justify-center"><Dumbbell className="h-8 w-8 animate-spin text-primary" /></div>
+  if (isLoading) return <FullScreenLoader text="Iniciando..." />
 
   if (pathname === '/login' || pathname === '/registro') {
     return <>{children}</>
@@ -228,9 +229,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="lg:hidden">
-              <LogoComponent />
-            </div>
+            
           </div>
           <div className="flex items-center gap-4">
             <button

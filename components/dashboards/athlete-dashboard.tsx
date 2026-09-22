@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Calendar, CheckCircle2, Dumbbell, Flame, TrendingUp, ShoppingCart, Clock, Package, Eye, ScanBarcode } from "lucide-react"
 
-import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts"
+import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, Tooltip, CartesianGrid } from "recharts"
 import { Transaction, Product } from "@/lib/store-service"
 import { QRCodeSVG } from "qrcode.react"
 import { cancelTransaction } from "@/app/actions/store"
@@ -30,6 +30,7 @@ export function AthleteDashboard() {
   const [liveDiets, setLiveDiets] = useState<any[]>([])
   const [attendances, setAttendances] = useState<any[]>([])
   const [streak, setStreak] = useState(0)
+  const [biometrics, setBiometrics] = useState<any[]>([])
 
   const handleCancelTx = async (tx: Transaction) => {
     const result = await Swal.fire({
@@ -46,7 +47,7 @@ export function AthleteDashboard() {
     });
 
     if (result.isConfirmed) {
-      Swal.fire({ title: 'Cancelando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+      Swal.fire({ title: 'Cancelando...', allowOutsideClick: false, didOpen: () => { Swal.getPopup()!.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:20px"><div style="position:relative;width:48px;height:48px;animation:ios-spin 1s steps(12,end) infinite"><style>@keyframes ios-spin{100%{transform:rotate(360deg)}}.ios-blade{position:absolute;left:46%;top:0;width:8%;height:25%;border-radius:5px;background-color:#22c55e;transform-origin:50% 200%}</style>' + Array.from({length:12}).map((_,i) => '<div class="ios-blade" style="transform:rotate('+(i*30)+'deg);opacity:'+((i+1)/12)+'"></div>').join('') + '</div><p style="margin-top:16px;font-weight:bold;color:#22c55e;animation:pulse 2s infinite">Cargando...</p></div>' } });
       const res = await cancelTransaction(tx.id);
       if (res.success) {
         Swal.fire({ title: 'Cancelado', text: 'El pedido fue cancelado correctamente.', icon: 'success', background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff', color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827' });
@@ -73,9 +74,9 @@ export function AthleteDashboard() {
             setLiveRoutines(stats.routines || []);
             setLiveDiets(stats.diets || []);
             setLiveDiets(stats.diets || []);
-            console.log('API returned purchases:', stats.purchases);
               setPurchases(stats.purchases || []);
             setAttendances(stats.attendances || []);
+          setBiometrics(stats.biometrics || []);
             setStreak(stats.streak || 0);
             setExerciseProgress(stats.exerciseProgress || []);
           }
@@ -390,6 +391,40 @@ export function AthleteDashboard() {
           )}
         </CardContent>
       </Card>
+
+      
+      {/* Evolución Física */}
+      {biometrics.length > 0 && (
+        <Card className="glass border-black/10 dark:border-white/10 mt-6 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 to-transparent">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <TrendingUp className="text-blue-500 w-6 h-6" />
+              Mi Evolución Física
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={biometrics.map(b => ({...b, date: new Date(b.date).toLocaleDateString()}))} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={3} name="Peso (kg)" dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  {biometrics.some(b => b.bodyFat) && <Line type="monotone" dataKey="bodyFat" stroke="#f59e0b" strokeWidth={3} name="% Grasa" />}
+                  <CartesianGrid stroke="#ccc" strokeDasharray="5 5" opacity={0.2} />
+                  <XAxis dataKey="date" tick={{fontSize: 12}} tickMargin={10} stroke="currentColor" opacity={0.5} />
+                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 12}} stroke="currentColor" opacity={0.5} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '10px', background: 'rgba(0,0,0,0.8)', border: 'none', color: '#fff' }}
+                    itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex gap-4 justify-center mt-4 text-sm font-medium">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div>Peso</div>
+              {biometrics.some(b => b.bodyFat) && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div>Grasa Corporal</div>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* TICKET MODAL */}
       {showTicketModal && (

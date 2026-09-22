@@ -71,7 +71,7 @@ export default function AtletaPerfilPage() {
   useEffect(() => {
     if (getAllEmployees) {
       getAllEmployees().then(res => {
-        setAllCoaches(res.filter((e: any) => e.role !== 'admin'))
+        setAllCoaches(res.filter((e: any) => e.role === 'coach'))
       }).catch(console.error)
     } else {
       setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
@@ -153,12 +153,40 @@ export default function AtletaPerfilPage() {
 
   const filteredCoaches = allCoaches.filter(c => c.name.toLowerCase().includes(coachSearch.toLowerCase()))
 
-  const handleAdminAssignCoach = (coachId: string) => {
-    const updated = { ...athlete, coachId }
-    import('@/app/actions/users').then(m => m.updateAthlete(updated.id, updated))
-    setAthlete(updated)
+  const handleAdminAssignCoach = async (coachId: string) => {
     setShowAdminCoachModal(false)
-    alert("Entrenador asignado con éxito.")
+    const coach = allCoaches.find(c => c.id === coachId);
+    if(!coach) return;
+    
+    const result = await Swal.fire({
+      title: '¿Confirmar Reasignación?',
+      html: `
+        <p>Vas a reasignar este atleta al entrenador <b>${coach.name}</b>.</p>
+        <div style="margin-top:15px; padding:15px; border-radius:8px; text-align:left;" class="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+          <p style="font-size:13px; margin:0;"><b>Importante:</b> Al confirmar, la plataforma actualizará el perfil del atleta. El atleta luego podrá proceder a caja a pagar la nueva cuota asignada o la propuesta por el entrenador.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Reasignar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#eab308',
+      cancelButtonColor: '#ef4444',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      const updated = { ...athlete, coachId }
+      await import('@/app/actions/users').then(m => m.updateAthlete(updated.id, updated))
+      setAthlete(updated)
+      
+      Swal.fire({
+        title: '¡Asignado Exitosamente!',
+        text: 'El atleta ahora está con ' + coach.name + '. Ya puede realizar el pago de la cuota correspondiente.',
+        icon: 'success',
+        confirmButtonColor: '#22c55e'
+      });
+    }
   }
 
   const handleAssignRoutine = (e: React.FormEvent) => {
@@ -170,17 +198,37 @@ export default function AtletaPerfilPage() {
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!requestTarget || !id) {
-      alert("Por favor selecciona un entrenador.")
-      return
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Por favor selecciona un entrenador.' });
+      return;
     }
+    
+    const coach = allCoaches.find(c => c.id === requestTarget);
+    
+    const confirm = await Swal.fire({
+      title: '¿Enviar Solicitud?',
+      html: `
+        <p>Se enviará una petición formal para cambiar al entrenador <b>${coach?.name || ''}</b>.</p>
+        <div style="margin-top:15px; padding:15px; border-radius:8px; text-align:left;" class="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+          <p style="font-size:13px; margin:0;"><b>Importante:</b> Esta solicitud debe ser confirmada por la administración. Una vez autorizada, se establecerá la nueva cuota para que puedas oficializar el cambio pagando en Recepción o Tienda.</p>
+        </div>
+      `,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar Solicitud',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb'
+    });
+
+    if (!confirm.isConfirmed) return;
+
     const { requestCoachChange } = await import('@/app/actions/users')
     const res = await requestCoachChange(id as string, requestTarget)
     if (res.success) {
-      alert("Solicitud enviada al Administrador con éxito.")
+      Swal.fire('¡Solicitud Enviada!', 'El administrador evaluará la solicitud y te asignará la cuota correspondiente. Podrás verificarlo pronto.', 'success')
       setShowCoachRequest(false)
       setRequestReason("")
     } else {
-      alert(res.error || "Ocurrió un error al enviar la solicitud")
+      Swal.fire('Error', res.error || "Ocurrió un error al enviar la solicitud", 'error')
     }
   }
 

@@ -1,3 +1,4 @@
+import { Loader } from "@/components/ui/loader"
 "use client"
 
 import { useState } from "react"
@@ -182,7 +183,7 @@ export default function RegistroPage() {
           </div>
 
           <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center mt-6 disabled:opacity-50">
-            {isLoading ? <Dumbbell className="h-5 w-5 animate-spin" /> : "Completar Registro"}
+            {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>
         </form>
       </div>

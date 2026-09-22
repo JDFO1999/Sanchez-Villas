@@ -304,24 +304,58 @@ export async function getPendingCoachRequests() {
   }
 }
 
-export async function resolveCoachRequest(requestId: string, status: 'APPROVED' | 'REJECTED', athleteId: string, newCoachId: string) {
+export async function resolveCoachRequest(requestId: string, status: 'APPROVED' | 'REJECTED' | 'APPROVED_PENDING_PAYMENT', athleteId: string, newCoachId: string, fee?: number) {
   try {
-    await prisma.coachRequest.update({
-      where: { id: requestId },
-      data: { status }
-    })
-    if (status === 'APPROVED') {
-      const athlete = await prisma.user.findUnique({ where: { id: athleteId } })
-      await prisma.user.update({
-        where: { id: athleteId },
+    if (status === 'APPROVED_PENDING_PAYMENT' && fee && fee > 0) {
+      // Guardar status como pendiente en el request (o APPROVED si no hay fee)
+      await prisma.coachRequest.update({
+        where: { id: requestId },
+        data: { status: 'PENDING_PAYMENT' }
+      });
+
+      // Crear transacción pendiente en POS
+      await prisma.transaction.create({
         data: {
-          previousCoachId: athlete?.coachId,
-          coachId: newCoachId
+          customerId: athleteId,
+          cashierId: 'admin', // or null depending on schema
+          paymentMethod: 'Efectivo',
+          subtotal: fee,
+          tax: 0,
+          total: fee,
+          status: 'PENDING_DELIVERY',
+          items: {
+            create: [
+              {
+                productId: 'COACH_FEE',
+                name: 'Cuota de Cambio de Entrenador',
+                price: fee,
+                qty: 1,
+                subtotal: fee
+              }
+            ]
+          }
         }
-      })
+      });
+    } else {
+      await prisma.coachRequest.update({
+        where: { id: requestId },
+        data: { status: status === 'APPROVED_PENDING_PAYMENT' ? 'APPROVED' : status }
+      });
+
+      if (status === 'APPROVED' || (status === 'APPROVED_PENDING_PAYMENT' && (!fee || fee === 0))) {
+        const athlete = await prisma.user.findUnique({ where: { id: athleteId } });
+        await prisma.user.update({
+          where: { id: athleteId },
+          data: {
+            previousCoachId: athlete?.coachId,
+            coachId: newCoachId
+          }
+        });
+      }
     }
-    revalidatePath('/')
-    return { success: true }
+    
+    revalidatePath('/');
+    return { success: true };
   } catch (error) {
     return { success: false, error: 'Error interno' }
   }
@@ -381,7 +415,6 @@ export async function getAthleteDashboardData(athleteId: string) {
       where: { athleteId },
       orderBy: { date: "asc" }
     })
-    console.log("SERVER SIDE PURCHASES FOR", athleteId, ":", purchases.length);
     const payload = { success: true, biometrics, attendances: allAttendances.slice(0, 5), memberships, purchases, streak, routines, diets, exerciseProgress };
     return JSON.parse(JSON.stringify(payload));
   } catch (error) {

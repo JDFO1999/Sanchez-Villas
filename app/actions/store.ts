@@ -1,6 +1,7 @@
 "use server";
 import { verifySession } from "@/lib/session";
 import prisma from "@/lib/db"
+import { sendReceiptEmail } from "@/lib/mailer"
 import { revalidatePath } from "next/cache"
 import { saveBase64Image } from "@/lib/image-utils"
 
@@ -226,14 +227,36 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
         throw new Error('No tienes un turno de caja abierto para registrar esta entrega.');
       }
 
-      return await tx.transaction.update({
+      const updatedTx = await tx.transaction.update({
         where: { id: transactionId },
         data: {
           status: 'COMPLETED',
           cashierId: cashierId,
           cashSessionId: activeSession.id
-        }
+        },
+        include: { items: true }
       });
+
+      // Hook for Coach Change Fee
+      const hasCoachFee = updatedTx.items.some((i: any) => i.productId === 'COACH_FEE');
+      if (hasCoachFee && updatedTx.customerId) {
+        const req = await tx.coachRequest.findFirst({
+          where: { athleteId: updatedTx.customerId, status: 'PENDING_PAYMENT' },
+          orderBy: { createdAt: 'desc' }
+        });
+        if (req) {
+          const athlete = await tx.user.findUnique({ where: { id: updatedTx.customerId } });
+          await tx.user.update({
+            where: { id: updatedTx.customerId },
+            data: { previousCoachId: athlete?.coachId, coachId: req.newCoachId }
+          });
+          await tx.coachRequest.update({
+            where: { id: req.id },
+            data: { status: 'COMPLETED' }
+          });
+        }
+      }
+      return updatedTx;
     });
 
     return { success: true, transaction };
@@ -265,6 +288,53 @@ export async function cancelTransaction(transactionId: string) {
           where: { id: item.productId },
           data: { stock: { increment: item.qty } }
         });
+      }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function adminRefundTransaction(transactionId: string) {
+  try {
+    const tx = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: { items: true }
+    });
+
+    if (!tx) return { success: false, error: 'Transacción no encontrada' };
+    if (tx.status === 'CANCELED') return { success: false, error: 'La transacción ya está anulada' };
+
+    await prisma.$transaction(async (txPrisma) => {
+      // 1. Mark as CANCELED
+      await txPrisma.transaction.update({
+        where: { id: transactionId },
+        data: { status: 'CANCELED' }
+      });
+
+      // 2. Return stock for physical items
+      for (const item of tx.items) {
+        if (!['MEMB', 'COACH'].includes(item.productId)) {
+          const productExists = await txPrisma.product.findUnique({ where: { id: item.productId } });
+          if (productExists) {
+            await txPrisma.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.qty } }
+            });
+          }
+        }
+      }
+
+      // 3. Deduct from FIADO debt if applicable
+      if (tx.paymentMethod === 'FIADO' || tx.paymentMethod === 'Crédito/Fiado') {
+        if (tx.customerId) {
+          await txPrisma.user.update({
+            where: { id: tx.customerId },
+            data: { storeDebt: { decrement: tx.total } }
+          });
+        }
       }
     });
 

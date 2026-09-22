@@ -264,6 +264,35 @@ export default function FinanzasPage() {
     })
   }
 
+  const handleAdminCancelTx = async (id: string) => {
+    const { value: pin } = await Swal.fire({
+      title: 'Validación Requerida',
+      text: 'Ingrese PIN de Administrador para anular esta factura:',
+      input: 'password',
+      inputPlaceholder: 'PIN...',
+      showCancelButton: true,
+      confirmButtonText: 'Validar y Anular',
+      cancelButtonText: 'Cancelar'
+    });
+    if (!pin) return;
+    
+    const { validatePinAction } = await import('@/app/actions/auth');
+    const authRes = await validatePinAction(pin);
+    if (!authRes.success || authRes.user?.role !== 'admin') {
+      return Swal.fire('Error', 'PIN incorrecto o sin permisos.', 'error');
+    }
+    
+    Swal.fire({ title: 'Anulando...', allowOutsideClick: false, didOpen: () => Swal.getPopup()!.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:20px"><div style="position:relative;width:48px;height:48px;animation:ios-spin 1s steps(12,end) infinite"><style>@keyframes ios-spin{100%{transform:rotate(360deg)}}.ios-blade{position:absolute;left:46%;top:0;width:8%;height:25%;border-radius:5px;background-color:#22c55e;transform-origin:50% 200%}</style>' + Array.from({length:12}).map((_,i) => '<div class="ios-blade" style="transform:rotate('+(i*30)+'deg);opacity:'+((i+1)/12)+'"></div>').join('') + '</div><p style="margin-top:16px;font-weight:bold;color:#22c55e;animation:pulse 2s infinite">Cargando...</p></div>' });
+    const { adminRefundTransaction } = await import('@/app/actions/store');
+    const res = await adminRefundTransaction(id);
+    if (res.success) {
+      Swal.fire('¡Anulada!', 'La factura fue anulada y el stock devuelto.', 'success');
+      window.location.reload();
+    } else {
+      Swal.fire('Error', res.error, 'error');
+    }
+  };
+
   const openProcessPayroll = (emp: any, base: number, commission: number) => {
     setPayrollProcessData({
       employeeId: emp.id,
@@ -981,9 +1010,16 @@ export default function FinanzasPage() {
                       </td>
                       <td className="p-4">
                         <div className="font-bold text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
-                      </td>
-                    </tr>
+                          <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
+                        </td>
+                        <td className="p-4 text-center">
+                          {tx.status === 'CANCELED' ? (
+                            <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded">ANULADA</span>
+                          ) : (
+                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-red-500 border border-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                          )}
+                        </td>
+                      </tr>
                   ))}
                   {transactions.length === 0 && (
                     <tr>

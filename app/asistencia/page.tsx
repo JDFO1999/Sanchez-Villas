@@ -50,10 +50,60 @@ export default function AsistenciaPage() {
         name: (res.user?.name || ""),
         membershipEnd: (res.user?.membershipEnd || "")
       })
+      
+      // Beep success (Web Audio API)
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      } catch(e){}
+      
+      Swal.fire({
+        title: '¡Acceso Concedido!',
+        html: `<p class="text-xl font-bold">${res.user?.name}</p><p class="text-sm text-muted-foreground mt-2">Vence: ${new Date(res.user?.membershipEnd || "").toLocaleDateString()}</p>`,
+        icon: 'success',
+        timer: 3000,
+        showConfirmButton: false
+      });
     } else {
       setStatus('error')
       setMessage(res.error)
       setAthlete(res.lastDate ? { name: "Membresía Caducada", membershipEnd: res.lastDate } : null)
+      
+      // Beep error (Web Audio API)
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch(e){}
+      
+      Swal.fire({
+        title: '¡ACCESO DENEGADO!',
+        html: `<p class="text-xl font-bold text-red-500">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Entendido',
+        background: '#fff1f2',
+        color: '#991b1b'
+      });
     }
     
     setCedula("")

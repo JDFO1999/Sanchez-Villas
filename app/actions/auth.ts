@@ -9,12 +9,26 @@ export async function loginAction(cedula: string, clave: string) {
     const user = await prisma.user.findUnique({
       where: { cedula }
     });
+    if (user) {
+    }
+
 
     if (!user) {
       return { success: false, error: "Usuario no encontrado" }
     }
 
-    if (user.password !== clave) {
+    
+    
+    let isMatch = false;
+    try {
+      isMatch = await bcrypt.compare(clave, user.password || "");
+    } catch (err) {
+    }
+
+    // Fallback for legacy plain-text passwords
+    const isLegacyMatch = user.password === clave;
+    
+    if (!isMatch && !isLegacyMatch) {
       return { success: false, error: "Contraseña incorrecta" }
     }
 
