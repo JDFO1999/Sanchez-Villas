@@ -145,7 +145,7 @@ export default function TiendaPOSPage() {
       setPendingCartProduct(null)
       showToast("Venta sin stock autorizada.", "success")
     } else {
-      showToast("Cédula de administrador invÃ¡lida.", "error")
+      showToast("Cédula de administrador invalida.", "error")
     }
   }
 
@@ -224,7 +224,7 @@ export default function TiendaPOSPage() {
     if (!isAthlete) {
       const { value: pin } = await Swal.fire({
         title: 'Validación de Seguridad',
-        text: 'Escanee su cÃ³digo de barras o ingrese su PIN de Cajero para procesar la venta:',
+        text: 'Escanee su codigo de barras o ingrese su PIN de Cajero para procesar la venta:',
         input: 'password',
         inputPlaceholder: 'Ingrese su PIN...',
         showCancelButton: true,
@@ -522,7 +522,7 @@ export default function TiendaPOSPage() {
                       })()}
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">NÃºmero de Referencia ({paymentMethod})</label>
+                      <label className="text-xs font-medium text-muted-foreground">Numero de Referencia ({paymentMethod})</label>
                       <input 
                         type="text" 
                         value={txReference}
@@ -536,7 +536,7 @@ export default function TiendaPOSPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
                           <ImageIcon className="h-5 w-5 shrink-0" />
-                          <span className="truncate w-full">GalerÃ­a</span>
+                          <span className="truncate w-full">Galería</span>
                           <input 
                             type="file"
                             accept="image/*"
@@ -668,7 +668,7 @@ export default function TiendaPOSPage() {
               <input 
                 ref={barcodeInputRef}
                 type="text" 
-                placeholder="Escanea cÃ³digo de barras o busca por nombre..." 
+                placeholder="Escanea Codigo de barras o busca por nombre..." 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
@@ -761,8 +761,8 @@ export default function TiendaPOSPage() {
             {cart.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 py-10">
                 <ShoppingCart className="h-12 w-12 mb-4" />
-                <p>Carrito VacÃ­o</p>
-                <p className="text-xs text-center mt-2 max-w-[200px]">Usa el lector de cÃ³digo de barras o selecciona un producto de la lista.</p>
+                <p>Carrito Vacío</p>
+                <p className="text-xs text-center mt-2 max-w-[200px]">Usa el lector de codigos de barras o selecciona un producto de la lista.</p>
               </div>
             )}
           </div>
@@ -804,7 +804,7 @@ export default function TiendaPOSPage() {
                     ))}
                     {athletes.filter(a => a.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) || a.cedula.includes(clientSearchQuery)).length === 0 && (
                       <div className="px-4 py-3 text-xs text-muted-foreground text-center">
-                        No se encontraron clientes. <br/><span className="text-primary font-bold">Haz clic en '+ Nuevo' arriba.</span>
+                        No se encontraron clientes. <br/><span className="text-primary font-bold">Haz clic en &quot;+ Nuevo&quot; arriba.</span>
                       </div>
                     )}
                   </div>
@@ -819,8 +819,8 @@ export default function TiendaPOSPage() {
                 if (isExpired) {
                   return (
                     <div className="mt-2 bg-red-500/20 border border-red-500/50 p-2 rounded flex gap-2 items-start text-xs text-red-500">
-                      <span className="font-bold uppercase">¡AtenciÃ³n!</span>
-                      <span>MembresÃ­a Vencida ({athlete.membershipEnd}). Ofrece la renovaciÃ³n.</span>
+                      <span className="font-bold uppercase">¡Atención!</span>
+                      <span>Membresía Vencida ({athlete.membershipEnd}). Ofrece la renovación.</span>
                     </div>
                   );
                 }
@@ -877,7 +877,7 @@ export default function TiendaPOSPage() {
                   <div className="flex gap-2">
                     <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                       <ImageIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">GalerÃ­a</span>
+                      <span className="truncate">Galeri­a</span>
                       <input 
                         type="file"
                         accept="image/*"
@@ -894,7 +894,7 @@ export default function TiendaPOSPage() {
                     </label>
                     <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
                       <Camera className="h-4 w-4 shrink-0" />
-                      <span className="truncate">CÃ¡mara</span>
+                      <span className="truncate">Cámara</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -969,7 +969,7 @@ export default function TiendaPOSPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Buscar por Cédula, Nombre o Cï¿½digo de Pedido..." 
+                  placeholder="Buscar por Cédula, Nombre o Codigo de Pedido..." 
                   value={pendingSearch}
                   onChange={(e) => setPendingSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-orange-500"
@@ -1012,17 +1012,17 @@ export default function TiendaPOSPage() {
                           onClick={async () => {
                             if (!user?.id) return;
                             const result = await Swal.fire({
-                              title: 'ï¿½Entregar Pedido?',
-                              text: `ï¿½Confirmas que vas a entregar este pedido a ${order.customer?.name}? Esta venta se asignarï¿½ a tu caja actual.`, 
+                              title: '¿Entregar Pedido?',
+                              text: `¿Confirmas que vas a entregar este pedido a ${order.customer?.name}? Esta venta se asignará a tu caja actual.`, 
                               icon: 'question',
                               showCancelButton: true,
-                              confirmButtonText: 'Sï¿½, Entregar'
+                              confirmButtonText: 'Si Entregar'
                             });
                             if (result.isConfirmed) {
                               const { deliverTransaction } = await import('@/app/actions/store');
                               const res = await deliverTransaction(order.id, user.id);
                               if (res.success) {
-                                showToast('Pedido entregado con ï¿½éxito y asignado a tu caja.', 'success');
+                                showToast('Pedido entregado con éxito y asignado a tu caja.', 'success');
                                 fetchPendingOrders();
                               } else {
                                 showToast(res.error || 'Error al entregar pedido.', 'error');
@@ -1048,8 +1048,8 @@ export default function TiendaPOSPage() {
       {showAdminOverride && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-2 text-red-500">AutorizaciÃ³n Requerida</h3>
-            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase cÃ³digo de Administrador para facturar sin stock.</p>
+            <h3 className="text-xl font-bold mb-2 text-red-500">Autorización Requerida</h3>
+            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase código de Administrador para facturar sin stock.</p>
             <form onSubmit={handleAdminOverride} className="space-y-4">
               <input 
                 type="password" 
@@ -1115,12 +1115,12 @@ export default function TiendaPOSPage() {
                   <input 
                     required autoFocus type="text" value={walkInCedula} onChange={e => setWalkInCedula(e.target.value)}
                     className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    placeholder="NÃºmero..."
+                    placeholder="Número..."
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Nombre / RazÃ³n Social</label>
+                <label className="text-xs text-muted-foreground">Nombre / Razón Social</label>
                 <input 
                   required type="text" value={walkInName} onChange={e => setWalkInName(e.target.value)}
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
@@ -1194,7 +1194,7 @@ export default function TiendaPOSPage() {
 
               <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
                 <div className="flex justify-between">
-                  <span>ArtÃ­culos Totales</span>
+                  <span>Artículos Totales</span>
                   <span>{showReceipt.items.reduce((acc, item) => acc + item.qty, 0)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -1240,7 +1240,7 @@ export default function TiendaPOSPage() {
                 <button 
                   onClick={() => {
                     const client = showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId) : null;
-                    const phone = client?.phone || prompt("Ingrese número de teléfono (con cÃ³digo de país ej. 57300...):");
+                    const phone = client?.phone || prompt("Ingrese número de teléfono (con código de país ej. 57300...):");
                     if (phone) {
                       const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0A¡Gracias por preferirnos!`;
                       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');

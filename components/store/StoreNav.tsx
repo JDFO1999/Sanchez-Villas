@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -17,7 +17,7 @@ export function StoreNav() {
   ]
 
   return (
-    <div className="flex flex-wrap gap-2 pb-4 mb-4 border-b border-black/10 dark:border-white/10">
+    <div className="flex flex-wrap gap-2 pb-4 mb-4 relative">
       {navs.map(nav => {
         if (nav.adminOnly && user?.role !== 'admin') return null
 
@@ -28,7 +28,7 @@ export function StoreNav() {
             href={nav.href}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium whitespace-nowrap ${
               isActive 
-                ? "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent shadow-md shadow-primary/20" 
+                ? "bg-transparent border-2 border-primary text-primary hover:bg-primary/10" 
                 : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:bg-white/10 hover:text-foreground"
             }`}
           >

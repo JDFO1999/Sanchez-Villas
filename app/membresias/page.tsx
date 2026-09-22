@@ -449,32 +449,32 @@ export default function MembresíasPage() {
                   <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">CÃ©dula</label>
+                  <label className="text-xs font-medium mb-1 block">Cedula</label>
                   <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">TelÃ©fono</label>
+                  <label className="text-xs font-medium mb-1 block">Telefono</label>
                   <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
                 <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">DirecciÃ³n</label>
+                  <label className="text-xs font-medium mb-1 block">Direccion</label>
                   <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar ContraseÃ±a (Opcional)</p>
+                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva ContraseÃ±a</label>
+                    <label className="text-xs font-medium mb-1 block">Nueva Contraseña</label>
                     <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar ContraseÃ±a</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseÃ±a" disabled={!editPassword} required={!!editPassword} />
+                    <label className="text-xs font-medium mb-1 block">Confirmar Contraseña</label>
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
                     {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
                     {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
@@ -495,7 +495,7 @@ export default function MembresíasPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviarÃ¡ a: {showMessageModal.phone || 'Sin nÃºmero registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin numeroo registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -566,9 +566,9 @@ export default function MembresíasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">MembresÃ­as & CRM</h1>
+          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresias y Gestion Social</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes y comunÃ­cate con tus atletas.
+            Gestiona accesos, planes Comunicacion con los Atletas.
           </p>
         </div>
         
@@ -587,7 +587,7 @@ export default function MembresíasPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Buscar por cÃ©dula o nombre..." 
+              placeholder="Buscar por Cedula o nombre..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
@@ -624,26 +624,26 @@ export default function MembresíasPage() {
                     </div>
                   </div>
 
-                  {/* Detalles MembresÃ­a */}
+                  {/* Detalles Membresias */}
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{a.membershipType || 'Plan EstÃ¡ndar'}</span>
+                      <span className="text-sm font-medium">{a.membershipType || 'Plan Estandar'}</span>
                     </div>
                     <div className="text-sm">
                       <span className="text-muted-foreground">Vence: </span>
                       <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
                       <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                        {isExpired ? 'Vencida' : `${diffDays} dÃ­as`}
+                        {isExpired ? 'Vencida' : `${diffDays} dias`}
                       </span>
                     </div>
                   </div>
 
-                  {/* Ãšltimo Acceso */}
+                  {/* Ultimo Acceso */}
                   <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Ãšltimo Acceso</span>
+                      <span className="text-sm font-medium">Ultimo Acceso</span>
                     </div>
                     <p className="text-sm text-muted-foreground">{a.lastLogin || 'Nunca'}</p>
                   </div>

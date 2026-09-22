@@ -444,56 +444,140 @@ export default function FinanzasPage() {
     setShowReportModal(true)
   }
 
-  const confirmDownload = () => {
-    setIsGenerating(true)
-    setTimeout(() => {
-      setIsGenerating(false)
-      setShowReportModal(false)
-      const link = document.createElement("a");
+    const confirmDownload = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const { exportToPDF, exportToExcel } = await import('@/lib/export-service');
       
-      let csvContent = "data:text/csv;charset=utf-8,";
+      let title = '';
+      let cols: string[] = [];
+      let pdfData: any[][] = [];
+      let excelData: any[] = [];
       
       if (reportSection === 'Ingresos') {
-        csvContent += "Fecha,Ticket,Metodo,Referencia,Monto\n";
+        title = 'Reporte de Ingresos (Cierre de Caja)';
+        cols = ['Día / Fecha', 'Atleta', 'Cédula', 'Método', 'Ref.', 'Monto'];
+        
+        // Group by cashier
+        const grouped: Record<string, any[]> = {};
         transactions.forEach(t => {
-          csvContent += `"${new Date(t.date).toLocaleDateString()}","${t.id}","${t.paymentMethod}","${t.reference||''}","${t.total}"\n`;
-        })
+          let cashier = 'Desconocido / Online';
+          if (t.cashierId) {
+             const emp = employees.find(e => e.id === t.cashierId);
+             if (emp) cashier = emp.name;
+          } else if (t.deliveredBy) {
+             cashier = t.deliveredBy;
+          }
+          if (!grouped[cashier]) grouped[cashier] = [];
+          grouped[cashier].push(t);
+        });
+
+        Object.keys(grouped).forEach(cashierName => {
+          // Add separator row for cashier
+          pdfData.push([{ 
+            content: `👉 FACTURADO POR: ${cashierName.toUpperCase()}`, 
+            colSpan: 6, 
+            styles: { fillColor: [240, 245, 250], textColor: [41, 128, 185], fontStyle: 'bold' } 
+          }]);
+          
+          // Sort transactions by date
+          const txs = grouped[cashierName].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          txs.forEach(t => {
+            let athName = 'Consumidor Final';
+            let athCed = 'N/A';
+            if (t.customerId && t.customerId !== 'unknown') {
+               const ath = athletes.find(a => a.id === t.customerId);
+               if (ath) { athName = ath.name; athCed = ath.cedula || 'N/A'; }
+               else if (t.customer) { athName = t.customer.name; athCed = t.customer.cedula || 'N/A'; }
+            }
+            
+            const dateObj = new Date(t.date);
+            const dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+            
+            pdfData.push([
+              dateStr,
+              athName,
+              athCed,
+              t.paymentMethod,
+              t.reference || 'N/A',
+              `${t.total.toFixed(2)}`
+            ]);
+            excelData.push({ 
+              Cajero: cashierName, 
+              Dia: dateStr, 
+              Atleta: athName, 
+              Cedula: athCed, 
+              Metodo: t.paymentMethod, 
+              Referencia: t.reference || '',
+              Monto: t.total 
+            });
+          });
+        });
+
       } else if (reportSection === 'Egresos') {
-        csvContent += "Fecha,Descripcion,Categoria,MontoUSD\n";
+        title = 'Reporte de Egresos';
+        cols = ['Fecha', 'Descripcion', 'Categoria', 'Monto USD'];
         expenses.forEach(e => {
-          csvContent += `"${new Date(e.date).toLocaleDateString()}","${e.description}","${e.category}","${e.amount}"\n`;
-        })
+          const row = [new Date(e.date).toLocaleDateString(), e.description, e.category, e.amount.toString()];
+          pdfData.push(row);
+          excelData.push({ Fecha: row[0], Descripcion: row[1], Categoria: row[2], MontoUSD: row[3] });
+        });
       } else if (reportSection === 'Cuentas por Cobrar') {
-        csvContent += "Atleta,Cedula,Plan,Vencimiento,MontoEstimadoDeuda\n";
+        title = 'Cuentas por Cobrar';
+        cols = ['Atleta', 'Cedula', 'Plan', 'Vencimiento', 'Monto Estimado Deuda'];
         overdueAthletes.forEach(a => {
-          csvContent += `"${a.name}","${a.cedula}","${a.membershipType||'Base'}","${new Date(a.membershipEnd).toLocaleDateString()}","30"\n`;
-        })
+          const row = [a.name, a.cedula, a.membershipType||'Base', new Date(a.membershipEnd).toLocaleDateString(), '30'];
+          pdfData.push(row);
+          excelData.push({ Atleta: row[0], Cedula: row[1], Plan: row[2], Vencimiento: row[3], Deuda: row[4] });
+        });
       } else if (reportSection === 'Nómina') {
-        csvContent += "Empleado,Rol,Atletas,ComisionEstimada\n";
+        title = 'Reporte de Nómina';
+        cols = ['Empleado', 'Rol', 'Atletas Asignados', 'Comision Estimada'];
         employees.forEach(emp => {
-          const count = athletes.filter(a => a.coachId === emp.id).length
-          csvContent += `"${emp.name}","${emp.role}","${count}","${count*15}"\n`;
-        })
+          const count = athletes.filter(a => a.coachId === emp.id).length;
+          const row = [emp.name, emp.role, count.toString(), (count * 15).toString()];
+          pdfData.push(row);
+          excelData.push({ Empleado: row[0], Rol: row[1], Atletas: row[2], Comision: row[3] });
+        });
       } else {
-        csvContent += "Concepto,Monto\n";
-        csvContent += `"Ingresos Totales","${totalIngresos}"\n`;
-        csvContent += `"Egresos Totales","${totalEgresos}"\n`;
-        csvContent += `"Cuentas Por Cobrar","${estimatedDebt}"\n`;
-        csvContent += `"Balance Neto","${balanceNeto}"\n`;
+        title = 'Resumen Financiero';
+        cols = ['Concepto', 'Monto'];
+        const r1 = ['Ingresos Totales', totalIngresos.toString()];
+        const r2 = ['Egresos Totales', totalEgresos.toString()];
+        const r3 = ['Cuentas Por Cobrar', estimatedDebt.toString()];
+        const r4 = ['Balance Neto', balanceNeto.toString()];
+        pdfData.push(r1, r2, r3, r4);
+        excelData.push(
+          { Concepto: r1[0], Monto: r1[1] },
+          { Concepto: r2[0], Monto: r2[1] },
+          { Concepto: r3[0], Monto: r3[1] },
+          { Concepto: r4[0], Monto: r4[1] }
+        );
       }
 
-      // If PDF, just alert that it's using CSV logic for now (native JS PDF needs large libs)
+      const filename = `Reporte_${reportSection.replace(/ /g, '_')}`;
+      
       if (reportFormat === 'PDF') {
-         alert("La exportación a PDF nativa requiere una librería externa (como jspdf). Para esta demostración se exportará como Excel/CSV que puedes imprimir como PDF.");
+        exportToPDF({
+          title,
+          columns: cols,
+          data: pdfData,
+          filename,
+          appName: settings?.appName || 'GymPro',
+          logoUrl: settings?.logoUrl
+        });
+      } else {
+        exportToExcel(excelData, reportSection, filename);
       }
-
-      const encodedUri = encodeURI(csvContent);
-      link.href = encodedUri;
-      link.download = `Reporte_${reportSection.replace(/ /g, '_')}_${reportPeriod}_GymPro.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }, 1500)
+      
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsGenerating(false);
+      setShowReportModal(false);
+    }
   }
 
   const getAthleteName = (tx: any) => {

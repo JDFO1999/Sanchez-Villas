@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -138,12 +138,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside
-        className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card border-r transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
+        className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } ${isSidebarCollapsed ? "w-16 lg:w-16" : "w-64"} lg:static lg:translate-x-0`}
       >
+        <div className="absolute right-0 top-0 w-[1px] h-full bg-gradient-to-b from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
         <div className="flex flex-col h-full">
-          <div className={`flex items-center h-16 border-b gap-2 ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'}`}>
+          <div className={`flex items-center h-16 relative gap-2 ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'}`}>
+            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
             <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
               <LogoComponent />
             </div>
@@ -186,7 +188,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               })}
             </nav>
 
-            <div className={`px-2 py-4 border-t flex flex-col gap-3 ${isSidebarCollapsed ? 'items-center' : ''}`}>
+            <div className={`px-2 py-4 relative flex flex-col gap-3 ${isSidebarCollapsed ? 'items-center' : ''}`}>
+              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
               <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between px-1'}`}>
                 {!isSidebarCollapsed && (
                   <span className="text-sm text-muted-foreground font-medium">Tema</span>
@@ -199,6 +202,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </button>
               </div>
+              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent my-1"></div>
               <button
                 onClick={() => logout()}
                 className={`text-sm text-red-500 hover:text-red-400 font-medium flex items-center gap-2 px-1 ${isSidebarCollapsed ? 'justify-center' : 'text-left'}`}
@@ -215,7 +219,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between h-16 px-4 border-b bg-card">
+        <header className="flex items-center justify-between h-16 px-4 relative bg-card">
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
           <div className="flex items-center gap-3">
             <button
               className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
@@ -244,7 +249,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Footer />
         </main>
 
-        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t flex items-center justify-around px-2 z-40 pb-safe">
+        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card flex items-center justify-around px-2 z-40 pb-safe">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
           {currentNavItems.slice(0, 5).map((item) => {
             const isActive = pathname === item.href
             return (

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { useSettings } from "@/lib/settings-context";
 import { MapPin } from "lucide-react";
 
@@ -16,7 +16,7 @@ export function BaseFooter({
 
   return (
     <footer 
-      className="shrink-0 bg-card/50 border-t border-black/10 dark:border-white/5 backdrop-blur-md transition-all duration-300 relative"
+      className="shrink-0 bg-card/50 border-t border-black/20 dark:border-white/10 backdrop-blur-md transition-all duration-300 relative"
       style={{
         paddingTop: `${pY * 0.25}rem`,
         paddingBottom: `${pY * 0.25}rem`,
@@ -25,7 +25,7 @@ export function BaseFooter({
       }}
     >
       {/* Decorative Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
 
       <div className="w-full px-6 md:px-12">
         

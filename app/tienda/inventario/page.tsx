@@ -179,7 +179,7 @@ export default function InventarioPage() {
         </div>
         <button 
           onClick={() => openModal()}
-          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-2.5 px-4 rounded-lg hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
+          className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition font-bold py-2.5 px-4 rounded-lg flex items-center gap-2 text-sm"
         >
           <PackagePlus className="h-4 w-4" /> Nuevo Producto
         </button>
@@ -413,7 +413,7 @@ export default function InventarioPage() {
               
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={()=>setShowModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition">Guardar</button>
+                <button type="submit" className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-4 py-2 text-sm font-bold rounded">Guardar</button>
               </div>
             </form>
           </div>
@@ -442,7 +442,7 @@ export default function InventarioPage() {
                   setShowDeptModal(false);
                   showToast("Departamento creado.", "success");
                 }
-              }} className="px-3 py-1.5 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded">Guardar</button>
+              }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded">Guardar</button>
             </div>
           </div>
         </div>
@@ -471,7 +471,7 @@ export default function InventarioPage() {
                   setShowCatModal(false);
                   showToast("Categoría creada.", "success");
                 }
-              }} className="px-3 py-1.5 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded">Guardar</button>
+              }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded">Guardar</button>
             </div>
           </div>
         </div>

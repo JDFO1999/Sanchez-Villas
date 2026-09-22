@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
+import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -33,6 +34,7 @@ import {
 
 
 export function AdminDashboard() {
+  const { settings } = useSettings();
   const hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
   
   const [storeData, setStoreData] = useState([
@@ -138,21 +140,44 @@ export function AdminDashboard() {
   const [reportFormat, setReportFormat] = useState("PDF")
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const handleDownloadReport = () => {
+  const handleDownloadReport = async () => {
     setIsGenerating(true)
-    setTimeout(() => {
+    try {
+      const { exportToPDF, exportToExcel } = await import('@/lib/export-service');
+      
+      const title = `Resumen de Rendimiento - ${reportPeriod}`;
+      const cols = ['Métrica', 'Valor'];
+      const pdfData = [
+        ['Atletas Activos (Hoy)', (dynamicStats?.activeAthletes || 0).toString()],
+        ['Ingresos del Mes', (dynamicStats?.monthlyRevenue || 0).toString()],
+        ['Check-ins de Hoy', (dynamicStats?.checkinsToday || 0).toString()],
+        ['Membresías por Vencer', (dynamicStats?.membresiasPorVencer?.length || 0).toString()],
+        ['Nuevas Membresías', (dynamicStats?.membresiasNuevas?.length || 0).toString()],
+        ['Pedidos Tienda Pendientes', (pendingOrders?.length || 0).toString()],
+        ['Solicitudes Coach', (coachRequests?.length || 0).toString()]
+      ];
+      const excelData = pdfData.map(r => ({ 'Métrica': r[0], 'Valor': r[1] }));
+      
+      const filename = `Reporte_Dashboard_${reportPeriod}`;
+      
+      if (reportFormat === 'PDF') {
+        exportToPDF({
+          title,
+          columns: cols,
+          data: pdfData,
+          filename,
+          appName: settings?.appName || 'GymPro',
+          logoUrl: settings?.logoUrl
+        });
+      } else {
+        exportToExcel(excelData, 'Dashboard', filename);
+      }
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
       setIsGenerating(false)
       setShowReportModal(false)
-      const link = document.createElement("a");
-      const content = reportFormat === "Excel" 
-        ? "data:text/csv;charset=utf-8,ID,Monto,Fecha\n1,100,2026-08-31" 
-        : "data:application/pdf;base64,JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nDPQM1Qo5ypUMFAwALJMLY31jBQK0osSQyNzgUKZqYkFEAkiBQAAD1oH/QplbmRzdHJlYW0KZW5kb2JqCgozIDAgb2JqCjM5CmVuZG9iagoKMSAwIG9iago8PC9QYWdlcyA0IDAgUi9UeXBlL0NhdGFsb2c+PgplbmRvYmoKCjUgMCBvYmoKPDwvQ3JlYXRpb25EYXRlKEQ6MjAxOTA5MjYwNjMzMTErMDAnMDAnKS9DcmVhdG9yKFBERiB0b29sKS9Qcm9kdWNlcihQREYgdG9vbCk+PgplbmRvYmoKCjQgMCBvYmoKPDwvQ291bnQgMS9LaWRzWzYgMCBSXS9UeXBlL1BhZ2VzPj4KZW5kb2JqCgo2IDAgb2JqCjw8L0NvbnRlbnRzIDIgMCBSL01lZGlhQm94WzAgMCA1OTUgODQyXS9QYXJlbnQgNCAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDcgMCBSPj4+Pi9UeXBlL1BhZ2U+PgplbmRvYmoKCjcgMCBvYmoKPDwvQmFzZUZvbnQvSGVsdmV0aWNhL0VuY29kaW5nL1dpbkFuc2lFbmNvZGluZy9TdWJ0eXBlL1R5cGUxL1R5cGUvRm9udD4+CmVuZG9iagoKeHJlZgowIDgKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA5NiAwMDAwMCBuIAowMDAwMDAwMjM1IDAwMDAwIG4gCjAwMDAwMDAxNjQgMDAwMDAgbiAKMDAwMDAwMDI5MiAwMDAwMCBuIAowMDAwMDAwMzk2IDAwMDAwIG4gCnRyYWlsZXIKPDwvUm9vdCAxIDAgUi9TaXplIDgvSW5mbyA1IDAgUj4+CnN0YXJ0eHJlZgo0ODQKJSVFT0YK";
-      link.href = content;
-      link.download = `Reporte_${reportPeriod}_GymPro.${reportFormat === "Excel" ? "csv" : "pdf"}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }, 1500)
+    }
   }
 
   return (

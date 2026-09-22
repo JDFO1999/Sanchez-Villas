@@ -58,7 +58,7 @@ export default function VentasPage() {
             <div>
               <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Facturas</p>
               <h3 className="text-2xl font-bold">{transactions.length}</h3>
-              <p className="text-xs font-bold text-yellow-500">{transactions.filter(t => t.status === 'PENDING_PICKUP').length} en espera</p>
+              <p className="text-xs font-bold text-yellow-500">{transactions.filter(t => t.status === 'PENDING_DELIVERY').length} en espera</p>
               <p className="text-xs font-bold text-green-500">{transactions.filter(t => t.status === 'COMPLETED').length} completadas</p>
             </div>
           </CardContent>
@@ -156,7 +156,7 @@ export default function VentasPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    {tx.status === 'PENDING_PICKUP' ? (
+                    {tx.status === 'PENDING_DELIVERY' ? (
                       <div className="flex flex-col gap-2 items-start">
                         <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
                         <button 
@@ -189,7 +189,7 @@ export default function VentasPage() {
                               })
                             })
                           }}
-                          className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
+                          className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
                         >
                           Entregar
                         </button>
@@ -270,7 +270,7 @@ export default function VentasPage() {
                 </div>
 
                 <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                  {tx.status === 'PENDING_PICKUP' ? (
+                  {tx.status === 'PENDING_DELIVERY' ? (
                     <div className="flex justify-between items-center">
                       <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
                       <button 
@@ -303,7 +303,7 @@ export default function VentasPage() {
                             })
                           })
                         }}
-                        className="text-xs border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent px-3 py-2 rounded hover:bg-primary/90 font-bold"
+                        className="text-xs bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-2 rounded hover:bg-primary/90 font-bold"
                       >
                         Entregar
                       </button>
