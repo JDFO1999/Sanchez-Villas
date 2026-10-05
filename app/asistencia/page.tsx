@@ -4,14 +4,24 @@ import { useState, useEffect, useRef } from "react"
 import { CheckCircle2, XCircle, Search, Clock, Camera, Key } from "lucide-react"
 import { Scanner } from "@yudiel/react-qr-scanner"
 import Swal from "sweetalert2"
+import { useAuth } from "@/lib/auth-context"
 
 export default function AsistenciaPage() {
+  const { user } = useAuth()
   const [cedula, setCedula] = useState("")
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState("")
   const [athlete, setAthlete] = useState<{name: string, membershipEnd?: Date | string} | null>(null)
   
   const [showScanner, setShowScanner] = useState(false)
+
+  if (user && user.role !== 'admin' && user.role !== 'cajero' && user.role !== 'recepcion' && !(user as any)?.canManageAttendance) {
+    return (
+      <div className="p-8 text-center text-red-500 font-bold">
+        Acceso Denegado. Solo personal de recepción o entrenadores autorizados por el administrador pueden acceder a la Asistencia.
+      </div>
+    )
+  }
   
   const processAttendance = async (query: string, isCedula: boolean) => {
     if (!query) return

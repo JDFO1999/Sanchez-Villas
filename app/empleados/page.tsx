@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Plus, Search, Eye, EyeOff } from "lucide-react"
 import Swal from "sweetalert2"
-import Barcode from "react-barcode"
 import JsBarcode from "jsbarcode"
 
 export default function EmpleadosPage() {
@@ -19,10 +18,25 @@ export default function EmpleadosPage() {
   const [showPin, setShowPin] = useState(false)
   
   const [empForm, setEmpForm] = useState<any>({
-    id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', pin: '',
+    id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', canManageAttendance: false, pin: '',
     birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '',
     baseSalary: 0, commissionRate: 0, commissionType: 'flat'
   })
+
+  const barcodeCallbackRef = useCallback((node: SVGSVGElement | null) => {
+    if (node && empForm.pin) {
+      try {
+        JsBarcode(node, empForm.pin, {
+          format: "CODE128",
+          width: 2,
+          height: 50,
+          displayValue: true
+        });
+      } catch (err) {
+        console.error("Error generando código de barras:", err);
+      }
+    }
+  }, [empForm.pin])
 
   useEffect(() => {
     async function load() {
@@ -116,13 +130,13 @@ export default function EmpleadosPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20 relative">
+    <div className="space-y-6 max-w-full w-full mx-auto pb-20 relative">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Comisiones</h1>
           <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
-        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat' }); setShowEmployeeModal(true); }} className="bg-transparent border border-green-500 text-green-500 px-3 py-1.5 rounded-lg font-bold hover:bg-green-500/10 transition flex items-center gap-2">
+        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', canManageAttendance: false }); setShowEmployeeModal(true); }} className="bg-transparent border border-green-500 text-green-500 px-3 py-1.5 rounded-lg font-bold hover:bg-green-500/10 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
         </button>
       </div>
@@ -148,7 +162,14 @@ export default function EmpleadosPage() {
                   <tr key={emp.id} className="transition-colors hover:bg-black/5 dark:hover:bg-white/5">
                     <td className="p-4">
                       <div className="font-bold">{emp.name}</div>
-                      <div className="text-xs text-muted-foreground">C.C. {emp.cedula} | {emp.role.toUpperCase()}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span>C.C. {emp.cedula} | {emp.role.toUpperCase()}</span>
+                        {emp.role === 'employee' && emp.canManageAttendance && (
+                          <span className="text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded font-bold">
+                            Asistencia Habilitada
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="text-sm">{(emp as any).email || 'Sin correo'}</div>
@@ -222,6 +243,23 @@ export default function EmpleadosPage() {
                     <option value="cajero">Cajero / Recepción</option>
                   </select>
                 </div>
+                {empForm.role === 'employee' && (
+                  <div className="col-span-2 bg-black/5 dark:bg-black/40 p-3.5 rounded-xl border border-black/10 dark:border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Acceso al Módulo de Asistencia</p>
+                      <p className="text-[11px] text-muted-foreground">Permite a este entrenador acceder al lector QR y validar entradas.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={Boolean(empForm.canManageAttendance)} 
+                        onChange={e => setEmpForm({...empForm, canManageAttendance: e.target.checked})} 
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-black/20 peer-focus:outline-none rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+                )}
                 <div className="col-span-2">
                     <h4 className="font-bold border-b border-black/10 dark:border-white/10 pb-2 mb-4 mt-2">Seguridad y Acceso</h4>
                   </div>
@@ -263,7 +301,7 @@ export default function EmpleadosPage() {
                        </button>
                      </div>
                      <div className="mt-4 flex justify-center bg-white p-4 rounded-lg">
-                       <Barcode value={empForm.pin} format="CODE128" width={2} height={50} />
+                       <svg ref={barcodeCallbackRef}></svg>
                      </div>
                    </div>
                 )}

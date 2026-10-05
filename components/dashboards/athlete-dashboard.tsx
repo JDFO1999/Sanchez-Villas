@@ -481,22 +481,49 @@ export function AthleteDashboard() {
       )}
 
       {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
-          <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl flex flex-col items-center text-black relative" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-black mb-1">Tu Código de Acceso</h3>
-            <p className="text-sm text-gray-500 mb-6 text-center">Muestra este código en recepción para marcar tu entrada.</p>
-            
-            <div className="bg-gray-100 p-4 rounded-xl mb-6">
-              <QRCodeSVG value={user?.cedula || ''} size={200} level="H" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md" onClick={() => setShowQRModal(false)}>
+          <div className="relative max-w-sm w-full overflow-hidden rounded-3xl p-6 shadow-2xl border border-white/20 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black text-white" onClick={e => e.stopPropagation()}>
+            {/* Ambient glows */}
+            <div className="absolute -top-12 -right-12 w-44 h-44 bg-primary/25 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner">
+                  GP
+                </div>
+                <div>
+                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight">{settings.appName || 'GYMPRO'}</h4>
+                  <p className="text-[10px] text-zinc-400 font-bold tracking-widest uppercase">Pase Digital de Acceso</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-amber-400/40 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                VIP
+              </span>
             </div>
 
-            <div className="text-center mb-6">
-              <p className="text-xs text-gray-400 uppercase tracking-widest font-bold">CÃ©dula Identidad</p>
-              <p className="text-2xl font-mono tracking-widest font-black">{user?.cedula}</p>
+            {/* QR Scanner Container */}
+            <div className="flex flex-col items-center bg-white p-5 rounded-2xl shadow-xl mb-5">
+              <QRCodeSVG value={user?.cedula || ''} size={190} level="H" />
+              <p className="text-[11px] font-mono text-zinc-600 mt-3 font-bold tracking-wider">MUESTRA ESTE QR EN ENTRADA</p>
             </div>
-            
-            <button onClick={() => setShowQRModal(false)} className="w-full bg-black text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition">
-              Cerrar
+
+            {/* Athlete Info details */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5 flex justify-between items-center backdrop-blur-sm">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Atleta</p>
+                <p className="text-sm font-bold text-white truncate max-w-[170px]">{user?.name}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Cédula</p>
+                <p className="text-base font-mono font-black text-primary tracking-widest">{user?.cedula}</p>
+              </div>
+            </div>
+
+            <button onClick={() => setShowQRModal(false)} className="w-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-3 rounded-xl transition text-sm">
+              Cerrar Carnet
             </button>
           </div>
         </div>

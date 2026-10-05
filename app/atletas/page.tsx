@@ -12,24 +12,31 @@ export default function AtletasPage() {
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [coaches, setCoaches] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
-      const empRes = await getAllEmployees()
-      if (empRes.success) {
-        const map: Record<string, string> = {}
-        ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach') map[e.id] = e.name })
-        setCoaches(map)
-      }
-      const res = await getAthletes()
-      if (res.success) {
-        setAthletes(res.athletes.map((a: any) => ({
-          ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-          membershipStart: a.memberships?.[0]?.startDate || null,
-          planName: a.memberships?.[0]?.planName || null,
-        })))
+      try {
+        const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
+        const empRes = await getAllEmployees()
+        if (empRes.success) {
+          const map: Record<string, string> = {}
+          ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach') map[e.id] = e.name })
+          setCoaches(map)
+        }
+        const res = await getAthletes()
+        if (res.success) {
+          setAthletes(res.athletes.map((a: any) => ({
+            ...a,
+            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+            membershipStart: a.memberships?.[0]?.startDate || null,
+            planName: a.memberships?.[0]?.planName || null,
+          })))
+        }
+      } catch (err) {
+        console.error("Error cargando atletas:", err)
+      } finally {
+        setLoading(false)
       }
     }
     load()
@@ -89,76 +96,132 @@ export default function AtletasPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
-        {filteredAthletes.map((atleta) => {
-          // Determinar estado de membresía
-          const endDate = new Date(atleta.membershipEnd)
-          const today = new Date()
-          const diffTime = endDate.getTime() - today.getTime()
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          
-          let estadoColor = "text-green-500 bg-green-500/10"
-          if (diffDays <= 0) estadoColor = "text-red-500 bg-red-500/10"
-          else if (diffDays <= 7) estadoColor = "text-orange-500 bg-orange-500/10"
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-black/10 dark:bg-white/10 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4" />
+                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/2" />
+                </div>
+              </div>
+              <div className="pt-4 border-t border-black/5 dark:border-white/5 space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/4" />
+                    <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/5" />
+                  </div>
+                  <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full w-full" />
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+                  <div className="h-5 bg-black/10 dark:bg-white/10 rounded-full w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredAthletes.length === 0 ? (
+        <div className="text-center py-16 px-4 rounded-2xl glass border border-dashed border-black/15 dark:border-white/15 my-6">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+            <Users className="h-8 w-8 opacity-80" />
+          </div>
+          <h3 className="text-xl font-black text-foreground">No se encontraron atletas</h3>
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-md mx-auto">
+            {searchTerm ? `No hay resultados para "${searchTerm}". Prueba verificando la cédula o el nombre.` : "No hay atletas registrados que coincidan con el filtro seleccionado."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
+          {filteredAthletes.map((atleta) => {
+            // Determinar estado de membresía
+            const endDate = new Date(atleta.membershipEnd)
+            const today = new Date()
+            const diffTime = endDate.getTime() - today.getTime()
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            
+            let estadoColor = "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+            let dotPing = "bg-emerald-400"
+            let dotSolid = "bg-emerald-500"
+            let estadoTexto = "Activa"
 
-          return (
-            <Link key={atleta.id} href={`/atletas/${atleta.id}`}>
-              <Card className="glass transition-all duration-300 cursor-pointer group hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] z-0 hover:z-10">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      {atleta.profilePicture ? (
-                        <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border border-primary/20" />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                          {atleta.name.charAt(0)}
+            if (diffDays <= 0) {
+              estadoColor = "text-rose-500 bg-rose-500/10 border-rose-500/20"
+              dotPing = "bg-rose-400"
+              dotSolid = "bg-rose-500"
+              estadoTexto = "Vencida"
+            } else if (diffDays <= 7) {
+              estadoColor = "text-amber-500 bg-amber-500/10 border-amber-500/20"
+              dotPing = "bg-amber-400"
+              dotSolid = "bg-amber-500"
+              estadoTexto = "Por vencer"
+            }
+
+            return (
+              <Link key={atleta.id} href={`/atletas/${atleta.id}`}>
+                <Card className="glass transition-all duration-300 cursor-pointer group hover:scale-[1.02] hover:border-primary/60 hover:shadow-[0_0_25px_rgba(255,255,255,0.12)] z-0 hover:z-10">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        {atleta.profilePicture ? (
+                          <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border border-primary/30" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                            {atleta.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-foreground group-hover:text-primary transition">{atleta.name}</h3>
+                          <p className="text-xs text-muted-foreground">C.C. {atleta.cedula}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
+                      {diffDays > 0 && (() => {
+                        const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
+                        const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))
+                        const pct = Math.min(100, Math.max(4, (diffDays / totalDays) * 100))
+                        return (
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">{atleta.planName || "Membresía"}</span>
+                              <span className={diffDays <= 7 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}>{diffDays}d restantes</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${diffDays <= 7 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      {diffDays <= 0 && (
+                        <div className="flex items-center gap-2 text-rose-500 text-xs font-bold bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-1.5">
+                          <span>⚠️</span> Membresía Vencida
                         </div>
                       )}
-                      <div>
-                        <h3 className="font-bold text-foreground group-hover:text-primary transition">{atleta.name}</h3>
-                        <p className="text-xs text-muted-foreground">C.C. {atleta.cedula}</p>
+                      <div className="flex justify-between items-center pt-1">
+                        <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                          🏋️ {atleta.coachId ? (coaches[atleta.coachId] || "Coach asignado") : "Sin entrenador"}
+                        </p>
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full font-bold border ${estadoColor}`}>
+                          <span className="relative flex h-2 w-2">
+                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dotPing}`} />
+                            <span className={`relative inline-flex rounded-full h-2 w-2 ${dotSolid}`} />
+                          </span>
+                          {estadoTexto}
+                        </span>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
-                    {diffDays > 0 && (() => {
-                      const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
-                      const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))
-                      const pct = Math.min(100, Math.max(4, (diffDays / totalDays) * 100))
-                      return (
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-muted-foreground">{atleta.planName || "Membresía"}</span>
-                            <span className={diffDays <= 7 ? "text-orange-500 font-bold" : "text-green-500 font-bold"}>{diffDays}d restantes</span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${diffDays <= 7 ? "bg-orange-500" : "bg-green-500"}`} style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      )
-                    })()}
-                    {diffDays <= 0 && (
-                      <div className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-500/10 rounded-lg px-3 py-1.5">
-                        <span>⚠️</span> Membresía Vencida
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground">
-                        🏋️ {atleta.coachId ? (coaches[atleta.coachId] || "Coach asignado") : "Sin entrenador"}
-                      </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${estadoColor}`}>
-                        {diffDays > 7 ? "✓ Activa" : diffDays > 0 ? "⚠ Por vencer" : "✗ Vencida"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
-      </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

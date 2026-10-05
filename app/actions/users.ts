@@ -26,6 +26,7 @@ export async function createEmployee(data: any) {
         mobilePayment: data.mobilePayment || null,
         email: data.email || null,
         phone: data.phone || null,
+        canManageAttendance: Boolean(data.canManageAttendance),
       }
     });
     revalidatePath("/empleados")
@@ -56,6 +57,7 @@ export async function updateEmployee(id: string, data: any) {
         mobilePayment: data.mobilePayment || null,
         email: data.email || null,
         phone: data.phone || null,
+        canManageAttendance: data.canManageAttendance !== undefined ? Boolean(data.canManageAttendance) : undefined,
         accessPin: data.pin !== undefined ? data.pin : undefined,
         // Update password if provided
         ...(data.clave ? { password: await bcrypt.hash(data.clave, 10) } : {})

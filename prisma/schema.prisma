@@ -22,6 +22,7 @@ model User {
   phone            String?
   address          String?
   storeDebt        Float    @default(0)
+  canManageAttendance Boolean @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

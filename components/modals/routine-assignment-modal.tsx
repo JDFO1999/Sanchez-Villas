@@ -1,8 +1,9 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { Users, FileEdit, Plus, Trash2, X, Dumbbell, CalendarDays, Apple } from "lucide-react"
 import { createRoutine, createDiet } from "@/app/actions/routines"
+import { showSweetToast } from "@/lib/toast-context"
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
@@ -73,6 +74,7 @@ export function RoutineAssignmentModal({
 
     let routineSuccess = true;
     let dietSuccess = true;
+    let errorMsg = "";
 
     // Save Routine if it has data or if we are explicitly on the routine tab
     if (hasRoutineData || (modalType === "ROUTINE" && !hasDietData)) {
@@ -85,6 +87,7 @@ export function RoutineAssignmentModal({
         exercises: exercises.filter(ex => ex.name.trim() !== "")
       });
       routineSuccess = res.success;
+      if (!res.success) errorMsg = res.error || "Error al guardar la rutina";
     }
 
     // Save Diet if it has data or if we are explicitly on the diet tab
@@ -97,14 +100,16 @@ export function RoutineAssignmentModal({
         date: new Date()
       });
       dietSuccess = res.success;
+      if (!res.success) errorMsg = res.error || "Error al guardar el plan de dieta";
     }
 
     if (routineSuccess && dietSuccess) {
       resetForm()
       onClose()
+      showSweetToast("¡Plan asignado con éxito!", "success");
       if (onSuccess) onSuccess()
     } else {
-      alert("Error al guardar el plan.");
+      showSweetToast(errorMsg || "Error al guardar el plan.", "error");
     }
     
     setIsSubmitting(false)

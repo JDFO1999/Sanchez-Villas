@@ -43,3 +43,20 @@ export function useToast() {
   }
   return context
 }
+
+export function showSweetToast(message: string, type: ToastType = 'info') {
+  Swal.fire({
+    title: message,
+    icon: type,
+    toast: true,
+    position: 'bottom-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    background: '#18181b',
+    color: '#fff',
+    customClass: {
+      popup: 'border border-black/10 dark:border-white/10 rounded-lg shadow-2xl glass'
+    }
+  })
+}

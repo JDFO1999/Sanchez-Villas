@@ -11,8 +11,10 @@ import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 import Swal from 'sweetalert2'
+import { showSweetToast } from "@/lib/toast-context"
 
 export default function AtletaPerfilPage() {
   const { user, getAllEmployees } = useAuth()
@@ -43,9 +45,9 @@ export default function AtletaPerfilPage() {
     if (res.success) {
       setAthlete({...athlete, bio: editBio, socialLinks: socialStr} as any)
       setShowEditCoach(false)
-      alert("Perfil actualizado correctamente")
+      showSweetToast("Perfil actualizado correctamente", "success")
     } else {
-      alert("Error actualizando perfil")
+      showSweetToast("Error actualizando perfil", "error")
     }
   }
 
@@ -97,7 +99,61 @@ export default function AtletaPerfilPage() {
     load()
   }, [id])
 
-  if (!athlete) return <div className="p-8">Cargando perfil...</div>
+  if (!athlete) {
+    return (
+      <div className="space-y-6 max-w-full w-full mx-auto relative animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-card/40 p-6 rounded-2xl border border-black/5 dark:border-white/5 glass">
+          <div className="flex items-center gap-6">
+            <div className="h-20 w-20 rounded-full bg-black/10 dark:bg-white/10 shrink-0" />
+            <div className="space-y-3">
+              <div className="h-8 bg-black/10 dark:bg-white/10 rounded w-52" />
+              <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-40" />
+              <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-32" />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-28 bg-black/10 dark:bg-white/10 rounded-lg" />
+            <div className="h-10 w-28 bg-black/10 dark:bg-white/10 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Columns Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <div className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4">
+              <div className="h-5 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+              <div className="h-8 bg-black/10 dark:bg-white/10 rounded w-1/2" />
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/5 dark:border-white/5">
+                <div className="h-4 bg-black/10 dark:bg-white/10 rounded" />
+                <div className="h-4 bg-black/10 dark:bg-white/10 rounded" />
+              </div>
+            </div>
+            <div className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4">
+              <div className="h-5 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+              <div className="h-8 bg-black/10 dark:bg-white/10 rounded w-1/4" />
+              <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full w-full" />
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <div className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4">
+              <div className="h-5 bg-black/10 dark:bg-white/10 rounded w-1/4" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(k => (
+                  <div key={k} className="h-20 bg-black/10 dark:bg-white/10 rounded-xl" />
+                ))}
+              </div>
+            </div>
+            <div className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4">
+              <div className="h-5 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+              <div className="h-48 bg-black/10 dark:bg-white/10 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Access control
   if (user?.role === 'athlete' && user.cedula !== athlete.cedula) {
@@ -191,7 +247,7 @@ export default function AtletaPerfilPage() {
 
   const handleAssignRoutine = (e: React.FormEvent) => {
     e.preventDefault()
-    alert(`Rutina asignada:\nTipo: ${routineType}\nPeriodo: ${routineStart} a ${routineEnd}\nDescanso: ${routineRest}`)
+    showSweetToast(`Rutina asignada: ${routineType} (${routineStart} a ${routineEnd})`, "success")
     setShowRoutineModal(false)
   }
 
@@ -245,9 +301,16 @@ export default function AtletaPerfilPage() {
   const calculatedAttendancePct = Math.min(100, Math.round((totalAttendances / totalDaysRegistered) * 100));
   const attendanceText = calculatedAttendancePct >= 70 ? "Buena" : calculatedAttendancePct >= 40 ? "Regular" : "Baja";
   
+  const biometricChartData = [...(athlete.biometrics || [])]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(b => ({
+      date: new Date(b.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      peso: Number(b.weight) || 0,
+      altura: Number(b.height) || 0,
+    }));
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto relative">
+    <div className="space-y-6 max-w-full w-full mx-auto relative">
       
       {/* Modal Request */}
       
@@ -417,7 +480,7 @@ export default function AtletaPerfilPage() {
           defaultAthleteId={athlete.id}
           onSuccess={() => {
             setShowRoutineModal(false);
-            alert("¡Plan asignado con éxito!");
+            showSweetToast("¡Plan asignado con éxito!", "success");
           }}
         />
       )}
@@ -461,7 +524,7 @@ export default function AtletaPerfilPage() {
                         if (res.success) {
                           setAthlete({ ...athlete, profilePicture: res.profilePicture });
                         } else {
-                          alert("Error al subir foto: " + res.error);
+                          showSweetToast("Error al subir foto: " + res.error, "error");
                         }
                       }
                       reader.readAsDataURL(file)
@@ -542,10 +605,20 @@ export default function AtletaPerfilPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Estado</p>
-                <p className={`font-bold text-xl ${diffDays > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {diffDays > 0 ? `${diffDays} días restantes` : 'Vencida'}
-                </p>
+                <p className="text-xs text-muted-foreground mb-1.5 uppercase font-bold tracking-wider">Estado</p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm border shadow-sm"
+                  style={{
+                    backgroundColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.1)' : diffDays > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.25)' : diffDays > 0 ? 'rgba(245, 158, 11, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                    color: diffDays > 7 ? '#10b981' : diffDays > 0 ? '#f59e0b' : '#ef4444'
+                  }}
+                >
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${diffDays > 7 ? 'bg-emerald-400' : diffDays > 0 ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${diffDays > 7 ? 'bg-emerald-500' : diffDays > 0 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                  </span>
+                  <span>{diffDays > 0 ? `${diffDays} días restantes` : 'Membresía Vencida'}</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
@@ -691,7 +764,103 @@ export default function AtletaPerfilPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay registros biométricos.</p>
+                <div className="py-8 text-center rounded-xl bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center mb-3">
+                    <Activity className="h-6 w-6 opacity-70" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Sin registros biométricos actuales</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                    Aún no se han capturado medidas ni pesaje para este perfil.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Gráfico de Evolución Física (Recharts) */}
+          <Card className="glass overflow-hidden border-primary/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" /> Evolución Física (Progreso de Peso)
+              </CardTitle>
+              {athlete.biometrics.length > 1 && (
+                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-primary/10 text-primary border border-primary/20">
+                  {athlete.biometrics.length} tomas registradas
+                </span>
+              )}
+            </CardHeader>
+            <CardContent>
+              {biometricChartData.length > 0 ? (
+                <div className="pt-2">
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={biometricChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.15} vertical={false} />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }} 
+                          axisLine={{ opacity: 0.2 }}
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          domain={['dataMin - 2', 'dataMax + 2']} 
+                          tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }}
+                          axisLine={{ opacity: 0.2 }}
+                          tickLine={false}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(20, 20, 25, 0.95)', 
+                            borderRadius: '12px', 
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            fontSize: '12px',
+                            color: '#fff'
+                          }} 
+                          formatter={(val: any) => [`${val} kg`, 'Peso']}
+                          labelStyle={{ fontWeight: 'bold', color: '#10b981' }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="peso" 
+                          stroke="#10b981" 
+                          strokeWidth={2.5} 
+                          fillOpacity={1} 
+                          fill="url(#weightGrad)" 
+                          dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                          activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-muted-foreground mt-3 pt-3 border-t border-black/5 dark:border-white/5 px-1">
+                    <span>Primer registro: <strong className="text-foreground">{biometricChartData[0]?.peso} kg</strong></span>
+                    <span>Último registro: <strong className="text-primary">{biometricChartData[biometricChartData.length - 1]?.peso} kg</strong></span>
+                    <span>Diferencia: <strong className={
+                      (biometricChartData[biometricChartData.length - 1]?.peso || 0) >= (biometricChartData[0]?.peso || 0)
+                        ? "text-emerald-500" 
+                        : "text-amber-500"
+                    }>
+                      {((biometricChartData[biometricChartData.length - 1]?.peso || 0) - (biometricChartData[0]?.peso || 0)).toFixed(1)} kg
+                    </strong></span>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center rounded-xl bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center mb-3">
+                    <TrendingUp className="h-6 w-6 opacity-70" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Sin datos suficientes para graficar</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                    Registra al menos una medida antropométrica para visualizar la gráfica de evolución.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -703,22 +872,30 @@ export default function AtletaPerfilPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[...athlete.biometrics].reverse().map((record, idx) => (
-                  <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-black/5 dark:border-white/5 bg-black/20 hover:bg-black/5 dark:bg-white/5 transition">
-                    <div>
-                      <span className="font-medium block">{new Date(record.date).toLocaleDateString()}</span>
-                      <span className="text-xs text-muted-foreground">
-                        Peso: {record.weight}kg | Altura: {record.height}cm
-                        {record.chest && ` | P: ${record.chest} | Ci: ${record.waist} | Ca: ${record.hips}`}
-                        {record.customFields && Object.entries(record.customFields)
-                          .filter(([k]) => !['pecho', 'cintura', 'cadera'].includes(k.toLowerCase()))
-                          .map(([k,v]) => ` | ${k.substring(0,2)}: ${v}`).join('')}
-                      </span>
+              {athlete.biometrics.length === 0 ? (
+                <div className="py-8 text-center rounded-xl bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10">
+                  <ClipboardList className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-foreground">Sin historial archivado</p>
+                  <p className="text-xs text-muted-foreground mt-1">Las mediciones que registres aparecerán listadas aquí con fecha.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {[...athlete.biometrics].reverse().map((record, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 rounded-lg border border-black/5 dark:border-white/5 bg-black/20 hover:bg-black/5 dark:bg-white/5 transition">
+                      <div>
+                        <span className="font-medium block">{new Date(record.date).toLocaleDateString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Peso: {record.weight}kg | Altura: {record.height}cm
+                          {record.chest && ` | P: ${record.chest} | Ci: ${record.waist} | Ca: ${record.hips}`}
+                          {record.customFields && Object.entries(record.customFields)
+                            .filter(([k]) => !['pecho', 'cintura', 'cadera'].includes(k.toLowerCase()))
+                            .map(([k,v]) => ` | ${k.substring(0,2)}: ${v}`).join('')}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

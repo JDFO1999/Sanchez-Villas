@@ -8,6 +8,7 @@ import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye } from "lucide-react"
 import Swal from 'sweetalert2'
+import { showSweetToast } from "@/lib/toast-context"
 
 export default function MembresíasPage() {
   const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
@@ -47,21 +48,28 @@ export default function MembresíasPage() {
   const [newMessageTitle, setNewMessageTitle] = useState("")
   const [newMessageText, setNewMessageText] = useState("")
   const [allCoaches, setAllCoaches] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
-      const athRes = await getAthletes()
-      if (athRes.success) {
-        setAthletes(athRes.athletes.map((a: any) => ({
-          ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
-        })))
-      }
-      
-      const empRes = await getAllEmployees()
-      if (empRes.success) {
-        setAllCoaches(empRes.employees.filter((e: any) => e.role === 'employee'))
+      try {
+        const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
+        const athRes = await getAthletes()
+        if (athRes.success) {
+          setAthletes(athRes.athletes.map((a: any) => ({
+            ...a,
+            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+          })))
+        }
+        
+        const empRes = await getAllEmployees()
+        if (empRes.success) {
+          setAllCoaches(empRes.employees.filter((e: any) => e.role === 'employee'))
+        }
+      } catch (err) {
+        console.error("Error cargando membresías:", err)
+      } finally {
+        setLoading(false)
       }
     }
     load()
@@ -103,7 +111,7 @@ export default function MembresíasPage() {
     e.preventDefault()
     if (!showEditModal) return
     if (editPassword && editPassword !== editConfirmPassword) {
-      alert("Las contraseñas no coinciden.")
+      showSweetToast("Las contraseñas no coinciden.", "warning")
       return
     }
 
@@ -131,15 +139,16 @@ export default function MembresíasPage() {
         })))
       }
       setShowEditModal(null)
+      showSweetToast("Credenciales actualizadas correctamente.", "success")
     } else {
-      alert("Error al actualizar credenciales.")
+      showSweetToast("Error al actualizar credenciales.", "error")
     }
   }
 
   const sendMessage = () => {
     if (!showMessageModal) return
     if (!showMessageModal.phone) {
-      alert("El atleta no tiene un número de teléfono registrado.")
+      showSweetToast("El atleta no tiene un número de teléfono registrado.", "warning")
       return
     }
     // Clean phone number (remove spaces, +, etc)
@@ -597,94 +606,146 @@ export default function MembresíasPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {filtered.map(a => {
-          const endDate = new Date(a.membershipEnd)
-          const today = new Date()
-          const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-          const isExpired = diffDays <= 0
-
-          return (
-            <Card key={a.id} className="glass overflow-hidden hover:border-primary/30 transition-colors">
-              <CardContent className="p-0">
-                <div className="flex flex-col md:flex-row items-stretch">
-                  
-                  {/* Info Principal */}
-                  <div className="p-5 flex-1 flex items-center gap-4 relative">
-                    {/* Status Badge */}
-                    <div className={`absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full ${isExpired ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
-                      {isExpired ? 'VENCIDO' : 'ACTIVO'}
-                    </div>
-
-                    <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0">
-                      {a.name.charAt(0)}
-                    </div>
-                    <div className="pr-12">
-                      <h3 className="font-bold text-lg leading-tight">{a.name}</h3>
-                      <p className="text-sm text-muted-foreground">C.C. {a.cedula}</p>
-                    </div>
+        {loading ? (
+          [1, 2, 3, 4].map(i => (
+            <div key={i} className="glass rounded-xl p-5 border border-black/10 dark:border-white/10 animate-pulse">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="flex items-center gap-4 flex-1 w-full">
+                  <div className="h-12 w-12 rounded-full bg-black/10 dark:bg-white/10 shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-1/2" />
+                    <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/3" />
                   </div>
-
-                  {/* Detalles Membresias */}
-                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{a.membershipType || 'Plan Estandar'}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Vence: </span>
-                      <span className={isExpired ? 'text-red-500 font-bold' : 'text-foreground'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
-                      <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold ${isExpired ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
-                        {isExpired ? 'Vencida' : `${diffDays} dias`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ultimo Acceso */}
-                  <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Ultimo Acceso</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{a.lastLogin || 'Nunca'}</p>
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="p-5 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-row md:flex-col items-center justify-center gap-2">
-                    <button 
-                      onClick={() => isExpired && openRenovarModal(a)}
-                      disabled={!isExpired}
-                      className={`flex-1 md:w-full px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1 ${
-                        isExpired 
-                          ? 'bg-green-500 hover:bg-green-600 text-white' 
-                          : 'bg-black/5 dark:bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed'
-                      }`}
-                    >
-                      <DollarSign className="h-3 w-3" /> Renovar
-                    </button>
-                    <button 
-                      onClick={() => openEditModal(a)}
-                      className="flex-1 md:w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-foreground border border-black/10 dark:border-white/10 px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1"
-                    >
-                      <Edit className="h-3 w-3" /> Editar
-                    </button>
-                    <button 
-                      onClick={() => setShowMessageModal(a)}
-                      className="flex-1 md:w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 px-3 py-2 rounded transition text-xs font-medium flex items-center justify-center gap-1"
-                    >
-                      <MessageSquare className="h-3 w-3" /> Mensaje
-                    </button>
-                  </div>
-
                 </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground glass rounded-xl border border-black/10 dark:border-white/10">
-            No se encontraron atletas.
+                <div className="flex-1 w-full space-y-2">
+                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+                  <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-1/2" />
+                </div>
+                <div className="flex-1 w-full space-y-2">
+                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/4" />
+                  <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-1/3" />
+                </div>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <div className="h-8 w-20 bg-black/10 dark:bg-white/10 rounded" />
+                  <div className="h-8 w-20 bg-black/10 dark:bg-white/10 rounded" />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 px-4 rounded-2xl glass border border-dashed border-black/15 dark:border-white/15 my-4">
+            <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+              <CreditCard className="h-8 w-8 opacity-80" />
+            </div>
+            <h3 className="text-xl font-black text-foreground">No se encontraron membresías</h3>
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-md mx-auto">
+              {search ? `No hay resultados para "${search}". Intenta con otra cédula o nombre.` : "No hay atletas en el filtro seleccionado."}
+            </p>
           </div>
+        ) : (
+          filtered.map(a => {
+            const endDate = new Date(a.membershipEnd)
+            const today = new Date()
+            const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+            const isExpired = diffDays <= 0
+
+            return (
+              <Card key={a.id} className="glass overflow-hidden hover:border-primary/40 transition-all duration-200">
+                <CardContent className="p-0">
+                  <div className="flex flex-col md:flex-row items-stretch">
+                    
+                    {/* Info Principal */}
+                    <div className="p-5 flex-1 flex items-center gap-4 relative">
+                      {/* Dynamic Semaphore Status Badge */}
+                      <div className={`absolute top-4 right-4 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm ${
+                        isExpired 
+                          ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' 
+                          : diffDays <= 5 
+                          ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' 
+                          : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                      }`}>
+                        <span className="relative flex h-2 w-2">
+                          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                            isExpired ? 'bg-rose-400' : diffDays <= 5 ? 'bg-amber-400' : 'bg-emerald-400'
+                          }`} />
+                          <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                            isExpired ? 'bg-rose-500' : diffDays <= 5 ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`} />
+                        </span>
+                        <span>{isExpired ? 'VENCIDA' : diffDays <= 5 ? 'POR VENCER' : 'ACTIVA'}</span>
+                      </div>
+
+                      <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
+                        {a.name.charAt(0)}
+                      </div>
+                      <div className="pr-24">
+                        <h3 className="font-bold text-lg leading-tight">{a.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">C.C. {a.cedula}</p>
+                      </div>
+                    </div>
+
+                    {/* Detalles Membresias */}
+                    <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CreditCard className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground text-xs">Vence: </span>
+                        <span className={isExpired ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
+                        <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold border ${
+                          isExpired 
+                            ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' 
+                            : diffDays <= 5
+                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                        }`}>
+                          {isExpired ? 'Vencida' : `${diffDays} días`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Ultimo Acceso */}
+                    <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Último Acceso</span>
+                      </div>
+                      <p className="text-sm font-semibold">{a.lastLogin || 'Nunca'}</p>
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="p-5 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-row md:flex-col items-center justify-center gap-2">
+                      <button 
+                        onClick={() => isExpired && openRenovarModal(a)}
+                        disabled={!isExpired}
+                        className={`flex-1 md:w-full px-3 py-2 rounded-lg transition text-xs font-bold flex items-center justify-center gap-1.5 ${
+                          isExpired 
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20' 
+                            : 'bg-black/5 dark:bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <DollarSign className="h-3.5 w-3.5" /> Renovar
+                      </button>
+                      <button 
+                        onClick={() => openEditModal(a)}
+                        className="flex-1 md:w-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 text-foreground border border-black/10 dark:border-white/10 px-3 py-2 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1.5"
+                      >
+                        <Edit className="h-3.5 w-3.5" /> Editar
+                      </button>
+                      <button 
+                        onClick={() => setShowMessageModal(a)}
+                        className="flex-1 md:w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 px-3 py-2 rounded-lg transition text-xs font-medium flex items-center justify-center gap-1.5"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" /> Mensaje
+                      </button>
+                    </div>
+
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })
         )}
       </div>
       

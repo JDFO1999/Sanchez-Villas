@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { FullScreenLoader } from "@/components/ui/loader"
 
 import { useState, useEffect } from "react"
@@ -86,13 +86,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       { name: "Panel Principal", href: "/", icon: Home },
       { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
       { name: "Mis Atletas", href: "/mis-atletas", icon: Users },
-      { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
     ]
+    if ((user as any)?.canManageAttendance) {
+      currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
+    }
+    currentNavItems.push({ name: "Comunidad", href: "/comunidad", icon: MessageSquare })
   } else {
     currentNavItems = [
       { name: "Panel Principal", href: "/", icon: Home },
-      { name: "Asistencia", href: "/asistencia", icon: ScanLine }
     ]
+    if (user?.role === 'cajero' || user?.role === 'recepcion' || (user as any)?.canManageAttendance) {
+      currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
+    }
     if (user?.role === 'employee' || user?.permissions?.includes('CRM_MANAGE')) {
       currentNavItems.push({ name: "Atletas / Rutinas", href: "/atletas", icon: Users })
     }
