@@ -11,9 +11,11 @@ import { Transaction, Product } from "@/lib/store-service"
 import { QRCodeSVG } from "qrcode.react"
 import { cancelTransaction } from "@/app/actions/store"
 import Swal from "sweetalert2"
+import { useSettings } from "@/lib/settings-context"
 
 export function AthleteDashboard() {
   const { user } = useAuth()
+  const { settings } = useSettings()
   
   const [routineStatus, setRoutineStatus] = useState<'pending' | 'in-progress' | 'completed'>('pending')
   const [selectedPrIndex, setSelectedPrIndex] = useState(0)
@@ -494,7 +496,7 @@ export function AthleteDashboard() {
                   GP
                 </div>
                 <div>
-                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight">{settings.appName || 'GYMPRO'}</h4>
+                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight">{settings?.appName || 'GYMPRO'}</h4>
                   <p className="text-[10px] text-zinc-400 font-bold tracking-widest uppercase">Pase Digital de Acceso</p>
                 </div>
               </div>
