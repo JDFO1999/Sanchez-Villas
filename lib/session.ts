@@ -4,6 +4,7 @@ import { User } from "@prisma/client";
 
 const secretKey = process.env.JWT_SECRET || "gympro_super_secret_key_change_me_in_production";
 const key = new TextEncoder().encode(secretKey);
+const legacyKey = new TextEncoder().encode("gympro_super_secret_key_change_me_in_production");
 
 export async function encrypt(payload: any) {
   return await new SignJWT(payload)
@@ -14,10 +15,21 @@ export async function encrypt(payload: any) {
 }
 
 export async function decrypt(input: string): Promise<any> {
-  const { payload } = await jwtVerify(input, key, {
-    algorithms: ["HS256"],
-  });
-  return payload;
+  try {
+    const { payload } = await jwtVerify(input, key, {
+      algorithms: ["HS256"],
+    });
+    return payload;
+  } catch (err) {
+    try {
+      const { payload } = await jwtVerify(input, legacyKey, {
+        algorithms: ["HS256"],
+      });
+      return payload;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export async function createSession(user: Partial<User>) {

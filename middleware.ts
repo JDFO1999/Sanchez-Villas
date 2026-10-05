@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 
 const secretKey = process.env.JWT_SECRET || "49694a7fc76bc5df04d29191fcf34c43908540dac98bfc8707836258ee134a9c";
 const key = new TextEncoder().encode(secretKey);
+const legacyKey = new TextEncoder().encode("gympro_super_secret_key_change_me_in_production");
 
 const PROTECTED_PREFIXES = [
   "/atletas",
@@ -18,6 +19,16 @@ const PROTECTED_PREFIXES = [
 ];
 
 export async function middleware(request: NextRequest) {
+  // Only apply edge redirection to standard GET page navigation.
+  // Never intercept Server Actions (POST with next-action) or RSC data fetches to avoid breaking Next.js action responses.
+  if (
+    request.method !== "GET" ||
+    request.headers.has("next-action") ||
+    request.headers.get("rsc") === "1"
+  ) {
+    return NextResponse.next();
+  }
+
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get("session")?.value;
 
@@ -31,7 +42,12 @@ export async function middleware(request: NextRequest) {
       const { payload } = await jwtVerify(sessionCookie, key, { algorithms: ["HS256"] });
       validPayload = payload;
     } catch {
-      validPayload = null;
+      try {
+        const { payload } = await jwtVerify(sessionCookie, legacyKey, { algorithms: ["HS256"] });
+        validPayload = payload;
+      } catch {
+        validPayload = null;
+      }
     }
   }
 
