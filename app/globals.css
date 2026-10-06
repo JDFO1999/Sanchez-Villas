@@ -19,7 +19,7 @@
 
   /* Dorado principal - Acentos vibrantes */
   --primary: 43 74% 49%;
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 0 0% 8%;
 
   /* Secundarios (Gris técnico suave) */
   --secondary: 210 40% 96%;
@@ -30,7 +30,7 @@
   --muted-foreground: 215 16% 35%; /* Oscurecido para mejor contraste en modo claro */
 
   --accent: 43 74% 49%;
-  --accent-foreground: 0 0% 100%;
+  --accent-foreground: 0 0% 8%;
 
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
@@ -40,6 +40,13 @@
   --input: 214 32% 91%;
   --ring: 43 74% 49%;
 
+  /* Estados semánticos: tonos oscuros en claro para que el texto cumpla contraste AA */
+  --success: 142 64% 30%;
+  --success-foreground: 0 0% 100%;
+  --warning: 32 90% 36%;
+  --warning-foreground: 0 0% 100%;
+  --info: 217 80% 42%;
+  --info-foreground: 0 0% 100%;
   --radius: 0.5rem;
 }
 
@@ -57,7 +64,7 @@
 
   /* Acentos Dorados */
   --primary: 43 74% 49%;
-  --primary-foreground: 0 0% 98%;
+  --primary-foreground: 0 0% 8%;
 
   /* Grises */
   --secondary: 0 0% 14.9%;
@@ -67,10 +74,17 @@
   --muted-foreground: 0 0% 63.9%;
 
   --accent: 43 74% 49%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 8%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 84% 66%;
+  --destructive-foreground: 0 0% 8%;
+
+  --success: 142 60% 52%;
+  --success-foreground: 0 0% 8%;
+  --warning: 38 92% 56%;
+  --warning-foreground: 0 0% 8%;
+  --info: 213 90% 66%;
+  --info-foreground: 0 0% 8%;
 
   --border: 0 0% 14.9%;
   --input: 0 0% 14.9%;
@@ -96,6 +110,12 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
   --color-ring: hsl(var(--ring));
 }
 
@@ -133,4 +153,61 @@
 .dark .glass {
   background: rgba(10, 10, 10, 0.6);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Tipografía de display: rotulación de gimnasio (condensada, pesada). */
+.font-display {
+  font-family: var(--font-display), "Arial Narrow", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Título de página único del sistema: texto con degradado dorado y resplandor suave.
+ * Claro: dorado → negro → dorado tenue. Oscuro: dorado → blanco → dorado tenue + brillo.
+ */
+.page-title {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--foreground)), hsl(var(--primary) / 0.5));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+}
+.dark .page-title {
+  background-image: linear-gradient(to right, hsl(var(--primary)), #ffffff, hsl(var(--primary) / 0.5));
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+}
+
+/* Cifras grandes (KPIs, PR, totales). */
+.stat-number {
+  font-family: var(--font-display), "Arial Narrow", sans-serif;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Cifra gigante de la página 404: mismo degradado dorado que los títulos. */
+.page-404 {
+  font-size: clamp(6rem, 22vw, 11rem);
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background-image: linear-gradient(to bottom, hsl(var(--primary)), hsl(var(--primary) / 0.15));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 24px hsl(var(--primary) / 0.25));
 }

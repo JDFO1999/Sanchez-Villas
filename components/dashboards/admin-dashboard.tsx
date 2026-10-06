@@ -5,6 +5,8 @@ import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
 import { useSettings } from "@/lib/settings-context"
 import { Loader } from "@/components/ui/loader"
+import { Dialog } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   Area, 
@@ -172,8 +174,8 @@ export function AdminDashboard() {
     <div className="space-y-6 relative">
         
         {coachRequests.length > 0 && (
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 glass">
-            <h3 className="text-orange-500 font-bold flex items-center gap-2 mb-3">
+          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4 glass">
+            <h3 className="text-warning font-bold flex items-center gap-2 mb-3">
               <AlertCircle className="h-5 w-5" /> Solicitudes de Cambio de Entrenador ({coachRequests.length})
             </h3>
             <div className="space-y-2">
@@ -234,7 +236,7 @@ export function AdminDashboard() {
                           setCoachRequests(prev => prev.filter(r => r.id !== req.id))
                         }
                       }}
-                      className="flex-1 sm:flex-none bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500/20 transition"
+                      className="flex-1 sm:flex-none bg-destructive/10 text-destructive px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-destructive/20 transition"
                     >
                       Rechazar
                     </button>
@@ -245,84 +247,76 @@ export function AdminDashboard() {
           </div>
         )}
 
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">
-            <button onClick={() => setShowReportModal(false)} className="absolute top-4 right-4 text-foreground/50 hover:text-foreground transition">
-              <X className="h-5 w-5" />
-            </button>
-            <div className="text-center mb-6">
-              <div className="mx-auto bg-primary/20 h-16 w-16 rounded-full flex items-center justify-center mb-4">
-                <Download className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent">Exportar Reporte</h3>
-              <p className="text-sm text-muted-foreground mt-2">Selecciona el formato y periodo para tu informe financiero.</p>
+      <Dialog
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title="Exportar reporte"
+        description="Selecciona el formato y periodo para tu informe financiero."
+      >
+        <div className="space-y-5">
+          <div role="group" aria-label="Periodo">
+            <span className="text-xs font-semibold text-muted-foreground mb-2 block">Periodo</span>
+            <div className="grid grid-cols-3 gap-2">
+              {['Semanal', 'Quincenal', 'Mensual'].map(p => (
+                <Button
+                  key={p}
+                  size="sm"
+                  variant={reportPeriod === p ? 'primary' : 'outline'}
+                  aria-pressed={reportPeriod === p}
+                  onClick={() => setReportPeriod(p)}
+                >
+                  {p}
+                </Button>
+              ))}
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Periodo</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Semanal', 'Quincenal', 'Mensual'].map(p => (
-                    <button 
-                      key={p} 
-                      onClick={() => setReportPeriod(p)}
-                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Formato</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => setReportFormat('PDF')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                  >
-                    <FileText className="h-6 w-6" />
-                    <span className="text-xs font-bold">PDF</span>
-                  </button>
-                  <button 
-                    onClick={() => setReportFormat('Excel')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-green-500/20 border-green-500/50 text-green-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                  >
-                    <FileSpreadsheet className="h-6 w-6" />
-                    <span className="text-xs font-bold">Excel (CSV)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={handleDownloadReport}
-              disabled={isGenerating}
-              className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <Loader size={20} color="currentColor" />
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5" /> Generar y Descargar
-                </>
-              )}
-            </button>
           </div>
+
+          <div role="group" aria-label="Formato">
+            <span className="text-xs font-semibold text-muted-foreground mb-2 block">Formato</span>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                aria-pressed={reportFormat === 'PDF'}
+                onClick={() => setReportFormat('PDF')}
+                className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${reportFormat === 'PDF' ? 'bg-destructive/15 border-destructive/50 text-destructive' : 'border-border text-muted-foreground hover:bg-muted'}`}
+              >
+                <FileText className="h-6 w-6" />
+                <span className="text-xs font-bold">PDF</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={reportFormat === 'Excel'}
+                onClick={() => setReportFormat('Excel')}
+                className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${reportFormat === 'Excel' ? 'bg-success/15 border-success/50 text-success' : 'border-border text-muted-foreground hover:bg-muted'}`}
+              >
+                <FileSpreadsheet className="h-6 w-6" />
+                <span className="text-xs font-bold">Excel (CSV)</span>
+              </button>
+            </div>
+          </div>
+
+          <Button size="lg" className="w-full" onClick={handleDownloadReport} disabled={isGenerating}>
+            {isGenerating ? (
+              <Loader size={20} color="currentColor" />
+            ) : (
+              <>
+                <CheckCircle2 className="h-5 w-5" /> Generar y descargar
+              </>
+            )}
+          </Button>
         </div>
-      )}
+      </Dialog>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Dashboard General</h1>
+          <h1 className="page-title">Dashboard General</h1>
           <p className="text-muted-foreground mt-1">
             Resumen integral de finanzas, tienda y retención de atletas.
           </p>
         </div>
-        <button onClick={() => setShowReportModal(true)} className="bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-primary hover:text-primary-foreground transition flex items-center gap-2">
+        <Button variant="outline" onClick={() => setShowReportModal(true)}>
           <Download className="h-4 w-4" /> Exportar Reporte
-        </button>
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -336,7 +330,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dynamicStats.activeAthletes}</div>
-            <p className="text-xs text-green-500 flex items-center mt-1">
+            <p className="text-xs text-success flex items-center mt-1">
               <ArrowUpRight className="h-3 w-3 mr-1" />
               Actualizado hoy
             </p>
@@ -367,7 +361,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${dynamicStats.monthlyRevenue.toFixed(2)}</div>
-            <p className="text-xs text-green-500 flex items-center mt-1">
+            <p className="text-xs text-success flex items-center mt-1">
               <ArrowUpRight className="h-3 w-3 mr-1" />
               Tienda (Completados)
             </p>
@@ -491,7 +485,7 @@ export function AdminDashboard() {
                 <div key={i} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-sm font-medium">
                     <span>{atleta.nombre}</span>
-                    <span className={atleta.porcentaje >= 80 ? "text-green-500" : atleta.porcentaje >= 70 ? "text-primary" : "text-destructive"}>
+                    <span className={atleta.porcentaje >= 80 ? "text-success" : atleta.porcentaje >= 70 ? "text-primary" : "text-destructive"}>
                       {atleta.porcentaje}%
                     </span>
                   </div>
@@ -510,17 +504,17 @@ export function AdminDashboard() {
 
       {/* Membresías (Por vencer y Nuevas) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass border-orange-500/30">
+        <Card className="glass border-warning/30">
           <CardHeader>
-            <CardTitle className="text-orange-500">Membresías por Vencer</CardTitle>
+            <CardTitle className="text-warning">Membresías por Vencer</CardTitle>
           </CardHeader>
           <CardContent>
             {dynamicStats.membresiasPorVencer.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center bg-black/5 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mb-3">
-                  <CheckCircle2 className="w-6 h-6 text-orange-500 opacity-80" />
+                <div className="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center mb-3">
+                  <CheckCircle2 className="w-6 h-6 text-warning opacity-80" />
                 </div>
-                <h4 className="text-sm font-bold text-orange-600 dark:text-orange-400 mb-1">¡Todo está al día!</h4>
+                <h4 className="text-sm font-bold text-warning mb-1">¡Todo está al día!</h4>
                 <p className="text-xs text-muted-foreground px-4">En este momento no hay atletas con membresías próximas a expirar.</p>
               </div>
             ) : (
@@ -529,7 +523,7 @@ export function AdminDashboard() {
                   <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
                     <span className="font-medium">{mem.nombre}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs bg-orange-500/20 text-orange-500 px-2 py-1 rounded-full font-bold">
+                      <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full font-bold">
                         Vence en {mem.venceEn}
                       </span>
                       <a 
@@ -549,17 +543,17 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="glass border-green-500/30">
+        <Card className="glass border-success/30">
           <CardHeader>
-            <CardTitle className="text-green-500">Membresías Nuevas</CardTitle>
+            <CardTitle className="text-success">Membresías Nuevas</CardTitle>
           </CardHeader>
           <CardContent>
             {dynamicStats.membresiasNuevas.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center bg-black/5 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mb-3">
-                  <CalendarDays className="w-6 h-6 text-green-500 opacity-80" />
+                <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center mb-3">
+                  <CalendarDays className="w-6 h-6 text-success opacity-80" />
                 </div>
-                <h4 className="text-sm font-bold text-green-600 dark:text-green-400 mb-1">Esperando nuevas afiliaciones</h4>
+                <h4 className="text-sm font-bold text-success mb-1">Esperando nuevas afiliaciones</h4>
                 <p className="text-xs text-muted-foreground px-4">Aún no se han registrado inscripciones recientes en el gimnasio.</p>
               </div>
             ) : (
@@ -570,7 +564,7 @@ export function AdminDashboard() {
                       <span className="font-medium block">{mem.nombre}</span>
                       <span className="text-xs text-muted-foreground">{mem.plan}</span>
                     </div>
-                    <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-success/20 text-success px-2 py-1 rounded-full">
                       {mem.hace}
                     </span>
                   </li>

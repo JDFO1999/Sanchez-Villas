@@ -1,5 +1,7 @@
 "use client"
 
+import { useToast } from "@/lib/toast-context"
+
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
 import { AppLayout } from "@/components/layout/app-layout"
@@ -73,7 +75,7 @@ export default function RutinaPage() {
 
   return (      <div className="p-4 sm:p-8 space-y-6 max-w-full mx-auto">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Tu Entrenamiento</h1>
+          <h1 className="page-title">Tu Entrenamiento</h1>
           <p className="text-muted-foreground mt-1">
             Visualiza tus rutinas y dietas asignadas por tu coach.
           </p>
@@ -106,12 +108,12 @@ export default function RutinaPage() {
           ) : (
             <div className="space-y-6">
               {routines.map((routine) => (
-                <Card key={routine.id} className={`shadow-none border-2 rounded-xl bg-transparent transition-all ${routine.completed ? 'border-green-500/50 opacity-80' : 'border-primary/50'}`}>
+                <Card key={routine.id} className={`shadow-none border-2 rounded-xl bg-transparent transition-all ${routine.completed ? 'border-success/50 opacity-80' : 'border-primary/50'}`}>
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                          {routine.completed && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+                          {routine.completed && <CheckCircle2 className="w-6 h-6 text-success" />}
                           {routine.title}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-4 mt-2 font-medium">
@@ -141,7 +143,7 @@ export default function RutinaPage() {
                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">Series</span>
                               <span className="text-xl font-black text-primary">{ex.sets}</span>
                             </div>
-                            <div className="w-px bg-black/10 dark:bg-white/10"></div>
+                            <div className="w-px bg-black/10 dark:hover:bg-white/10"></div>
                             <div className="text-center">
                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">Reps</span>
                               <span className="text-xl font-black text-primary">{ex.reps}</span>

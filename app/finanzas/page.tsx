@@ -57,7 +57,7 @@ export default function FinanzasPage() {
   }, [getAllEmployees])
   
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('FINANCE_VIEW') && !user.permissions?.includes('FINANCE_MANAGE'))) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado al Módulo de Finanzas.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado al Módulo de Finanzas.</div>
   }
 
   // Calcular Ingresos Totales de las transacciones
@@ -152,7 +152,7 @@ export default function FinanzasPage() {
   const projectedLiquidity = mrr - upcomingPayroll;
 
   if (!user || (user.role !== 'admin')) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo administradores.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
   }
 
   const tabs = [
@@ -737,13 +737,13 @@ export default function FinanzasPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={() => setReportFormat('PDF')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-destructive/20 border-destructive/50 text-destructive shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                   >
                     <span className="text-xs font-bold">PDF</span>
                   </button>
                   <button 
                     onClick={() => setReportFormat('Excel')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-green-500/20 border-green-500/50 text-green-500 shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-success/20 border-success/50 text-success shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                   >
                     <span className="text-xs font-bold">Excel (CSV)</span>
                   </button>
@@ -768,7 +768,7 @@ export default function FinanzasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm mb-2">Finanzas</h1>
+          <h1 className="page-title mb-2">Finanzas</h1>
           <p className="text-muted-foreground">Control total de ingresos, gastos, nómina y morosidad.</p>
         </div>
         <button 
@@ -801,63 +801,63 @@ export default function FinanzasPage() {
       {activeTab === 'resumen' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="glass border-green-500/20">
+            <Card className="glass border-success/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Totales</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-black text-green-400">{settings.storeCurrency} {totalIngresos.toFixed(2)}</div>
+                <div className="text-2xl font-black text-success">{settings.storeCurrency} {totalIngresos.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalIngresos * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
-            <Card className="glass border-red-500/20">
+            <Card className="glass border-destructive/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Egresos Totales</CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown className="h-4 w-4 text-destructive" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-black text-red-400">{settings.storeCurrency} {totalEgresos.toFixed(2)}</div>
+                <div className="text-2xl font-black text-destructive">{settings.storeCurrency} {totalEgresos.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalEgresos * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
-            <Card className={`glass ${balanceNeto >= 0 ? 'border-primary/20' : 'border-red-500/20'}`}>
+            <Card className={`glass ${balanceNeto >= 0 ? 'border-primary/20' : 'border-destructive/20'}`}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Balance Neto</CardTitle>
-                <Wallet className={`h-4 w-4 ${balanceNeto >= 0 ? 'text-primary' : 'text-red-500'}`} />
+                <Wallet className={`h-4 w-4 ${balanceNeto >= 0 ? 'text-primary' : 'text-destructive'}`} />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-black ${balanceNeto >= 0 ? 'text-foreground' : 'text-red-500'}`}>{settings.storeCurrency} {balanceNeto.toFixed(2)}</div>
-                <p className={`text-xs mt-1 ${balanceNeto >= 0 ? 'text-primary' : 'text-red-500'}`}>{settings.storeCurrencySecondary} {(balanceNeto * settings.storeExchangeRate).toFixed(2)}</p>
+                <div className={`text-2xl font-black ${balanceNeto >= 0 ? 'text-foreground' : 'text-destructive'}`}>{settings.storeCurrency} {balanceNeto.toFixed(2)}</div>
+                <p className={`text-xs mt-1 ${balanceNeto >= 0 ? 'text-primary' : 'text-destructive'}`}>{settings.storeCurrencySecondary} {(balanceNeto * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
-            <Card className="glass border-orange-500/20">
+            <Card className="glass border-warning/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Por Cobrar</CardTitle>
-                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <AlertCircle className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-black text-orange-400">{settings.storeCurrency} {estimatedDebt.toFixed(2)}</div>
+                <div className="text-2xl font-black text-warning">{settings.storeCurrency} {estimatedDebt.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(estimatedDebt * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
-            <Card className="glass border-blue-500/20">
+            <Card className="glass border-info/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Rentabilidad Staff</CardTitle>
-                <Users className="h-4 w-4 text-blue-500" />
+                <Users className="h-4 w-4 text-info" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-black text-blue-400">{settings.storeCurrency} {totalGymProfitFromCoaches.toFixed(2)}</div>
+                <div className="text-2xl font-black text-info">{settings.storeCurrency} {totalGymProfitFromCoaches.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalGymProfitFromCoaches * settings.storeExchangeRate).toFixed(2)}</p>
               </CardContent>
             </Card>
-            <Card className="glass border-green-500/20">
+            <Card className="glass border-success/20">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">MRR / Liquidez Proyectada</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-black text-green-400">{settings.storeCurrency} {projectedLiquidity.toFixed(2)}</div>
+                <div className="text-2xl font-black text-success">{settings.storeCurrency} {projectedLiquidity.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">MRR: {settings.storeCurrency} {mrr.toFixed(2)} - Nómina: {settings.storeCurrency} {upcomingPayroll.toFixed(2)}</p>
               </CardContent>
             </Card>
@@ -1009,14 +1009,14 @@ export default function FinanzasPage() {
                         )}
                       </td>
                       <td className="p-4">
-                        <div className="font-bold text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                        <div className="font-bold text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
                           <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
                         </td>
                         <td className="p-4 text-center">
                           {tx.status === 'CANCELED' ? (
-                            <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded">ANULADA</span>
+                            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                           ) : (
-                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-red-500 border border-red-500 hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
                           )}
                         </td>
                       </tr>
@@ -1043,7 +1043,7 @@ export default function FinanzasPage() {
                         <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-green-500">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                        <div className="font-black text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
                         <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
                       </div>
                     </div>
@@ -1084,7 +1084,7 @@ export default function FinanzasPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Registro de Gastos</h2>
             <div className="flex gap-2">
-              <button onClick={() => setShowExpenseModal(true)} className="bg-transparent border-2 border-green-500 text-green-500 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-500/10 transition flex items-center gap-2">
+              <button onClick={() => setShowExpenseModal(true)} className="bg-transparent border-2 border-success text-success px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-success/10 transition flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Nuevo Gasto
               </button>
               <button onClick={() => handleDownloadReport('Egresos')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
@@ -1114,7 +1114,7 @@ export default function FinanzasPage() {
                         <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded">{ex.category}</span>
                       </td>
                       <td className="p-4">
-                        <div className="font-bold text-red-500">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
+                        <div className="font-bold text-destructive">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
                         <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(ex.amount * settings.storeExchangeRate).toFixed(2)}</div>
                       </td>
                       <td className="p-4 text-right">
@@ -1122,7 +1122,7 @@ export default function FinanzasPage() {
                           <button onClick={() => { setExpForm(ex); setShowExpenseModal(true); }} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">
                             Editar
                           </button>
-                          <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-red-400">
+                          <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -1147,7 +1147,7 @@ export default function FinanzasPage() {
                         <div className="text-xs text-muted-foreground">{new Date(ex.date).toLocaleDateString()} {new Date(ex.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-red-500">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
+                        <div className="font-bold text-destructive">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
                         <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(ex.amount * settings.storeExchangeRate).toFixed(2)}</div>
                       </div>
                     </div>
@@ -1157,7 +1157,7 @@ export default function FinanzasPage() {
                         <button onClick={() => { setExpForm(ex); setShowExpenseModal(true); }} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-xs">
                           Editar
                         </button>
-                        <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-red-400">
+                        <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -1294,13 +1294,13 @@ export default function FinanzasPage() {
                           <div className="text-xs text-muted-foreground">{a.cedula}</div>
                         </td>
                         <td className="p-4">
-                          <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-destructive/20 text-destructive' : 'bg-success/20 text-success'}`}>
                             {membershipStatus}
                           </span>
                         </td>
                         <td className="p-4">
                           {a.debt && a.debt > 0 ? (
-                            <div className="font-bold text-orange-500">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
+                            <div className="font-bold text-warning">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
                           ) : (
                             <div className="text-muted-foreground">-</div>
                           )}
@@ -1330,7 +1330,7 @@ export default function FinanzasPage() {
                   {overdueAthletes.length === 0 && (
                     <tr>
                       <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                        <AlertCircle className="h-12 w-12 text-green-500/50 mx-auto mb-2" />
+                        <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
                         ¡Excelente! No hay cuentas por cobrar ni atletas en mora.
                       </td>
                     </tr>
@@ -1364,7 +1364,7 @@ export default function FinanzasPage() {
                         </div>
                         <div className="text-right">
                           {a.debt && a.debt > 0 ? (
-                            <div className="font-bold text-orange-500">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
+                            <div className="font-bold text-warning">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
                           ) : (
                             <div className="text-muted-foreground">-</div>
                           )}
@@ -1372,7 +1372,7 @@ export default function FinanzasPage() {
                         </div>
                       </div>
                       <div className="flex justify-between items-center text-sm pt-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-destructive/20 text-destructive' : 'bg-success/20 text-success'}`}>
                           {membershipStatus}
                         </span>
                         <div className="flex gap-2">
@@ -1399,7 +1399,7 @@ export default function FinanzasPage() {
                 })}
                 {overdueAthletes.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground">
-                    <AlertCircle className="h-12 w-12 text-green-500/50 mx-auto mb-2" />
+                    <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
                     ¡Excelente! No hay cuentas por cobrar ni atletas en mora.
                   </div>
                 )}
@@ -1447,7 +1447,7 @@ export default function FinanzasPage() {
 
 
                     return (
-                      <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-green-500/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                      <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-success/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
                         <td className="p-4">
                           <div className="font-bold flex items-center gap-2">
                             {emp.name}
@@ -1470,7 +1470,7 @@ export default function FinanzasPage() {
                               <div className="space-y-1">
                                 {extra.bankAccount ? <div className="text-muted-foreground"><span className="font-bold">Cta:</span> {extra.bankName ? `${extra.bankName} - ` : ''}{extra.bankAccount}</div> : null}
                                 {extra.mobilePayment ? <div className="text-muted-foreground"><span className="font-bold">Pago Móvil:</span> {extra.mobilePaymentBank ? `${extra.mobilePaymentBank} - ` : ''}{extra.mobilePayment}</div> : null}
-                                {!extra.bankAccount && !extra.mobilePayment && <span className="text-red-500/70">Sin datos registrados</span>}
+                                {!extra.bankAccount && !extra.mobilePayment && <span className="text-destructive/70">Sin datos registrados</span>}
                               </div>
                             )
                           })()}
@@ -1485,11 +1485,11 @@ export default function FinanzasPage() {
                             Configurar
                           </button>
                           {!isPaidThisMonth ? (
-                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-transparent border border-green-500 text-green-500 text-xs font-bold rounded hover:bg-green-500/10 transition">
+                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-transparent border border-success text-success text-xs font-bold rounded hover:bg-success/10 transition">
                               Pagar Nómina
                             </button>
                           ) : (
-                            <button disabled className="px-3 py-1.5 bg-green-500/20 text-green-500 text-xs font-bold rounded cursor-not-allowed">
+                            <button disabled className="px-3 py-1.5 bg-success/20 text-success text-xs font-bold rounded cursor-not-allowed">
                               Nómina Pagada
                             </button>
                           )}
@@ -1734,7 +1734,7 @@ export default function FinanzasPage() {
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-6">
                 <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-green-500 text-green-500 font-bold hover:bg-green-500/10 transition">Guardar Configuración</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Configuración</button>
               </div>
             </form>
           </div>
@@ -1760,16 +1760,16 @@ export default function FinanzasPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-green-500 mb-1 block">Bonos Extras (+)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus || 0} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-green-500/30 rounded-lg p-2 text-sm focus:border-green-500" />
+                  <label className="text-xs font-medium text-success mb-1 block">Bonos Extras (+)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus || 0} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-success/30 rounded-lg p-2 text-sm focus:border-success" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-red-500 mb-1 block">Adelantos Previos (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances || 0} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                  <label className="text-xs font-medium text-destructive mb-1 block">Adelantos Previos (-)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances || 0} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-red-500 mb-1 block">Deducciones Varias (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions || 0} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-red-500/30 rounded-lg p-2 text-sm focus:border-red-500" />
+                  <label className="text-xs font-medium text-destructive mb-1 block">Deducciones Varias (-)</label>
+                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions || 0} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
                 </div>
               </div>
 
@@ -1787,7 +1787,7 @@ export default function FinanzasPage() {
 
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
                 <button type="button" onClick={() => setShowProcessPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border-2 border-green-500 text-green-500 font-bold hover:bg-green-500/10">Pagar y Generar Recibo</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border-2 border-success text-success font-bold hover:bg-success/10">Pagar y Generar Recibo</button>
               </div>
             </form>
           </div>

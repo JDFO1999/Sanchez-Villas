@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useCallback, ReactNode } from 'react'
 import Swal from 'sweetalert2'
+import { swalTheme } from '@/lib/confirm'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -21,10 +22,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       showConfirmButton: false,
       timer: 3000,
       timerProgressBar: true,
-      background: '#222',
-      color: '#fff',
+      ...swalTheme(),
       customClass: {
-        popup: 'border border-black/10 dark:border-white/10 rounded-lg shadow-2xl glass'
+        popup: 'border border-border rounded-lg shadow-2xl'
       }
     })
   }, [])
@@ -53,10 +53,9 @@ export function showSweetToast(message: string, type: ToastType = 'info') {
     showConfirmButton: false,
     timer: 3000,
     timerProgressBar: true,
-    background: '#18181b',
-    color: '#fff',
+    ...swalTheme(),
     customClass: {
-      popup: 'border border-black/10 dark:border-white/10 rounded-lg shadow-2xl glass'
+      popup: 'border border-border rounded-lg shadow-2xl'
     }
   })
 }

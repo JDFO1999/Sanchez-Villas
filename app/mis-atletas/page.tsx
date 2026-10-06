@@ -32,13 +32,13 @@ export default function MisAtletasPage() {
   )
 
   if (user?.role !== "coach" && user?.role !== "admin") {
-    return <div className="p-8 font-bold text-red-500 text-center">Acceso Denegado</div>
+    return <div className="p-8 font-bold text-destructive text-center">Acceso Denegado</div>
   }
 
   return (
     <div className="space-y-6 w-full p-4 sm:p-8">
       <div>
-        <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Mis Atletas</h1>
+        <h1 className="page-title">Mis Atletas</h1>
         <p className="text-muted-foreground mt-1">
           Lista completa de todos los atletas que entrenas.
         </p>
@@ -83,14 +83,14 @@ export default function MisAtletasPage() {
                       <span className="text-xs text-muted-foreground truncate mb-1">C.I: {athlete.cedula}</span>
                       <div className="flex gap-2">
                         {athlete._count?.athleteRoutines > 0 ? (
-                          <span className="text-[9px] bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded-full font-bold">Con Rutina</span>
+                          <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">Con Rutina</span>
                         ) : (
-                          <span className="text-[9px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded-full font-bold">Sin Rutina</span>
+                          <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">Sin Rutina</span>
                         )}
                         {athlete._count?.athleteDiets > 0 ? (
-                          <span className="text-[9px] bg-blue-500/20 text-blue-500 px-1.5 py-0.5 rounded-full font-bold">Con Dieta</span>
+                          <span className="text-[9px] bg-info/20 text-info px-1.5 py-0.5 rounded-full font-bold">Con Dieta</span>
                         ) : (
-                          <span className="text-[9px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded-full font-bold">Sin Dieta</span>
+                          <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">Sin Dieta</span>
                         )}
                       </div>
                     </div>

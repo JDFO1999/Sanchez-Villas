@@ -33,7 +33,7 @@ export default function VentasPage() {
   }, [])
 
   if (!user || (user.role !== 'admin' && user.role !== 'cajero' && !user.permissions?.includes('SALES_VIEW'))) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
   const getAthleteName = (tx: any) => {
@@ -45,7 +45,7 @@ export default function VentasPage() {
   return (
     <div className="space-y-6 max-w-full mx-auto">
       <div className="flex items-center gap-3">
-        <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm mb-4">Historial de Ventas</h1>
+        <h1 className="page-title mb-4">Historial de Ventas</h1>
       </div>
       <StoreNav />
 
@@ -58,15 +58,15 @@ export default function VentasPage() {
             <div>
               <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Facturas</p>
               <h3 className="text-2xl font-bold">{transactions.length}</h3>
-              <p className="text-xs font-bold text-yellow-500">{transactions.filter(t => t.status === 'PENDING_DELIVERY').length} en espera</p>
-              <p className="text-xs font-bold text-green-500">{transactions.filter(t => t.status === 'COMPLETED').length} completadas</p>
+              <p className="text-xs font-bold text-warning">{transactions.filter(t => t.status === 'PENDING_DELIVERY').length} en espera</p>
+              <p className="text-xs font-bold text-success">{transactions.filter(t => t.status === 'COMPLETED').length} completadas</p>
             </div>
           </CardContent>
         </Card>
         
         <Card className="glass hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-300">
           <CardContent className="p-6 flex items-start gap-4">
-            <div className="p-3 bg-green-500/20 rounded-full text-green-500 mt-1">
+            <div className="p-3 bg-success/20 rounded-full text-success mt-1">
               <span className="text-xl font-bold leading-none">{settings.storeCurrency}</span>
             </div>
             <div>
@@ -83,7 +83,7 @@ export default function VentasPage() {
 
         <Card className="glass hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-300">
           <CardContent className="p-6 flex items-start gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-full text-blue-500 mt-1">
+            <div className="p-3 bg-info/20 rounded-full text-info mt-1">
               <Calendar className="h-6 w-6" />
             </div>
             <div className="w-full">
@@ -94,7 +94,7 @@ export default function VentasPage() {
                     <h3 className="text-sm font-bold text-primary">{transactions[0].id}</h3>
                     <p className="text-xs text-muted-foreground">Cliente: <span className="text-white font-bold">{getAthleteName(transactions[0])}</span></p>
                     <p className="text-xs text-muted-foreground">{new Date(transactions[0].date).toLocaleString()}</p>
-                    <button onClick={() => setShowReceipt(transactions[0])} className="text-xs text-blue-400 font-bold hover:underline mt-1 block">Visualizar Factura</button>
+                    <button onClick={() => setShowReceipt(transactions[0])} className="text-xs text-info font-bold hover:underline mt-1 block">Visualizar Factura</button>
                   </div>
                 ) : (
                   <h3 className="text-sm font-bold text-muted-foreground">N/A</h3>
@@ -158,7 +158,7 @@ export default function VentasPage() {
                   <td className="p-4">
                     {tx.status === 'PENDING_DELIVERY' ? (
                       <div className="flex flex-col gap-2 items-start">
-                        <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
+                        <span className="bg-warning/20 text-warning px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
                         <button 
                           onClick={() => {
                             import("sweetalert2").then((Swal) => {
@@ -196,14 +196,14 @@ export default function VentasPage() {
                       </div>
                     ) : (
                       <div className="flex flex-col items-start gap-1">
-                        <span className="bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                        <span className="bg-success/20 text-success px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
                         {tx.deliveredBy && (
                           <span className="text-[10px] text-muted-foreground">Entregado por: {tx.deliveredBy}</span>
                         )}
                       </div>
                     )}
                   </td>
-                  <td className="p-4 text-right font-bold text-green-500">
+                  <td className="p-4 text-right font-bold text-success">
                     <div>{settings.storeCurrency} {tx.total.toFixed(2)}</div>
                     {settings.storeExchangeRate > 0 && settings.storeCurrencySecondary && (
                       <div className="text-[10px] text-muted-foreground font-normal">
@@ -234,7 +234,7 @@ export default function VentasPage() {
                     </div>
                     <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleString()}</div>
                   </div>
-                  <div className="text-right font-bold text-green-500">
+                  <div className="text-right font-bold text-success">
                     {settings.storeCurrency} {tx.total.toFixed(2)}
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export default function VentasPage() {
                 <div className="pt-2 border-t border-black/5 dark:border-white/5">
                   {tx.status === 'PENDING_DELIVERY' ? (
                     <div className="flex justify-between items-center">
-                      <span className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
+                      <span className="bg-warning/20 text-warning px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
                       <button 
                         onClick={() => {
                           import("sweetalert2").then((Swal) => {
@@ -309,7 +309,7 @@ export default function VentasPage() {
                       </button>
                     </div>
                   ) : (
-                    <span className="bg-green-500/20 text-green-500 px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                    <span className="bg-success/20 text-success px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
                   )}
                 </div>
               </div>
@@ -327,7 +327,7 @@ export default function VentasPage() {
       {viewImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setViewImage(null)}>
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-2xl w-full p-2 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setViewImage(null)} className="absolute -top-10 right-0 text-white hover:text-red-400 font-bold text-xl">&times; Cerrar</button>
+            <button onClick={() => setViewImage(null)} className="absolute -top-10 right-0 text-white hover:text-destructive font-bold text-xl">&times; Cerrar</button>
             <img src={viewImage} alt="Capture" className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />
           </div>
         </div>

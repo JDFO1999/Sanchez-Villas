@@ -1,5 +1,6 @@
-import { Loader } from "@/components/ui/loader"
 "use client"
+
+import { Loader } from "@/components/ui/loader"
 
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -107,7 +108,7 @@ export default function RegistroPage() {
         </p>
 
         {error && (
-          <div className="w-full p-3 mb-6 bg-red-500/10 border border-red-500/50 text-red-500 text-sm rounded-lg text-center">
+          <div className="w-full p-3 mb-6 bg-destructive/10 border border-destructive/50 text-destructive text-sm rounded-lg text-center">
             {error}
           </div>
         )}
@@ -116,42 +117,42 @@ export default function RegistroPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Nombre y Apellido</label>
-              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
+              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Cédula</label>
-              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
+              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Teléfono / WhatsApp</label>
-              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. 0414-1234567" required />
+              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. 0414-1234567" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Correo Electrónico</label>
-              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="tu@correo.com" required />
+              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="tu@correo.com" required />
             </div>
           </div>
           
           <div className="grid grid-cols-1 gap-4">
             <div className="col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Dirección</label>
-              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
+              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Contraseña</label>
-              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
+              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
             </div>
             <div className="relative">
               <label className="text-xs font-medium text-foreground mb-1 block">Confirmar Contraseña</label>
-              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-black/5 dark:bg-white/5 border rounded-lg p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-green-500/50 focus:border-green-500' : 'border-red-500/50 focus:border-red-500') : 'border-black/10 dark:border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
-              {claveMatch && <Check className="absolute right-3 top-9 h-4 w-4 text-green-500" />}
-              {confirmClave && !claveMatch && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
+              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-black/5 dark:bg-white/5 border rounded-lg p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-success/50 focus:border-success' : 'border-destructive/50 focus:border-destructive') : 'border-black/10 dark:border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
+              {claveMatch && <Check className="absolute right-3 top-9 h-4 w-4 text-success" />}
+              {confirmClave && !claveMatch && <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>}
             </div>
           </div>
 
@@ -159,7 +160,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Género</label>
               <div className="relative">
-                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8">
+                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8">
                   <option value="M">Masculino</option>
                   <option value="F">Femenino</option>
                 </select>
@@ -171,7 +172,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Entrenador (Opcional)</label>
               <div className="relative">
-                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-slate-900 dark:text-slate-100 rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
+                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
                   <option value="">-- Sin entrenador --</option>
                   <option value="4">Carlos (Staff)</option>
                 </select>
@@ -182,7 +183,7 @@ export default function RegistroPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center mt-6 disabled:opacity-50">
+          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>
         </form>

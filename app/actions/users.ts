@@ -244,7 +244,7 @@ export async function registerAttendance(query: string, isCedula: boolean = fals
       
       return { 
         success: false, 
-        error: 'MembresÃ­a Vencida',
+        error: 'Membresía Vencida',
         lastDate: lastMembership?.endDate 
       }
     }

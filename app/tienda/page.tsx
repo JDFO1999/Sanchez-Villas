@@ -104,7 +104,7 @@ export default function TiendaPOSPage() {
       const exists = prev.find(i => i.productId === product.id)
       if (exists) {
         if (exists.qty >= product.currentStock && product.currentStock > 0) {
-          showToast("No hay suficiente stock para aÃ±adir mÃ¡s.", "warning")
+          showToast("No hay suficiente stock para añadir más.", "warning")
           return prev
         }
         return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1, subtotal: (i.qty + 1) * i.price } : i)
@@ -337,16 +337,16 @@ export default function TiendaPOSPage() {
   }
 
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('POS_ACCESS') && user.role !== 'athlete')) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado a la Tienda.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado a la Tienda.</div>
   }
 
-  // ===== VISTA CATÃLOGO PARA ATLETAS =====
+  // ===== VISTA CATÁLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
     return (
       <div className="space-y-6 max-w-full mx-auto pb-20">
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent drop-shadow-sm">Catálogo {settings.appName}</h1>
+            <h1 className="page-title">Catálogo {settings.appName}</h1>
             <p className="text-muted-foreground mt-1">Reserva tus productos desde aquí y retíralos en recepción.</p>
           </div>
           <div className="relative flex gap-2">
@@ -364,12 +364,12 @@ export default function TiendaPOSPage() {
                 });
                 setShowAthleteCart(true);
               }}
-              className="bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm"
+              className="bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm"
             >
               <User className="h-5 w-5" />
               <span>Pagar Mensualidad</span>
             </button>
-            <button onClick={() => setShowAthleteCart(true)} className="bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm">
+            <button onClick={() => setShowAthleteCart(true)} className="bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm">
               <ShoppingCart className="h-5 w-5" />
               <span>Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -413,16 +413,16 @@ export default function TiendaPOSPage() {
                 onClick={() => !isOutOfStock && addToCart(p)}
                 className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
               >
-                <div className="h-40 sm:h-28 w-full relative flex items-center justify-center p-3 bg-slate-100 dark:bg-white/[0.02] group-hover:bg-slate-200 dark:group-hover:bg-white/[0.04] transition-colors">
+                <div className="h-40 sm:h-28 w-full relative flex items-center justify-center p-3 bg-muted dark:bg-white/[0.02] group-hover:bg-muted dark:group-hover:bg-white/[0.04] transition-colors">
                   {p.imageUrl ? (
                     <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
                   ) : (
-                    <ShoppingCart className="h-12 w-12 text-slate-300 dark:text-slate-800" />
+                    <ShoppingCart className="h-12 w-12 text-foreground" />
                   )}
                   
                   {isOutOfStock && (
                     <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center backdrop-blur-[2px] z-10">
-                      <span className="font-black text-red-400 rotate-[-15deg] border-2 border-red-400 px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
+                      <span className="font-black text-destructive rotate-[-15deg] border-2 border-destructive px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
                     </div>
                   )}
                   {/* Price Tag Floating */}
@@ -440,7 +440,7 @@ export default function TiendaPOSPage() {
                   <h3 className="font-bold text-xs sm:text-sm leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors" title={p.name}>{p.name}</h3>
                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5 dark:border-white/5">
                     <span className="text-[10px] text-muted-foreground">Stock disp.</span>
-                    <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-yellow-500' : 'text-green-500'}`}>{p.currentStock}</span>
+                    <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-warning' : 'text-success'}`}>{p.currentStock}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -465,9 +465,9 @@ export default function TiendaPOSPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                        <button onClick={()=>updateQty(item.productId, -1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-red-400 rounded-l-lg"><Minus className="h-4 w-4"/></button>
+                        <button onClick={()=>updateQty(item.productId, -1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-destructive rounded-l-lg"><Minus className="h-4 w-4"/></button>
                         <span className="w-6 text-center text-sm font-bold">{item.qty}</span>
-                        <button onClick={()=>updateQty(item.productId, 1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-green-400 rounded-r-lg"><Plus className="h-4 w-4"/></button>
+                        <button onClick={()=>updateQty(item.productId, 1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-success rounded-r-lg"><Plus className="h-4 w-4"/></button>
                       </div>
                       <div className="font-bold text-sm w-16 text-right">
                         {settings.storeCurrency} {item.subtotal.toFixed(2)}
@@ -478,7 +478,7 @@ export default function TiendaPOSPage() {
                 {cart.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 pt-10 pb-10">
                     <ShoppingCart className="h-12 w-12 mb-4" />
-                    <p>Carrito VacÃ­o</p>
+                    <p>Carrito Vacío</p>
                   </div>
                 )}
               </div>
@@ -497,7 +497,7 @@ export default function TiendaPOSPage() {
                     <option value="Binance">Binance</option>
                   </select>
                   {paymentMethod === 'Efectivo' && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
+                    <div className="mt-2 text-[10px] sm:text-xs text-warning bg-warning/10 p-2 rounded border border-warning/20">
                       <span className="font-bold">Aviso:</span> Al seleccionar Efectivo, cuentas con <strong>24 horas</strong> para dirigirte a la tienda y pagar. De lo contrario, la reserva será cancelada.
                     </div>
                   )}
@@ -610,7 +610,7 @@ export default function TiendaPOSPage() {
                     setShowAthleteCart(false);
                   }}
                   disabled={cart.length === 0}
-                  className="w-full bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-black py-3.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-transparent border-2 border-success text-success font-black py-3.5 rounded-xl hover:bg-success/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Enviar Pedido
                 </button>
@@ -629,12 +629,12 @@ export default function TiendaPOSPage() {
     <div className="space-y-4 max-w-full mx-auto h-[calc(100vh-100px)] flex flex-col">
       <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm mb-4">Tienda {settings.appName}</h1>
+          <h1 className="page-title mb-4">Tienda {settings.appName}</h1>
           <StoreNav />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-orange-500 text-orange-600 dark:text-orange-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
-            <button onClick={() => setShowAdminCart(true)} className={`bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm ${cartAnim ? 'animate-bounce' : ''}`}>
+          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-warning text-warning font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-warning/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+            <button onClick={() => setShowAdminCart(true)} className={`bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm ${cartAnim ? 'animate-bounce' : ''}`}>
               <ShoppingCart className="h-5 w-5" />
               <span>Pagar / Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
             </button>
@@ -676,7 +676,7 @@ export default function TiendaPOSPage() {
             </form>
           </div>
 
-          {/* CuadrÃ­cula de Productos */}
+          {/* Cuadrícula de Productos */}
           <div className="flex-1 overflow-y-auto min-h-0 pb-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 p-2">
               {filteredProducts.map(p => {
@@ -687,16 +687,16 @@ export default function TiendaPOSPage() {
                     onClick={() => !isOutOfStock && addToCart(p)}
                     className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
                   >
-                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-slate-100 dark:bg-white/[0.02] group-hover:bg-slate-200 dark:group-hover:bg-white/[0.04] transition-colors">
+                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-muted dark:bg-white/[0.02] group-hover:bg-muted dark:group-hover:bg-white/[0.04] transition-colors">
                       {p.imageUrl ? (
                         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
                       ) : (
-                        <ShoppingCart className="h-12 w-12 text-slate-300 dark:text-slate-800" />
+                        <ShoppingCart className="h-12 w-12 text-foreground" />
                       )}
                       
                       {isOutOfStock && (
                         <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center backdrop-blur-[2px] z-10">
-                          <span className="font-black text-red-400 rotate-[-15deg] border-2 border-red-400 px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
+                          <span className="font-black text-destructive rotate-[-15deg] border-2 border-destructive px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
                         </div>
                       )}
                       {/* Price Tag Floating */}
@@ -714,7 +714,7 @@ export default function TiendaPOSPage() {
                       <h3 className="font-bold text-xs leading-tight line-clamp-2 min-h-[2rem] group-hover:text-primary transition-colors" title={p.name}>{p.name}</h3>
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5 dark:border-white/5">
                         <span className="text-[10px] text-muted-foreground">Disponibles:</span>
-                        <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-yellow-500' : 'text-green-500'}`}>{p.currentStock}</span>
+                        <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-warning' : 'text-success'}`}>{p.currentStock}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -724,7 +724,7 @@ export default function TiendaPOSPage() {
           </div>
         </div>
 
-        {/* LADO DERECHO: CARRITO Y FACTURACIÃ“N (AHORA EN MODAL) */}
+        {/* LADO DERECHO: CARRITO Y FACTURACIÓN (AHORA EN MODAL) */}
         {showAdminCart && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col bg-card border border-black/10 dark:border-white/10 rounded-xl glass shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -748,9 +748,9 @@ export default function TiendaPOSPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                    <button onClick={()=>updateQty(item.productId, -1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-red-400 rounded-l-lg"><Minus className="h-4 w-4"/></button>
+                    <button onClick={()=>updateQty(item.productId, -1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-destructive rounded-l-lg"><Minus className="h-4 w-4"/></button>
                     <span className="w-6 text-center text-sm font-bold">{item.qty}</span>
-                    <button onClick={()=>updateQty(item.productId, 1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-green-400 rounded-r-lg"><Plus className="h-4 w-4"/></button>
+                    <button onClick={()=>updateQty(item.productId, 1)} className="p-1 hover:bg-black/10 dark:bg-white/10 text-muted-foreground hover:text-success rounded-r-lg"><Plus className="h-4 w-4"/></button>
                   </div>
                   <div className="font-bold text-sm w-16 text-right">
                     {settings.storeCurrency} {item.subtotal.toFixed(2)}
@@ -777,7 +777,7 @@ export default function TiendaPOSPage() {
                   <UserPlus className="h-3 w-3" /> Nuevo
                 </button>
               </label>
-              <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-orange-500 text-orange-600 dark:text-orange-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+              <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-warning text-warning font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-warning/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input 
                   type="text" 
@@ -811,14 +811,14 @@ export default function TiendaPOSPage() {
                 )}
               </div>
               
-              {/* Alerta de MembresÃ­a */}
+              {/* Alerta de Membresía */}
               {selectedAthleteId && (() => {
                 const athlete = athletes.find(a => a.id === selectedAthleteId);
                 if (!athlete) return null;
                 const isExpired = new Date(athlete.membershipEnd).getTime() < new Date().getTime();
                 if (isExpired) {
                   return (
-                    <div className="mt-2 bg-red-500/20 border border-red-500/50 p-2 rounded flex gap-2 items-start text-xs text-red-500">
+                    <div className="mt-2 bg-destructive/20 border border-destructive/50 p-2 rounded flex gap-2 items-start text-xs text-destructive">
                       <span className="font-bold uppercase">¡Atención!</span>
                       <span>Membresía Vencida ({athlete.membershipEnd}). Ofrece la renovación.</span>
                     </div>
@@ -863,7 +863,7 @@ export default function TiendaPOSPage() {
                   })()}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">NÃºmero de Referencia ({paymentMethod})</label>
+                  <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
                   <input 
                     type="text" 
                     value={txReference}
@@ -944,7 +944,7 @@ export default function TiendaPOSPage() {
             <button 
               onClick={handleCheckout}
               disabled={cart.length === 0}
-              className="w-full bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-black py-3.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-500/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-transparent border-2 border-success text-success font-black py-3.5 rounded-xl hover:bg-success/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="h-5 w-5" /> Cobrar Total
             </button>
@@ -960,7 +960,7 @@ export default function TiendaPOSPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-3xl w-full max-h-[80vh] flex flex-col shadow-2xl glass overflow-hidden">
             <div className="p-6 border-b border-black/10 dark:border-white/10 flex justify-between items-center bg-black/5 dark:bg-white/5">
-              <h3 className="text-2xl font-black flex items-center gap-2"><Package className="h-6 w-6 text-orange-500" /> Pedidos Online Pendientes</h3>
+              <h3 className="text-2xl font-black flex items-center gap-2"><Package className="h-6 w-6 text-warning" /> Pedidos Online Pendientes</h3>
               <button onClick={() => setShowPendingOrders(false)} className="text-muted-foreground hover:text-foreground font-bold">X</button>
             </div>
             
@@ -972,7 +972,7 @@ export default function TiendaPOSPage() {
                   placeholder="Buscar por Cédula, Nombre o Codigo de Pedido..." 
                   value={pendingSearch}
                   onChange={(e) => setPendingSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-orange-500"
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-warning"
                 />
               </div>
             </div>
@@ -993,7 +993,7 @@ export default function TiendaPOSPage() {
                     <div key={order.id} className="border border-black/10 dark:border-white/10 rounded-lg p-4 bg-black/5 dark:bg-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
+                          <span className="font-mono bg-warning/20 text-warning px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
                           <span className="font-bold">{order.customer?.name} ({order.customer?.cedula})</span>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{new Date(order.date).toLocaleString()}</p>
@@ -1029,7 +1029,7 @@ export default function TiendaPOSPage() {
                               }
                             }
                           }}
-                          className="border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2"
+                          className="border-2 border-warning text-warning hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2"
                         >
                           <Check className="h-4 w-4" /> Entregar
                         </button>
@@ -1048,7 +1048,7 @@ export default function TiendaPOSPage() {
       {showAdminOverride && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-2 text-red-500">Autorización Requerida</h3>
+            <h3 className="text-xl font-bold mb-2 text-destructive">Autorización Requerida</h3>
             <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase código de Administrador para facturar sin stock.</p>
             <form onSubmit={handleAdminOverride} className="space-y-4">
               <input 
@@ -1127,14 +1127,14 @@ export default function TiendaPOSPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">DirecciÃ³n</label>
+                <label className="text-xs text-muted-foreground">Dirección</label>
                 <input 
                   required type="text" value={walkInAddress} onChange={e => setWalkInAddress(e.target.value)}
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">TelÃ©fono</label>
+                <label className="text-xs text-muted-foreground">Teléfono</label>
                 <input 
                   required type="text" value={walkInPhone} onChange={e => setWalkInPhone(e.target.value)}
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
@@ -1142,7 +1142,7 @@ export default function TiendaPOSPage() {
               </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => setShowWalkInModal(false)} className="px-4 py-2 text-sm rounded bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-xl bg-transparent border-2 border-green-500 text-green-600 dark:text-green-500 font-bold hover:bg-green-50 dark:hover:bg-green-500/10 transition">Guardar</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-xl bg-transparent border-2 border-success text-success font-bold hover:bg-success/10 transition">Guardar</button>
               </div>
             </form>
           </div>
@@ -1358,7 +1358,7 @@ export default function TiendaPOSPage() {
                     <span>Pago con:</span>
                     <span className="uppercase">{showReceipt.paymentMethod}</span>
                   </div>
-                  <div className="flex justify-between text-orange-600 mt-2 text-lg">
+                  <div className="flex justify-between text-warning mt-2 text-lg">
                     <span>Estatus:</span>
                     <span className="uppercase">PENDIENTE DE RETIRO</span>
                   </div>

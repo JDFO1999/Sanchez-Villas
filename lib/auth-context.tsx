@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { loginAction } from '@/app/actions/auth'
+import { loginAction, logoutAction } from '@/app/actions/auth'
 import { getAthleteById } from '@/app/actions/users'
 import { createEmployee, updateEmployee, getAllEmployees, createAthlete, updateAthlete } from '@/app/actions/users'
 
@@ -42,7 +42,7 @@ export interface User {
 interface AuthContextType {
   user: User | null
   login: (cedula: string, clave: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   registerAthlete: (cedula: string, clave: string, profile: any) => Promise<User | false>
   adminUpdateAthleteCredentials: (oldCedula: string, newCedula: string, newName: string, newClave: string) => Promise<boolean>
   updateEmployeePermissions: (userId: string, permissions: Permission[]) => void
@@ -96,9 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false
   }
 
-  const logout = () => {
-    localStorage.removeItem('gympro_session_id')
-    setUser(null)
+  const logout = async () => {
+    try {
+      // Borra la cookie httpOnly "session"; sin esto el middleware sigue viendo la sesión y redirige /login -> /
+      await logoutAction()
+    } finally {
+      localStorage.removeItem('gympro_session_id')
+      setUser(null)
+      // Navegación completa: reinicia el estado del cliente y el middleware ve la cookie ya borrada
+      window.location.assign('/login')
+    }
   }
 
   // Permisos (We keep these local for simplicity if not in DB yet)

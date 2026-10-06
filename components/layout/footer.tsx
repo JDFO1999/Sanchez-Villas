@@ -43,8 +43,8 @@ export function BaseFooter({
                   <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
                 )}
                 {settings.footerMission && (
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-2">Nuestra Misión</h4>
+                  <div className="text-sm text-muted-foreground">
+                    <h4 className="font-bold text-foreground mb-2">Nuestra Misión</h4>
                     <p className="leading-relaxed text-justify">{settings.footerMission}</p>
                   </div>
                 )}
@@ -54,19 +54,19 @@ export function BaseFooter({
             {/* Column 2: Vision + Contact & Socials */}
             <div className="flex flex-col items-center text-center space-y-8">
               {settings.footerVision && (
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-2">Nuestra Visión</h4>
+                <div className="text-sm text-muted-foreground">
+                  <h4 className="font-bold text-foreground mb-2">Nuestra Visión</h4>
                   <p className="leading-relaxed text-justify">{settings.footerVision}</p>
                 </div>
               )}
               <div className="flex flex-col items-center text-center space-y-4">
-                <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 relative inline-block">
+                <h4 className="font-bold text-lg text-foreground relative inline-block">
                   Redes y Contacto
                   <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
                 </h4>
                 <div className="flex flex-wrap justify-center gap-4 pt-2">
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
-                    <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary transition-all duration-300 hover:scale-110 flex items-center justify-center group">
+                    <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110 flex items-center justify-center group">
                       {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: link.width, height: link.height }} className="object-contain group-hover:brightness-110" /> : <span className="text-xs font-bold">{link.name.substring(0,2)}</span>}
                     </a>
                   ))}
@@ -78,7 +78,7 @@ export function BaseFooter({
             <div className="flex flex-col items-center text-center space-y-8">
               {settings.footerPartners && settings.footerPartners.length > 0 && (
                 <div className="flex flex-col items-center w-full space-y-4">
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-slate-100 relative inline-block">
+                  <h4 className="font-bold text-lg text-foreground relative inline-block">
                     Socios Comerciales
                     <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
                   </h4>
@@ -96,7 +96,7 @@ export function BaseFooter({
                 </div>
               )}
               {settings.storeAddress && (
-                <div className="flex flex-col items-center text-center gap-2 text-sm text-slate-600 dark:text-slate-400 mt-auto">
+                <div className="flex flex-col items-center text-center gap-2 text-sm text-muted-foreground mt-auto">
                   <div className="flex items-center gap-2 text-primary font-semibold"><MapPin className="h-4 w-4" /><span>Ubicación</span></div>
                   <p className="max-w-xs">{settings.storeAddress}</p>
                 </div>
@@ -117,7 +117,7 @@ export function BaseFooter({
                 )}
               </div>
               {settings.storeAddress && (
-                <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400 mt-4">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground mt-4">
                   <MapPin className="h-5 w-5 shrink-0 text-primary" />
                   <p>{settings.storeAddress}</p>
                 </div>
@@ -125,21 +125,21 @@ export function BaseFooter({
             </div>
             
             <div>
-              <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 uppercase tracking-wider text-sm">Misión</h4>
-              {settings.footerMission && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{settings.footerMission}</p>}
+              <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Misión</h4>
+              {settings.footerMission && <p className="text-sm text-muted-foreground leading-relaxed">{settings.footerMission}</p>}
             </div>
 
             <div>
-              <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 uppercase tracking-wider text-sm">Visión</h4>
-              {settings.footerVision && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{settings.footerVision}</p>}
+              <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Visión</h4>
+              {settings.footerVision && <p className="text-sm text-muted-foreground leading-relaxed">{settings.footerVision}</p>}
             </div>
 
             <div className="flex flex-col gap-8">
               <div>
-                <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 uppercase tracking-wider text-sm">Síguenos</h4>
+                <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Síguenos</h4>
                 <div className="flex flex-wrap gap-3">
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
-                    <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center">
+                    <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center">
                       {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: link.width*0.8, height: link.height*0.8 }} className="object-contain" /> : <span className="text-xs font-bold">{link.name.substring(0,2)}</span>}
                     </a>
                   ))}
@@ -148,7 +148,7 @@ export function BaseFooter({
               
               {settings.footerPartners && settings.footerPartners.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 uppercase tracking-wider text-sm">Partners</h4>
+                  <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Partners</h4>
                   <div className="flex flex-wrap gap-4">
                     {settings.footerPartners.map((partner: any) => (
                       <div key={partner.id} className="opacity-80 hover:opacity-100 dark:bg-white/90 dark:p-1 dark:rounded">
@@ -174,16 +174,16 @@ export function BaseFooter({
             </div>
             
             {(settings.footerMission || settings.footerVision) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-600 dark:text-slate-400">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-muted-foreground">
                 {settings.footerMission && (
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-widest text-xs">Misión</h4>
+                    <h4 className="font-bold text-foreground mb-2 uppercase tracking-widest text-xs">Misión</h4>
                     <p className="leading-relaxed">{settings.footerMission}</p>
                   </div>
                 )}
                 {settings.footerVision && (
                   <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-widest text-xs">Visión</h4>
+                    <h4 className="font-bold text-foreground mb-2 uppercase tracking-widest text-xs">Visión</h4>
                     <p className="leading-relaxed">{settings.footerVision}</p>
                   </div>
                 )}
@@ -192,7 +192,7 @@ export function BaseFooter({
             
             <div className="flex flex-wrap justify-center gap-6">
               {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
-                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
                   {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: 20, height: 20 }} className="object-contain" /> : null}
                   <span className="font-medium text-sm">{link.name}</span>
                 </a>
@@ -200,7 +200,7 @@ export function BaseFooter({
             </div>
             
             {settings.storeAddress && (
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
                 <p>{settings.storeAddress}</p>
               </div>
@@ -221,7 +221,7 @@ export function BaseFooter({
           </div>
         )}
 
-        <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-4 text-xs text-slate-500 w-full text-center">
+        <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-4 text-xs text-muted-foreground w-full text-center">
           <p>{settings.footerLogoSettings?.copyrightText || `© ${new Date().getFullYear()} ${settings.appName}. Todos los derechos reservados.`}</p>
         </div>
       </div>

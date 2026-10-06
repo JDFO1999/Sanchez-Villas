@@ -21,6 +21,19 @@ Se ha implementado el **backend con SQL Server (Prisma)**, aunque quedan un par 
 8. **Módulo de Asistencia (`/asistencia`):** Lector de entrada para atletas validando vencimiento y registro de check-in, vinculación de ventas reales al Dashboard.
 9. **Mis Atletas (`/mis-atletas`):** Módulo para que los entrenadores vean y asignen rutinas a sus atletas.
 
+### Sistema de Diseño (en curso):
+- **Base:** tokens semánticos `success` / `warning` / `info` (claro y oscuro) en `app/globals.css`; fuente de display `Barlow Condensed` (`--font-display`, clases `.font-display`, `.stat-number`); clase única `.page-title` aplicada en las 15 pantallas que antes copiaban el gradiente. **Estilo del título (decisión del usuario):** texto con degradado dorado (claro: dorado → oscuro → dorado tenue; oscuro: dorado → blanco → dorado tenue) y resplandor suave; no volver a un título sólido.
+- **Componentes nuevos en `components/ui/`:** `button.tsx` (variantes primary/outline/ghost/success/danger), `badge.tsx` (tonos), `page-title.tsx` (usa `.page-title`).
+- **Migración a tokens (hecha):** los colores de texto, borde y fondo teñido `green/red/orange/yellow/amber/blue/emerald` y la escala `slate-*` se sustituyeron por `success` / `warning` / `info` / `destructive` / `foreground` / `muted-foreground` / `border` / `muted` en 22 archivos de `app/` y `components/` (excepto `footer.tsx`, que tiene colores configurables). Quedan solo rellenos sólidos (`bg-green-500` en puntos y botones con texto blanco).
+- **Dashboard del atleta:** avisos de rutina en frase normal (sin mayúsculas ni parpadeo), cifras de KPI con `.stat-number`, `<Link><button/></Link>` reemplazado por `buttonVariants`, textos mínimos de 12 px, gráficos con colores de tokens.
+- **Login y sidebar:** etiquetas asociadas (`htmlFor`), botón mostrar/ocultar contraseña, `autoComplete`; sidebar y barra móvil con `aria-current`, barra dorada de sección activa y foco visible.
+- **Codificación:** reparado el texto con mojibake (`Ã­`, `Ã³`) en `users.ts`, `membresias`, `tienda` y `athlete-dashboard`.
+- **Dialog accesible (`components/ui/dialog.tsx`):** `role="dialog"`, Escape, foco atrapado y restaurado, scroll del fondo bloqueado. Ya lo usan: recuperar contraseña (login), exportar reporte (admin) y pase QR (atleta). El resto de modales (`fixed inset-0` en tienda, membresías, finanzas, atletas/[id], ajustes, empleados, inventario, ventas, coach-dashboard, routine-assignment-modal, qr-scanner) siguen con markup propio: migrarlos a `Dialog`.
+- **Confirmaciones y toasts con el tema:** `lib/confirm.ts` (`confirmAction`, `swalTheme`) reemplaza los `confirm()` nativos de `empleados` e `inventario`; `toast-context.tsx` ya no usa colores fijos. Los demás `Swal.fire` con `#1f2937`/`#ffffff` fijos (p. ej. `athlete-dashboard` en `handleCancelTx`) deberían usar `swalTheme()`.
+- **`Button` / `Badge`:** adoptados en login, modal de reporte y estados de compra del atleta; el resto de pantallas aún repiten clases a mano.
+- **Footer:** migrado a tokens (ya no usa `slate-*`).
+- **Pendiente:** migrar los demás modales a `Dialog`; adoptar `Button`/`Badge` en tienda, membresías, finanzas y atletas; revisar el contraste de los rellenos sólidos (`bg-green-500` + texto blanco) en modo claro.
+
 ### Próximos Pasos (Pendientes):
 - **Refinamiento UI/UX:** Revisar diseño responsive en todas las pantallas.
 - **Gráficos del Dashboard:** Conectar los datos de las gráficas (ingresos y gastos) a las ventas reales de la base de datos (actualmente son Mocks).

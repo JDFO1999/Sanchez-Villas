@@ -123,7 +123,7 @@ export function RoutineAssignmentModal({
             <FileEdit className="w-5 h-5 text-primary" />
             Asignación de Plan Semanal
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-red-500 transition bg-black/5 dark:bg-white/5 p-2 rounded-full">
+          <button onClick={onClose} className="text-muted-foreground hover:text-destructive transition bg-black/5 dark:bg-white/5 p-2 rounded-full">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -217,7 +217,7 @@ export function RoutineAssignmentModal({
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ejercicio {index + 1}</span>
                           {exercises.length > 1 && (
-                            <button type="button" onClick={() => handleRemoveExercise(index)} className="text-red-500 hover:text-red-700 bg-red-500/10 p-1.5 rounded transition">
+                            <button type="button" onClick={() => handleRemoveExercise(index)} className="text-destructive hover:text-destructive bg-destructive/10 p-1.5 rounded transition">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}

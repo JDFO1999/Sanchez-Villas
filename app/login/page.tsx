@@ -6,8 +6,10 @@ import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { Loader } from "@/components/ui/loader"
-import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X } from "lucide-react"
+import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { Dialog } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const [cedula, setCedula] = useState("")
   const [clave, setClave] = useState("")
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showRecoveryModal, setShowRecoveryModal] = useState(false)
   const [recoveryMessage, setRecoveryMessage] = useState("")
@@ -68,59 +71,32 @@ export default function LoginPage() {
       </button>
 
       {/* Recovery Modal */}
-      {showRecoveryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-background border border-black/10 dark:border-white/10 p-6 rounded-2xl shadow-xl w-full max-w-sm relative flex flex-col items-center text-center animate-in fade-in zoom-in duration-200">
-            <button 
-              onClick={() => setShowRecoveryModal(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="w-12 h-12 bg-primary/20 text-primary rounded-full flex items-center justify-center mb-4 mt-2">
-              <Mail className="h-6 w-6" />
-            </div>
-            
-            {recoveryStep === 1 ? (
-              <>
-                <h3 className="text-xl font-bold mb-2">Recuperar Contraseña</h3>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Ingresa tu cédula o correo electrónico y te enviaremos instrucciones para restablecer tu clave.
-                </p>
-                <form onSubmit={handleSendRecovery} className="w-full space-y-4">
-                  <input
-                    type="text"
-                    value={recoveryInput}
-                    onChange={(e) => setRecoveryInput(e.target.value)}
-                    placeholder="Ej. 12345678 o correo@ejemplo.com"
-                    className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
-                    required
-                  />
-                  <button 
-                    type="submit"
-                    className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:opacity-90 transition"
-                  >
-                    Enviar instrucciones
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-bold mb-2">¡Correo Enviado!</h3>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Hemos enviado las instrucciones a la cuenta asociada a <strong>{recoveryInput}</strong>. Revisa tu bandeja de entrada.
-                </p>
-                <button 
-                  onClick={() => setShowRecoveryModal(false)}
-                  className="w-full bg-black/5 dark:bg-white/5 text-foreground font-bold py-3 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition border border-black/10 dark:border-white/10"
-                >
-                  Cerrar
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={showRecoveryModal}
+        onClose={() => setShowRecoveryModal(false)}
+        title={recoveryStep === 1 ? "Recuperar contraseña" : "Correo enviado"}
+        description={recoveryStep === 1
+          ? "Ingresa tu cédula o correo electrónico y te enviaremos instrucciones para restablecer tu clave."
+          : `Hemos enviado las instrucciones a la cuenta asociada a ${recoveryInput}. Revisa tu bandeja de entrada.`}
+      >
+        {recoveryStep === 1 ? (
+          <form onSubmit={handleSendRecovery} className="w-full space-y-4">
+            <label htmlFor="recovery" className="sr-only">Cédula o correo electrónico</label>
+            <input
+              id="recovery"
+              type="text"
+              value={recoveryInput}
+              onChange={(e) => setRecoveryInput(e.target.value)}
+              placeholder="Ej. 12345678 o correo@ejemplo.com"
+              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+              required
+            />
+            <Button type="submit" className="w-full">Enviar instrucciones</Button>
+          </form>
+        ) : (
+          <Button variant="outline" className="w-full" onClick={() => setShowRecoveryModal(false)}>Cerrar</Button>
+        )}
+      </Dialog>
 
       <div className="z-10 w-full max-w-md bg-white/70 dark:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center shadow-2xl">
         {settings.logoSettings?.showInLogin && (
@@ -144,21 +120,21 @@ export default function LoginPage() {
           )
         )}
         {settings.logoSettings?.showNameInLogin && (
-          <h1 className="text-3xl font-bold mb-0 -mt-4 z-10">{settings.appName}</h1>
+          <h1 className="font-display text-4xl font-extrabold uppercase tracking-tight mb-0 -mt-4 z-10">{settings.appName}</h1>
         )}
-        <p className="text-muted-foreground mb-6 mt-0 text-center leading-tight z-10">
+        <p className="text-muted-foreground mb-6 mt-1 text-center leading-tight z-10">
           Ingresa tus credenciales para continuar
         </p>
 
         {error && (
-          <div className="w-full p-3 mb-6 bg-red-500/10 border border-red-500/50 text-red-500 text-sm rounded-lg text-center">
+          <div role="alert" className="w-full p-3 mb-6 bg-destructive/10 border border-destructive/50 text-destructive text-sm rounded-lg text-center">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Cédula de Identidad</label>
+            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula de Identidad</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                 <UserIcon className="h-5 w-5" />
@@ -166,7 +142,7 @@ export default function LoginPage() {
               <input
                 type="text"
                 value={cedula}
-                onChange={(e) => setCedula(e.target.value)}
+                id="cedula" autoComplete="username" inputMode="numeric" onChange={(e) => setCedula(e.target.value)}
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                 placeholder="Ej. 1234"
                 required
@@ -175,15 +151,23 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-muted-foreground ml-1">Contraseña</label>
+            <div>
+              <label htmlFor="clave" className="text-sm font-medium text-foreground mb-1.5 block">Contraseña</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="absolute right-2 top-1.5 p-2 rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"} id="clave" autoComplete="current-password"
                   value={clave}
                   onChange={(e) => setClave(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-12 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                   placeholder="••••••••"
                   required
                 />
@@ -204,7 +188,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center"
+            className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {isLoading ? (
               <Loader size={20} color="currentColor" />

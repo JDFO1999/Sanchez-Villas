@@ -155,15 +155,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
               <LogoComponent />
             </div>
-            <button
-              className="hidden lg:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors shrink-0"
+            <button aria-label="Expandir o colapsar menú" className="hidden lg:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors shrink-0"
               onClick={toggleSidebarCollapse}
               title={isSidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
             >
               <Menu className="h-5 w-5" />
             </button>
-            <button
-              className="lg:hidden text-muted-foreground hover:text-foreground p-2"
+            <button aria-label="Cerrar menú" className="lg:hidden text-muted-foreground hover:text-foreground p-2"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-6 w-6" />
@@ -173,20 +171,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col flex-1 justify-between py-4 overflow-y-auto">
             <nav className="space-y-1 px-2">
               {currentNavItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isActive
-                        ? "bg-primary/20 dark:bg-primary/10 text-primary font-bold"
-                        : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
+                        ? "bg-primary/10 text-primary font-bold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                     title={isSidebarCollapsed ? item.name : undefined}
                   >
                     <item.icon className="h-5 w-5 shrink-0" />
-                    <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>
+                    <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "sr-only" : "opacity-100 w-auto"}`}>
                       {item.name}
                     </span>
                   </Link>
@@ -200,9 +199,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {!isSidebarCollapsed && (
                   <span className="text-sm text-muted-foreground font-medium">Tema</span>
                 )}
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                <button aria-label="Cambiar tema" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   title="Cambiar tema"
                 >
                   {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -211,11 +208,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent my-1"></div>
               <button
                 onClick={() => logout()}
-                className={`text-sm text-red-500 hover:text-red-400 font-medium flex items-center gap-2 px-1 ${isSidebarCollapsed ? 'justify-center' : 'text-left'}`}
+                className={`text-sm text-destructive hover:text-destructive font-medium flex items-center gap-2 px-1 ${isSidebarCollapsed ? 'justify-center' : 'text-left'}`}
                 title="Cerrar sesión"
               >
                 <Unplug className="h-5 w-5 shrink-0" />
-                <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100 w-auto"}`}>
+                <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "sr-only" : "opacity-100 w-auto"}`}>
                   Cerrar Sesión
                 </span>
               </button>
@@ -228,22 +225,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="flex items-center justify-between h-16 px-4 relative bg-card">
           <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
           <div className="flex items-center gap-3">
-            <button
-              className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
+            <button aria-label="Abrir menú" className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
             
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
-            >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-          </div>
+          
         </header>
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0 flex flex-col">
@@ -253,20 +242,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Footer />
         </main>
 
-        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card flex items-center justify-around px-2 z-40 pb-safe">
+        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card flex items-center overflow-x-auto overflow-y-hidden snap-x z-40 pb-safe">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-          {currentNavItems.slice(0, 5).map((item) => {
-            const isActive = pathname === item.href
+          {currentNavItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
+                aria-current={isActive ? "page" : undefined}
+                className={`relative flex flex-col items-center justify-center min-w-[76px] h-full gap-1 snap-center focus-visible:outline-none focus-visible:bg-muted ${
                   isActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >
+                {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" aria-hidden="true" />}
                 <item.icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{item.name}</span>
+                <span className="text-xs font-medium whitespace-nowrap">{item.name}</span>
               </Link>
             )
           })}

@@ -29,7 +29,7 @@ export function StoreNav() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition text-sm font-medium whitespace-nowrap ${
               isActive 
                 ? "bg-transparent border-2 border-primary text-primary hover:bg-primary/10" 
-                : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:bg-white/10 hover:text-foreground"
+                : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10 hover:text-foreground"
             }`}
           >
             <nav.icon className="h-4 w-4" />

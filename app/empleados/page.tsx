@@ -8,6 +8,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Plus, Search, Eye, EyeOff } from "lucide-react"
 import Swal from "sweetalert2"
 import JsBarcode from "jsbarcode"
+import { confirmAction } from "@/lib/confirm"
 
 export default function EmpleadosPage() {
   const { user, getAllEmployees, addEmployee, updateEmployee } = useAuth()
@@ -54,7 +55,7 @@ export default function EmpleadosPage() {
   }, [getAllEmployees])
 
   if (!user || user.role !== 'admin') {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo administradores.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
   }
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -133,10 +134,10 @@ export default function EmpleadosPage() {
     <div className="space-y-6 max-w-full w-full mx-auto pb-20 relative">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent mb-2">Empleados y Comisiones</h1>
+          <h1 className="page-title mb-2">Empleados y Comisiones</h1>
           <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
-        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', canManageAttendance: false }); setShowEmployeeModal(true); }} className="bg-transparent border border-green-500 text-green-500 px-3 py-1.5 rounded-lg font-bold hover:bg-green-500/10 transition flex items-center gap-2">
+        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', canManageAttendance: false }); setShowEmployeeModal(true); }} className="bg-transparent border border-success text-success px-3 py-1.5 rounded-lg font-bold hover:bg-success/10 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
         </button>
       </div>
@@ -165,7 +166,7 @@ export default function EmpleadosPage() {
                       <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
                         <span>C.C. {emp.cedula} | {emp.role.toUpperCase()}</span>
                         {emp.role === 'employee' && emp.canManageAttendance && (
-                          <span className="text-[10px] bg-green-500/10 text-green-500 border border-green-500/20 px-1.5 py-0.5 rounded font-bold">
+                          <span className="text-[10px] bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded font-bold">
                             Asistencia Habilitada
                           </span>
                         )}
@@ -184,13 +185,13 @@ export default function EmpleadosPage() {
                         Editar
                       </button>
                       <button onClick={async () => { 
-                        if(confirm(`¿Estás seguro de eliminar (soft delete) a ${emp.name}?`)) {
+                        if (await confirmAction({ title: `¿Eliminar a ${emp.name}?`, text: 'El empleado dejará de tener acceso al sistema.', confirmText: 'Sí, eliminar', danger: true })) {
                           if (updateEmployee) {
                             await updateEmployee(emp.id, { role: 'deleted' })
                             if (getAllEmployees) setEmployees(await getAllEmployees())
                           }
                         }
-                      }} className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold rounded transition">
+                      }} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded transition">
                         Eliminar
                       </button>
                     </td>
@@ -284,13 +285,13 @@ export default function EmpleadosPage() {
                   </div>
                 {empForm.role === 'cajero' && empForm.id && empForm.pin && (
                    <div className="col-span-2">
-                     <label className="text-xs font-bold text-orange-500 mb-1 block">Código de Barras / PIN de POS (11 dígitos)</label>
+                     <label className="text-xs font-bold text-warning mb-1 block">Código de Barras / PIN de POS (11 dígitos)</label>
                      <div className="relative">
                        <input 
                          type={showPin ? "text" : "password"} 
                          value={empForm.pin} 
                          disabled 
-                         className="w-full bg-black/5 dark:bg-black/40 border border-orange-500/50 rounded-lg p-2 text-sm pr-10" 
+                         className="w-full bg-black/5 dark:bg-black/40 border border-warning/50 rounded-lg p-2 text-sm pr-10" 
                        />
                        <button 
                          type="button" 
@@ -310,7 +311,7 @@ export default function EmpleadosPage() {
               </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-4">
                 <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-green-500 text-green-500 font-bold hover:bg-green-500/10 transition">Guardar Empleado</button>
+                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Empleado</button>
               </div>
             </form>
           </div>

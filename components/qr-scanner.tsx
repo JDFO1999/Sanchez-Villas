@@ -33,7 +33,7 @@ export function QRScanner({ onScan, onClose }: { onScan: (decodedText: string) =
       <div className="bg-white p-4 rounded-xl shadow-2xl max-w-sm w-full relative">
         <h3 className="text-xl font-black text-center mb-4 text-black">Escanear Código</h3>
         <div id="reader" className="w-full text-black"></div>
-        {error && <p className="text-red-500 text-center mt-2 font-bold">{error}</p>}
+        {error && <p className="text-destructive text-center mt-2 font-bold">{error}</p>}
         <button 
           onClick={onClose}
           className="w-full bg-black text-white font-bold py-3 rounded-lg mt-4"

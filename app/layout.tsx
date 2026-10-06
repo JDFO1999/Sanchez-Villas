@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Arvo, Inter, Roboto } from "next/font/google";
+import { Arvo, Inter, Roboto, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -8,6 +8,7 @@ import { SettingsProvider } from "@/lib/settings-context";
 import { ToastProvider } from "@/lib/toast-context";
 import { FontWrapper } from "@/components/font-wrapper";
 
+const display = Barlow_Condensed({ weight: ["600", "700", "800"], subsets: ["latin"], variable: "--font-display" });
 const arvo = Arvo({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-arvo" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
@@ -24,14 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning className={`${arvo.variable} ${inter.variable} ${roboto.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`${arvo.variable} ${inter.variable} ${roboto.variable} ${display.variable}`}>
       <body>
         <SettingsProvider>
           <ToastProvider>
             <FontWrapper>
               <ThemeProvider
                 attribute="class"
-                defaultTheme="system"
+                defaultTheme="dark"
                 enableSystem
                 disableTransitionOnChange
               >

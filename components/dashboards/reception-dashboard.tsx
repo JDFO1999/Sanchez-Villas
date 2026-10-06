@@ -113,10 +113,10 @@ export function ReceptionDashboard() {
         
         const diff = Number(declaredCash) - (res.session?.expectedCash ?? 0)
         const diffText = diff === 0 
-          ? '<b class="text-green-500">¡Caja Cuadrada Perfectamente!</b>' 
+          ? '<b class="text-success">¡Caja Cuadrada Perfectamente!</b>' 
           : diff > 0 
-            ? `<b class="text-yellow-500">Sobrante de Caja: +$${diff.toFixed(2)}</b>`
-            : `<b class="text-red-500">Faltante de Caja: -$${Math.abs(diff).toFixed(2)}</b>`
+            ? `<b class="text-warning">Sobrante de Caja: +$${diff.toFixed(2)}</b>`
+            : `<b class="text-destructive">Faltante de Caja: -$${Math.abs(diff).toFixed(2)}</b>`
             
         Swal.fire({
           title: 'Turno Cerrado',
@@ -167,7 +167,7 @@ export function ReceptionDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm">Panel de Recepción</h1>
+          <h1 className="page-title">Panel de Recepción</h1>
           <p className="text-muted-foreground mt-1">
             Control de acceso, ventas y registro de atletas.
           </p>
@@ -185,11 +185,11 @@ export function ReceptionDashboard() {
       </div>
 
       {!isLoadingSession && (
-        <div className={`p-4 rounded-xl border ${cashSession ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} flex flex-col md:flex-row justify-between items-center gap-4`}>
+        <div className={`p-4 rounded-xl border ${cashSession ? 'bg-success/10 border-success/30' : 'bg-destructive/10 border-destructive/30'} flex flex-col md:flex-row justify-between items-center gap-4`}>
           <div>
             <h3 className="font-bold text-lg flex items-center gap-2">
               <Wallet className="h-5 w-5" /> 
-              Estado de Caja: {cashSession ? <span className="text-green-500">ABIERTA</span> : <span className="text-red-500">CERRADA</span>}
+              Estado de Caja: {cashSession ? <span className="text-success">ABIERTA</span> : <span className="text-destructive">CERRADA</span>}
             </h3>
             <p className="text-sm text-muted-foreground">
               {cashSession 
@@ -239,7 +239,7 @@ export function ReceptionDashboard() {
                 <Card className="col-span-1 md:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Package className="h-5 w-5 text-orange-500" />
+              <Package className="h-5 w-5 text-warning" />
               Pedidos en Espera (Tienda)
             </CardTitle>
           </CardHeader>
@@ -249,7 +249,7 @@ export function ReceptionDashboard() {
             ) : (
               <div className="space-y-4">
                 {pendingOrders.map(tx => (
-                  <div key={tx.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-orange-500/10 p-4 rounded-lg border border-orange-500/20">
+                  <div key={tx.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-warning/10 p-4 rounded-lg border border-warning/20">
                     <div>
                       <div className="flex gap-2 items-center mb-1">
                         <span className="font-mono text-xl font-black bg-white text-black px-2 rounded border border-black shadow-sm">{tx.id.slice(-5).toUpperCase()}</span>
@@ -320,7 +320,7 @@ export function ReceptionDashboard() {
                   <div key={a.id} className="flex justify-between items-center p-3 border border-black/10 dark:border-white/10 rounded-lg bg-card hover:bg-secondary/20 transition">
                     <div>
                       <h4 className="font-bold text-sm">{a.name} (C.C. {a.cedula})</h4>
-                      <p className={`text-xs ${isOverdue ? 'text-red-500 font-bold' : 'text-muted-foreground'}`}>
+                      <p className={`text-xs ${isOverdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
                         Vence: {new Date(a.membershipEnd).toLocaleDateString()} {isOverdue && '(VENCIDO)'}
                       </p>
                     </div>
@@ -332,7 +332,7 @@ export function ReceptionDashboard() {
                           ? 'bg-black/10 dark:bg-white/10 text-muted-foreground cursor-not-allowed' 
                           : checkedInIds[a.id]
                             ? 'bg-green-500 text-white'
-                            : 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:bg-red-500/20 dark:text-red-400'
+                            : 'bg-destructive/10 text-destructive hover:bg-destructive/20 dark:text-destructive'
                       }`}
                     >
                       <ClipboardCheck className="h-4 w-4" />

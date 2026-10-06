@@ -113,6 +113,6 @@ export async function getSessionData() {
 }
 
 export async function logoutAction() {
-  destroySession();
+  await destroySession();
   return { success: true };
 }

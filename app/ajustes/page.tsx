@@ -78,7 +78,7 @@ export default function AjustesPage() {
 
   // Ocultar si no es admin
   if (user?.role !== 'admin') {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo administradores.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
   }
 
   const handleSaveRole = (e: React.FormEvent) => {
@@ -165,7 +165,7 @@ export default function AjustesPage() {
     <div className="space-y-6 max-w-full mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Ajustes Globales</h1>
+          <h1 className="page-title">Ajustes Globales</h1>
           <p className="text-muted-foreground mt-1">
             Personaliza la apariencia de toda la plataforma.
           </p>
@@ -213,7 +213,7 @@ export default function AjustesPage() {
                       {faviconUrl ? <img src={faviconUrl} alt="Favicon" className="w-full h-full object-contain" /> : <span className="text-xs">Subir</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleFaviconUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {faviconUrl && <button type="button" onClick={() => setFaviconUrl("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
+                    {faviconUrl && <button type="button" onClick={() => setFaviconUrl("")} className="mt-2 text-xs text-destructive hover:underline relative z-10">Quitar</button>}
                   </div>
 
                   {/* Logo Claro */}
@@ -223,7 +223,7 @@ export default function AjustesPage() {
                       {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" /> : <span className="text-xs text-black">Subir</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {logoUrl && <button type="button" onClick={() => setLogoUrl("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
+                    {logoUrl && <button type="button" onClick={() => setLogoUrl("")} className="mt-2 text-xs text-destructive hover:underline relative z-10">Quitar</button>}
                   </div>
 
                   {/* Logo Oscuro */}
@@ -233,7 +233,7 @@ export default function AjustesPage() {
                       {logoUrlDark ? <img src={logoUrlDark} alt="Logo Dark" className="w-full h-full object-contain p-1" /> : <span className="text-xs text-white">Subir (Opcional)</span>}
                     </div>
                     <input type="file" accept="image/*" onChange={handleLogoDarkUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {logoUrlDark && <button type="button" onClick={() => setLogoUrlDark("")} className="mt-2 text-xs text-red-500 hover:underline relative z-10">Quitar</button>}
+                    {logoUrlDark && <button type="button" onClick={() => setLogoUrlDark("")} className="mt-2 text-xs text-destructive hover:underline relative z-10">Quitar</button>}
                   </div>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function AjustesPage() {
                       <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pantalla Login</h5>
                       
                       {/* Live Preview Box */}
-                      <div className="w-full h-32 bg-slate-100 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center overflow-hidden relative">
+                      <div className="w-full h-32 bg-muted dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center overflow-hidden relative">
                         <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl shadow flex flex-col items-center">
                           {logoSettings?.showInLogin && (logoUrl || logoUrlDark) && (
                             <img 
@@ -629,7 +629,7 @@ export default function AjustesPage() {
                           <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
                             <img src={storePaymentQRs.pagoMovil} className="max-h-full max-w-full object-contain rounded" />
                           </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, pagoMovil: ''}))} className="text-xs text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
+                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, pagoMovil: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
                         </div>
                       )}
                     </div>
@@ -648,7 +648,7 @@ export default function AjustesPage() {
                           <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
                             <img src={storePaymentQRs.binance} className="max-h-full max-w-full object-contain rounded" />
                           </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, binance: ''}))} className="text-xs text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
+                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, binance: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
                         </div>
                       )}
                     </div>
@@ -667,7 +667,7 @@ export default function AjustesPage() {
                           <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
                             <img src={storePaymentQRs.transferencia} className="max-h-full max-w-full object-contain rounded" />
                           </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, transferencia: ''}))} className="text-xs text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
+                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, transferencia: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
                         </div>
                       )}
                     </div>
@@ -826,7 +826,7 @@ export default function AjustesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {footerSocialLinks.map((link, idx) => (
                         <div key={link.id || idx} className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4 relative group hover:shadow-md transition">
-                          <button type="button" onClick={() => setFooterSocialLinks(footerSocialLinks.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition p-1 hover:bg-red-500/10 rounded-lg">&times;</button>
+                          <button type="button" onClick={() => setFooterSocialLinks(footerSocialLinks.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition p-1 hover:bg-destructive/10 rounded-lg">&times;</button>
                           
                           <div className="flex gap-4">
                             <div className="w-16 h-16 shrink-0 bg-black/10 dark:bg-black/40 rounded-xl overflow-hidden flex items-center justify-center border border-black/10 dark:border-white/10 relative">
@@ -876,10 +876,10 @@ export default function AjustesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {footerPartners.map((partner, idx) => (
                         <div key={partner.id || idx} className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4 relative group hover:shadow-md transition">
-                          <button type="button" onClick={() => setFooterPartners(footerPartners.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition p-1 hover:bg-red-500/10 rounded-lg">&times;</button>
+                          <button type="button" onClick={() => setFooterPartners(footerPartners.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition p-1 hover:bg-destructive/10 rounded-lg">&times;</button>
                           
                           <div className="flex gap-4">
-                            <div className="w-20 h-20 shrink-0 bg-white dark:bg-white/10 rounded-xl overflow-hidden flex items-center justify-center border border-black/10 dark:border-white/10 relative">
+                            <div className="w-20 h-20 shrink-0 bg-white/10 rounded-xl overflow-hidden flex items-center justify-center border border-black/10 dark:border-white/10 relative">
                               {partner.imageUrl ? (
                                 <img src={partner.imageUrl} alt="Socio" className="w-full h-full object-contain p-1" />
                               ) : (
@@ -962,7 +962,7 @@ export default function AjustesPage() {
           <button 
             type="button" 
             onClick={() => { setRoleForm({ id: '', name: '', permissions: [] }); setShowRoleModal(true); }}
-            className="text-xs bg-transparent border border-green-500 text-green-500 font-bold px-3 py-1.5 rounded hover:bg-green-500/10 transition"
+            className="text-xs bg-transparent border border-success text-success font-bold px-3 py-1.5 rounded hover:bg-success/10 transition"
           >
             + Nuevo Rol
           </button>
@@ -981,7 +981,7 @@ export default function AjustesPage() {
                   <div className="flex gap-2">
                     <button onClick={() => { setRoleForm(r); setShowRoleModal(true); }} className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1.5 rounded-lg transition font-bold">Editar</button>
                     {r.id !== 'admin' && r.id !== 'employee' && (
-                      <button onClick={() => handleDeleteRole(r.id)} className="text-xs bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition font-bold">Borrar</button>
+                      <button onClick={() => handleDeleteRole(r.id)} className="text-xs bg-destructive/10 text-destructive px-3 py-1.5 rounded-lg hover:bg-destructive/20 transition font-bold">Borrar</button>
                     )}
                   </div>
                 </div>
@@ -1053,8 +1053,8 @@ export default function AjustesPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-black/10 dark:border-white/10">
-                <button type="button" onClick={() => setShowRoleModal(false)} className="bg-transparent border border-slate-500 text-slate-500 hover:bg-slate-500/10 px-4 py-2 rounded-lg text-sm transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-transparent border border-green-500 text-green-500 font-bold rounded-lg text-sm hover:bg-green-500/10">Guardar Rol</button>
+                <button type="button" onClick={() => setShowRoleModal(false)} className="bg-transparent border border-border text-muted-foreground hover:bg-slate-500/10 px-4 py-2 rounded-lg text-sm transition">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-transparent border border-success text-success font-bold rounded-lg text-sm hover:bg-success/10">Guardar Rol</button>
               </div>
             </form>
           </div>

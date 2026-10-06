@@ -76,7 +76,7 @@ export default function MembresíasPage() {
   }, [])
 
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('CRM_MANAGE') && !user.permissions?.includes('POS_ACCESS'))) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
   const [filterType, setFilterType] = useState('Todas')
@@ -483,9 +483,9 @@ export default function MembresíasPage() {
                   </div>
                   <div className="relative">
                     <label className="text-xs font-medium mb-1 block">Confirmar Contraseña</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-green-500/50' : 'border-red-500/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
-                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-green-500" />}
-                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-red-500 absolute -bottom-4 left-0">No coinciden</span>}
+                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-success/50' : 'border-destructive/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
+                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-success" />}
+                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>}
                   </div>
                 </div>
               </div>
@@ -518,7 +518,7 @@ export default function MembresíasPage() {
               ))}
               <button 
                 onClick={() => setShowCreateMessageModal(true)}
-                className="text-xs bg-green-500 text-white border border-green-600 px-2 py-1 rounded hover:bg-green-600 font-bold transition flex items-center gap-1"
+                className="text-xs bg-green-500 text-white border border-success px-2 py-1 rounded hover:bg-green-600 font-bold transition flex items-center gap-1"
               >
                 + Nuevo
               </button>
@@ -557,12 +557,12 @@ export default function MembresíasPage() {
               setNewMessageText("");
             }} className="space-y-4">
               <div>
-                <label className="text-xs font-medium mb-1 block">TÃ­tulo del botÃ³n</label>
-                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. PromociÃ³n" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <label className="text-xs font-medium mb-1 block">Título del botón</label>
+                <input required type="text" value={newMessageTitle} onChange={e=>setNewMessageTitle(e.target.value)} placeholder="Ej. Promoción" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">Mensaje (Usa {'{nombre}'} para el atleta)</label>
-                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. ¡Hola {nombre}, tenemos una promociÃ³n..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <textarea required rows={4} value={newMessageText} onChange={e=>setNewMessageText(e.target.value)} placeholder="Ej. ¡Hola {nombre}, tenemos una promoción..." className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={()=>setShowCreateMessageModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
@@ -575,7 +575,7 @@ export default function MembresíasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Membresias y Gestion Social</h1>
+          <h1 className="page-title">Membresias y Gestion Social</h1>
           <p className="text-muted-foreground mt-1">
             Gestiona accesos, planes Comunicacion con los Atletas.
           </p>
@@ -661,8 +661,8 @@ export default function MembresíasPage() {
                         isExpired 
                           ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' 
                           : diffDays <= 5 
-                          ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' 
-                          : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                          ? 'text-warning bg-warning/10 border-warning/30' 
+                          : 'text-success bg-success/10 border-success/30'
                       }`}>
                         <span className="relative flex h-2 w-2">
                           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
@@ -697,8 +697,8 @@ export default function MembresíasPage() {
                           isExpired 
                             ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' 
                             : diffDays <= 5
-                            ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                            : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                            ? 'bg-warning/10 text-warning border-warning/20'
+                            : 'bg-success/10 text-success border-success/20'
                         }`}>
                           {isExpired ? 'Vencida' : `${diffDays} días`}
                         </span>

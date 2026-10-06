@@ -157,7 +157,7 @@ export default function AtletaPerfilPage() {
 
   // Access control
   if (user?.role === 'athlete' && user.cedula !== athlete.cedula) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado</div>
   }
 
   const latestBiometrics = athlete.biometrics.length > 0 ? athlete.biometrics[athlete.biometrics.length - 1] : null
@@ -375,7 +375,7 @@ export default function AtletaPerfilPage() {
                           placeholder="https://..."
                           className="w-full bg-card border border-border rounded p-2 text-xs focus:border-primary focus:outline-none"
                         />
-                        <button type="button" onClick={() => setEditSocial(editSocial.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-700 bg-red-500/10 p-2 rounded">
+                        <button type="button" onClick={() => setEditSocial(editSocial.filter((_, idx) => idx !== i))} className="text-destructive hover:text-destructive bg-destructive/10 p-2 rounded">
                           ✕
                         </button>
                       </div>
@@ -535,7 +535,7 @@ export default function AtletaPerfilPage() {
             )}
           </div>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm">{athlete.name}</h1>
+            <h1 className="page-title">{athlete.name}</h1>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <User className="h-4 w-4" /> C.C. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
             </p>
@@ -548,7 +548,7 @@ export default function AtletaPerfilPage() {
               )}
             </p>
             <div className="flex items-center gap-2 mt-2">
-              <span className="bg-orange-500/20 text-orange-500 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
+              <span className="bg-warning/20 text-warning px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
                 🔥 Racha de Asistencia: {athlete.attendances?.length || 0} Días
               </span>
             </div>
@@ -642,7 +642,7 @@ export default function AtletaPerfilPage() {
             <CardContent>
               <div className="flex items-end justify-between mb-2">
                 <span className="text-3xl font-bold">{calculatedAttendancePct}%</span>
-                <span className={`text-sm font-medium ${calculatedAttendancePct >= 70 ? 'text-green-500' : calculatedAttendancePct >= 40 ? 'text-yellow-500' : 'text-red-500'}`}>{attendanceText}</span>
+                <span className={`text-sm font-medium ${calculatedAttendancePct >= 70 ? 'text-success' : calculatedAttendancePct >= 40 ? 'text-warning' : 'text-destructive'}`}>{attendanceText}</span>
               </div>
               <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full" style={{ width: `${calculatedAttendancePct}%` }} />
@@ -717,7 +717,7 @@ export default function AtletaPerfilPage() {
                             const newFields = [...newCustomFields]
                             newFields.splice(idx, 1)
                             setNewCustomFields(newFields)
-                          }} className="bg-red-500/10 text-red-500 p-2 rounded hover:bg-red-500/20 mb-px shrink-0">X</button>
+                          }} className="bg-destructive/10 text-destructive p-2 rounded hover:bg-destructive/20 mb-px shrink-0">X</button>
                         </div>
                       </div>
                     ))}
@@ -844,8 +844,8 @@ export default function AtletaPerfilPage() {
                     <span>Último registro: <strong className="text-primary">{biometricChartData[biometricChartData.length - 1]?.peso} kg</strong></span>
                     <span>Diferencia: <strong className={
                       (biometricChartData[biometricChartData.length - 1]?.peso || 0) >= (biometricChartData[0]?.peso || 0)
-                        ? "text-emerald-500" 
-                        : "text-amber-500"
+                        ? "text-success" 
+                        : "text-warning"
                     }>
                       {((biometricChartData[biometricChartData.length - 1]?.peso || 0) - (biometricChartData[0]?.peso || 0)).toFixed(1)} kg
                     </strong></span>

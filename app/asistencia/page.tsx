@@ -17,7 +17,7 @@ export default function AsistenciaPage() {
 
   if (user && user.role !== 'admin' && user.role !== 'cajero' && user.role !== 'recepcion' && !(user as any)?.canManageAttendance) {
     return (
-      <div className="p-8 text-center text-red-500 font-bold">
+      <div className="p-8 text-center text-destructive font-bold">
         Acceso Denegado. Solo personal de recepción o entrenadores autorizados por el administrador pueden acceder a la Asistencia.
       </div>
     )
@@ -107,7 +107,7 @@ export default function AsistenciaPage() {
       
       Swal.fire({
         title: '¡ACCESO DENEGADO!',
-        html: `<p class="text-xl font-bold text-red-500">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
+        html: `<p class="text-xl font-bold text-destructive">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
         icon: 'error',
         confirmButtonColor: '#ef4444',
         confirmButtonText: 'Entendido',
@@ -196,13 +196,13 @@ export default function AsistenciaPage() {
         )}
 
         {status !== 'idle' && (
-          <div className={`mt-8 p-6 rounded-xl text-center flex flex-col items-center justify-center animate-in zoom-in duration-300 ${status === 'success' ? 'bg-green-500/10 border-2 border-green-500' : 'bg-red-500/10 border-2 border-red-500'}`}>
+          <div className={`mt-8 p-6 rounded-xl text-center flex flex-col items-center justify-center animate-in zoom-in duration-300 ${status === 'success' ? 'bg-success/10 border-2 border-success' : 'bg-destructive/10 border-2 border-destructive'}`}>
             {status === 'success' ? (
-              <CheckCircle2 className="h-20 w-20 text-green-500 mb-4" />
+              <CheckCircle2 className="h-20 w-20 text-success mb-4" />
             ) : (
-              <XCircle className="h-20 w-20 text-red-500 mb-4" />
+              <XCircle className="h-20 w-20 text-destructive mb-4" />
             )}
-            <h2 className={`text-3xl font-black mb-2 ${status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+            <h2 className={`text-3xl font-black mb-2 ${status === 'success' ? 'text-success' : 'text-destructive'}`}>
               {message}
             </h2>
             {athlete && (

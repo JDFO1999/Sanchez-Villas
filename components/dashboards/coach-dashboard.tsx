@@ -145,9 +145,9 @@ export function CoachDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:via-white via-black to-primary/50 bg-clip-text text-transparent">Panel de Entrenador</h1>
+            <h1 className="page-title">Panel de Entrenador</h1>
             {coachProfile?.attendances && (
-              <span className="bg-orange-500/20 text-orange-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm border border-orange-500/30">
+              <span className="bg-warning/20 text-warning px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm border border-warning/30">
                 🔥 Racha: {coachProfile.attendances.length} Días
               </span>
             )}
@@ -271,9 +271,9 @@ export function CoachDashboard() {
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-xs text-muted-foreground">{new Date(routine.createdAt).toLocaleDateString()}</span>
                         {routine.completed ? (
-                          <span className="text-[10px] font-bold bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Completada</span>
+                          <span className="text-[10px] font-bold bg-success/20 text-success px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Completada</span>
                         ) : (
-                          <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-600 px-2 py-0.5 rounded-full">Pendiente</span>
+                          <span className="text-[10px] font-bold bg-warning/20 text-warning px-2 py-0.5 rounded-full">Pendiente</span>
                         )}
                       </div>
                     </div>
@@ -285,7 +285,7 @@ export function CoachDashboard() {
                             <span className={ex.completed ? 'line-through text-muted-foreground' : 'text-foreground font-medium'}>
                               {ex.name} ({ex.sets}x{ex.reps})
                             </span>
-                            {ex.completed ? <CheckCircle2 className="w-3 h-3 text-green-500" /> : <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>}
+                            {ex.completed ? <CheckCircle2 className="w-3 h-3 text-success" /> : <div className="w-2 h-2 rounded-full bg-warning/50"></div>}
                           </div>
                         ))}
                       </div>

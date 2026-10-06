@@ -44,7 +44,7 @@ export default function AtletasPage() {
 
   // Solo Admin y Empleado pueden ver esto
   if (user?.role === 'athlete') {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado</div>
   }
 
   const [filterType, setFilterType] = useState('Todas')
@@ -67,7 +67,7 @@ export default function AtletasPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm">Directorio de Atletas</h1>
+          <h1 className="page-title">Directorio de Atletas</h1>
           <p className="text-muted-foreground mt-1">
             Gestión y seguimiento de tus clientes.
           </p>
@@ -142,7 +142,7 @@ export default function AtletasPage() {
             const diffTime = endDate.getTime() - today.getTime()
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
             
-            let estadoColor = "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+            let estadoColor = "text-success bg-success/10 border-success/20"
             let dotPing = "bg-emerald-400"
             let dotSolid = "bg-emerald-500"
             let estadoTexto = "Activa"
@@ -153,7 +153,7 @@ export default function AtletasPage() {
               dotSolid = "bg-rose-500"
               estadoTexto = "Vencida"
             } else if (diffDays <= 7) {
-              estadoColor = "text-amber-500 bg-amber-500/10 border-amber-500/20"
+              estadoColor = "text-warning bg-warning/10 border-warning/20"
               dotPing = "bg-amber-400"
               dotSolid = "bg-amber-500"
               estadoTexto = "Por vencer"
@@ -189,7 +189,7 @@ export default function AtletasPage() {
                           <div>
                             <div className="flex justify-between text-xs mb-1">
                               <span className="text-muted-foreground">{atleta.planName || "Membresía"}</span>
-                              <span className={diffDays <= 7 ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}>{diffDays}d restantes</span>
+                              <span className={diffDays <= 7 ? "text-warning font-bold" : "text-success font-bold"}>{diffDays}d restantes</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
                               <div className={`h-full rounded-full transition-all ${diffDays <= 7 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />

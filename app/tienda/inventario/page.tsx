@@ -8,6 +8,7 @@ import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
 import { PackagePlus, Search, Edit, Trash2, AlertTriangle, Plus } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
+import { confirmAction } from "@/lib/confirm"
 
 export default function InventarioPage() {
   const { user } = useAuth()
@@ -64,7 +65,7 @@ export default function InventarioPage() {
   }, [])
 
   if (!user || (user.role !== 'admin' && !user.permissions?.includes('INVENTORY_MANAGE'))) {
-    return <div className="p-8 text-center text-red-500 font-bold">Acceso Denegado. Solo personal autorizado.</div>
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
   const filtered = products.filter(p => 
@@ -143,7 +144,7 @@ export default function InventarioPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Seguro que deseas eliminar este producto?")) {
+    if (await confirmAction({ title: "¿Eliminar este producto?", text: "Esta acción no se puede deshacer.", confirmText: "Sí, eliminar", danger: true })) {
       const { deleteProduct, getProducts } = await import('@/app/actions/store');
       await deleteProduct(id);
       const res = await getProducts();
@@ -161,7 +162,7 @@ export default function InventarioPage() {
     <div className="space-y-6 max-w-full w-full mx-auto relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent dark:dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] drop-shadow-sm drop-shadow-sm mb-4">Inventario de Tienda</h1>
+          <h1 className="page-title mb-4">Inventario de Tienda</h1>
         </div>
       </div>
       <StoreNav />
@@ -230,7 +231,7 @@ export default function InventarioPage() {
                       {settings.storeCurrency}{p.costPrice.toFixed(2)}
                       {settings.storeCurrencySecondary && settings.storeExchangeRate > 0 && <div className="text-[10px] text-muted-foreground">{settings.storeCurrencySecondary}{(p.costPrice * settings.storeExchangeRate).toFixed(2)}</div>}
                     </td>
-                    <td className="p-4 font-bold text-green-500">
+                    <td className="p-4 font-bold text-success">
                       {settings.storeCurrency}{p.sellPrice.toFixed(2)}
                       {settings.storeCurrencySecondary && settings.storeExchangeRate > 0 && <div className="text-[10px] text-muted-foreground font-normal">{settings.storeCurrencySecondary}{(p.sellPrice * settings.storeExchangeRate).toFixed(2)}</div>}
                     </td>
@@ -239,16 +240,16 @@ export default function InventarioPage() {
                       {settings.storeCurrencySecondary && settings.storeExchangeRate > 0 && <div className="text-[10px] text-muted-foreground/50">{settings.storeCurrencySecondary}{(margin * settings.storeExchangeRate).toFixed(2)}</div>}
                     </td>
                     <td className="p-4">
-                      <div className={`flex items-center gap-2 font-bold ${isLowStock ? 'text-red-500' : 'text-foreground'}`}>
+                      <div className={`flex items-center gap-2 font-bold ${isLowStock ? 'text-destructive' : 'text-foreground'}`}>
                         {p.currentStock}
                         {isLowStock && <AlertTriangle className="h-4 w-4" />}
                       </div>
                     </td>
                     <td className="p-4 text-right space-x-2">
-                      <button onClick={() => openModal(p)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-blue-400">
+                      <button onClick={() => openModal(p)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-info">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-red-400">
+                      <button onClick={() => handleDelete(p.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
@@ -292,10 +293,10 @@ export default function InventarioPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-green-500">
+                      <div className="font-bold text-success">
                         {settings.storeCurrency}{p.sellPrice.toFixed(2)}
                       </div>
-                      <div className={`text-xs font-bold mt-1 flex items-center justify-end gap-1 ${isLowStock ? 'text-red-500' : 'text-foreground'}`}>
+                      <div className={`text-xs font-bold mt-1 flex items-center justify-end gap-1 ${isLowStock ? 'text-destructive' : 'text-foreground'}`}>
                         Stock: {p.currentStock} {isLowStock && <AlertTriangle className="h-3 w-3" />}
                       </div>
                     </div>
@@ -313,10 +314,10 @@ export default function InventarioPage() {
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2 border-t border-black/5 dark:border-white/5 mt-2">
-                    <button onClick={() => openModal(p)} className="flex-1 py-2 bg-blue-500/10 text-blue-500 rounded-lg font-medium text-xs hover:bg-blue-500/20 transition flex items-center justify-center gap-1">
+                    <button onClick={() => openModal(p)} className="flex-1 py-2 bg-info/10 text-info rounded-lg font-medium text-xs hover:bg-info/20 transition flex items-center justify-center gap-1">
                       <Edit className="h-4 w-4" /> Editar
                     </button>
-                    <button onClick={() => handleDelete(p.id)} className="flex-1 py-2 bg-red-500/10 text-red-500 rounded-lg font-medium text-xs hover:bg-red-500/20 transition flex items-center justify-center gap-1">
+                    <button onClick={() => handleDelete(p.id)} className="flex-1 py-2 bg-destructive/10 text-destructive rounded-lg font-medium text-xs hover:bg-destructive/20 transition flex items-center justify-center gap-1">
                       <Trash2 className="h-4 w-4" /> Eliminar
                     </button>
                   </div>
@@ -350,7 +351,7 @@ export default function InventarioPage() {
                 <div>
                   <label className="text-xs font-medium mb-1 flex items-center justify-between">
                     Departamento
-                    <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-green-500 hover:underline text-[10px] font-bold">+ Nuevo</button>
+                    <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-success hover:underline text-[10px] font-bold">+ Nuevo</button>
                   </label>
                   <select required value={department} onChange={e=>setDepartment(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary">
                     <option value="">Seleccione...</option>
@@ -407,7 +408,7 @@ export default function InventarioPage() {
                     onChange={handleImageUpload}
                     className="w-full text-xs text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 cursor-pointer" 
                   />
-                  {imageUrl && <button type="button" onClick={()=>setImageUrl("")} className="text-xs text-red-500 hover:underline shrink-0">Quitar</button>}
+                  {imageUrl && <button type="button" onClick={()=>setImageUrl("")} className="text-xs text-destructive hover:underline shrink-0">Quitar</button>}
                 </div>
               </div>
               
