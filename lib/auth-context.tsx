@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { loginAction, logoutAction } from '@/app/actions/auth'
 import { getAthleteById } from '@/app/actions/users'
 import { createEmployee, updateEmployee, getAllEmployees, createAthlete, updateAthlete } from '@/app/actions/users'
+import { askPassword } from '@/lib/confirm'
+import { showSweetToast } from '@/lib/toast-context'
 
 export type Role = string | null
 export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE'
@@ -72,14 +74,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (sessionRes.success && sessionRes.user) {
         setUser(sessionRes.user as any)
       } else {
-        const storedUserId = localStorage.getItem('gympro_session_id')
-        if (storedUserId) {
-          const { getAthleteById } = await import('@/app/actions/users')
-          const res = await getAthleteById(storedUserId)
-          if (res.success && ((res as any).user || (res as any).athlete)) {
-            setUser(((res as any).user || (res as any).athlete) as any)
-          }
-        }
+        // Sin cookie de sesión válida no hay usuario. Se limpia cualquier id viejo guardado en el navegador.
+        localStorage.removeItem('gympro_session_id')
       }
       setIsLoading(false)
     }
@@ -122,6 +118,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.success ? res.employees as unknown as User[] : []
   }
 
+  /**
+   * Ejecuta una acción de personal. Si el servidor pide la contraseña del administrador (acción delicada)
+   * se muestra un cuadro para escribirla y se reintenta; los errores se muestran al usuario.
+   */
+  const runWithAdminPassword = async (
+    run: (adminPassword?: string) => Promise<any>,
+    title: string
+  ): Promise<boolean> => {
+    let res = await run()
+    let error: string | undefined
+    for (let attempt = 0; attempt < 3 && res && res.needsPassword; attempt++) {
+      const pwd = await askPassword({ title, text: 'Por seguridad, escribe la contraseña de tu cuenta.', error })
+      if (pwd === null) return false // canceló
+      res = await run(pwd)
+      error = res?.needsPassword ? res.error : undefined
+    }
+    if (!res?.success) {
+      showSweetToast(res?.error || 'No se pudo completar la operación.', 'error')
+      return false
+    }
+    return true
+  }
+
   const addEmployeeFn = async (data: Partial<User> & { pin?: string }, clave: string) => {
     // Si ya trae un pin (por ejemplo, el código de barras autogenerado de 11 dígitos), usamos ese.
     // Si no, y es cajero, generamos uno de 4 dígitos (fallback legacy) o de 11.
@@ -129,11 +148,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ? Math.floor(10000000000 + Math.random() * 90000000000).toString().slice(0, 11)
       : undefined);
       
-    await createEmployee({ ...data, clave, pin })
+    await runWithAdminPassword(
+      (pwd) => createEmployee({ ...data, clave, pin }, pwd),
+      'Confirma tu contraseña para crear al empleado'
+    )
   }
 
   const updateEmployeeFn = async (userId: string, data: Partial<User>) => {
-    await updateEmployee(userId, data)
+    await runWithAdminPassword(
+      (pwd) => updateEmployee(userId, data, pwd),
+      'Confirma tu contraseña para guardar los cambios'
+    )
   }
 
   return (

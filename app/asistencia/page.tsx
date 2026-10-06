@@ -86,7 +86,7 @@ export default function AsistenciaPage() {
       });
     } else {
       setStatus('error')
-      setMessage(res.error)
+      setMessage(res.error ?? "No se pudo registrar la asistencia.")
       setAthlete(res.lastDate ? { name: "Membresía Caducada", membershipEnd: res.lastDate } : null)
       
       // Beep error (Web Audio API)

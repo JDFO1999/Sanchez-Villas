@@ -1,6 +1,5 @@
 ﻿import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 export interface ReportConfig {
   title: string;
@@ -156,9 +155,35 @@ export const exportToPDF = async (config: ReportConfig) => {
   doc.save(`${filename}.pdf`);
 };
 
-export const exportToExcel = (data: any[], sheetName: string, filename: string) => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  XLSX.writeFile(workbook, `${filename}.xlsx`);
+/**
+ * Exporta filas (objetos con las mismas claves) a un archivo .xlsx y lo descarga en el navegador.
+ * Usa exceljs (se carga bajo demanda para no pesar en el resto de la app).
+ */
+export const exportToExcel = async (data: any[], sheetName: string, filename: string) => {
+  const ExcelJS = (await import('exceljs')).default;
+  const workbook = new ExcelJS.Workbook();
+  // Excel limita el nombre de hoja a 31 caracteres y prohíbe : \\ / ? * [ ]
+  const worksheet = workbook.addWorksheet(sheetName.replace(/[:\\/?*\[\]]/g, ' ').slice(0, 31) || 'Reporte');
+
+  const columns = Array.from(new Set(data.flatMap((row) => Object.keys(row ?? {}))));
+  worksheet.columns = columns.map((key) => ({ header: key, key, width: Math.min(40, Math.max(12, key.length + 4)) }));
+  worksheet.getRow(1).font = { bold: true };
+  for (const row of data) {
+    // Una celda que empieza con = + - @ se tomaría como fórmula al abrir el archivo: se guarda como texto
+    const safe = Object.fromEntries(
+      Object.entries(row ?? {}).map(([k, v]) => [k, typeof v === 'string' && /^[=+\-@]/.test(v) ? "'" + v : v])
+    );
+    worksheet.addRow(safe);
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };

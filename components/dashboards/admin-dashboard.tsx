@@ -160,7 +160,7 @@ export function AdminDashboard() {
           logoUrl: settings?.logoUrl
         });
       } else {
-        exportToExcel(excelData, 'Dashboard', filename);
+        await exportToExcel(excelData, 'Dashboard', filename);
       }
     } catch (err) {
       console.error("Export error", err);

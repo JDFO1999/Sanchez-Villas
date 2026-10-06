@@ -4,8 +4,13 @@ import prisma from "@/lib/db"
 import { sendReceiptEmail } from "@/lib/mailer"
 import { revalidatePath } from "next/cache"
 import { saveBase64Image } from "@/lib/image-utils"
+import { guard, ROLES } from "@/lib/authz"
+import { audit } from "@/lib/audit"
 
 export async function getProducts() {
+  // guard:getProducts
+  const g = await guard()
+  if (!g.ok) return { success: false, error: g.error, products: [] }
   try {
     const dbProducts = await prisma.product.findMany()
     const products = dbProducts.map(p => ({
@@ -24,6 +29,9 @@ export async function getProducts() {
 }
 
 export async function createProduct(data: any) {
+  // guard:createProduct
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const imageUrl = await saveBase64Image(data.imageUrl);
     const product = await prisma.product.create({
@@ -46,6 +54,9 @@ export async function createProduct(data: any) {
 }
 
 export async function updateProduct(id: string, data: any) {
+  // guard:updateProduct
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const imageUrl = await saveBase64Image(data.imageUrl);
     const product = await prisma.product.update({
@@ -68,6 +79,9 @@ export async function updateProduct(id: string, data: any) {
 }
 
 export async function deleteProduct(id: string) {
+  // guard:deleteProduct
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     await prisma.product.delete({ where: { id } })
     revalidatePath('/tienda');
@@ -79,39 +93,90 @@ export async function deleteProduct(id: string) {
 }
 
 export async function createTransaction(data: any) {
+  const g = await guard()
+  if (!g.ok) return { success: false, error: g.error }
+  const isPosUser = (ROLES.POS as readonly string[]).includes(g.user.role)
+  const isAthlete = g.user.role === 'athlete'
+  if (!isPosUser && !isAthlete) return { success: false, error: 'No autorizado' }
+
   try {
-    const receiptImage = await saveBase64Image(data.receiptImage);
-    
+    if (!Array.isArray(data?.items) || data.items.length === 0 || data.items.length > 100) {
+      return { success: false, error: 'El carrito está vacío o es demasiado grande.' }
+    }
+    const method = String(data.paymentMethod || '')
+    if (!method) return { success: false, error: 'Falta el método de pago.' }
+    // Crédito/Fiado solo lo registra el personal de caja y siempre a un cliente
+    const isCredit = /fiado|cr[eé]dito/i.test(method)
+    if (isCredit && (isAthlete || !data.customerId)) {
+      return { success: false, error: 'El crédito solo puede registrarlo un cajero a un cliente.' }
+    }
+
+    const receiptImage = await saveBase64Image(data.receiptImage, 'receipt');
+
+    // Identidad: el cajero y el cliente salen de la sesión, no del navegador
+    const cashierId: string | null = isPosUser ? g.user.id : null
+    const customerId: string | null = isAthlete ? g.user.id : (data.customerId || null)
+
     // Start a transaction to ensure all or nothing
     const transaction = await prisma.$transaction(async (tx) => {
+      // 1. Precios REALES desde la base de datos (nunca los que envía el navegador)
+      const lines: { productId: string; name: string; price: number; qty: number; subtotal: number; physical: boolean }[] = []
+      for (const item of data.items) {
+        const qty = Number(item?.qty)
+        if (!Number.isInteger(qty) || qty < 1 || qty > 1000) throw new Error('Cantidad no válida.')
+        const productId = String(item?.productId ?? '')
+        const product = await tx.product.findUnique({ where: { id: productId } })
+
+        if (product) {
+          // El atleta no puede pedir más de lo que hay; el personal puede forzar (override de stock del admin)
+          if (isAthlete && product.stock < qty) throw new Error(`Stock insuficiente de "${product.name}".`)
+          lines.push({ productId, name: product.name, price: product.price, qty, subtotal: product.price * qty, physical: true })
+        } else if (isPosUser && ['MEMB', 'COACH', 'COACH_FEE'].includes(productId)) {
+          // Membresías y planes no son productos de inventario: el precio lo fija el personal de caja
+          const price = Number(item?.price)
+          if (!Number.isFinite(price) || price < 0 || price > 1_000_000) throw new Error('Precio no válido.')
+          lines.push({ productId, name: String(item?.name ?? productId).slice(0, 120), price, qty, subtotal: price * qty, physical: false })
+        } else {
+          throw new Error('Uno de los productos ya no está disponible.')
+        }
+      }
+
+      const subtotal = lines.reduce((acc, l) => acc + l.subtotal, 0)
+      const taxIn = Number(data.tax)
+      const tax = Number.isFinite(taxIn) && taxIn >= 0 && taxIn <= subtotal ? taxIn : 0
+      const expected = subtotal + tax
+      // El personal puede aplicar un descuento (total menor); jamás un total mayor ni negativo.
+      const totalIn = Number(data.total)
+      const total = isPosUser && Number.isFinite(totalIn) && totalIn >= 0 && totalIn <= expected ? totalIn : expected
+
       // 0. Encontrar el turno de caja abierto del cajero (si hay cajero)
       let activeSession = null;
-      if (data.cashierId) {
+      if (cashierId) {
         activeSession = await tx.cashSession.findFirst({
-          where: { cashierId: data.cashierId, status: 'OPEN' }
+          where: { cashierId, status: 'OPEN' }
         });
       }
 
-      // 1. Create the main transaction
+      // 2. Create the main transaction
       const newTx = await tx.transaction.create({
         data: {
-          cashierId: data.cashierId,
+          cashierId,
           cashSessionId: activeSession ? activeSession.id : null,
-          customerId: data.customerId || null,
-          subtotal: parseFloat(data.subtotal),
-          tax: parseFloat(data.tax),
-          total: parseFloat(data.total),
-          paymentMethod: data.paymentMethod,
-          reference: data.reference || null,
+          customerId,
+          subtotal,
+          tax,
+          total,
+          paymentMethod: method,
+          reference: data.reference ? String(data.reference).slice(0, 80) : null,
           receiptImage: receiptImage || null,
-          status: data.cashierId ? 'COMPLETED' : 'PENDING_DELIVERY',
+          status: cashierId ? 'COMPLETED' : 'PENDING_DELIVERY',
           items: {
-            create: data.items.map((item: any) => ({
-              productId: item.productId,
-              name: item.name,
-              price: parseFloat(item.price),
-              qty: parseInt(item.qty),
-              subtotal: parseFloat(item.subtotal)
+            create: lines.map(l => ({
+              productId: l.productId,
+              name: l.name,
+              price: l.price,
+              qty: l.qty,
+              subtotal: l.subtotal
             }))
           }
         },
@@ -120,27 +185,22 @@ export async function createTransaction(data: any) {
         }
       });
 
-      // 2. Decrement stock for real products
-      for (const item of data.items) {
-        if (!['MEMB', 'COACH'].includes(item.productId)) {
-          const productExists = await tx.product.findUnique({ where: { id: item.productId } });
-          if (productExists) {
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: { decrement: parseInt(item.qty) }
-              }
-            })
-          }
+      // 3. Decrement stock for real products
+      for (const l of lines) {
+        if (l.physical) {
+          await tx.product.update({
+            where: { id: l.productId },
+            data: { stock: { decrement: l.qty } }
+          })
         }
       }
 
-            // 3. Update debt if FIADO
-      if (data.paymentMethod === 'FIADO' && data.customerId) {
+      // 4. Update debt if FIADO
+      if (isCredit && customerId) {
         await tx.user.update({
-          where: { id: data.customerId },
+          where: { id: customerId },
           data: {
-            storeDebt: { increment: parseFloat(data.total) }
+            storeDebt: { increment: total }
           }
         })
       }
@@ -150,6 +210,7 @@ export async function createTransaction(data: any) {
 
     revalidatePath('/tienda');
     revalidatePath('/');
+    await audit("sale.create", g.user, { transactionId: transaction.id, total: transaction.total, method });
     return { success: true, transaction }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -157,6 +218,9 @@ export async function createTransaction(data: any) {
 }
 
 export async function getTransactions() {
+  // guard:getTransactions
+  const g = await guard(ROLES.POS)
+  if (!g.ok) return { success: false, error: g.error, transactions: [] }
   try {
     const transactions = await prisma.transaction.findMany({
       include: {
@@ -200,6 +264,9 @@ async function cancelExpiredCashOrders() {
 }
 
 export async function getPendingTransactions() {
+  // guard:getPendingTransactions
+  const g = await guard(ROLES.POS)
+  if (!g.ok) return { success: false, error: g.error, transactions: [] }
   await cancelExpiredCashOrders();
   try {
     const transactions = await prisma.transaction.findMany({
@@ -217,6 +284,10 @@ export async function getPendingTransactions() {
 }
 
 export async function deliverTransaction(transactionId: string, cashierId: string) {
+  // guard:deliverTransaction
+  const g = await guard(ROLES.POS)
+  if (!g.ok) return { success: false, error: g.error }
+  cashierId = g.user.id
   try {
     const transaction = await prisma.$transaction(async (tx) => {
       const activeSession = await tx.cashSession.findFirst({
@@ -267,6 +338,9 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
 
 
 export async function cancelTransaction(transactionId: string) {
+  // guard:cancelTransaction
+  const g = await guard()
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const tx = await prisma.transaction.findUnique({
       where: { id: transactionId },
@@ -274,6 +348,8 @@ export async function cancelTransaction(transactionId: string) {
     });
 
     if (!tx) return { success: false, error: 'Transacción no encontrada' };
+    const isPosUser = (ROLES.POS as readonly string[]).includes(g.user.role)
+    if (!isPosUser && tx.customerId !== g.user.id) return { success: false, error: 'No autorizado' };
     if (tx.status !== 'PENDING_DELIVERY') return { success: false, error: 'La transacción no está pendiente' };
     if (tx.paymentMethod !== 'Efectivo') return { success: false, error: 'Solo se pueden cancelar facturas en Efectivo' };
 
@@ -291,6 +367,7 @@ export async function cancelTransaction(transactionId: string) {
       }
     });
 
+    await audit("sale.cancel", g.user, { transactionId });
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -298,6 +375,9 @@ export async function cancelTransaction(transactionId: string) {
 }
 
 export async function adminRefundTransaction(transactionId: string) {
+  // guard:adminRefundTransaction
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const tx = await prisma.transaction.findUnique({
       where: { id: transactionId },
@@ -338,6 +418,7 @@ export async function adminRefundTransaction(transactionId: string) {
       }
     });
 
+    await audit("sale.refund", g.user, { transactionId });
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

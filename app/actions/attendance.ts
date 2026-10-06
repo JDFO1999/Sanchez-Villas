@@ -1,8 +1,12 @@
 "use server"
 
 import prisma from "@/lib/db"
+import { guardAttendance } from "@/lib/authz"
 
 export async function checkInByCedula(cedula: string) {
+  // guard:checkInByCedula
+  const g = await guardAttendance()
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const user = await prisma.user.findUnique({
       where: { cedula }

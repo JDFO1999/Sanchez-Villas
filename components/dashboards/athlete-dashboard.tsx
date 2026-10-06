@@ -141,7 +141,7 @@ export function AthleteDashboard() {
             })()}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <button onClick={() => setShowQRModal(true)} className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-3 md:py-2 rounded-md font-bold shadow-lg transition flex items-center justify-center gap-2 w-full sm:w-auto">
+          <button onClick={() => setShowQRModal(true)} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-3 md:py-2 rounded-md font-bold transition flex items-center justify-center gap-2 w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ScanBarcode className="h-5 w-5" /> Mostrar mi Código de Acceso
           </button>
         </div>
@@ -542,17 +542,17 @@ export function AthleteDashboard() {
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-warning/15 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4 mb-5 pr-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner">
                   GP
                 </div>
                 <div>
-                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight">{settings?.appName || 'GYMPRO'}</h4>
+                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight truncate">{settings?.appName || 'GYMPRO'}</h4>
                   <p className="text-xs text-zinc-400 font-bold tracking-widest uppercase">Pase Digital de Acceso</p>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-warning/40 text-warning flex items-center gap-1.5 shadow-sm">
+              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-warning/40 text-warning flex items-center gap-1.5 shadow-sm shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
                 VIP
               </span>

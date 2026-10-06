@@ -2,9 +2,9 @@
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const secretKey = process.env.JWT_SECRET || "49694a7fc76bc5df04d29191fcf34c43908540dac98bfc8707836258ee134a9c";
-const key = new TextEncoder().encode(secretKey);
-const legacyKey = new TextEncoder().encode("gympro_super_secret_key_change_me_in_production");
+// La clave SOLO viene del entorno. Si falta (o es corta) ninguna sesión es válida: falla cerrado.
+const secret = process.env.JWT_SECRET;
+const key = secret && secret.length >= 32 ? new TextEncoder().encode(secret) : null;
 
 const PROTECTED_PREFIXES = [
   "/atletas",
@@ -37,17 +37,12 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname === "/login" || pathname === "/registro";
 
   let validPayload: any = null;
-  if (sessionCookie) {
+  if (sessionCookie && key) {
     try {
       const { payload } = await jwtVerify(sessionCookie, key, { algorithms: ["HS256"] });
       validPayload = payload;
     } catch {
-      try {
-        const { payload } = await jwtVerify(sessionCookie, legacyKey, { algorithms: ["HS256"] });
-        validPayload = payload;
-      } catch {
-        validPayload = null;
-      }
+      validPayload = null;
     }
   }
 

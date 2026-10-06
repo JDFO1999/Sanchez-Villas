@@ -1,4 +1,4 @@
-﻿FROM node:18-alpine AS base
+﻿FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -46,6 +46,12 @@ COPY --from=builder /app/public ./public
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Imágenes subidas por los usuarios (fotos de perfil, productos, comprobantes).
+# Monta aquí un volumen PERSISTENTE en Coolify (Storage -> /data/uploads); sin él se pierden en cada despliegue.
+ENV UPLOAD_DIR=/data/uploads
+RUN mkdir -p /data/uploads && chown -R nextjs:nodejs /data
+VOLUME ["/data/uploads"]
 
 USER nextjs
 

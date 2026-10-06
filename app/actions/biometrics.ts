@@ -1,5 +1,6 @@
 "use server";
 import prisma from "@/lib/db"
+import { guardSelfOr, ROLES } from "@/lib/authz"
 
 export async function addBiometric(data: {
   athleteId: string
@@ -11,6 +12,9 @@ export async function addBiometric(data: {
   legs?: number
   bodyFat?: number
 }) {
+  // guard:addBiometric
+  const g = await guardSelfOr(data.athleteId, ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const bio = await prisma.biometric.create({
       data: {
@@ -31,6 +35,9 @@ export async function addBiometric(data: {
 }
 
 export async function getAthleteBiometrics(athleteId: string) {
+  // guard:getAthleteBiometrics
+  const g = await guardSelfOr(athleteId, ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const bios = await prisma.biometric.findMany({
       where: { athleteId },

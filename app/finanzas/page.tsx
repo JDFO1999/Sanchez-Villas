@@ -14,6 +14,11 @@ import {
 } from "lucide-react"
 import Swal from "sweetalert2"
 
+/** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
+function escapeHtml(value: unknown): string {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string))
+}
+
 export default function FinanzasPage() {
   const { user, getAllEmployees, updateEmployee, addEmployee } = useAuth()
   const { settings } = useSettings()
@@ -346,8 +351,8 @@ export default function FinanzasPage() {
           element.innerHTML = `
             <div style="padding: 40px; font-family: sans-serif; color: #000; background: #fff;">
               <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px;">Recibo de Nómina</h2>
-              <p><strong>Empresa/Gimnasio:</strong> ${settings.appName}</p>
-              <p><strong>Empleado:</strong> ${payrollProcessData.name}</p>
+              <p><strong>Empresa/Gimnasio:</strong> ${escapeHtml(settings.appName)}</p>
+              <p><strong>Empleado:</strong> ${escapeHtml(payrollProcessData.name)}</p>
               <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
               <hr style="margin: 20px 0;" />
               <table style="width: 100%; text-align: left; border-collapse: collapse;">
@@ -359,7 +364,7 @@ export default function FinanzasPage() {
               </table>
               <hr style="margin: 20px 0;" />
               <h3 style="text-align: right; font-size: 20px;">Total Pagado: ${settings.storeCurrency} ${totalPaid.toFixed(2)}</h3>
-              ${payrollProcessData.notes ? `<p style="margin-top: 20px; font-size: 14px; color: #555;"><strong>Notas:</strong> ${payrollProcessData.notes}</p>` : ''}
+              ${payrollProcessData.notes ? `<p style="margin-top: 20px; font-size: 14px; color: #555;"><strong>Notas:</strong> ${escapeHtml(payrollProcessData.notes)}</p>` : ''}
               <div style="margin-top: 50px; text-align: center;">
                 <p>___________________________________</p>
                 <p>Firma de Recibido</p>
@@ -385,7 +390,7 @@ export default function FinanzasPage() {
     element.innerHTML = `
       <div style="padding: 40px; font-family: sans-serif; color: #000; background: #fff;">
         <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px;">Estado de Resultados - ${new Date().toLocaleDateString('es-ES', {month: 'long', year: 'numeric'}).toUpperCase()}</h2>
-        <p><strong>Gimnasio:</strong> ${settings.appName}</p>
+        <p><strong>Gimnasio:</strong> ${escapeHtml(settings.appName)}</p>
         <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
         <hr style="margin: 20px 0;" />
         
@@ -398,7 +403,7 @@ export default function FinanzasPage() {
         <h3 style="color: #dc2626;">2. EGRESOS (GASTOS Y NÓMINA)</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           ${Object.entries(egresosPorCategoria).map(([cat, val]) => `
-            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${cat}</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${val.toFixed(2)}</td></tr>
+            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${escapeHtml(cat)}</td><td style="text-align: right; padding: 8px 0; border-bottom: 1px solid #eee;">${settings.storeCurrency} ${val.toFixed(2)}</td></tr>
           `).join('')}
           <tr><td style="padding: 8px 0; font-weight: bold;">TOTAL EGRESOS</td><td style="text-align: right; padding: 8px 0; font-weight: bold;">${settings.storeCurrency} ${totalEgresos.toFixed(2)}</td></tr>
         </table>
@@ -419,7 +424,7 @@ export default function FinanzasPage() {
     element.innerHTML = `
       <div style="width: 80mm; padding: 10px; font-family: monospace; color: #000; background: #fff; font-size: 12px;">
         <h2 style="text-align: center; margin-bottom: 10px; font-size: 16px;">CIERRE DE CAJA (RESUMEN)</h2>
-        <p style="text-align: center; margin-bottom: 10px;">${settings.appName}</p>
+        <p style="text-align: center; margin-bottom: 10px;">${escapeHtml(settings.appName)}</p>
         <p>Fecha: ${new Date().toLocaleDateString()}</p>
         <hr style="border-top: 1px dashed #000; margin: 10px 0;" />
         <p>Ventas Hoy: ${settings.storeCurrency} ${totalIngresos.toFixed(2)}</p>
@@ -598,7 +603,7 @@ export default function FinanzasPage() {
           logoUrl: settings?.logoUrl
         });
       } else {
-        exportToExcel(excelData, reportSection, filename);
+        await exportToExcel(excelData, reportSection, filename);
       }
       
     } catch (err) {

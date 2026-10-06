@@ -1,8 +1,12 @@
 "use server"
 
 import prisma from "@/lib/db"
+import { guard, ROLES } from "@/lib/authz"
 
 export async function getDashboardStats() {
+  // guard:getDashboardStats
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const today = new Date()
     today.setHours(0,0,0,0)

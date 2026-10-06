@@ -2,9 +2,14 @@
 
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { guard, guardSelfOr, ROLES } from "@/lib/authz"
+import { audit } from "@/lib/audit"
 
 // Obtiene todos los recibos de un empleado
 export async function getEmployeePayrollReceipts(employeeId: string) {
+  // guard:getEmployeePayrollReceipts
+  const g = await guardSelfOr(employeeId, ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error, receipts: [] }
   try {
     const receipts = await prisma.payrollReceipt.findMany({
       where: { employeeId },
@@ -18,6 +23,9 @@ export async function getEmployeePayrollReceipts(employeeId: string) {
 
 // Calcula las comisiones basadas en pagos reales
 export async function calculateCurrentCommissions(employeeId: string, startDate: Date, endDate: Date) {
+  // guard:calculateCurrentCommissions
+  const g = await guardSelfOr(employeeId, ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error, amount: 0 }
   try {
     const employee = await prisma.user.findUnique({ where: { id: employeeId } });
     if (!employee) return { success: false, error: "Empleado no encontrado", amount: 0 };
@@ -73,6 +81,9 @@ export async function processPayroll(data: {
   totalPaid: number,
   notes?: string
 }) {
+  // guard:processPayroll
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
   try {
     const receipt = await prisma.$transaction(async (tx) => {
       // 1. Crear el recibo
@@ -110,6 +121,7 @@ export async function processPayroll(data: {
       return rec;
     });
 
+    await audit("payroll.process", g.user, { employeeId: data.employeeId, totalPaid: data.totalPaid, receiptId: receipt.id });
     revalidatePath("/finanzas");
     return { success: true, receipt }
   } catch (error: any) {
