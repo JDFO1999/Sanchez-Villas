@@ -20,7 +20,8 @@ import {
   Moon,
   Sun,
   Settings,
-  ScanLine
+  ScanLine,
+  User as UserIcon
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Footer } from "./footer"
@@ -57,14 +58,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user && pathname !== '/login' && pathname !== '/registro') {
+    if (!isLoading && !user && pathname !== '/' && pathname !== '/login' && pathname !== '/registro') {
       router.push('/login')
     }
   }, [user, isLoading, pathname, router])
 
   if (isLoading) return <FullScreenLoader text="Iniciando..." />
 
-  if (pathname === '/login' || pathname === '/registro') {
+  if (pathname === '/login' || pathname === '/registro' || (pathname === '/' && !user)) {
     return <>{children}</>
   }
 
@@ -74,6 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     currentNavItems.push({ name: "Empleados", href: "/empleados", icon: Users })
     currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
     currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
+    currentNavItems.push({ name: "Mi Perfil", href: "/perfil", icon: UserIcon })
   } else if (user?.role === 'athlete') {
     currentNavItems = [
       { name: "Mi Progreso", href: "/", icon: Home },
@@ -109,27 +111,42 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const LogoComponent = () => (
-    <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary hover:opacity-80 transition">
+    <Link 
+      href="/" 
+      className="flex items-center gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1"
+      style={{
+        margin: settings.logoSettings?.marginNavbar ? `${settings.logoSettings.marginNavbar}px` : undefined,
+      }}
+    >
       {settings.logoSettings?.showInNavbar && (
         (settings.logoUrl || settings.logoUrlDark) ? (
           <img
             src={(theme === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)}
             alt="Logo"
             style={{
-              width: settings.logoSettings.widthNavbar,
-              height: settings.logoSettings.heightNavbar,
-              objectFit: settings.logoSettings.objectFit,
+              width: settings.logoSettings.widthNavbar || 40,
+              height: settings.logoSettings.heightNavbar || 40,
+              objectFit: settings.logoSettings.objectFit || 'contain',
+              padding: settings.logoSettings?.paddingNavbar ? `${settings.logoSettings.paddingNavbar}px` : undefined,
+              maxWidth: '100%',
               maskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
               WebkitMaskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
             }}
-            className="transition-all"
+            className="transition-transform group-hover:scale-105 shrink-0"
           />
         ) : (
-          <Dumbbell style={{ width: settings.logoSettings.widthNavbar * 0.75, height: settings.logoSettings.widthNavbar * 0.75 }} />
+          <Dumbbell 
+            className="text-primary transition-transform group-hover:scale-110 shrink-0"
+            style={{ 
+              width: Math.max(24, (settings.logoSettings?.widthNavbar || 40) * 0.75), 
+              height: Math.max(24, (settings.logoSettings?.heightNavbar || 40) * 0.75),
+              padding: settings.logoSettings?.paddingNavbar ? `${settings.logoSettings.paddingNavbar}px` : undefined
+            }} 
+          />
         )
       )}
-      {settings.logoSettings?.showNameInNavbar && (
-        <span>{settings.appName}</span>
+      {settings.logoSettings?.showNameInNavbar && settings.appName && (
+        <span className="truncate leading-tight">{settings.appName}</span>
       )}
     </Link>
   )
@@ -150,12 +167,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="absolute right-0 top-0 w-[1px] h-full bg-gradient-to-b from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
         <div className="flex flex-col h-full">
-          <div className={`flex items-center h-16 relative gap-2 ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'}`}>
+          <div className={`flex items-center min-h-[4rem] py-2 relative gap-2 ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}>
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-            <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarCollapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"}`}>
-              <LogoComponent />
-            </div>
-            <button aria-label="Expandir o colapsar menú" className="hidden lg:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors shrink-0"
+            
+            {/* Solo se muestra el Logo / Marca cuando la barra lateral está desplegada */}
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0 transition-all duration-300 flex items-center">
+                <LogoComponent />
+              </div>
+            )}
+
+            <button aria-label="Expandir o colapsar menú" className={`hidden lg:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors shrink-0 ${isSidebarCollapsed ? 'mx-auto' : ''}`}
               onClick={toggleSidebarCollapse}
               title={isSidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
             >
@@ -230,9 +252,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            
           </div>
-          
+
+          {user && (
+            <div className="flex items-center gap-3">
+              <Link
+                href={user.role === 'admin' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
+                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
+                title="Ver Perfil"
+              >
+                {user.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full object-cover border border-primary/50"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-xs border border-primary/30">
+                    {user.name?.charAt(0) || "U"}
+                  </div>
+                )}
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-bold leading-tight text-foreground">{user.name}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">{user.role}</span>
+                </div>
+              </Link>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto pb-20 lg:pb-0 flex flex-col">

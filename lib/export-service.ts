@@ -30,7 +30,7 @@ const loadImageToBase64 = async (url: string): Promise<string | null> => {
  * Export data to a highly professional PDF file.
  */
 export const exportToPDF = async (config: ReportConfig) => {
-  const { title, columns, data, filename, appName = 'GymPro', logoUrl } = config;
+  const { title, columns, data, filename, appName = '', logoUrl } = config;
   const doc = new jsPDF('portrait', 'pt', 'a4');
   
   const pageWidth = doc.internal.pageSize.getWidth();

@@ -156,7 +156,7 @@ export function AdminDashboard() {
           columns: cols,
           data: pdfData,
           filename,
-          appName: settings?.appName || 'GymPro',
+          appName: settings?.appName || '',
           logoUrl: settings?.logoUrl
         });
       } else {
@@ -527,7 +527,7 @@ export function AdminDashboard() {
                         Vence en {mem.venceEn}
                       </span>
                       <a 
-                        href={`https://wa.me/58${mem.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent("¡Hola " + mem.nombre + "! Recordatorio de GymPro: Tu membresía vence en " + mem.venceEn + ". ¡Te esperamos para renovar!")}`}
+                        href={`https://wa.me/58${mem.phone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent("¡Hola " + mem.nombre + "! Recordatorio de " + (settings?.appName || 'nuestro gimnasio') + ": Tu membresía vence en " + mem.venceEn + ". ¡Te esperamos para renovar!")}`}
                         target="_blank"
                         rel="noreferrer"
                         className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-full transition"

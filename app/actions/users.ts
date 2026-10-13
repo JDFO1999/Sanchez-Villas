@@ -275,6 +275,11 @@ export async function getAthleteById(id: string) {
       }
     })
 
+    // El perfil del administrador está estrictamente protegido y oculto: nadie puede entrar a visualizar al administrador
+    if (athlete?.role === 'admin' && g.user.id !== athlete.id) {
+      return { success: false, error: "No tienes permiso para ver este perfil." }
+    }
+
     if (athlete && athlete.biometrics) {
       athlete.biometrics = athlete.biometrics.map(b => ({
         ...b,

@@ -1,5 +1,6 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { useSettings } from "@/lib/settings-context";
+import { useTheme } from "next-themes";
 import { MapPin } from "lucide-react";
 
 export function BaseFooter({ 
@@ -9,10 +10,50 @@ export function BaseFooter({
   settings: any, 
   themeOverride?: string 
 }) {
+  const { theme, resolvedTheme } = useTheme();
+  const currentTheme = themeOverride || resolvedTheme || theme;
+  const isDark = currentTheme === 'dark';
+
   const pY = settings.footerLogoSettings?.footerPadding !== undefined ? settings.footerLogoSettings.footerPadding : 12;
   const mT = settings.footerLogoSettings?.footerMarginTop !== undefined ? settings.footerLogoSettings.footerMarginTop : 0;
   
-  const layoutTheme = themeOverride || settings.footerLogoSettings?.layoutTheme || 'modern';
+  const layoutTheme = settings.footerLogoSettings?.layoutTheme || 'modern';
+  // En modo oscuro usar logoUrlDark (o fallback a logoUrl); en modo claro usar logoUrl (o fallback a logoUrlDark)
+  const logoSrc = isDark 
+    ? (settings.logoUrlDark || settings.logoUrl) 
+    : (settings.logoUrl || settings.logoUrlDark);
+  const isGlowActive = settings.footerLogoSettings?.glowEffect !== false;
+  const logoWidth = settings.footerLogoSettings?.width || 60;
+  const logoHeight = settings.footerLogoSettings?.height || 60;
+
+  const renderLogo = (customW?: number, customH?: number) => {
+    if (settings.footerLogoSettings?.showLogo === false || !logoSrc) return null;
+    const w = customW || logoWidth;
+    const h = customH || logoHeight;
+
+    return (
+      <div 
+        className={`shrink-0 relative flex items-center justify-center ${settings.footerLogoSettings?.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
+        style={{ width: `${w}px`, height: `${h}px` }}
+      >
+        {isGlowActive && (
+          <div 
+            className="absolute inset-0 rounded-full bg-primary/50 animate-logo-glow pointer-events-none"
+            style={{ 
+              boxShadow: '0 0 25px 8px hsl(var(--primary) / 0.45)',
+              filter: 'blur(10px)'
+            }} 
+          />
+        )}
+        <img 
+          src={logoSrc} 
+          alt="Logo Footer" 
+          style={{ width: `${w}px`, height: `${h}px` }} 
+          className="object-contain relative z-10 transition-transform duration-300 hover:scale-105" 
+        />
+      </div>
+    );
+  };
 
   return (
     <footer 
@@ -33,11 +74,7 @@ export function BaseFooter({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 w-full items-start">
             {/* Column 1: Brand Logo + Mission */}
             <div className="flex flex-row items-start gap-6">
-              {settings.footerLogoSettings?.showLogo !== false && settings.logoUrl && (
-                <div className={`shrink-0 relative ${settings.footerLogoSettings?.glowEffect ? 'before:absolute before:inset-0 before:bg-primary/20 before:blur-xl before:rounded-full before:animate-pulse' : ''} ${settings.footerLogoSettings?.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}>
-                  <img src={settings.logoUrl} alt="Logo Footer" style={{ width: settings.footerLogoSettings?.width || 60, height: settings.footerLogoSettings?.height || 60 }} className="object-contain relative z-10" />
-                </div>
-              )}
+              {renderLogo()}
               <div className="flex flex-col gap-3">
                 {settings.footerLogoSettings?.showText !== false && settings.footerLogoSettings?.showAppName !== false && (
                   <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
@@ -109,9 +146,7 @@ export function BaseFooter({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full items-start text-left">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-4">
-                {settings.footerLogoSettings?.showLogo !== false && settings.logoUrl && (
-                  <img src={settings.logoUrl} alt="Logo Footer" style={{ width: settings.footerLogoSettings?.width || 60, height: settings.footerLogoSettings?.height || 60 }} className="object-contain" />
-                )}
+                {renderLogo()}
                 {settings.footerLogoSettings?.showText !== false && (
                   <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
                 )}
@@ -165,9 +200,7 @@ export function BaseFooter({
         {layoutTheme === 'minimalist' && (
           <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-10">
             <div className="flex flex-col items-center gap-4">
-              {settings.footerLogoSettings?.showLogo !== false && settings.logoUrl && (
-                <img src={settings.logoUrl} alt="Logo Footer" style={{ width: settings.footerLogoSettings?.width || 80, height: settings.footerLogoSettings?.height || 80 }} className="object-contain" />
-              )}
+              {renderLogo(settings.footerLogoSettings?.width || 80, settings.footerLogoSettings?.height || 80)}
               {settings.footerLogoSettings?.showText !== false && (
                 <span style={{ fontSize: settings.footerLogoSettings?.textSize || 28 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
               )}

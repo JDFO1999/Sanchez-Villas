@@ -544,11 +544,15 @@ export function AthleteDashboard() {
             {/* Header */}
             <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4 mb-5 pr-10">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner">
-                  GP
+                <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner overflow-hidden">
+                  {(settings?.logoUrl || settings?.logoUrlDark) ? (
+                    <img src={settings?.logoUrl || settings?.logoUrlDark} alt="Logo" className="w-full h-full object-contain p-0.5" />
+                  ) : (
+                    settings?.appName?.slice(0, 2).toUpperCase() || 'GP'
+                  )}
                 </div>
                 <div>
-                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight truncate">{settings?.appName || 'GYMPRO'}</h4>
+                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight truncate">{settings?.appName || 'Gimnasio'}</h4>
                   <p className="text-xs text-zinc-400 font-bold tracking-widest uppercase">Pase Digital de Acceso</p>
                 </div>
               </div>

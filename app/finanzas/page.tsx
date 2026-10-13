@@ -599,7 +599,7 @@ export default function FinanzasPage() {
           columns: cols,
           data: pdfData,
           filename,
-          appName: settings?.appName || 'GymPro',
+          appName: settings?.appName || '',
           logoUrl: settings?.logoUrl
         });
       } else {

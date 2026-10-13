@@ -60,6 +60,12 @@ model User {
   athleteDiets       DietAssignment[]   @relation("AthleteDiets")
   coachDiets         DietAssignment[]   @relation("CoachDiets")
   exerciseProgresses ExerciseProgress[] @relation("AthleteExerciseProgress")
+
+  // Comunidad
+  communityPosts          CommunityPost[]
+  communityReactions      CommunityReaction[]
+  createdChallenges       CommunityChallenge[]
+  challengeParticipations CommunityChallengeParticipant[]
 }
 
 model CoachRequest {
@@ -243,5 +249,59 @@ model DietAssignment {
   createdAt   DateTime @default(now())
 }
 
+model SystemSetting {
+  id        String   @id @default("default")
+  data      String   @db.LongText
+  updatedAt DateTime @updatedAt
+}
 
+model CommunityPost {
+  id        String              @id @default(cuid())
+  authorId  String
+  author    User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String
+  content   String              @db.Text
+  tag       String              @default("Aviso")
+  imageUrl  String?             @db.Text
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  reactions CommunityReaction[]
+}
 
+model CommunityReaction {
+  id        String        @id @default(cuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String        // "LIKE" ("Me gusta") or "LOVE" ("Me encanta")
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, userId])
+}
+
+model CommunityChallenge {
+  id           String                          @id @default(cuid())
+  title        String
+  description  String                          @db.Text
+  category     String
+  daysLeft     Int
+  status       String                          @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  creatorId    String
+  creator      User                            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime                        @default(now())
+  updatedAt    DateTime                        @updatedAt
+  participants CommunityChallengeParticipant[]
+}
+
+model CommunityChallengeParticipant {
+  id          String             @id @default(cuid())
+  challengeId String
+  challenge   CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress    Float              @default(0)
+  joinedAt    DateTime           @default(now())
+
+  @@unique([challengeId, userId])
+}

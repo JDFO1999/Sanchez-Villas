@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { Loader } from "@/components/ui/loader"
+import { FullScreenLoader } from "@/components/ui/loader"
 import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { Dialog } from "@/components/ui/dialog"
@@ -190,13 +190,11 @@ export default function LoginPage() {
             disabled={isLoading}
             className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {isLoading ? (
-              <Loader size={20} color="currentColor" />
-            ) : (
-              "Iniciar Sesión"
-            )}
+            Iniciar Sesión
           </button>
           </form>
+
+        {isLoading && <FullScreenLoader text="Iniciando sesión..." />}
         <div className="mt-4 text-center">
             <span className="text-sm text-muted-foreground">¿Eres un nuevo atleta? </span>
             <button 

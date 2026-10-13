@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { getSystemSettingsAction, saveSystemSettingsAction } from '@/app/actions/settings'
 
 type FontFamily = 'arvo' | 'inter' | 'roboto'
 
@@ -26,6 +27,8 @@ export interface AppSettings {
     showNameInLogin: boolean
     objectFit: 'contain' | 'cover' | 'fill'
     fadeEffect: boolean
+    paddingNavbar?: number
+    marginNavbar?: number
   }
   footerLogoSettings?: {
     showLogo: boolean
@@ -69,16 +72,59 @@ export interface AppSettings {
   footerVision: string
   footerSocialLinks: { id: string, name: string, url: string, iconUrl?: string, width: number, height: number }[]
   footerPartners: { id: string, imageUrl: string, width: number, height: number, link?: string }[]
+  trainingPhilosophy?: string
+  gymSchedule?: {
+    weekdays: string
+    saturdays: string
+    sundays: string
+  }
+  landingSettings?: {
+    enabled: boolean
+    tagline?: string
+    disciplinesTitle?: string
+    disciplinesSubtitle?: string
+    heroSlides: {
+      id: string
+      type: 'image' | 'video'
+      url: string
+      title?: string
+      subtitle?: string
+      ctaText?: string
+      ctaLink?: string
+    }[]
+    disciplines: {
+      id: string
+      title: string
+      description: string
+      imageUrl: string
+      intensity?: string
+      schedule?: string
+    }[]
+    promiseSettings?: {
+      badge?: string
+      title?: string
+      description?: string
+      images: string[]
+    }
+    map: {
+      embedUrl: string
+      address: string
+      googleMapsUrl?: string
+      phone?: string
+      whatsapp?: string
+      infoCardTitle?: string
+    }
+  }
 }
 
 interface SettingsContextType {
   settings: AppSettings
-  updateSettings: (newSettings: Partial<AppSettings>) => void
+  updateSettings: (newSettings: Partial<AppSettings>) => Promise<{ success: boolean; error?: string }>
   isLoading: boolean
 }
 
 export const defaultSettings: AppSettings = {
-  appName: 'GymPro',
+  appName: '',
   logoUrl: '',
   logoUrlDark: '',
   faviconUrl: '',
@@ -98,13 +144,30 @@ export const defaultSettings: AppSettings = {
     showNameInNavbar: true,
     showNameInLogin: true,
     objectFit: 'contain',
-    fadeEffect: false
+    fadeEffect: false,
+    paddingNavbar: 0,
+    marginNavbar: 0
+  },
+  footerLogoSettings: {
+    showLogo: true,
+    position: 'side',
+    width: 60,
+    height: 60,
+    glassEffect: false,
+    glowEffect: true,
+    alignment: 'left',
+    showText: true,
+    textSize: 24,
+    textEffect: 'gradient',
+    footerAlignment: 'left',
+    footerPadding: 12,
+    footerMarginTop: 0
   },
   storeCurrency: 'USD',
   storeCurrencySecondary: 'BsS',
   storeExchangeRate: 40.0,
   storeTaxRate: 19,
-  storeReceiptMessage: '¡Gracias por su compra en GymPro!',
+  storeReceiptMessage: '¡Gracias por su compra!',
   storeNextInvoice: 1,
   storeRif: 'J-12345678-9',
   storeAddress: 'Centro de la ciudad, Calle 1',
@@ -130,7 +193,101 @@ export const defaultSettings: AppSettings = {
     { id: '2', name: 'Facebook', url: '', width: 24, height: 24 },
     { id: '3', name: 'TikTok', url: '', width: 24, height: 24 }
   ],
-  footerPartners: []
+  footerPartners: [],
+  trainingPhilosophy: 'No cuentes los días, haz que los días cuenten. Tu único límite es la mente que te dice que pares una repetición antes.',
+  gymSchedule: {
+    weekdays: '6:00 AM - 10:00 PM',
+    saturdays: '7:00 AM - 6:00 PM',
+    sundays: '8:00 AM - 2:00 PM'
+  },
+  landingSettings: {
+    enabled: true,
+    tagline: 'Supera tus límites, forja tu mejor versión',
+    heroSlides: [
+      {
+        id: '1',
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1920&auto=format&fit=crop',
+        title: 'TRANSFORMA TU CUERPO Y MENTE',
+        subtitle: 'Instalaciones de alto rendimiento, entrenadores certificados y la mejor comunidad fitness.',
+        ctaText: 'Ver Disciplinas',
+        ctaLink: '#disciplinas'
+      },
+      {
+        id: '2',
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=1920&auto=format&fit=crop',
+        title: 'DISCIPLINAS PARA CADA OBJETIVO',
+        subtitle: 'Musculación, Cross Training, Spinning, Boxeo y mucho más en un solo lugar.',
+        ctaText: 'Conoce Nuestra Ubicación',
+        ctaLink: '#ubicacion'
+      },
+      {
+        id: '3',
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=1920&auto=format&fit=crop',
+        title: 'VIVE LA EXPERIENCIA DEL ENTRENAMIENTO REAL',
+        subtitle: 'Ambiente motivador con equipo de última generación y asesoría personalizada.',
+        ctaText: 'Contáctanos',
+        ctaLink: '#contacto'
+      }
+    ],
+    disciplines: [
+      {
+        id: '1',
+        title: 'Musculación & Hipertrofia',
+        description: 'Zona de peso libre, máquinas selectorizadas y asesoría técnica para maximizar tu ganancia muscular y fuerza.',
+        imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?q=80&w=800&auto=format&fit=crop',
+        intensity: 'Alta',
+        schedule: 'Lunes a Sábado'
+      },
+      {
+        id: '2',
+        title: 'Cross Training & Funcional',
+        description: 'Entrenamientos dinámicos de alta intensidad para elevar resistencia, potencia cardiovascular y agilidad.',
+        imageUrl: 'https://images.unsplash.com/photo-1517963879433-6ad2b056d712?q=80&w=800&auto=format&fit=crop',
+        intensity: 'Extrema',
+        schedule: 'Mañanas y Tardes'
+      },
+      {
+        id: '3',
+        title: 'Indoor Cycling (Spinning)',
+        description: 'Quema calorías al ritmo de la música con sesiones guiadas que fortalecen piernas y capacidad aeróbica.',
+        imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=800&auto=format&fit=crop',
+        intensity: 'Media - Alta',
+        schedule: 'Clases Grupales'
+      },
+      {
+        id: '4',
+        title: 'Boxeo & Contacto',
+        description: 'Aprende técnica, golpeo al saco, reflejos y coordinación en una disciplina que desafía tu velocidad y resistencia.',
+        imageUrl: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?q=80&w=800&auto=format&fit=crop',
+        intensity: 'Alta',
+        schedule: 'Lunes, Miércoles y Viernes'
+      }
+    ],
+    disciplinesTitle: 'ENTRENA A TU MANERA, SUPERA TUS LÍMITES',
+    disciplinesSubtitle: 'Disponemos de programas y áreas diseñadas para todos los niveles, desde principiantes hasta atletas de alto rendimiento.',
+    promiseSettings: {
+      badge: 'NUESTRA PROMESA',
+      title: 'UN ESPACIO PENSADO PARA TU EVOLUCIÓN',
+      description: 'no solo entrenas: formas parte de un estilo de vida enfocado en la disciplina, la superación y los resultados reales.',
+      images: [
+        'https://images.unsplash.com/photo-1574680096145-d05b474e2155?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800&auto=format&fit=crop'
+      ]
+    },
+    map: {
+      embedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3923.2384976722216!2d-66.8833!3d10.488!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDI5JzE2LjgiTiA2NsKwNTInNTkuOSJX!5e0!3m2!1ses!2sve!4v1600000000000!5m2!1ses!2sve',
+      address: 'Avenida Principal, Centro Deportivo, Edificio Gym, Nivel 1',
+      googleMapsUrl: 'https://maps.google.com',
+      phone: '+58 412 123 4567',
+      whatsapp: '+58 414 123 4567',
+      infoCardTitle: 'Información del Gym'
+    }
+  }
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -172,55 +329,122 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const saved = localStorage.getItem('gympro_settings')
-    if (saved) {
-      try {
-        let parsed = JSON.parse(saved);
-        if (parsed.footerSocialLinks && !Array.isArray(parsed.footerSocialLinks)) {
-          parsed.footerSocialLinks = defaultSettings.footerSocialLinks;
-        }
-        if (parsed.footerPartners && !Array.isArray(parsed.footerPartners)) {
-          parsed.footerPartners = [];
-        } else if (Array.isArray(parsed.footerPartners)) {
-          parsed.footerPartners = parsed.footerPartners.map((p: any) => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
-        }
-        setSettings({ ...defaultSettings, ...parsed });
-        if (typeof document !== 'undefined') {
-          document.title = (parsed.appName || defaultSettings.appName) + " - Sistema de Gestión";
-        }
-        if (typeof document !== 'undefined') {
-          let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-          if (!link) {
-            link = document.createElement("link") as HTMLLinkElement;
-            link.rel = 'icon';
-            document.getElementsByTagName('head')[0].appendChild(link);
-          }
-          link.href = parsed.faviconUrl || defaultSettings.faviconUrl || '/favicon.ico';
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-    setIsLoading(false)
-  }, [])
-
-  const updateSettings = (newSettings: Partial<AppSettings>) => {
-    const updated = { ...settings, ...newSettings }
-    setSettings(updated)
-    if (typeof document !== 'undefined' && newSettings.appName) {
-      document.title = newSettings.appName + " - Sistema de Gestión";
-    }
-    if (typeof document !== 'undefined' && newSettings.faviconUrl !== undefined) {
+  const applyDomUpdates = (currSettings: AppSettings) => {
+    if (typeof document !== 'undefined') {
+      document.title = currSettings.appName ? `${currSettings.appName} - Sistema de Gestión` : "Sistema de Gestión";
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
       if (!link) {
         link = document.createElement("link") as HTMLLinkElement;
         link.rel = 'icon';
         document.getElementsByTagName('head')[0].appendChild(link);
       }
-      link.href = newSettings.faviconUrl || '/favicon.ico';
+      link.href = currSettings.faviconUrl || defaultSettings.faviconUrl || '/favicon.ico';
     }
-    localStorage.setItem('gympro_settings', JSON.stringify(updated))
+  }
+
+  const sanitizeSettings = (parsed: any): AppSettings => {
+    if (parsed.footerSocialLinks && !Array.isArray(parsed.footerSocialLinks)) {
+      parsed.footerSocialLinks = defaultSettings.footerSocialLinks;
+    }
+    if (parsed.footerPartners && !Array.isArray(parsed.footerPartners)) {
+      parsed.footerPartners = [];
+    } else if (Array.isArray(parsed.footerPartners)) {
+      parsed.footerPartners = parsed.footerPartners.map((p: any) => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
+    }
+    return {
+      ...defaultSettings,
+      ...parsed,
+      logoSettings: {
+        ...defaultSettings.logoSettings,
+        ...(parsed.logoSettings || {})
+      },
+      footerLogoSettings: {
+        ...defaultSettings.footerLogoSettings,
+        ...(parsed.footerLogoSettings || {})
+      }
+    };
+  }
+
+  useEffect(() => {
+    let initialSettings = defaultSettings
+
+    // 1. Cargar inmediatamente desde localStorage para evitar parpadeos
+    const saved = localStorage.getItem('gympro_settings')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        initialSettings = sanitizeSettings(parsed)
+        setSettings(initialSettings)
+        applyDomUpdates(initialSettings)
+      } catch (e) {
+        console.error("Error reading localStorage settings:", e)
+      }
+    }
+
+    // 2. Sincronizar desde la base de datos MySQL
+    getSystemSettingsAction().then(res => {
+      if (res.success && res.settings) {
+        const dbSettings = sanitizeSettings(res.settings)
+        setSettings(dbSettings)
+        applyDomUpdates(dbSettings)
+        localStorage.setItem('gympro_settings', JSON.stringify(dbSettings))
+      } else if (saved) {
+        // Respaldar settings existentes en DB
+        try {
+          saveSystemSettingsAction(initialSettings).catch(() => {})
+        } catch (_) {}
+      }
+    }).catch(err => {
+      console.warn("Could not fetch settings from DB, using cached settings:", err)
+    }).finally(() => {
+      setIsLoading(false)
+    })
+  }, [])
+
+  const updateSettings = async (newSettings: Partial<AppSettings>): Promise<{ success: boolean; error?: string }> => {
+    const updated: AppSettings = {
+      ...settings,
+      ...newSettings,
+      logoSettings: {
+        ...settings.logoSettings,
+        ...(newSettings.logoSettings || {})
+      },
+      footerLogoSettings: {
+        showLogo: true,
+        position: 'side',
+        width: 60,
+        height: 60,
+        glassEffect: false,
+        glowEffect: true,
+        alignment: 'left',
+        showText: true,
+        textSize: 24,
+        textEffect: 'gradient',
+        footerAlignment: 'left',
+        footerPadding: 12,
+        footerMarginTop: 0,
+        ...(settings.footerLogoSettings || {}),
+        ...(newSettings.footerLogoSettings || {})
+      }
+    }
+    setSettings(updated)
+    applyDomUpdates(updated)
+    try {
+      localStorage.setItem('gympro_settings', JSON.stringify(updated))
+    } catch (e) {
+      console.warn("Could not save to localStorage:", e)
+    }
+    // Persistir en base de datos MySQL
+    try {
+      const res = await saveSystemSettingsAction(updated)
+      if (!res.success) {
+        console.error("Error from saveSystemSettingsAction:", res.error)
+      }
+      return res
+    } catch (err: any) {
+      console.error("Error persisting settings to DB:", err)
+      return { success: false, error: err?.message || "Error al conectar con la base de datos" }
+    }
   }
 
   const primaryHsl = hexToHSL(settings.primaryColor)

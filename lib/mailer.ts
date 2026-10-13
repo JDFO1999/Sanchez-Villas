@@ -15,7 +15,7 @@ export async function sendReceiptEmail(to: string, clientName: string, amount: n
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;">
         <div style="background-color: #22c55e; padding: 20px; text-align: center; color: white;">
-          <h1 style="margin: 0; font-size: 24px;">GymPro</h1>
+          <h1 style="margin: 0; font-size: 24px;">Gimnasio</h1>
           <p style="margin: 5px 0 0; opacity: 0.8;">Recibo de Pago</p>
         </div>
         <div style="padding: 30px;">
@@ -40,9 +40,9 @@ export async function sendReceiptEmail(to: string, clientName: string, amount: n
     `;
 
     const info = await transporter.sendMail({
-      from: `"GymPro" <${process.env.SMTP_USER || 'gympro@noreply.com'}>`,
+      from: `"Gimnasio" <${process.env.SMTP_USER || 'gympro@noreply.com'}>`,
       to,
-      subject: "Tu recibo de pago - GymPro",
+      subject: "Tu recibo de pago - Gimnasio",
       html: htmlContent,
     });
 

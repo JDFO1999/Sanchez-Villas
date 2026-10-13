@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
@@ -16,6 +16,8 @@ const PROTECTED_PREFIXES = [
   "/mis-atletas",
   "/rutina",
   "/ajustes",
+  "/perfil",
+  "/comunidad",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -33,7 +35,7 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("session")?.value;
 
   const isExactHome = pathname === "/";
-  const isProtected = isExactHome || PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
   const isAuthPage = pathname === "/login" || pathname === "/registro";
 
   let validPayload: any = null;
@@ -68,11 +70,12 @@ export async function middleware(request: NextRequest) {
   if (validPayload) {
     const role = validPayload.role as string;
     
-    // Only admin can access employees, finance, and settings
+    // Only admin can access employees, finance, settings, and admin profile
     if (
       pathname.startsWith("/empleados") ||
       pathname.startsWith("/finanzas") ||
-      pathname.startsWith("/ajustes")
+      pathname.startsWith("/ajustes") ||
+      pathname.startsWith("/perfil")
     ) {
       if (role !== "admin") {
         return NextResponse.redirect(new URL("/", request.url));

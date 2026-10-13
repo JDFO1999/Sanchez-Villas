@@ -23,6 +23,7 @@ export interface User {
   role: Role
   cedula: string
   avatar?: string
+  profilePicture?: string | null
   permissions?: Permission[]
   
   pin?: string // PIN generado automáticamente (para cajero/recepción)
@@ -55,6 +56,7 @@ interface AuthContextType {
   getCustomRoles: () => CustomRoleDef[]
   addCustomRole: (role: CustomRoleDef) => void
   deleteCustomRole: (roleId: string) => void
+  updateUserProfilePicture: (newPicture: string) => void
   
   isLoading: boolean
 }
@@ -99,8 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       localStorage.removeItem('gympro_session_id')
       setUser(null)
-      // Navegación completa: reinicia el estado del cliente y el middleware ve la cookie ya borrada
-      window.location.assign('/login')
+      // Redirige a la página principal promocional
+      window.location.assign('/')
     }
   }
 
@@ -175,6 +177,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       getCustomRoles,
       addCustomRole,
       deleteCustomRole,
+      updateUserProfilePicture: (pic: string) => {
+        setUser(prev => prev ? { ...prev, profilePicture: pic } : null)
+      },
       isLoading 
     }}>
       {children}

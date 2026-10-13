@@ -5,42 +5,42 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Fondo Gris Plata / Moderno Técnico (#F3F4F6) */
-  --background: 220 14% 96%;
-  /* Texto Gris Oscuro (#1F2937) - Muy descansado para leer */
-  --foreground: 215 28% 17%;
+  /* Fondo Blanco Hueso / Minimalista Premium (#F8F9FA) */
+  --background: 210 20% 98%;
+  /* Texto Carbón Profundo (#0F172A) con excelente contraste y nitidez */
+  --foreground: 222 47% 11%;
 
-  /* Tarjetas blancas puras para separar del fondo gris */
+  /* Tarjetas blancas puras con bordes limpios */
   --card: 0 0% 100%;
-  --card-foreground: 215 28% 17%;
+  --card-foreground: 222 47% 11%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 215 28% 17%;
+  --popover-foreground: 222 47% 11%;
 
-  /* Dorado principal - Acentos vibrantes */
-  --primary: 43 74% 49%;
-  --primary-foreground: 0 0% 8%;
+  /* Dorado / Ámbar energético elegante */
+  --primary: 43 78% 46%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Secundarios (Gris técnico suave) */
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 215 28% 17%;
+  /* Secundarios modernos */
+  --secondary: 214 32% 93%;
+  --secondary-foreground: 222 47% 11%;
 
-  /* Elementos muteados */
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 35%; /* Oscurecido para mejor contraste en modo claro */
+  /* Elementos muteados con contraste óptimo */
+  --muted: 210 25% 93%;
+  --muted-foreground: 215 20% 40%;
 
-  --accent: 43 74% 49%;
-  --accent-foreground: 0 0% 8%;
+  --accent: 43 78% 46%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
 
-  /* Bordes en gris claro técnico, pero manteniendo el aro activo en dorado */
-  --border: 214 32% 84%; /* Oscurecido para delimitar mejor */
-  --input: 214 32% 91%;
-  --ring: 43 74% 49%;
+  /* Bordes sutiles y definidos */
+  --border: 214 25% 88%;
+  --input: 214 25% 88%;
+  --ring: 43 78% 46%;
 
-  /* Estados semánticos: tonos oscuros en claro para que el texto cumpla contraste AA */
+  /* Estados semánticos */
   --success: 142 64% 30%;
   --success-foreground: 0 0% 100%;
   --warning: 32 90% 36%;
@@ -210,4 +210,21 @@
   color: transparent;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 24px hsl(var(--primary) / 0.25));
+}
+
+@keyframes logoGlowPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+    filter: blur(14px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.12);
+    filter: blur(22px);
+  }
+}
+
+.animate-logo-glow {
+  animation: logoGlowPulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
