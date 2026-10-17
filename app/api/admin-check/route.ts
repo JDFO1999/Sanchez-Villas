@@ -1,6 +1,31 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
+import fs from "fs";
+
+function runDbPush() {
+  let dbUrl = process.env.DATABASE_URL || "";
+  if (dbUrl && !dbUrl.includes("sslaccept") && !dbUrl.includes("sslmode")) {
+    const sep = dbUrl.includes("?") ? "&" : "?";
+    dbUrl = `${dbUrl}${sep}sslaccept=accept_invalid_certs`;
+  }
+
+  let cmd = "";
+  if (fs.existsSync("./node_modules/prisma/build/index.js")) {
+    cmd = "node ./node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss";
+  } else if (fs.existsSync("./node_modules/.bin/prisma")) {
+    cmd = "./node_modules/.bin/prisma db push --skip-generate --accept-data-loss";
+  } else {
+    cmd = "npx prisma db push --skip-generate --accept-data-loss";
+  }
+
+  return execSync(cmd, {
+    env: { ...process.env, DATABASE_URL: dbUrl },
+    timeout: 60000,
+    encoding: "utf-8",
+  });
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,9 +36,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  let pushLog: string | null = null;
+
   try {
-    // 1. Probar conexión a la base de datos
-    const userCount = await prisma.user.count();
+    // 1. Probar conexión y verificar si las tablas existen
+    let userCount = 0;
+    try {
+      userCount = await prisma.user.count();
+    } catch (e: any) {
+      if (e?.message?.includes("does not exist") || e?.message?.includes("Table")) {
+        // La tabla no existe: creamos las tablas automáticamente con db push
+        pushLog = runDbPush();
+        userCount = await prisma.user.count();
+      } else {
+        throw e;
+      }
+    }
+
     const existingUsers = await prisma.user.findMany({
       select: {
         id: true,
@@ -41,7 +80,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Usuario 26710825 verificado y configurado con éxito como admin",
+      message: "¡Base de datos sincronizada y Usuario 26710825 configurado con éxito!",
+      tablesCreatedNow: pushLog !== null,
+      pushLog: pushLog ? pushLog.split("\n").slice(-5) : undefined,
       totalUsersInDB: userCount,
       existingUsersList: existingUsers,
       adminConfigured: {
@@ -56,7 +97,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: false,
       error: error?.message || "Error al conectar con la base de datos",
+      pushLog,
       stack: error?.stack
     }, { status: 500 });
   }
 }
+

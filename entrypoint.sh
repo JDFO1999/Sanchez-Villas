@@ -13,10 +13,12 @@ if [ -n "$DATABASE_URL" ]; then
   fi
 
   echo "==> [Coolify Entrypoint] Ejecutando prisma db push..."
-  if [ -f "./node_modules/.bin/prisma" ]; then
-    ./node_modules/.bin/prisma db push --skip-generate || echo "Advertencia: Error en prisma db push. Continuando inicio..."
+  if [ -f "./node_modules/prisma/build/index.js" ]; then
+    node ./node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss || echo "Advertencia: Error en prisma db push."
+  elif [ -f "./node_modules/.bin/prisma" ]; then
+    ./node_modules/.bin/prisma db push --skip-generate --accept-data-loss || echo "Advertencia: Error en prisma db push."
   else
-    npx --no-install prisma db push --skip-generate || echo "Advertencia: Error en prisma db push. Continuando inicio..."
+    npx prisma db push --skip-generate --accept-data-loss || echo "Advertencia: Error en prisma db push."
   fi
 
   echo "==> [Coolify Entrypoint] Verificando usuario administrador inicial..."
