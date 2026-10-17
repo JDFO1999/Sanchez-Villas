@@ -134,7 +134,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
-            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula de Identidad</label>
+            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula o Usuario</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                 <UserIcon className="h-5 w-5" />
@@ -142,9 +142,9 @@ export default function LoginPage() {
               <input
                 type="text"
                 value={cedula}
-                id="cedula" autoComplete="username" inputMode="numeric" onChange={(e) => setCedula(e.target.value)}
+                id="cedula" autoComplete="username" onChange={(e) => setCedula(e.target.value.trim())}
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                placeholder="Ej. 1234"
+                placeholder="Ej. 1234 o Usuario"
                 required
               />
             </div>
