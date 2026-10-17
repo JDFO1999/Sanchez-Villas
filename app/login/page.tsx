@@ -147,7 +147,7 @@ export default function LoginPage() {
                 inputMode="numeric"
                 onChange={(e) => setCedula(e.target.value.replace(/\D/g, ""))}
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono"
-                placeholder="Ej. 26710825 (Solo números)"
+                placeholder="Cédula de identidad"
                 required
               />
             </div>
