@@ -12,12 +12,9 @@ if [ -n "$DATABASE_URL" ]; then
     fi
   fi
 
-  echo "==> [Coolify Entrypoint] Sincronizando esquema de base de datos y usuario inicial..."
-  if [ -f "./scripts/init-admin.js" ]; then
-    node ./scripts/init-admin.js || echo "Advertencia: Error en init-admin.js"
-  fi
+  echo "==> [Coolify Entrypoint] Configuración de base de datos verificada."
 else
-  echo "==> [Coolify Entrypoint] DATABASE_URL no está configurada, omitiendo prisma db push."
+  echo "==> [Coolify Entrypoint] DATABASE_URL no está configurada."
 fi
 
 echo "==> [Coolify Entrypoint] Iniciando servidor Next.js..."
