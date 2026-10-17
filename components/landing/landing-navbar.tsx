@@ -38,6 +38,7 @@ export function LandingNavbar() {
     { name: "Instalaciones", href: "#instalaciones" },
     { name: "Horarios", href: "#horarios" },
     { name: "Ubicación", href: "#ubicacion" },
+    { name: "Planes", href: "#planes" },
     { name: "Contacto", href: "#contacto" },
   ]
 
@@ -45,10 +46,13 @@ export function LandingNavbar() {
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? "bg-background/85 backdrop-blur-md shadow-lg border-b border-border/50 py-3" 
-          : "bg-gradient-to-b from-background/90 via-background/60 to-transparent py-5"
+          ? "bg-background/90 backdrop-blur-md shadow-lg py-3" 
+          : "bg-gradient-to-b from-background/95 via-background/70 to-transparent py-5"
       }`}
     >
+      {/* SEPARADOR AMARILLO/DORADO INFERIOR IDÉNTICO AL DASHBOARD */}
+      <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80 pointer-events-none"></div>
+
       <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-between gap-4">
         
         {/* LEFT: LOGO & BRAND NAME */}

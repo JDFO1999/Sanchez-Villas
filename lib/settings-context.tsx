@@ -106,6 +106,23 @@ export interface AppSettings {
       description?: string
       images: string[]
     }
+    plansSettings?: {
+      badge?: string
+      title?: string
+      subtitle?: string
+      plans: {
+        id: string
+        name: string
+        price: string
+        billingPeriod?: string
+        description?: string
+        highlight?: boolean
+        badge?: string
+        features: string[]
+        ctaText?: string
+        ctaLink?: string
+      }[]
+    }
     map: {
       embedUrl: string
       address: string
@@ -277,6 +294,84 @@ export const defaultSettings: AppSettings = {
         'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=800&auto=format&fit=crop',
         'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?q=80&w=800&auto=format&fit=crop',
         'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800&auto=format&fit=crop'
+      ]
+    },
+    plansSettings: {
+      badge: 'MEMBRESÍAS & PLANES',
+      title: 'INVULNÉRABILIDAD Y CONSTANCIA: ELIGE TU PLAN',
+      subtitle: 'Planes flexibles diseñados para tus metas, con acceso completo a equipamiento de primer nivel y asesoría continua.',
+      plans: [
+        {
+          id: '1',
+          name: 'Plan Básico Mensual',
+          price: '$25',
+          billingPeriod: '/mes',
+          description: 'Ideal para quienes inician su disciplina física con acceso libre al área de pesas.',
+          highlight: false,
+          badge: '',
+          features: [
+            'Acceso a zona de pesas y musculación',
+            'Vestuarios y duchas con agua caliente',
+            'Evaluación física inicial básica',
+            'Horario ilimitado de lunes a sábado'
+          ],
+          ctaText: 'Comenzar Ahora',
+          ctaLink: '#contacto'
+        },
+        {
+          id: '2',
+          name: 'Plan Pro Fitness',
+          price: '$35',
+          billingPeriod: '/mes',
+          description: 'El plan favorito: musculación completa más acceso libre a clases grupales y spinning.',
+          highlight: true,
+          badge: 'MÁS POPULAR',
+          features: [
+            'Todo lo del Plan Básico',
+            'Acceso ilimitado a Spinning y Cross Training',
+            'Rutina personalizada digital en la app',
+            'Casillero personal asignado en vestuario',
+            'Descuento del 10% en tienda y suplementos'
+          ],
+          ctaText: 'Elegir Plan Pro',
+          ctaLink: '#contacto'
+        },
+        {
+          id: '3',
+          name: 'Plan Elite Personalizado',
+          price: '$50',
+          billingPeriod: '/mes',
+          description: 'Entrenamiento de alto nivel con asesoría de coach dedicado y seguimiento biométrico semanal.',
+          highlight: false,
+          badge: 'RECOMENDADO',
+          features: [
+            'Todo lo del Plan Pro Fitness',
+            'Asesoría técnica y corrección con Coach',
+            'Monitoreo biométrico y de composición corporal',
+            'Plan nutricional sugerido y ajuste de cargas',
+            'Acceso VIP a todas las áreas y disciplinas'
+          ],
+          ctaText: 'Unirme a Elite',
+          ctaLink: '#contacto'
+        },
+        {
+          id: '4',
+          name: 'Pase Anual Black Evolution',
+          price: '$300',
+          billingPeriod: '/año',
+          description: 'Compromiso total a largo plazo con el mayor ahorro: entrena todo el año sin preocupaciones.',
+          highlight: false,
+          badge: 'MEJOR VALOR',
+          features: [
+            'Acceso total 365 días a todas las disciplinas',
+            'Congelación de membresía por viaje hasta 30 días',
+            '2 Pases de invitado al mes gratis',
+            'Camiseta oficial del gimnasio de regalo',
+            'Prioridad en eventos y retos de comunidad'
+          ],
+          ctaText: 'Obtener Pase Anual',
+          ctaLink: '#contacto'
+        }
       ]
     },
     map: {

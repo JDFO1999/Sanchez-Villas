@@ -1,4 +1,4 @@
-﻿FROM node:22-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -51,8 +51,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Monta aquí un volumen PERSISTENTE en Coolify (Storage -> /data/uploads); sin él se pierden en cada despliegue.
 ENV UPLOAD_DIR=/data/uploads
 RUN mkdir -p /data/uploads && chown -R nextjs:nodejs /data
-VOLUME ["/data/uploads"]
-
+COPY entrypoint.sh ./entrypoint.sh
+USER root
+RUN chmod +x ./entrypoint.sh
 USER nextjs
 
 EXPOSE 3000
@@ -60,6 +61,4 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Note: Before starting, you might want to run migrations. 
-# In Coolify, you can set a pre-deploy script or run it manually.
-CMD ["node", "server.js"]
+ENTRYPOINT ["./entrypoint.sh"]

@@ -6,7 +6,7 @@ import { useSettings } from "@/lib/settings-context"
 import { BaseFooter } from "@/components/layout/footer"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake } from "lucide-react"
+import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/lib/toast-context"
 
@@ -1770,6 +1770,246 @@ export default function AjustesPage() {
                             placeholder="O pega URL de imagen"
                             className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[11px]"
                           />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* GESTOR DE PLANES Y MENSUALIDADES (4 CARDS) */}
+              <div className="space-y-5 p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                <div className="pb-3 border-b border-black/10 dark:border-white/10">
+                  <h4 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-primary" /> Sección "Membresías y Precios de Planes" (4 Tarjetas)
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Configura el precio mensual/anual, nombres, beneficios y tarjeta destacada que se muestran a los visitantes en la página principal.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-foreground block mb-1">Etiqueta Superior</label>
+                    <input
+                      type="text"
+                      value={landingSettings?.plansSettings?.badge ?? 'MEMBRESÍAS & PLANES'}
+                      onChange={(e) => setLandingSettings((prev: any) => ({
+                        ...prev,
+                        plansSettings: { ...(prev?.plansSettings || {}), badge: e.target.value }
+                      }))}
+                      placeholder="Ej. MEMBRESÍAS & PLANES"
+                      className="w-full bg-black/5 dark:bg-black/40 border border-border rounded-lg p-2 text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-foreground block mb-1">Título Principal</label>
+                    <input
+                      type="text"
+                      value={landingSettings?.plansSettings?.title ?? 'INVULNÉRABILIDAD Y CONSTANCIA: ELIGE TU PLAN'}
+                      onChange={(e) => setLandingSettings((prev: any) => ({
+                        ...prev,
+                        plansSettings: { ...(prev?.plansSettings || {}), title: e.target.value }
+                      }))}
+                      placeholder="Ej. ELIGE TU PLAN"
+                      className="w-full bg-black/5 dark:bg-black/40 border border-border rounded-lg p-2 text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-foreground block mb-1">Subtítulo Descriptivo</label>
+                    <input
+                      type="text"
+                      value={landingSettings?.plansSettings?.subtitle ?? 'Planes flexibles diseñados para tus metas, con acceso completo a equipamiento de primer nivel y asesoría continua.'}
+                      onChange={(e) => setLandingSettings((prev: any) => ({
+                        ...prev,
+                        plansSettings: { ...(prev?.plansSettings || {}), subtitle: e.target.value }
+                      }))}
+                      placeholder="Ej. Planes flexibles..."
+                      className="w-full bg-black/5 dark:bg-black/40 border border-border rounded-lg p-2 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* 4 CARDS EDITABLES */}
+                <div className="pt-2">
+                  <label className="text-xs font-bold text-muted-foreground block mb-3">Las 4 Tarjetas de Planes:</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[0, 1, 2, 3].map((planIdx) => {
+                      const defaultPlansList = [
+                        {
+                          id: '1',
+                          name: 'Plan Básico Mensual',
+                          price: '$25',
+                          billingPeriod: '/mes',
+                          description: 'Ideal para quienes inician su disciplina física con acceso libre al área de pesas.',
+                          highlight: false,
+                          badge: '',
+                          features: ['Acceso a zona de pesas y musculación', 'Vestuarios y duchas con agua caliente', 'Evaluación física inicial básica', 'Horario ilimitado de lunes a sábado'],
+                          ctaText: 'Comenzar Ahora',
+                          ctaLink: '#contacto'
+                        },
+                        {
+                          id: '2',
+                          name: 'Plan Pro Fitness',
+                          price: '$35',
+                          billingPeriod: '/mes',
+                          description: 'El plan favorito: musculación completa más acceso libre a clases grupales y spinning.',
+                          highlight: true,
+                          badge: 'MÁS POPULAR',
+                          features: ['Todo lo del Plan Básico', 'Acceso ilimitado a Spinning y Cross Training', 'Rutina personalizada digital en la app', 'Casillero personal asignado en vestuario', 'Descuento del 10% en tienda y suplementos'],
+                          ctaText: 'Elegir Plan Pro',
+                          ctaLink: '#contacto'
+                        },
+                        {
+                          id: '3',
+                          name: 'Plan Elite Personalizado',
+                          price: '$50',
+                          billingPeriod: '/mes',
+                          description: 'Entrenamiento de alto nivel con asesoría de coach dedicado y seguimiento biométrico semanal.',
+                          highlight: false,
+                          badge: 'RECOMENDADO',
+                          features: ['Todo lo del Plan Pro Fitness', 'Asesoría técnica y corrección con Coach', 'Monitoreo biométrico y de composición corporal', 'Plan nutricional sugerido y ajuste de cargas', 'Acceso VIP a todas las áreas y disciplinas'],
+                          ctaText: 'Unirme a Elite',
+                          ctaLink: '#contacto'
+                        },
+                        {
+                          id: '4',
+                          name: 'Pase Anual Black Evolution',
+                          price: '$300',
+                          billingPeriod: '/año',
+                          description: 'Compromiso total a largo plazo con el mayor ahorro: entrena todo el año sin preocupaciones.',
+                          highlight: false,
+                          badge: 'MEJOR VALOR',
+                          features: ['Acceso total 365 días a todas las disciplinas', 'Congelación de membresía por viaje hasta 30 días', '2 Pases de invitado al mes gratis', 'Camiseta oficial del gimnasio de regalo', 'Prioridad en eventos y retos de comunidad'],
+                          ctaText: 'Obtener Pase Anual',
+                          ctaLink: '#contacto'
+                        }
+                      ];
+
+                      const currentPlans = landingSettings?.plansSettings?.plans?.length
+                        ? landingSettings.plansSettings.plans
+                        : defaultPlansList;
+                      
+                      const plan = currentPlans[planIdx] || defaultPlansList[planIdx];
+
+                      const updateCurrentPlan = (updatedFields: any) => {
+                        const newPlans = [...currentPlans];
+                        newPlans[planIdx] = { ...plan, ...updatedFields };
+                        setLandingSettings((prev: any) => ({
+                          ...prev,
+                          plansSettings: {
+                            ...(prev?.plansSettings || {}),
+                            plans: newPlans
+                          }
+                        }));
+                      };
+
+                      return (
+                        <div key={planIdx} className={`p-4 rounded-xl border space-y-3 ${plan.highlight ? 'bg-primary/5 border-primary shadow-md' : 'bg-card border-border'}`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold text-primary">Tarjeta #{planIdx + 1}</span>
+                            <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold">
+                              <input
+                                type="checkbox"
+                                checked={!!plan.highlight}
+                                onChange={(e) => updateCurrentPlan({ highlight: e.target.checked })}
+                                className="rounded text-primary focus:ring-primary h-3.5 w-3.5"
+                              />
+                              <span>Destacado</span>
+                            </label>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">Nombre del Plan</label>
+                            <input
+                              type="text"
+                              value={plan.name || ''}
+                              onChange={(e) => updateCurrentPlan({ name: e.target.value })}
+                              placeholder="Ej. Plan Pro"
+                              className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-xs font-bold"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">Precio</label>
+                              <input
+                                type="text"
+                                value={plan.price || ''}
+                                onChange={(e) => updateCurrentPlan({ price: e.target.value })}
+                                placeholder="$35"
+                                className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-xs font-black text-primary"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">Frecuencia</label>
+                              <input
+                                type="text"
+                                value={plan.billingPeriod || '/mes'}
+                                onChange={(e) => updateCurrentPlan({ billingPeriod: e.target.value })}
+                                placeholder="/mes o /año"
+                                className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">Etiqueta Badge (Opcional)</label>
+                            <input
+                              type="text"
+                              value={plan.badge || ''}
+                              onChange={(e) => updateCurrentPlan({ badge: e.target.value })}
+                              placeholder="Ej. MÁS POPULAR"
+                              className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[11px]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">Descripción Corta</label>
+                            <textarea
+                              rows={2}
+                              value={plan.description || ''}
+                              onChange={(e) => updateCurrentPlan({ description: e.target.value })}
+                              placeholder="Breve reseña del plan..."
+                              className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[11px]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-muted-foreground block mb-0.5">
+                              Beneficios (1 por línea)
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={(plan.features || []).join('\n')}
+                              onChange={(e) => updateCurrentPlan({
+                                features: e.target.value.split('\n').filter((l: string) => l.trim().length > 0)
+                              })}
+                              placeholder="Acceso pesas&#10;Duchas y vestuarios&#10;Evaluación..."
+                              className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[10px] font-mono"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40">
+                            <div>
+                              <label className="text-[9px] font-bold text-muted-foreground block mb-0.5">Texto Botón</label>
+                              <input
+                                type="text"
+                                value={plan.ctaText || 'Elegir Plan'}
+                                onChange={(e) => updateCurrentPlan({ ctaText: e.target.value })}
+                                className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1 text-[10px]"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-muted-foreground block mb-0.5">Enlace Botón</label>
+                              <input
+                                type="text"
+                                value={plan.ctaLink || '#contacto'}
+                                onChange={(e) => updateCurrentPlan({ ctaLink: e.target.value })}
+                                className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1 text-[10px]"
+                              />
+                            </div>
+                          </div>
                         </div>
                       );
                     })}

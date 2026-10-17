@@ -5,6 +5,7 @@ import { LandingNavbar } from "./landing-navbar"
 import { HeroCarousel } from "./hero-carousel"
 import { DisciplinesSection } from "./disciplines-section"
 import { FacilitiesSection } from "./facilities-section"
+import { PlansSection } from "./plans-section"
 import { MapSection } from "./map-section"
 import { Footer } from "@/components/layout/footer"
 
@@ -27,6 +28,9 @@ export function GymLandingPage() {
 
         {/* GOOGLE MAPS INTERACTIVE LOCATION & INFO */}
         <MapSection />
+
+        {/* PLANS & MEMBERSHIPS (4 CARDS) */}
+        <PlansSection />
       </main>
 
       {/* FOOTER */}

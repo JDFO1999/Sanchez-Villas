@@ -110,7 +110,7 @@ export function MapSection() {
             </div>
 
             {/* SCHEDULE */}
-            <div className="flex items-start gap-3.5">
+            <div id="horarios" className="flex items-start gap-3.5 scroll-mt-28">
               <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0 border border-primary/20">
                 <Clock className="w-5 h-5" />
               </div>
