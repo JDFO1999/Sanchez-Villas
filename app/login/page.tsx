@@ -6,7 +6,7 @@ import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { FullScreenLoader } from "@/components/ui/loader"
-import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff } from "lucide-react"
+import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff, Shield } from "lucide-react"
 import Link from "next/link"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ export default function LoginPage() {
   
   const [cedula, setCedula] = useState("")
   const [clave, setClave] = useState("")
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -134,17 +135,52 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
-            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula o Usuario</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="cedula" className="text-sm font-medium text-foreground block">
+                {isAdminLogin ? "Usuario Administrador" : "Cédula de Identidad"}
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextState = !isAdminLogin
+                  setIsAdminLogin(nextState)
+                  if (nextState) {
+                    setCedula("SAdministrador")
+                  } else {
+                    setCedula("")
+                  }
+                }}
+                className="text-xs text-primary hover:underline font-semibold flex items-center gap-1 transition-colors"
+              >
+                <Shield className="w-3 h-3" />
+                <span>{isAdminLogin ? "Acceso con Cédula" : "¿Eres Administrador?"}</span>
+              </button>
+            </div>
+
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
-                <UserIcon className="h-5 w-5" />
+                {isAdminLogin ? <Shield className="h-5 w-5 text-primary" /> : <UserIcon className="h-5 w-5" />}
               </div>
               <input
                 type="text"
                 value={cedula}
-                id="cedula" autoComplete="username" onChange={(e) => setCedula(e.target.value.trim())}
-                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                placeholder="Ej. 1234 o Usuario"
+                id="cedula"
+                autoComplete="username"
+                inputMode={isAdminLogin ? "text" : "numeric"}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (isAdminLogin) {
+                    // Modo admin: permite el usuario SAdministrador
+                    setCedula(val.trim())
+                  } else {
+                    // Modo normal: solo permite dígitos de cédula
+                    setCedula(val.replace(/\D/g, ""))
+                  }
+                }}
+                className={`w-full bg-black/5 dark:bg-white/5 border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${
+                  isAdminLogin ? "border-primary/60 font-mono font-bold" : "border-black/10 dark:border-white/10"
+                }`}
+                placeholder={isAdminLogin ? "SAdministrador" : "Ej. 28123456 (Solo números)"}
                 required
               />
             </div>
