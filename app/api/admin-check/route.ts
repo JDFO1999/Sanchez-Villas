@@ -1,31 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { execSync } from "child_process";
-import fs from "fs";
-
-function runDbPush() {
-  let dbUrl = process.env.DATABASE_URL || "";
-  if (dbUrl && !dbUrl.includes("sslaccept") && !dbUrl.includes("sslmode")) {
-    const sep = dbUrl.includes("?") ? "&" : "?";
-    dbUrl = `${dbUrl}${sep}sslaccept=accept_invalid_certs`;
-  }
-
-  let cmd = "";
-  if (fs.existsSync("./node_modules/prisma/build/index.js")) {
-    cmd = "node ./node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss";
-  } else if (fs.existsSync("./node_modules/.bin/prisma")) {
-    cmd = "./node_modules/.bin/prisma db push --skip-generate --accept-data-loss";
-  } else {
-    cmd = "npx prisma db push --skip-generate --accept-data-loss";
-  }
-
-  return execSync(cmd, {
-    env: { ...process.env, DATABASE_URL: dbUrl },
-    timeout: 60000,
-    encoding: "utf-8",
-  });
-}
+import { SCHEMA_STATEMENTS } from "@/lib/schema-sql";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -36,23 +12,32 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  let pushLog: string | null = null;
+  let tablesCreated = false;
+  let executedCount = 0;
 
   try {
-    // 1. Probar conexión y verificar si las tablas existen
-    let userCount = 0;
+    // 1. Probar si la tabla User existe
     try {
-      userCount = await prisma.user.count();
+      await prisma.user.count();
     } catch (e: any) {
-      if (e?.message?.includes("does not exist") || e?.message?.includes("Table")) {
-        // La tabla no existe: creamos las tablas automáticamente con db push
-        pushLog = runDbPush();
-        userCount = await prisma.user.count();
+      if (e?.message?.includes("does not exist") || e?.message?.includes("Table") || e?.code === "P2021") {
+        // Ejecutar las sentencias DDL directamente con prisma.$executeRawUnsafe
+        for (const statement of SCHEMA_STATEMENTS) {
+          try {
+            await prisma.$executeRawUnsafe(statement);
+            executedCount++;
+          } catch (err: any) {
+            // Si ya existía alguna tabla/índice/fk, continuamos con las siguientes
+            console.warn("SQL Statement notice:", err?.message || err);
+          }
+        }
+        tablesCreated = true;
       } else {
         throw e;
       }
     }
 
+    const userCount = await prisma.user.count();
     const existingUsers = await prisma.user.findMany({
       select: {
         id: true,
@@ -81,8 +66,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       message: "¡Base de datos sincronizada y Usuario 26710825 configurado con éxito!",
-      tablesCreatedNow: pushLog !== null,
-      pushLog: pushLog ? pushLog.split("\n").slice(-5) : undefined,
+      tablesCreatedNow: tablesCreated,
+      executedStatements: executedCount,
       totalUsersInDB: userCount,
       existingUsersList: existingUsers,
       adminConfigured: {
@@ -97,9 +82,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: false,
       error: error?.message || "Error al conectar con la base de datos",
-      pushLog,
       stack: error?.stack
     }, { status: 500 });
   }
 }
-
