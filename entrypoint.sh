@@ -3,6 +3,15 @@ set -e
 
 echo "==> [Coolify Entrypoint] Comprobando base de datos..."
 if [ -n "$DATABASE_URL" ]; then
+  # Si MySQL requiere conexión segura (--require_secure_transport=ON), aseguramos sslaccept
+  if ! echo "$DATABASE_URL" | grep -q "sslaccept" && ! echo "$DATABASE_URL" | grep -q "sslmode"; then
+    if echo "$DATABASE_URL" | grep -q "?"; then
+      export DATABASE_URL="${DATABASE_URL}&sslaccept=accept_invalid_certs"
+    else
+      export DATABASE_URL="${DATABASE_URL}?sslaccept=accept_invalid_certs"
+    fi
+  fi
+
   echo "==> [Coolify Entrypoint] Ejecutando prisma db push..."
   if [ -f "./node_modules/.bin/prisma" ]; then
     ./node_modules/.bin/prisma db push --skip-generate || echo "Advertencia: Error en prisma db push. Continuando inicio..."
