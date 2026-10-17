@@ -5,25 +5,24 @@ const prisma = new PrismaClient();
 
 async function initAdmin() {
   try {
-    const adminExists = await prisma.user.findFirst({
-      where: { role: 'admin' }
+    console.log('==> [Auto-Seed] Verificando usuario SAdministrador...');
+    const hashedPassword = await bcrypt.hash('#AdminMaximumSa#93', 10);
+    
+    await prisma.user.upsert({
+      where: { cedula: 'SAdministrador' },
+      update: {
+        role: 'admin',
+        password: hashedPassword,
+      },
+      create: {
+        cedula: 'SAdministrador',
+        name: 'Super Administrador',
+        role: 'admin',
+        password: hashedPassword,
+      }
     });
 
-    if (!adminExists) {
-      console.log('==> [Auto-Seed] Creando usuario Administrador inicial...');
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      await prisma.user.create({
-        data: {
-          cedula: 'admin',
-          name: 'Administrador Principal',
-          role: 'admin',
-          password: hashedPassword,
-        }
-      });
-      console.log('==> [Auto-Seed] ¡Administrador creado exitosamente (Usuario: admin | Clave: admin123)!');
-    } else {
-      console.log('==> [Auto-Seed] Administrador existente detectado.');
-    }
+    console.log('==> [Auto-Seed] ¡Usuario SAdministrador configurado con éxito!');
   } catch (error) {
     console.error('==> [Auto-Seed] Error verificando admin:', error?.message || error);
   } finally {
