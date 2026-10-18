@@ -29,14 +29,14 @@ export function QRScanner({ onScan, onClose }: { onScan: (decodedText: string) =
   }, [onScan])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-white p-4 rounded-xl shadow-2xl max-w-sm w-full relative">
-        <h3 className="text-xl font-black text-center mb-4 text-black">Escanear Código</h3>
-        <div id="reader" className="w-full text-black"></div>
-        {error && <p className="text-destructive text-center mt-2 font-bold">{error}</p>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-card text-foreground border border-black/10 dark:border-white/10 p-5 rounded-2xl shadow-2xl max-w-sm w-full relative glass">
+        <h3 className="text-xl font-black text-center mb-4 tracking-wide">Escanear Código QR</h3>
+        <div id="reader" className="w-full overflow-hidden rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10"></div>
+        {error && <p className="text-destructive text-center mt-2 font-bold text-sm">{error}</p>}
         <button 
           onClick={onClose}
-          className="w-full bg-black text-white font-bold py-3 rounded-lg mt-4"
+          className="w-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 text-foreground font-bold py-2.5 rounded-xl mt-4 transition text-sm"
         >
           Cancelar
         </button>

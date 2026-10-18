@@ -58,13 +58,39 @@ export function ReceptionDashboard() {
     
     const { checkInByCedula } = await import("@/app/actions/attendance")
     const res = await checkInByCedula(targetCode)
+    const { swalTheme } = await import("@/lib/confirm")
+    const theme = swalTheme()
     
     if (res.success) {
-      Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true, icon: 'success', title: `✅ Entrada: ${res.user?.name} (${res.user?.role})` })
+      Swal.fire({ 
+        toast: true, 
+        position: 'top-end', 
+        showConfirmButton: false, 
+        timer: 3000, 
+        timerProgressBar: true, 
+        icon: 'success', 
+        title: `✅ Entrada: ${res.user?.name} (${res.user?.role})`,
+        ...theme,
+        customClass: {
+          popup: 'border border-black/10 dark:border-white/10 rounded-xl shadow-xl glass'
+        }
+      })
       setUniversalSearch("")
       setShowScanner(false)
     } else {
-      Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true, icon: 'error', title: res.error })
+      Swal.fire({ 
+        toast: true, 
+        position: 'top-end', 
+        showConfirmButton: false, 
+        timer: 3500, 
+        timerProgressBar: true, 
+        icon: 'error', 
+        title: res.error,
+        ...theme,
+        customClass: {
+          popup: 'border border-destructive/30 rounded-xl shadow-xl glass'
+        }
+      })
     }
   }
 

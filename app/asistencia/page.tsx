@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle, Search, Clock, Camera, Key } from "lucide-react"
 import { Scanner } from "@yudiel/react-qr-scanner"
 import Swal from "sweetalert2"
 import { useAuth } from "@/lib/auth-context"
+import { swalTheme, themeColor } from "@/lib/confirm"
 
 export default function AsistenciaPage() {
   const { user } = useAuth()
@@ -36,7 +37,8 @@ export default function AsistenciaPage() {
         showCancelButton: true,
         confirmButtonText: 'Autorizar',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#10b981',
+        ...swalTheme(),
+        confirmButtonColor: themeColor('primary') || '#10b981',
       })
       
       if (!adminClave) return // Cancelado
@@ -45,13 +47,20 @@ export default function AsistenciaPage() {
       const authRes = await validateAdminPasswordAction(adminClave)
       
       if (!authRes.success || !authRes.user || authRes.user.role !== 'admin') {
-        Swal.fire('Denegado', authRes.error || 'Clave de Administrador incorrecta.', 'error')
+        Swal.fire({
+          title: 'Denegado',
+          text: authRes.error || 'Clave de Administrador incorrecta.',
+          icon: 'error',
+          ...swalTheme(),
+          confirmButtonColor: themeColor('destructive') || '#ef4444',
+        })
         return
       }
     }
     
     const { registerAttendance } = await import('@/app/actions/users')
     const res = await registerAttendance(query, isCedula)
+    const theme = swalTheme()
     
     if (res.success) {
       setStatus('success')
@@ -77,23 +86,29 @@ export default function AsistenciaPage() {
         osc.start();
         osc.stop(ctx.currentTime + 0.1);
       } catch(e){}
-      
+
       const avatarHtml = (res.user as any)?.profilePicture
-        ? `<img src="${(res.user as any).profilePicture}" alt="${res.user?.name}" style="width:72px;height:72px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid #10b981;" />`
-        : '';
+        ? `<img src="${(res.user as any).profilePicture}" alt="${res.user?.name}" style="width:76px;height:76px;border-radius:9999px;object-fit:cover;margin:0 auto 12px auto;border:3px solid ${themeColor('primary') || '#eab308'};box-shadow: 0 4px 14px rgba(0,0,0,0.15);" />`
+        : `<div style="width:72px;height:72px;border-radius:9999px;margin:0 auto 12px auto;background:rgba(234,179,8,0.15);color:${themeColor('primary') || '#eab308'};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;border:2px solid ${themeColor('primary') || '#eab308'};">${(res.user?.name || 'A').charAt(0)}</div>`;
 
       Swal.fire({
         title: '¡Acceso Concedido!',
-        html: `${avatarHtml}<p class="text-xl font-bold">${res.user?.name}</p><p class="text-sm text-muted-foreground mt-2">Vence: ${new Date(res.user?.membershipEnd || "").toLocaleDateString()}</p>`,
+        html: `${avatarHtml}<p style="font-size:1.25rem;font-weight:800;margin-bottom:6px;">${res.user?.name}</p><p style="font-size:0.875rem;opacity:0.8;">Vence: <b>${new Date(res.user?.membershipEnd || "").toLocaleDateString()}</b></p>`,
         icon: 'success',
         timer: 3000,
-        showConfirmButton: false
+        timerProgressBar: true,
+        showConfirmButton: false,
+        ...theme,
+        customClass: {
+          popup: 'border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl glass',
+          title: 'font-black text-2xl',
+        }
       });
     } else {
       setStatus('error')
       setMessage(res.error ?? "No se pudo registrar la asistencia.")
       setAthlete(res.lastDate || (res as any).user ? {
-        name: (res as any).user?.name || "Membresía Caducada",
+        name: (res as any).user?.name || "Atleta",
         profilePicture: (res as any).user?.profilePicture || null,
         membershipEnd: res.lastDate
       } : null)
@@ -113,19 +128,23 @@ export default function AsistenciaPage() {
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
       } catch(e){}
-      
+
       const expiredAvatarHtml = (res as any).user?.profilePicture
-        ? `<img src="${(res as any).user.profilePicture}" alt="${(res as any).user?.name}" style="width:72px;height:72px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid #ef4444;" />`
-        : '';
+        ? `<img src="${(res as any).user.profilePicture}" alt="${(res as any).user?.name}" style="width:76px;height:76px;border-radius:9999px;object-fit:cover;margin:0 auto 12px auto;border:3px solid ${themeColor('destructive') || '#ef4444'};box-shadow: 0 4px 14px rgba(0,0,0,0.15);" />`
+        : `<div style="width:72px;height:72px;border-radius:9999px;margin:0 auto 12px auto;background:rgba(239,68,68,0.15);color:${themeColor('destructive') || '#ef4444'};display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;border:2px solid ${themeColor('destructive') || '#ef4444'};">${((res as any).user?.name || 'A').charAt(0)}</div>`;
 
       Swal.fire({
-        title: '¡ACCESO DENEGADO!',
-        html: `${expiredAvatarHtml}${(res as any).user?.name ? `<p class="text-lg font-bold">${(res as any).user.name}</p>` : ''}<p class="text-xl font-bold text-destructive">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
+        title: '¡Acceso Denegado!',
+        html: `${expiredAvatarHtml}${(res as any).user?.name ? `<p style="font-size:1.25rem;font-weight:800;margin-bottom:6px;">${(res as any).user.name}</p>` : ''}<p style="font-size:1rem;font-weight:700;color:${themeColor('destructive') || '#ef4444'};">${res.error}</p>${res.lastDate ? `<p style="font-size:0.875rem;opacity:0.8;margin-top:6px;">Venció el: <b>${new Date(res.lastDate).toLocaleDateString()}</b></p>` : ''}`,
         icon: 'error',
-        confirmButtonColor: '#ef4444',
         confirmButtonText: 'Entendido',
-        background: '#fff1f2',
-        color: '#991b1b'
+        ...theme,
+        confirmButtonColor: themeColor('destructive') || '#ef4444',
+        customClass: {
+          popup: 'border border-destructive/30 rounded-2xl shadow-2xl glass',
+          title: 'font-black text-2xl text-destructive',
+          confirmButton: 'font-bold rounded-xl px-6 py-2.5 shadow-lg'
+        }
       });
     }
     
@@ -205,35 +224,6 @@ export default function AsistenciaPage() {
             >
               Cancelar y volver
             </button>
-          </div>
-        )}
-
-        {status !== 'idle' && (
-          <div className={`mt-8 p-6 rounded-xl text-center flex flex-col items-center justify-center animate-in zoom-in duration-300 ${status === 'success' ? 'bg-success/10 border-2 border-success' : 'bg-destructive/10 border-2 border-destructive'}`}>
-            {athlete?.profilePicture ? (
-              <img
-                src={athlete.profilePicture}
-                alt={athlete.name}
-                className={`h-20 w-20 rounded-full object-cover mb-4 border-2 ${status === 'success' ? 'border-success' : 'border-destructive'}`}
-              />
-            ) : status === 'success' ? (
-              <CheckCircle2 className="h-20 w-20 text-success mb-4" />
-            ) : (
-              <XCircle className="h-20 w-20 text-destructive mb-4" />
-            )}
-            <h2 className={`text-3xl font-black mb-2 ${status === 'success' ? 'text-success' : 'text-destructive'}`}>
-              {message}
-            </h2>
-            {athlete && (
-              <div className="text-foreground">
-                <p className="font-bold text-xl">{athlete.name}</p>
-                {athlete.membershipEnd && (
-                  <p className="text-sm opacity-80 mt-1 flex items-center justify-center gap-1">
-                    <Clock className="h-4 w-4" /> {status === 'success' ? 'Vence:' : 'Venció:'} {new Date(athlete.membershipEnd).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
