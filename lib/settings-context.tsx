@@ -57,13 +57,17 @@ export interface AppSettings {
   storeUseThermalPrinter: boolean
   storePaymentInstructions: {
     pagoMovil: string
+    pagoMovil2?: string
     binance: string
     transferencia: string
+    transferencia2?: string
   }
   storePaymentQRs: {
     pagoMovil: string
+    pagoMovil2?: string
     binance: string
     transferencia: string
+    transferencia2?: string
   }
   coachCustomPricing: boolean
   gymCommissionPercentage: number
@@ -197,13 +201,17 @@ export const defaultSettings: AppSettings = {
   storeUseThermalPrinter: true,
   storePaymentInstructions: {
     pagoMovil: 'Banco: Banesco (0134)\nCédula: V-12345678\nTeléfono: 0414-1234567',
+    pagoMovil2: '',
     binance: 'Email: pagos@maximumstore.com\nPay ID: 123456789',
-    transferencia: 'Banco: Mercantil\nCuenta: 0105-0000-0000-0000-0000\nNombre: Maximum Store C.A.\nRIF: J-12345678-9'
+    transferencia: 'Banco: Mercantil\nCuenta: 0105-0000-0000-0000-0000\nNombre: Maximum Store C.A.\nRIF: J-12345678-9',
+    transferencia2: ''
   },
   storePaymentQRs: {
     pagoMovil: '',
+    pagoMovil2: '',
     binance: '',
-    transferencia: ''
+    transferencia: '',
+    transferencia2: ''
   },
   coachCustomPricing: false,
   gymCommissionPercentage: 30,

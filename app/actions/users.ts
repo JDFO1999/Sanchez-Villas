@@ -650,7 +650,17 @@ export async function updateProfilePicture(athleteId: string, base64Image: strin
   const g = await guardSelfOr(athleteId, ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
   try {
-    const imageUrl = await saveBase64Image(base64Image, "avatar");
+    let imageUrl: string | null = null;
+    try {
+      imageUrl = await saveBase64Image(base64Image, "avatar");
+    } catch (fsErr) {
+      console.warn("Fallo al guardar en disco avatar, usando fallback base64:", fsErr);
+      if (base64Image && base64Image.length < 500000) {
+        imageUrl = base64Image;
+      } else {
+        throw fsErr;
+      }
+    }
 
     if (!imageUrl) return { success: false, error: "Error procesando imagen" }
 
@@ -661,6 +671,7 @@ export async function updateProfilePicture(athleteId: string, base64Image: strin
 
     revalidatePath("/atletas");
     revalidatePath("/atletas/" + athleteId);
+    revalidatePath("/mis-atletas");
     revalidatePath("/");
 
     return { success: true, profilePicture: imageUrl }

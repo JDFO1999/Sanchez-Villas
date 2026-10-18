@@ -505,27 +505,88 @@ export default function MembresíasPage() {
                               {/* Datos adicionales si es transferencia, pago móvil, binance o tarjeta */}
                               {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
                                 <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                  {/* Cuentas de Pago / Instrucciones y QRs */}
+                                  {split.method === 'Pago Móvil' && (
+                                    <div className="space-y-1.5">
+                                      {(settings.storePaymentInstructions?.pagoMovil || settings.storePaymentQRs?.pagoMovil) && (
+                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
+                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
+                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 1:</span>
+                                            {settings.storePaymentInstructions?.pagoMovil || 'Ver datos escaneando el código QR'}
+                                          </div>
+                                          {settings.storePaymentQRs?.pagoMovil && (
+                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.pagoMovil || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
+                                              <Eye className="h-3 w-3" /> Ver QR
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                      {(settings.storePaymentInstructions?.pagoMovil2 || settings.storePaymentQRs?.pagoMovil2) && (
+                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
+                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
+                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 2:</span>
+                                            {settings.storePaymentInstructions?.pagoMovil2 || 'Ver datos escaneando el código QR'}
+                                          </div>
+                                          {settings.storePaymentQRs?.pagoMovil2 && (
+                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.pagoMovil2 || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
+                                              <Eye className="h-3 w-3" /> Ver QR
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {split.method === 'Transferencia' && (
+                                    <div className="space-y-1.5">
+                                      {(settings.storePaymentInstructions?.transferencia || settings.storePaymentQRs?.transferencia) && (
+                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
+                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
+                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 1:</span>
+                                            {settings.storePaymentInstructions?.transferencia || 'Ver datos escaneando el código QR'}
+                                          </div>
+                                          {settings.storePaymentQRs?.transferencia && (
+                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.transferencia || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
+                                              <Eye className="h-3 w-3" /> Ver QR
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                      {(settings.storePaymentInstructions?.transferencia2 || settings.storePaymentQRs?.transferencia2) && (
+                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
+                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
+                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 2:</span>
+                                            {settings.storePaymentInstructions?.transferencia2 || 'Ver datos escaneando el código QR'}
+                                          </div>
+                                          {settings.storePaymentQRs?.transferencia2 && (
+                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.transferencia2 || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
+                                              <Eye className="h-3 w-3" /> Ver QR
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {split.method === 'Binance' && (
+                                    <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs flex items-center justify-between gap-2">
+                                      <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-yellow-600 dark:text-yellow-400">
+                                        <span className="font-bold block text-[10px] uppercase">Binance Pay:</span>
+                                        {settings.storePaymentInstructions?.binance || 'Pago directo con Binance'}
+                                      </div>
+                                      {settings.storePaymentQRs?.binance && (
+                                        <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.binance || null)} className="px-2 py-1 rounded bg-yellow-500 text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
+                                          <Eye className="h-3 w-3" /> Ver QR
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+
                                   <div className="flex items-center justify-between">
                                     <label className="text-xs text-muted-foreground">
                                       {split.method === 'Tarjeta' ? 'N° de Transacción / Voucher' : `N° Referencia (${split.method})`}
                                     </label>
-                                    {(() => {
-                                      const qr = split.method === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
-                                        : split.method === 'Transferencia' ? settings.storePaymentQRs?.transferencia
-                                        : split.method === 'Binance' ? settings.storePaymentQRs?.binance : null;
-                                      return qr ? (
-                                        <button type="button" onClick={() => setShowQRModal(qr)} className="p-1 rounded bg-primary/20 hover:bg-primary/30 transition text-[11px] text-primary flex items-center gap-1 font-bold">
-                                          <Eye className="h-3 w-3" /> Ver QR
-                                        </button>
-                                      ) : null;
-                                    })()}
                                   </div>
-
-                                  {split.method === 'Binance' && settings.storePaymentInstructions?.binance && (
-                                    <div className="text-[10px] text-muted-foreground p-1.5 bg-black/5 dark:bg-white/5 rounded">
-                                      {settings.storePaymentInstructions.binance}
-                                    </div>
-                                  )}
 
                                   <input 
                                     type="text" 

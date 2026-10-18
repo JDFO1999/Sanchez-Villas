@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search } from "lucide-react"
+import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2 } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
@@ -17,12 +17,48 @@ import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
 
 export default function AtletaPerfilPage() {
-  const { user, getAllEmployees } = useAuth()
+  const { user, getAllEmployees, updateUserProfilePicture } = useAuth()
   const { settings } = useSettings()
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
 
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+
+  const canChangePhoto = Boolean(
+    (user?.role === 'athlete' && user.id === athlete?.id) ||
+    ['admin', 'coach', 'cajero', 'recepcion', 'employee'].includes(user?.role || '')
+  )
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !athlete) return
+    setIsUploadingPhoto(true)
+    try {
+      const { compressImage } = await import('@/lib/image-compress')
+      const compressedBase64 = await compressImage(file, 800, 800, 0.85)
+
+      // Optimistic update
+      setAthlete(prev => prev ? { ...prev, profilePicture: compressedBase64 } : null)
+
+      const { updateProfilePicture } = await import('@/app/actions/users')
+      const res = await updateProfilePicture(athlete.id, compressedBase64)
+
+      if (res.success && res.profilePicture) {
+        setAthlete(prev => prev ? { ...prev, profilePicture: res.profilePicture } : null)
+        if (user?.id === athlete.id && updateUserProfilePicture) {
+          updateUserProfilePicture(res.profilePicture)
+        }
+        showSweetToast("Foto de atleta guardada con éxito.", "success")
+      } else {
+        showSweetToast(res.error || "No se pudo guardar la foto del atleta.", "error")
+      }
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al procesar la foto.", "error")
+    } finally {
+      setIsUploadingPhoto(false)
+    }
+  }
 
   // Form states for new biometrics
   const [showForm, setShowForm] = useState(false)
@@ -493,45 +529,54 @@ export default function AtletaPerfilPage() {
 
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-card/40 p-6 rounded-2xl border border-black/5 dark:border-white/5 glass">
         <div className="flex items-center gap-6">
-          <div className="relative group">
+          <div className="relative group shrink-0">
             {athlete.profilePicture ? (
-              <img src={athlete.profilePicture} alt={athlete.name} className="h-20 w-20 rounded-full object-cover border-2 border-primary" />
+              <img src={athlete.profilePicture} alt={athlete.name} className="h-20 w-20 rounded-full object-cover border-2 border-primary shadow-md" />
             ) : (
-              <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-3xl">
+              <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-3xl border-2 border-primary/30">
                 {athlete.name.charAt(0)}
               </div>
             )}
             
-            {user?.role === 'athlete' && user.id === athlete.id && (
-              <label className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                <span className="text-[10px] font-bold text-white text-center">Cambiar<br/>Foto</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      const reader = new FileReader()
-                      reader.onloadend = async () => {
-                        const base64 = reader.result as string;
-                        // Optimistic update
-                        const updated = { ...athlete, profilePicture: base64 }
-                        setAthlete(updated)
-                        
-                        const { updateProfilePicture } = await import('@/app/actions/users');
-                        const res = await updateProfilePicture(athlete.id, base64);
-                        if (res.success) {
-                          setAthlete({ ...athlete, profilePicture: res.profilePicture });
-                        } else {
-                          showSweetToast("Error al subir foto: " + res.error, "error");
-                        }
-                      }
-                      reader.readAsDataURL(file)
-                    }
-                  }} 
-                />
-              </label>
+            {canChangePhoto && (
+              <>
+                <label className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {isUploadingPhoto ? (
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 text-white mb-0.5" />
+                      <span className="text-[9px] font-bold text-white text-center leading-tight">Cambiar<br/>Foto</span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    disabled={isUploadingPhoto}
+                    onChange={handlePhotoChange}
+                  />
+                </label>
+
+                {/* Botón flotante accesible en móviles */}
+                <label 
+                  className="absolute -bottom-1 -right-1 bg-primary text-black p-1.5 rounded-full shadow-lg cursor-pointer hover:scale-110 active:scale-95 transition border border-background flex items-center justify-center"
+                  title="Cambiar foto de atleta"
+                >
+                  {isUploadingPhoto ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5" />
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    disabled={isUploadingPhoto}
+                    onChange={handlePhotoChange}
+                  />
+                </label>
+              </>
             )}
           </div>
           <div>

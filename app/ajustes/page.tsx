@@ -73,10 +73,10 @@ export default function AjustesPage() {
   const [storeCurrencySecondary, setStoreCurrencySecondary] = useState(settings.storeCurrencySecondary || "BsS")
   const [storeExchangeRate, setStoreExchangeRate] = useState(settings.storeExchangeRate || 40.0)
   const [storePaymentInstructions, setStorePaymentInstructions] = useState(settings.storePaymentInstructions || {
-    pagoMovil: "", binance: "", transferencia: ""
+    pagoMovil: "", pagoMovil2: "", binance: "", transferencia: "", transferencia2: ""
   })
   const [storePaymentQRs, setStorePaymentQRs] = useState(settings.storePaymentQRs || {
-    pagoMovil: "", binance: "", transferencia: ""
+    pagoMovil: "", pagoMovil2: "", binance: "", transferencia: "", transferencia2: ""
   })
   
   const [coachCustomPricing, setCoachCustomPricing] = useState(settings.coachCustomPricing ?? false)
@@ -251,14 +251,20 @@ export default function AjustesPage() {
     }
   }
 
-  const handleQRUpload = (method: 'pagoMovil' | 'binance' | 'transferencia', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQRUpload = async (method: 'pagoMovil' | 'pagoMovil2' | 'binance' | 'transferencia' | 'transferencia2', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setStorePaymentQRs(prev => ({ ...prev, [method]: reader.result as string }))
+      try {
+        const { compressImage } = await import('@/lib/image-compress')
+        const base64 = await compressImage(file, 800, 800, 0.85)
+        setStorePaymentQRs(prev => ({ ...prev, [method]: base64 }))
+      } catch {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setStorePaymentQRs(prev => ({ ...prev, [method]: reader.result as string }))
+        }
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -283,7 +289,7 @@ export default function AjustesPage() {
                   {/* TABS HEADER */}
         <div className="flex overflow-x-auto border-b border-black/10 dark:border-white/10 mb-8 scrollbar-hide">
           <button type="button" onClick={() => setActiveTab('general')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>General</button>
-          <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Navbar y Login</button>
+          <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Pantalla de Login</button>
           <button type="button" onClick={() => setActiveTab('footer')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Footer y Redes</button>
           <button type="button" onClick={() => setActiveTab('landing')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'landing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Página Principal (Promocional)</button>
         </div>
@@ -785,147 +791,230 @@ export default function AjustesPage() {
                     </div>
                   </div>
                 </div>
-                <div className="space-y-4 md:col-span-2 pt-4 border-t border-black/5 dark:border-white/5">
-                  <h4 className="font-bold text-sm text-primary">Instrucciones de Pago (Tienda)</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block">Pago Móvil</label>
-                      <textarea rows={4} value={storePaymentInstructions.pagoMovil} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, pagoMovil: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Pago Móvil..." />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block">Binance Pay</label>
-                      <textarea rows={4} value={storePaymentInstructions.binance} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, binance: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Binance (Email, ID)..." />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block">Transferencia Bancaria</label>
-                      <textarea rows={4} value={storePaymentInstructions.transferencia} onChange={(e) => setStorePaymentInstructions(prev => ({...prev, transferencia: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" placeholder="Datos de Cuenta Bancaria..." />
+                <div className="space-y-6 md:col-span-2 pt-6 border-t border-black/10 dark:border-white/10">
+                  <div>
+                    <h4 className="font-extrabold text-base text-primary flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-primary" /> Datos e Instrucciones de Pago
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Configura hasta dos cuentas bancarias para Pago Móvil y Transferencia, con sus respectivos códigos QR.
+                    </p>
+                  </div>
+
+                  {/* BLOQUE PAGO MÓVIL (CUENTA 1 Y CUENTA 2) */}
+                  <div className="p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-primary/20 space-y-4">
+                    <h5 className="font-bold text-sm text-foreground flex items-center justify-between">
+                      <span>📲 Pago Móvil (Hasta 2 Cuentas)</span>
+                    </h5>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Cuenta 1 */}
+                      <div className="p-4 rounded-xl bg-card border border-black/10 dark:border-white/10 space-y-3">
+                        <span className="text-xs font-bold text-primary block">Cuenta Principal (Cuenta #1)</span>
+                        <textarea 
+                          rows={3} 
+                          value={storePaymentInstructions.pagoMovil} 
+                          onChange={(e) => setStorePaymentInstructions(prev => ({...prev, pagoMovil: e.target.value}))} 
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-mono" 
+                          placeholder="Banco: ...&#10;Cédula: ...&#10;Teléfono: ..." 
+                        />
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground block mb-1">Código QR (Cuenta #1)</label>
+                          {!storePaymentQRs.pagoMovil ? (
+                            <label className="flex items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/30 border border-dashed border-black/15 dark:border-white/15 rounded-lg p-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer transition">
+                              <QrCode className="h-4 w-4" />
+                              <span>Subir QR Cuenta 1</span>
+                              <input type="file" accept="image/*" onChange={(e) => handleQRUpload('pagoMovil', e)} className="hidden" />
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <img src={storePaymentQRs.pagoMovil} className="h-14 w-14 object-contain rounded border border-white/10 bg-white/5 p-1" />
+                              <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, pagoMovil: ''}))} className="text-xs text-destructive hover:underline font-bold">Eliminar QR 1</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cuenta 2 */}
+                      <div className="p-4 rounded-xl bg-card border border-black/10 dark:border-white/10 space-y-3">
+                        <span className="text-xs font-bold text-primary block">Cuenta Secundaria (Cuenta #2 - Opcional)</span>
+                        <textarea 
+                          rows={3} 
+                          value={storePaymentInstructions.pagoMovil2 || ''} 
+                          onChange={(e) => setStorePaymentInstructions(prev => ({...prev, pagoMovil2: e.target.value}))} 
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-mono" 
+                          placeholder="Banco: ...&#10;Cédula: ...&#10;Teléfono: ..." 
+                        />
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground block mb-1">Código QR (Cuenta #2)</label>
+                          {!storePaymentQRs.pagoMovil2 ? (
+                            <label className="flex items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/30 border border-dashed border-black/15 dark:border-white/15 rounded-lg p-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer transition">
+                              <QrCode className="h-4 w-4" />
+                              <span>Subir QR Cuenta 2</span>
+                              <input type="file" accept="image/*" onChange={(e) => handleQRUpload('pagoMovil2', e)} className="hidden" />
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <img src={storePaymentQRs.pagoMovil2} className="h-14 w-14 object-contain rounded border border-white/10 bg-white/5 p-1" />
+                              <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, pagoMovil2: ''}))} className="text-xs text-destructive hover:underline font-bold">Eliminar QR 2</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    {/* Pago Móvil QR */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block mb-2">QR Pago Móvil</label>
-                      {!storePaymentQRs.pagoMovil && (
-                        <label className="flex flex-col items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 border-dashed rounded-xl p-6 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:shadow-lg cursor-pointer transition-all">
-                          <QrCode className="h-8 w-8 mb-1" />
-                          <span className="font-bold">Subir código QR</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleQRUpload('pagoMovil', e)} className="hidden" />
-                        </label>
-                      )}
-                      {storePaymentQRs.pagoMovil && (
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
-                            <img src={storePaymentQRs.pagoMovil} className="max-h-full max-w-full object-contain rounded" />
-                          </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, pagoMovil: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
+
+                  {/* BLOQUE TRANSFERENCIA BANCARIA (CUENTA 1 Y CUENTA 2) */}
+                  <div className="p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-primary/20 space-y-4">
+                    <h5 className="font-bold text-sm text-foreground flex items-center justify-between">
+                      <span>🏦 Transferencia Bancaria (Hasta 2 Cuentas)</span>
+                    </h5>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Cuenta 1 */}
+                      <div className="p-4 rounded-xl bg-card border border-black/10 dark:border-white/10 space-y-3">
+                        <span className="text-xs font-bold text-primary block">Cuenta Principal (Cuenta #1)</span>
+                        <textarea 
+                          rows={3} 
+                          value={storePaymentInstructions.transferencia} 
+                          onChange={(e) => setStorePaymentInstructions(prev => ({...prev, transferencia: e.target.value}))} 
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-mono" 
+                          placeholder="Banco: ...&#10;Número de Cuenta: ...&#10;Titular / RIF: ..." 
+                        />
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground block mb-1">Código QR (Cuenta #1)</label>
+                          {!storePaymentQRs.transferencia ? (
+                            <label className="flex items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/30 border border-dashed border-black/15 dark:border-white/15 rounded-lg p-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer transition">
+                              <QrCode className="h-4 w-4" />
+                              <span>Subir QR Cuenta 1</span>
+                              <input type="file" accept="image/*" onChange={(e) => handleQRUpload('transferencia', e)} className="hidden" />
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <img src={storePaymentQRs.transferencia} className="h-14 w-14 object-contain rounded border border-white/10 bg-white/5 p-1" />
+                              <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, transferencia: ''}))} className="text-xs text-destructive hover:underline font-bold">Eliminar QR 1</button>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+
+                      {/* Cuenta 2 */}
+                      <div className="p-4 rounded-xl bg-card border border-black/10 dark:border-white/10 space-y-3">
+                        <span className="text-xs font-bold text-primary block">Cuenta Secundaria (Cuenta #2 - Opcional)</span>
+                        <textarea 
+                          rows={3} 
+                          value={storePaymentInstructions.transferencia2 || ''} 
+                          onChange={(e) => setStorePaymentInstructions(prev => ({...prev, transferencia2: e.target.value}))} 
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-mono" 
+                          placeholder="Banco: ...&#10;Número de Cuenta: ...&#10;Titular / RIF: ..." 
+                        />
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground block mb-1">Código QR (Cuenta #2)</label>
+                          {!storePaymentQRs.transferencia2 ? (
+                            <label className="flex items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/30 border border-dashed border-black/15 dark:border-white/15 rounded-lg p-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer transition">
+                              <QrCode className="h-4 w-4" />
+                              <span>Subir QR Cuenta 2</span>
+                              <input type="file" accept="image/*" onChange={(e) => handleQRUpload('transferencia2', e)} className="hidden" />
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <img src={storePaymentQRs.transferencia2} className="h-14 w-14 object-contain rounded border border-white/10 bg-white/5 p-1" />
+                              <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, transferencia2: ''}))} className="text-xs text-destructive hover:underline font-bold">Eliminar QR 2</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    {/* Binance QR */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block mb-2">QR Binance Pay</label>
-                      {!storePaymentQRs.binance && (
-                        <label className="flex flex-col items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 border-dashed rounded-xl p-6 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:shadow-lg cursor-pointer transition-all">
-                          <QrCode className="h-8 w-8 mb-1" />
-                          <span className="font-bold">Subir código QR</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleQRUpload('binance', e)} className="hidden" />
-                        </label>
-                      )}
-                      {storePaymentQRs.binance && (
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
-                            <img src={storePaymentQRs.binance} className="max-h-full max-w-full object-contain rounded" />
+                  </div>
+
+                  {/* BLOQUE BINANCE PAY (CUENTA ÚNICA) */}
+                  <div className="p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-primary/20 space-y-4">
+                    <h5 className="font-bold text-sm text-foreground">🟡 Binance Pay (Cuenta Única)</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium block">Datos de Binance Pay</label>
+                        <textarea 
+                          rows={3} 
+                          value={storePaymentInstructions.binance} 
+                          onChange={(e) => setStorePaymentInstructions(prev => ({...prev, binance: e.target.value}))} 
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-mono" 
+                          placeholder="Email: ...&#10;Pay ID: ..." 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium block">Código QR Binance Pay</label>
+                        {!storePaymentQRs.binance ? (
+                          <label className="flex items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/30 border border-dashed border-black/15 dark:border-white/15 rounded-lg p-3 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer transition">
+                            <QrCode className="h-4 w-4" />
+                            <span>Subir QR Binance Pay</span>
+                            <input type="file" accept="image/*" onChange={(e) => handleQRUpload('binance', e)} className="hidden" />
+                          </label>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <img src={storePaymentQRs.binance} className="h-14 w-14 object-contain rounded border border-white/10 bg-white/5 p-1" />
+                            <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, binance: ''}))} className="text-xs text-destructive hover:underline font-bold">Eliminar QR</button>
                           </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, binance: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
-                        </div>
-                      )}
-                    </div>
-                    {/* Transferencia QR */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium block mb-2">QR Transferencia</label>
-                      {!storePaymentQRs.transferencia && (
-                        <label className="flex flex-col items-center justify-center gap-2 w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 border-dashed rounded-xl p-6 text-xs text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/50 hover:shadow-lg cursor-pointer transition-all">
-                          <QrCode className="h-8 w-8 mb-1" />
-                          <span className="font-bold">Subir código QR</span>
-                          <input type="file" accept="image/*" onChange={(e) => handleQRUpload('transferencia', e)} className="hidden" />
-                        </label>
-                      )}
-                      {storePaymentQRs.transferencia && (
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="h-32 w-32 bg-white/5 border border-white/10 rounded-xl overflow-hidden shadow-lg p-2 flex items-center justify-center">
-                            <img src={storePaymentQRs.transferencia} className="max-h-full max-w-full object-contain rounded" />
-                          </div>
-                          <button type="button" onClick={() => setStorePaymentQRs(p => ({...p, transferencia: ''}))} className="text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg font-bold transition">Eliminar QR</button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* PANEL DE NAVBAR Y PANTALLA DE LOGIN */}
+            {/* PANEL DE PANTALLA DE LOGIN */}
             <div className={`space-y-8 ${activeTab === "navbar" ? "" : "hidden"}`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-primary/10 border border-primary/20">
                 <div>
                   <h3 className="text-lg font-black text-foreground flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-primary" /> Personalización de Navbar y Pantalla de Login
+                    <User className="w-5 h-5 text-primary" /> Personalización de Pantalla de Login
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Modifica el logo, las letras de la empresa, dimensiones y previsualizaciones tanto de la barra de navegación como del inicio de sesión.
+                    Modifica el logo, las letras de la empresa, dimensiones y previsualización de la pantalla de inicio de sesión.
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* SECCIÓN 1: PANTALLA DE LOGIN */}
+                {/* Previsualización en Tiempo Real del Login */}
+                <div className="space-y-4 bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/10 dark:border-white/10 flex flex-col justify-center">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Vista Previa en Vivo (Pantalla de Login)</label>
+                  <div className="w-full bg-zinc-100 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[320px]">
+                    <div className="w-full max-w-xs bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 p-6 rounded-2xl shadow-xl flex flex-col items-center">
+                      {logoSettings?.showInLogin && (logoUrl || logoUrlDark) && (
+                        <img 
+                          src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
+                          alt="Logo Login" 
+                          style={{ 
+                            width: `${logoSettings.widthLogin || 96}px`, 
+                            height: `${logoSettings.heightLogin || 96}px`, 
+                            objectFit: logoSettings.objectFit || 'contain',
+                            maskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
+                            WebkitMaskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
+                          }} 
+                          className="mb-2 transition-all" 
+                        />
+                      )}
+                      {logoSettings?.showNameInLogin && (
+                        <h2 className="font-extrabold text-xl text-foreground text-center uppercase tracking-tight mt-1">
+                          {appName || "Nombre de Empresa"}
+                        </h2>
+                      )}
+                      <p className="text-[10px] text-muted-foreground text-center mt-0.5">Ingresa tus credenciales para continuar</p>
+                      <div className="w-full mt-4 space-y-2 opacity-60 pointer-events-none">
+                        <div className="h-8 w-full bg-black/5 dark:bg-white/10 rounded-lg border border-black/10 dark:border-white/10 flex items-center px-3 text-[10px] text-muted-foreground">Cédula de identidad</div>
+                        <div className="h-8 w-full bg-black/5 dark:bg-white/10 rounded-lg border border-black/10 dark:border-white/10 flex items-center px-3 text-[10px] text-muted-foreground">••••••••</div>
+                        <div className="h-8 w-full bg-primary text-primary-foreground rounded-lg flex items-center justify-center text-xs font-bold">Iniciar Sesión</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Controles de Configuración de Login */}
                 <div className="space-y-6 bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/10 dark:border-white/10 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
-                      <div>
-                        <h4 className="text-base font-bold text-primary flex items-center gap-2">
-                          <User className="w-4 h-4" /> Pantalla de Login
-                        </h4>
-                        <p className="text-xs text-muted-foreground">Logos, título y apariencia para el acceso de usuarios.</p>
-                      </div>
-                    </div>
-
-                    {/* Previsualización en Tiempo Real del Login */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Vista Previa en Vivo (Pantalla de Login)</label>
-                      <div className="w-full bg-zinc-100 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center min-h-[220px]">
-                        <div className="w-full max-w-xs bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 p-5 rounded-2xl shadow-xl flex flex-col items-center">
-                          {logoSettings?.showInLogin && (logoUrl || logoUrlDark) && (
-                            <img 
-                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
-                              alt="Logo Login" 
-                              style={{ 
-                                width: `${logoSettings.widthLogin || 96}px`, 
-                                height: `${logoSettings.heightLogin || 96}px`, 
-                                objectFit: logoSettings.objectFit || 'contain',
-                                maskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
-                                WebkitMaskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
-                              }} 
-                              className="mb-1 transition-all" 
-                            />
-                          )}
-                          {logoSettings?.showNameInLogin && (
-                            <h2 className="font-extrabold text-xl text-foreground text-center uppercase tracking-tight mt-1">
-                              {appName || "Nombre de Empresa"}
-                            </h2>
-                          )}
-                          <p className="text-[10px] text-muted-foreground text-center mt-0.5">Ingresa tus credenciales para continuar</p>
-                          <div className="w-full mt-3 space-y-1.5 opacity-60 pointer-events-none">
-                            <div className="h-6 w-full bg-black/5 dark:bg-white/10 rounded-md border border-black/10 dark:border-white/10 flex items-center px-2 text-[9px] text-muted-foreground">Cédula de identidad</div>
-                            <div className="h-6 w-full bg-black/5 dark:bg-white/10 rounded-md border border-black/10 dark:border-white/10 flex items-center px-2 text-[9px] text-muted-foreground">••••••••</div>
-                            <div className="h-6 w-full bg-primary text-primary-foreground rounded-md flex items-center justify-center text-[10px] font-bold">Iniciar Sesión</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
+                  <div className="space-y-5">
                     {/* Nombre y Letras de la Empresa para el Login */}
-                    <div className="space-y-2 pt-2">
+                    <div className="space-y-2">
                       <label className="text-xs font-bold text-foreground block">
                         Nombre de la Empresa / Letras para Login
                       </label>
@@ -934,13 +1023,13 @@ export default function AjustesPage() {
                         value={appName} 
                         onChange={(e) => setAppName(e.target.value)} 
                         placeholder="Ej. Mi Gimnasio Club" 
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary font-medium" 
                       />
-                      <p className="text-[11px] text-muted-foreground">Este texto se muestra en grande debajo del logo en la pantalla de inicio de sesión.</p>
+                      <p className="text-[11px] text-muted-foreground">Este texto se muestra debajo del logo en la pantalla de inicio de sesión.</p>
                     </div>
 
                     {/* Opciones de Visibilidad */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 pt-1">
                       <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
                         <input 
                           type="checkbox" 
@@ -957,7 +1046,7 @@ export default function AjustesPage() {
                           onChange={(e) => setLogoSettings(s => ({...s, showNameInLogin: e.target.checked}))} 
                           className="accent-primary w-4 h-4" 
                         />
-                        <span className="text-xs font-bold">Mostrar Letras/Nombre</span>
+                        <span className="text-xs font-bold">Mostrar Letras</span>
                       </label>
                       <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition col-span-2">
                         <input 
@@ -966,12 +1055,12 @@ export default function AjustesPage() {
                           onChange={(e) => setLogoSettings(s => ({...s, fadeEffect: e.target.checked}))} 
                           className="accent-primary w-4 h-4" 
                         />
-                        <span className="text-xs font-bold">Efecto Desvanecido en Logo (Fade Effect inferior)</span>
+                        <span className="text-xs font-bold">Efecto Desvanecido en Logo (Fade Effect)</span>
                       </label>
                     </div>
 
                     {/* Dimensiones y Ajuste */}
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-4 pt-2 border-t border-black/10 dark:border-white/10">
                       <div>
                         <div className="flex justify-between items-center mb-1">
                           <label className="text-xs font-bold text-muted-foreground">Ancho del Logo en Login ({logoSettings?.widthLogin ?? 96}px)</label>
@@ -979,7 +1068,7 @@ export default function AjustesPage() {
                             type="number" 
                             value={logoSettings?.widthLogin ?? 96} 
                             onChange={e => setLogoSettings(s => ({...s, widthLogin: Number(e.target.value)}))} 
-                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary font-bold" 
                           />
                         </div>
                         <input 
@@ -998,7 +1087,7 @@ export default function AjustesPage() {
                             type="number" 
                             value={logoSettings?.heightLogin ?? 96} 
                             onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} 
-                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary font-bold" 
                           />
                         </div>
                         <input 
@@ -1007,130 +1096,6 @@ export default function AjustesPage() {
                           max="400" 
                           value={logoSettings?.heightLogin ?? 96} 
                           onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} 
-                          className="w-full accent-primary" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECCIÓN 2: BARRA DE NAVEGACIÓN (NAVBAR) */}
-                <div className="space-y-6 bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/10 dark:border-white/10 flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
-                      <div>
-                        <h4 className="text-base font-bold text-primary flex items-center gap-2">
-                          <Globe className="w-4 h-4" /> Barra de Navegación (Navbar)
-                        </h4>
-                        <p className="text-xs text-muted-foreground">Logos, proporciones y nombre en la barra superior.</p>
-                      </div>
-                    </div>
-
-                    {/* Previsualización en Tiempo Real de la Navbar */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Vista Previa en Vivo (Navbar)</label>
-                      <div className="w-full h-20 bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl flex items-center justify-between px-6 shadow-sm overflow-hidden">
-                        <div className="flex items-center gap-3">
-                          {logoSettings?.showInNavbar && (logoUrl || logoUrlDark) && (
-                            <img 
-                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
-                              alt="Logo Navbar" 
-                              style={{ 
-                                width: `${logoSettings.widthNavbar || 40}px`, 
-                                height: `${logoSettings.heightNavbar || 40}px`, 
-                                objectFit: logoSettings.objectFit || 'contain' 
-                              }} 
-                              className="transition-all" 
-                            />
-                          )}
-                          {logoSettings?.showNameInNavbar && (
-                            <span className="font-extrabold text-base text-foreground tracking-tight">
-                              {appName || "Nombre de Empresa"}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 opacity-50 pointer-events-none">
-                          <div className="h-6 w-14 bg-black/5 dark:bg-white/10 rounded"></div>
-                          <div className="h-6 w-14 bg-black/5 dark:bg-white/10 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ajuste de Proporción (Object Fit) */}
-                    <div className="space-y-2 pt-2">
-                      <label className="text-xs font-bold text-foreground block">
-                        Modo de Ajuste del Logo (Object Fit)
-                      </label>
-                      <select 
-                        value={logoSettings?.objectFit || 'contain'} 
-                        onChange={e => setLogoSettings(s => ({...s, objectFit: e.target.value as any}))} 
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
-                      >
-                        <option value="contain">Contain (Ajustar sin recortar ni deformar)</option>
-                        <option value="cover">Cover (Llenar el marco recortando bordes)</option>
-                        <option value="fill">Fill (Rellenar estirando)</option>
-                      </select>
-                    </div>
-
-                    {/* Opciones de Visibilidad */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
-                        <input 
-                          type="checkbox" 
-                          checked={logoSettings?.showInNavbar ?? true} 
-                          onChange={(e) => setLogoSettings(s => ({...s, showInNavbar: e.target.checked}))} 
-                          className="accent-primary w-4 h-4" 
-                        />
-                        <span className="text-xs font-bold">Mostrar Logo</span>
-                      </label>
-                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
-                        <input 
-                          type="checkbox" 
-                          checked={logoSettings?.showNameInNavbar ?? true} 
-                          onChange={(e) => setLogoSettings(s => ({...s, showNameInNavbar: e.target.checked}))} 
-                          className="accent-primary w-4 h-4" 
-                        />
-                        <span className="text-xs font-bold">Mostrar Letras/Nombre</span>
-                      </label>
-                    </div>
-
-                    {/* Dimensiones */}
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-xs font-bold text-muted-foreground">Ancho del Logo en Navbar ({logoSettings?.widthNavbar ?? 40}px)</label>
-                          <input 
-                            type="number" 
-                            value={logoSettings?.widthNavbar ?? 40} 
-                            onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} 
-                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
-                          />
-                        </div>
-                        <input 
-                          type="range" 
-                          min="20" 
-                          max="200" 
-                          value={logoSettings?.widthNavbar ?? 40} 
-                          onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} 
-                          className="w-full accent-primary" 
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-xs font-bold text-muted-foreground">Alto del Logo en Navbar ({logoSettings?.heightNavbar ?? 40}px)</label>
-                          <input 
-                            type="number" 
-                            value={logoSettings?.heightNavbar ?? 40} 
-                            onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} 
-                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
-                          />
-                        </div>
-                        <input 
-                          type="range" 
-                          min="20" 
-                          max="200" 
-                          value={logoSettings?.heightNavbar ?? 40} 
-                          onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} 
                           className="w-full accent-primary" 
                         />
                       </div>
