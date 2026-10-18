@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 
@@ -246,9 +247,22 @@ export function FullScreenGymLoader({
   text?: string
   showQuote?: boolean
 }) {
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/90 backdrop-blur-md transition-all">
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const loaderOverlay = (
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/75 dark:bg-black/80 backdrop-blur-xl transition-all duration-300">
       <GymLoader size="lg" text={text} showQuote={showQuote} />
     </div>
   )
+
+  if (mounted && typeof document !== "undefined") {
+    return createPortal(loaderOverlay, document.body)
+  }
+
+  return loaderOverlay
 }
+

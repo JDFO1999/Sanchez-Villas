@@ -98,7 +98,7 @@ export default function LoginPage() {
         )}
       </Dialog>
 
-      <div className="z-10 w-full max-w-md bg-white/70 dark:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center shadow-2xl">
+      <div className={`z-10 w-full max-w-md bg-white/70 dark:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center shadow-2xl transition-all duration-300 ${isLoading ? "blur-md opacity-25 scale-[0.98] pointer-events-none select-none" : ""}`}>
         {settings.logoSettings?.showInLogin && (
           (settings.logoUrl || settings.logoUrlDark) ? (
             <img 
@@ -197,7 +197,6 @@ export default function LoginPage() {
           </button>
           </form>
 
-        {isLoading && <FullScreenLoader text="Iniciando sesión..." />}
         <div className="mt-4 text-center">
             <span className="text-sm text-muted-foreground">¿Eres un nuevo atleta? </span>
             <button 
@@ -210,6 +209,8 @@ export default function LoginPage() {
           </div>
 
       </div>
+
+      {isLoading && <FullScreenLoader text="Iniciando sesión..." />}
     </div>
   )
 }
