@@ -1600,7 +1600,7 @@ export default function AjustesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <a
-                    href="/"
+                    href="/inicio"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/10 dark:bg-white/10 hover:bg-primary/20 text-xs font-bold text-foreground border border-black/10 dark:border-white/10 transition"

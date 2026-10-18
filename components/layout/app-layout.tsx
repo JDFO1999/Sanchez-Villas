@@ -21,6 +21,7 @@ import {
   Sun,
   Settings,
   ScanLine,
+  Globe,
   User as UserIcon
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -58,14 +59,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && !user && pathname !== '/' && pathname !== '/login' && pathname !== '/registro') {
+    if (!isLoading && !user && pathname !== '/' && pathname !== '/inicio' && pathname !== '/login' && pathname !== '/registro') {
       router.push('/login')
     }
   }, [user, isLoading, pathname, router])
 
   if (isLoading) return <FullScreenLoader text="Iniciando..." />
 
-  if (pathname === '/login' || pathname === '/registro' || (pathname === '/' && !user)) {
+  if (pathname === '/login' || pathname === '/registro' || pathname === '/inicio' || (pathname === '/' && !user)) {
     return <>{children}</>
   }
 
@@ -112,7 +113,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const LogoComponent = () => (
     <Link 
-      href="/" 
+      href="/inicio" 
+      title="Ver Página Principal Promocional"
       className="flex items-center gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1"
       style={{
         margin: settings.logoSettings?.marginNavbar ? `${settings.logoSettings.marginNavbar}px` : undefined,
@@ -255,7 +257,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {user && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                href="/inicio"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-colors border border-primary/20 text-xs font-bold"
+                title="Ver Página Principal Promocional"
+              >
+                <Globe className="w-4 h-4 shrink-0" />
+                <span className="hidden xs:inline sm:inline">Página Principal</span>
+              </Link>
               <Link
                 href={user.role === 'admin' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
