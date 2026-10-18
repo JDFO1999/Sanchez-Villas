@@ -9,7 +9,8 @@ export async function compressImage(
   file: File,
   maxWidth = 800,
   maxHeight = 800,
-  quality = 0.85
+  quality = 0.85,
+  maxBase64Length = 55000
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     // Si no es imagen o es SVG, retornamos dataUrl directo
@@ -51,7 +52,25 @@ export async function compressImage(
         }
 
         ctx.drawImage(img, 0, 0, width, height)
-        const compressedBase64 = canvas.toDataURL("image/jpeg", quality)
+        let currentQuality = quality
+        let compressedBase64 = canvas.toDataURL("image/jpeg", currentQuality)
+
+        // Si excede maxBase64Length (p. ej. 55KB para caber siempre en columna TEXT de MySQL),
+        // reducimos gradualmente calidad y dimensiones hasta garantizar que quepa.
+        let currentW = width
+        let currentH = height
+        while (compressedBase64.length > maxBase64Length && currentQuality > 0.35) {
+          currentQuality -= 0.12
+          if (compressedBase64.length > maxBase64Length * 1.4 && currentW > 240) {
+            currentW = Math.round(currentW * 0.8)
+            currentH = Math.round(currentH * 0.8)
+            canvas.width = currentW
+            canvas.height = currentH
+            ctx.drawImage(img, 0, 0, currentW, currentH)
+          }
+          compressedBase64 = canvas.toDataURL("image/jpeg", Math.max(0.3, currentQuality))
+        }
+
         resolve(compressedBase64)
       }
       img.onerror = () => resolve(e.target?.result as string)

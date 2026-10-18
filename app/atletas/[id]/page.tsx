@@ -25,20 +25,21 @@ export default function AtletaPerfilPage() {
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
+  // Solo el propio atleta puede modificar su foto de perfil
   const canChangePhoto = Boolean(
-    (user?.role === 'athlete' && user.id === athlete?.id) ||
-    ['admin', 'coach', 'cajero', 'recepcion', 'employee'].includes(user?.role || '')
+    user?.role === 'athlete' && user.id === athlete?.id
   )
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !athlete) return
+    const previousPhoto = athlete.profilePicture
     setIsUploadingPhoto(true)
     try {
       const { compressImage } = await import('@/lib/image-compress')
-      const compressedBase64 = await compressImage(file, 800, 800, 0.85)
+      const compressedBase64 = await compressImage(file, 400, 400, 0.8, 55000)
 
-      // Optimistic update
+      // Vista previa inmediata mientras se guarda en base de datos
       setAthlete(prev => prev ? { ...prev, profilePicture: compressedBase64 } : null)
 
       const { updateProfilePicture } = await import('@/app/actions/users')
@@ -49,14 +50,17 @@ export default function AtletaPerfilPage() {
         if (user?.id === athlete.id && updateUserProfilePicture) {
           updateUserProfilePicture(res.profilePicture)
         }
-        showSweetToast("Foto de atleta guardada con éxito.", "success")
+        showSweetToast("Foto de perfil guardada con éxito.", "success")
       } else {
+        setAthlete(prev => prev ? { ...prev, profilePicture: previousPhoto } : null)
         showSweetToast(res.error || "No se pudo guardar la foto del atleta.", "error")
       }
     } catch (err: any) {
+      setAthlete(prev => prev ? { ...prev, profilePicture: previousPhoto } : null)
       showSweetToast(err?.message || "Error al procesar la foto.", "error")
     } finally {
       setIsUploadingPhoto(false)
+      e.target.value = ""
     }
   }
 

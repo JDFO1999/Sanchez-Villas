@@ -647,36 +647,44 @@ export async function getAthleteDashboardData(athleteId: string) {
 }
 
 export async function updateProfilePicture(athleteId: string, base64Image: string) {
-  const g = await guardSelfOr(athleteId, ROLES.STAFF)
-  if (!g.ok) return { success: false, error: g.error }
+  const me = await getAuthUser()
+  if (!me || me.id !== athleteId) {
+    return { success: false, error: "Solo el propio usuario puede modificar su foto de perfil." }
+  }
   try {
-    let imageUrl: string | null = null;
-    try {
-      imageUrl = await saveBase64Image(base64Image, "avatar");
-    } catch (fsErr) {
-      console.warn("Fallo al guardar en disco avatar, usando fallback base64:", fsErr);
-      if (base64Image && base64Image.length < 500000) {
-        imageUrl = base64Image;
-      } else {
-        throw fsErr;
-      }
+    if (!base64Image || typeof base64Image !== "string" || !base64Image.startsWith("data:image/")) {
+      return { success: false, error: "Formato de imagen no válido." }
+    }
+    if (base64Image.length > 2_000_000) {
+      return { success: false, error: "La imagen es demasiado pesada." }
     }
 
-    if (!imageUrl) return { success: false, error: "Error procesando imagen" }
+    // Guardamos la imagen comprimida directamente en MySQL (User.profilePicture) como data URI
+    // para que persista al 100% al cerrar sesión, reloguear o reiniciar el contenedor en Coolify.
+    try {
+      await prisma.user.update({
+        where: { id: athleteId },
+        data: { profilePicture: base64Image }
+      })
+    } catch (dbErr: any) {
+      // Auto-migración segura si la columna en MySQL aún es TEXT (64KB) y la imagen supera ese límite
+      await prisma.$executeRawUnsafe("ALTER TABLE `User` MODIFY COLUMN `profilePicture` LONGTEXT NULL").catch(() => {})
+      await prisma.user.update({
+        where: { id: athleteId },
+        data: { profilePicture: base64Image }
+      })
+    }
 
-    const user = await prisma.user.update({
-      where: { id: athleteId },
-      data: { profilePicture: imageUrl }
-    });
+    revalidatePath("/atletas")
+    revalidatePath("/atletas/" + athleteId)
+    revalidatePath("/mis-atletas")
+    revalidatePath("/perfil")
+    revalidatePath("/")
 
-    revalidatePath("/atletas");
-    revalidatePath("/atletas/" + athleteId);
-    revalidatePath("/mis-atletas");
-    revalidatePath("/");
-
-    return { success: true, profilePicture: imageUrl }
+    return { success: true, profilePicture: base64Image }
   } catch (error: any) {
-    return { success: false, error: error?.message || "No se pudo guardar la imagen." }
+    console.error("updateProfilePicture error:", error)
+    return { success: false, error: error?.message || "No se pudo guardar la imagen en la base de datos." }
   }
 }
 

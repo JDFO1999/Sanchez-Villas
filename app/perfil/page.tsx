@@ -45,11 +45,12 @@ export default function PerfilPage() {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const previousImage = profileImage || user?.profilePicture || null
 
     setIsUploading(true)
     try {
       const { compressImage } = await import("@/lib/image-compress")
-      const base64 = await compressImage(file, 800, 800, 0.85)
+      const base64 = await compressImage(file, 400, 400, 0.8, 55000)
       setProfileImage(base64)
 
       if (!user?.id) throw new Error("No hay usuario autenticado")
@@ -59,12 +60,15 @@ export default function PerfilPage() {
         updateUserProfilePicture(res.profilePicture)
         showToast("Foto de perfil actualizada correctamente.", "success")
       } else {
+        setProfileImage(previousImage)
         showToast(res.error || "No se pudo guardar la imagen.", "error")
       }
     } catch (err: any) {
+      setProfileImage(previousImage)
       showToast(err?.message || "Error al actualizar imagen.", "error")
     } finally {
       setIsUploading(false)
+      e.target.value = ""
     }
   }
 

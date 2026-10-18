@@ -16,7 +16,7 @@ model User {
   accessPin        String?
   baseSalary       Float?
   commissionRate   Float?
-  profilePicture   String?  @db.Text
+  profilePicture   String?  @db.LongText
   gender           String?
   email            String?
   phone            String?
