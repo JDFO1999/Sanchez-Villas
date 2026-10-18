@@ -34,7 +34,7 @@ export function GymLandingPage() {
       </main>
 
       {/* FOOTER */}
-      <div id="contacto">
+      <div id="contacto" className="mt-auto w-full">
         <Footer />
       </div>
     </div>

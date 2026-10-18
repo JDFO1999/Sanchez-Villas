@@ -98,12 +98,12 @@ export function BaseFooter({
 
   return (
     <footer 
-      className="shrink-0 bg-card/50 border-t border-black/20 dark:border-white/10 backdrop-blur-md transition-all duration-300 relative"
+      className="shrink-0 w-full mt-auto bg-card/50 border-t border-black/20 dark:border-white/10 backdrop-blur-md transition-all duration-300 relative"
       style={{
         paddingTop: `${pY * 0.25}rem`,
-        paddingBottom: `${pY * 0.25}rem`,
+        paddingBottom: '0.75rem',
         backgroundColor: footerSettings.bgColor ? footerSettings.bgColor : undefined,
-        marginTop: `${mT * 0.25}rem`
+        marginTop: mT > 0 ? `${mT * 0.25}rem` : undefined
       }}
     >
       {/* Decorative Glow */}
@@ -306,7 +306,7 @@ export function BaseFooter({
           </div>
         )}
 
-        <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-4 text-xs text-muted-foreground w-full text-center">
+        <div className="mt-8 pt-4 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-2 text-xs text-muted-foreground w-full text-center">
           <p>{footerSettings.copyrightText || `© ${new Date().getFullYear()} ${settings.appName}. Todos los derechos reservados.`}</p>
         </div>
       </div>
