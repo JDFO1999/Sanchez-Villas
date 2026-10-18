@@ -1256,9 +1256,17 @@ export default function MembresíasPage() {
                         <span>{noMembYet ? 'SIN MEMBRESÍA' : isExpired ? 'VENCIDA' : diffDays <= 5 ? 'POR VENCER' : 'ACTIVA'}</span>
                       </div>
 
-                      <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
-                        {a.name.charAt(0)}
-                      </div>
+                      {((a as any).profilePicture || a.avatar) ? (
+                        <img
+                          src={(a as any).profilePicture || a.avatar}
+                          alt={a.name}
+                          className="h-12 w-12 rounded-full object-cover shrink-0 border border-primary/30"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
+                          {a.name.charAt(0)}
+                        </div>
+                      )}
                       <div className="pr-24">
                         <h3 className="font-bold text-lg leading-tight">{a.name}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">C.I. {a.cedula}</p>

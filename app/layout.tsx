@@ -13,10 +13,38 @@ const arvo = Arvo({ weight: ["400", "700"], subsets: ["latin"], variable: "--fon
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 
-export const metadata: Metadata = {
-  title: "Sistema de Gestión",
-  description: "Sistema integral de administración para gimnasios",
-};
+import { getSystemSettingsAction } from "@/app/actions/settings";
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const res = await getSystemSettingsAction();
+    const s = res?.settings;
+    const rawIcon = s?.faviconUrl || s?.logoUrl || s?.logoUrlDark || "";
+    const versionHash = rawIcon
+      ? Buffer.from(rawIcon.slice(-32)).toString("hex").slice(0, 12)
+      : "default";
+    const iconUrl = `/api/favicon?v=${versionHash}`;
+
+    return {
+      title: s?.appName ? `${s.appName} - Sistema de Gestión` : "Sistema de Gestión",
+      description: s?.landingSettings?.tagline || "Sistema integral de administración para gimnasios",
+      icons: {
+        icon: [{ url: iconUrl }],
+        shortcut: [{ url: iconUrl }],
+        apple: [{ url: iconUrl }],
+      },
+    };
+  } catch {
+    return {
+      title: "Sistema de Gestión",
+      description: "Sistema integral de administración para gimnasios",
+      icons: {
+        icon: "/api/favicon",
+        shortcut: "/api/favicon",
+      },
+    };
+  }
+}
 
 
 export default function RootLayout({

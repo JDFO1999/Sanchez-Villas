@@ -1022,9 +1022,18 @@ export default function FinanzasPage() {
                       </td>
                       <td className="p-4 text-xs">
                         {tx.customer ? (
-                          <div>
-                            <div className="font-bold text-foreground">{tx.customer.name}</div>
-                            <div className="text-[10px] text-muted-foreground font-mono">C.I. {tx.customer.cedula}</div>
+                          <div className="flex items-center gap-2.5">
+                            {tx.customer.profilePicture ? (
+                              <img src={tx.customer.profilePicture} alt={tx.customer.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
+                                {tx.customer.name?.charAt(0) || 'A'}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold text-foreground">{tx.customer.name}</div>
+                              <div className="text-[10px] text-muted-foreground font-mono">C.I. {tx.customer.cedula}</div>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-muted-foreground italic">Cliente de Paso</span>
@@ -1343,8 +1352,19 @@ export default function FinanzasPage() {
                     return (
                       <tr key={a.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
                         <td className="p-4">
-                          <div className="font-bold">{a.name}</div>
-                          <div className="text-xs text-muted-foreground">{a.cedula}</div>
+                          <div className="flex items-center gap-3">
+                            {((a as any).profilePicture || a.avatar) ? (
+                              <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
+                            ) : (
+                              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
+                                {a.name.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-bold">{a.name}</div>
+                              <div className="text-xs text-muted-foreground">{a.cedula}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-4">
                           <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
@@ -1412,9 +1432,18 @@ export default function FinanzasPage() {
                   return (
                     <div key={a.id} className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-bold">{a.name}</div>
-                          <div className="text-xs text-muted-foreground">{a.cedula}</div>
+                        <div className="flex items-center gap-2.5">
+                          {((a as any).profilePicture || a.avatar) ? (
+                            <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
+                          ) : (
+                            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
+                              {a.name.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold">{a.name}</div>
+                            <div className="text-xs text-muted-foreground">{a.cedula}</div>
+                          </div>
                         </div>
                         <div className="text-right">
                           {a.debt && a.debt > 0 ? (

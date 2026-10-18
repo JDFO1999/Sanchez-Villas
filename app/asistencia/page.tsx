@@ -11,7 +11,7 @@ export default function AsistenciaPage() {
   const [cedula, setCedula] = useState("")
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState("")
-  const [athlete, setAthlete] = useState<{name: string, membershipEnd?: Date | string} | null>(null)
+  const [athlete, setAthlete] = useState<{name: string, profilePicture?: string | null, membershipEnd?: Date | string} | null>(null)
   
   const [showScanner, setShowScanner] = useState(false)
 
@@ -58,6 +58,7 @@ export default function AsistenciaPage() {
       setMessage('¡Bienvenido!')
       setAthlete({
         name: (res.user?.name || ""),
+        profilePicture: (res.user as any)?.profilePicture || null,
         membershipEnd: (res.user?.membershipEnd || "")
       })
       
@@ -77,9 +78,13 @@ export default function AsistenciaPage() {
         osc.stop(ctx.currentTime + 0.1);
       } catch(e){}
       
+      const avatarHtml = (res.user as any)?.profilePicture
+        ? `<img src="${(res.user as any).profilePicture}" alt="${res.user?.name}" style="width:72px;height:72px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid #10b981;" />`
+        : '';
+
       Swal.fire({
         title: '¡Acceso Concedido!',
-        html: `<p class="text-xl font-bold">${res.user?.name}</p><p class="text-sm text-muted-foreground mt-2">Vence: ${new Date(res.user?.membershipEnd || "").toLocaleDateString()}</p>`,
+        html: `${avatarHtml}<p class="text-xl font-bold">${res.user?.name}</p><p class="text-sm text-muted-foreground mt-2">Vence: ${new Date(res.user?.membershipEnd || "").toLocaleDateString()}</p>`,
         icon: 'success',
         timer: 3000,
         showConfirmButton: false
@@ -87,7 +92,11 @@ export default function AsistenciaPage() {
     } else {
       setStatus('error')
       setMessage(res.error ?? "No se pudo registrar la asistencia.")
-      setAthlete(res.lastDate ? { name: "Membresía Caducada", membershipEnd: res.lastDate } : null)
+      setAthlete(res.lastDate || (res as any).user ? {
+        name: (res as any).user?.name || "Membresía Caducada",
+        profilePicture: (res as any).user?.profilePicture || null,
+        membershipEnd: res.lastDate
+      } : null)
       
       // Beep error (Web Audio API)
       try {
@@ -105,9 +114,13 @@ export default function AsistenciaPage() {
         osc.stop(ctx.currentTime + 0.3);
       } catch(e){}
       
+      const expiredAvatarHtml = (res as any).user?.profilePicture
+        ? `<img src="${(res as any).user.profilePicture}" alt="${(res as any).user?.name}" style="width:72px;height:72px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid #ef4444;" />`
+        : '';
+
       Swal.fire({
         title: '¡ACCESO DENEGADO!',
-        html: `<p class="text-xl font-bold text-destructive">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
+        html: `${expiredAvatarHtml}${(res as any).user?.name ? `<p class="text-lg font-bold">${(res as any).user.name}</p>` : ''}<p class="text-xl font-bold text-destructive">${res.error}</p>${res.lastDate ? `<p class="mt-2 font-medium">Venció el: ${new Date(res.lastDate).toLocaleDateString()}</p>` : ''}`,
         icon: 'error',
         confirmButtonColor: '#ef4444',
         confirmButtonText: 'Entendido',
@@ -162,7 +175,7 @@ export default function AsistenciaPage() {
 
             <form onSubmit={handleManualSubmit} className="flex flex-col gap-2">
               <label className="text-center text-xs text-muted-foreground font-medium flex justify-center items-center gap-1">
-                <Key className="h-3 w-3" /> Requiere PIN de Administrador
+                <Key className="h-3 w-3" /> Requiere Clave de Administrador
               </label>
               <div className="relative">
                 <input 
@@ -197,7 +210,13 @@ export default function AsistenciaPage() {
 
         {status !== 'idle' && (
           <div className={`mt-8 p-6 rounded-xl text-center flex flex-col items-center justify-center animate-in zoom-in duration-300 ${status === 'success' ? 'bg-success/10 border-2 border-success' : 'bg-destructive/10 border-2 border-destructive'}`}>
-            {status === 'success' ? (
+            {athlete?.profilePicture ? (
+              <img
+                src={athlete.profilePicture}
+                alt={athlete.name}
+                className={`h-20 w-20 rounded-full object-cover mb-4 border-2 ${status === 'success' ? 'border-success' : 'border-destructive'}`}
+              />
+            ) : status === 'success' ? (
               <CheckCircle2 className="h-20 w-20 text-success mb-4" />
             ) : (
               <XCircle className="h-20 w-20 text-destructive mb-4" />

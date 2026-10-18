@@ -263,7 +263,7 @@ export async function getTransactions() {
       include: {
         items: true,
         cashier: { select: { name: true, cedula: true } },
-        customer: { select: { name: true, cedula: true, coachId: true } }
+        customer: { select: { name: true, cedula: true, coachId: true, profilePicture: true } }
       },
       orderBy: { date: 'desc' }
     })

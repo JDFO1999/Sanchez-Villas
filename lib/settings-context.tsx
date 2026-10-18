@@ -447,13 +447,28 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const applyDomUpdates = (currSettings: AppSettings) => {
     if (typeof document !== 'undefined') {
       document.title = currSettings.appName ? `${currSettings.appName} - Sistema de Gestión` : "Sistema de Gestión";
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link") as HTMLLinkElement;
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
+      const targetHref = currSettings.faviconUrl || currSettings.logoUrl || currSettings.logoUrlDark || defaultSettings.faviconUrl || '/api/favicon';
+      const existingIcons = document.querySelectorAll("link[rel*='icon'], link[rel='apple-touch-icon']");
+      if (existingIcons.length > 0) {
+        existingIcons.forEach((el) => {
+          const linkEl = el as HTMLLinkElement;
+          linkEl.href = targetHref;
+          if (targetHref.startsWith('data:image/png')) linkEl.type = 'image/png';
+          else if (targetHref.startsWith('data:image/svg')) linkEl.type = 'image/svg+xml';
+          else if (targetHref.startsWith('data:image/jpeg') || targetHref.startsWith('data:image/jpg')) linkEl.type = 'image/jpeg';
+          else linkEl.removeAttribute('type');
+        });
+      } else {
+        const iconLink = document.createElement("link");
+        iconLink.rel = "icon";
+        iconLink.href = targetHref;
+        document.head.appendChild(iconLink);
+
+        const shortcutLink = document.createElement("link");
+        shortcutLink.rel = "shortcut icon";
+        shortcutLink.href = targetHref;
+        document.head.appendChild(shortcutLink);
       }
-      link.href = currSettings.faviconUrl || defaultSettings.faviconUrl || '/favicon.ico';
     }
   }
 

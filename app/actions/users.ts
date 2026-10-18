@@ -569,7 +569,12 @@ export async function registerAttendance(query: string, isCedula: boolean = fals
       return {
         success: false,
         error: 'Membresía Vencida',
-        lastDate: lastMembership?.endDate
+        lastDate: lastMembership?.endDate,
+        user: {
+          name: user.name,
+          profilePicture: user.profilePicture,
+          membershipEnd: lastMembership?.endDate
+        }
       }
     }
 
@@ -586,6 +591,7 @@ export async function registerAttendance(query: string, isCedula: boolean = fals
       success: true,
       user: {
         name: user.name,
+        profilePicture: user.profilePicture,
         membershipEnd: user.memberships[0].endDate
       }
     }
@@ -627,7 +633,7 @@ export async function getPendingCoachRequests() {
     const reqs = await prisma.coachRequest.findMany({
       where: { status: 'PENDING' },
       include: {
-        athlete: { select: { id: true, name: true, cedula: true, coachId: true, coach: { select: { name: true } } } },
+        athlete: { select: { id: true, name: true, cedula: true, profilePicture: true, coachId: true, coach: { select: { name: true } } } },
         coach: { select: { id: true, name: true } }
       } as any
     })
@@ -791,6 +797,11 @@ export async function updateProfilePicture(athleteId: string, base64Image: strin
     revalidatePath("/atletas")
     revalidatePath("/atletas/" + athleteId)
     revalidatePath("/mis-atletas")
+    revalidatePath("/membresias")
+    revalidatePath("/finanzas")
+    revalidatePath("/tienda")
+    revalidatePath("/asistencia")
+    revalidatePath("/comunidad")
     revalidatePath("/perfil")
     revalidatePath("/")
 

@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db"
 import { guard, ROLES } from "@/lib/authz"
+import { revalidatePath } from "next/cache"
 
 export async function getSystemSettingsAction() {
   try {
@@ -60,6 +61,7 @@ export async function saveSystemSettingsAction(settingsData: any) {
       update: { data: stringified },
       create: { id: "default", data: stringified },
     })
+    revalidatePath("/", "layout")
     return { success: true }
   } catch (error) {
     console.error("Error saving system settings to DB:", error)

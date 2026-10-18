@@ -181,15 +181,24 @@ export function AdminDashboard() {
             <div className="space-y-2">
               {coachRequests.map((req) => (
                 <div key={req.id} className="flex flex-col sm:flex-row justify-between items-center bg-card border border-black/5 dark:border-white/5 p-3 rounded-lg gap-3">
-                  <div className="text-sm">
-                    <span className="font-bold">{req.athlete.name}</span> (C.I: {req.athlete.cedula}) quiere cambiar de 
-                    <span className="font-medium text-muted-foreground mx-1">
-                      {req.athlete.coach?.name || 'Ninguno'}
-                    </span>
-                    a
-                    <span className="font-bold text-primary mx-1">
-                      {req.coach.name}
-                    </span>
+                  <div className="text-sm flex items-center gap-2.5">
+                    {req.athlete?.profilePicture ? (
+                      <img src={req.athlete.profilePicture} alt={req.athlete.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                        {req.athlete?.name?.charAt(0) || 'A'}
+                      </div>
+                    )}
+                    <div>
+                      <span className="font-bold">{req.athlete.name}</span> (C.I: {req.athlete.cedula}) quiere cambiar de 
+                      <span className="font-medium text-muted-foreground mx-1">
+                        {req.athlete.coach?.name || 'Ninguno'}
+                      </span>
+                      a
+                      <span className="font-bold text-primary mx-1">
+                        {req.coach.name}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
                     <button 
@@ -484,7 +493,16 @@ export function AdminDashboard() {
               {dynamicStats.exitoAtletas.map((atleta, i) => (
                 <div key={i} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-sm font-medium">
-                    <span>{atleta.nombre}</span>
+                    <div className="flex items-center gap-2">
+                      {atleta.profilePicture ? (
+                        <img src={atleta.profilePicture} alt={atleta.nombre} className="h-6 w-6 rounded-full object-cover shrink-0 border border-primary/30" />
+                      ) : (
+                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[10px] shrink-0">
+                          {atleta.nombre?.charAt(0) || 'A'}
+                        </div>
+                      )}
+                      <span>{atleta.nombre}</span>
+                    </div>
                     <span className={atleta.porcentaje >= 80 ? "text-success" : atleta.porcentaje >= 70 ? "text-primary" : "text-destructive"}>
                       {atleta.porcentaje}%
                     </span>
@@ -521,7 +539,16 @@ export function AdminDashboard() {
               <ul className="space-y-3">
                 {dynamicStats.membresiasPorVencer.map((mem, i) => (
                   <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
-                    <span className="font-medium">{mem.nombre}</span>
+                    <div className="flex items-center gap-2.5">
+                      {mem.profilePicture ? (
+                        <img src={mem.profilePicture} alt={mem.nombre} className="h-8 w-8 rounded-full object-cover shrink-0 border border-warning/30" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-warning/20 flex items-center justify-center text-warning font-bold text-xs shrink-0">
+                          {mem.nombre?.charAt(0) || 'A'}
+                        </div>
+                      )}
+                      <span className="font-medium">{mem.nombre}</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full font-bold">
                         Vence en {mem.venceEn}
@@ -560,9 +587,18 @@ export function AdminDashboard() {
               <ul className="space-y-3">
                 {dynamicStats.membresiasNuevas.map((mem, i) => (
                   <li key={i} className="flex justify-between items-center p-3 rounded-lg bg-black/20 border border-black/5 dark:border-white/5">
-                    <div>
-                      <span className="font-medium block">{mem.nombre}</span>
-                      <span className="text-xs text-muted-foreground">{mem.plan}</span>
+                    <div className="flex items-center gap-2.5">
+                      {mem.profilePicture ? (
+                        <img src={mem.profilePicture} alt={mem.nombre} className="h-8 w-8 rounded-full object-cover shrink-0 border border-success/30" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-success/20 flex items-center justify-center text-success font-bold text-xs shrink-0">
+                          {mem.nombre?.charAt(0) || 'A'}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-medium block">{mem.nombre}</span>
+                        <span className="text-xs text-muted-foreground">{mem.plan}</span>
+                      </div>
                     </div>
                     <span className="text-xs bg-success/20 text-success px-2 py-1 rounded-full">
                       {mem.hace}

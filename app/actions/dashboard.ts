@@ -58,6 +58,7 @@ export async function getDashboardStats() {
         const days = lastAtt ? Math.floor((new Date().getTime() - new Date(lastAtt).getTime()) / (1000 * 60 * 60 * 24)) : 999
         return {
           nombre: a.name,
+          profilePicture: a.profilePicture,
           dias: days,
           antiguedad: a.memberships[0] ? new Date(a.memberships[0].startDate).toLocaleDateString() : 'N/A'
         }
@@ -72,6 +73,7 @@ export async function getDashboardStats() {
         const attendancesLast30 = a.attendances.filter(att => new Date().getTime() - new Date(att.date).getTime() < 30 * 24 * 60 * 60 * 1000).length;
         return {
           nombre: a.name,
+          profilePicture: a.profilePicture,
           porcentaje: Math.min(100, Math.round((attendancesLast30 / 20) * 100))
         }
       })
@@ -90,6 +92,7 @@ export async function getDashboardStats() {
         const days = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
         return {
           nombre: a.name,
+          profilePicture: a.profilePicture,
           phone: a.phone || "0000000000",
           venceEn: `${days} días`
         }
@@ -108,7 +111,8 @@ export async function getDashboardStats() {
         const days = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
         return {
           nombre: a.name,
-          plan: 'Plan Estándar',
+          profilePicture: a.profilePicture,
+          plan: a.memberships[0]?.planName || 'Plan Estándar',
           hace: days === 0 ? "Hoy" : `${days} días`
         }
       })

@@ -1217,10 +1217,19 @@ export default function TiendaPOSPage() {
                         type="button"
                         key={a.id} 
                         onClick={() => { setSelectedAthleteId(a.id); setClientSearchQuery(`${a.name} (${a.cedula})`); }}
-                        className="w-full text-left px-4 py-2 hover:bg-black/10 dark:bg-white/10 text-sm border-b border-black/5 dark:border-white/5 last:border-0"
+                        className="w-full text-left px-4 py-2 hover:bg-black/10 dark:bg-white/10 text-sm border-b border-black/5 dark:border-white/5 last:border-0 flex items-center gap-2.5"
                       >
-                        <div className="font-bold">{a.name}</div>
-                        <div className="text-xs text-muted-foreground">C.C. {a.cedula}</div>
+                        {((a as any).profilePicture || a.avatar) ? (
+                          <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                            {a.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-bold">{a.name}</div>
+                          <div className="text-xs text-muted-foreground">C.C. {a.cedula}</div>
+                        </div>
                       </button>
                     ))}
                     {athletes.filter(a => a.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) || a.cedula.includes(clientSearchQuery)).length === 0 && (
@@ -1697,7 +1706,14 @@ export default function TiendaPOSPage() {
                   ).map(order => (
                     <div key={order.id} className="border border-black/10 dark:border-white/10 rounded-lg p-4 bg-black/5 dark:bg-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2.5 mb-1">
+                          {order.customer?.profilePicture ? (
+                            <img src={order.customer.profilePicture} alt={order.customer.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
+                          ) : order.customer?.name ? (
+                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                              {order.customer.name.charAt(0)}
+                            </div>
+                          ) : null}
                           <span className="font-mono bg-warning/20 text-warning px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
                           <span className="font-bold">{order.customer?.name} ({order.customer?.cedula})</span>
                         </div>
