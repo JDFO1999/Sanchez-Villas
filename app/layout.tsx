@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], variable: "--font-roboto" });
 
 import { getSystemSettingsAction } from "@/app/actions/settings";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -26,21 +27,36 @@ export async function generateMetadata(): Promise<Metadata> {
     const iconUrl = `/api/favicon?v=${versionHash}`;
 
     return {
-      title: s?.appName ? `${s.appName} - Sistema de Gestión` : "Sistema de Gestión",
-      description: s?.landingSettings?.tagline || "Sistema integral de administración para gimnasios",
+      title: s?.appName ? `${s.appName} - MaximumFitAPP` : "MaximumFitAPP - Sistema de Gestión",
+      description: s?.landingSettings?.tagline || "Sistema integral de entrenamiento y administración para gimnasios",
+      applicationName: "MaximumFitAPP",
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "black-translucent",
+        title: "MaximumFitAPP",
+      },
+      manifest: "/manifest.webmanifest",
       icons: {
         icon: [{ url: iconUrl }],
         shortcut: [{ url: iconUrl }],
-        apple: [{ url: iconUrl }],
+        apple: [{ url: iconUrl, sizes: "180x180" }],
       },
     };
   } catch {
     return {
-      title: "Sistema de Gestión",
-      description: "Sistema integral de administración para gimnasios",
+      title: "MaximumFitAPP - Sistema de Gestión",
+      description: "Sistema integral de entrenamiento y administración para gimnasios",
+      applicationName: "MaximumFitAPP",
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "black-translucent",
+        title: "MaximumFitAPP",
+      },
+      manifest: "/manifest.webmanifest",
       icons: {
         icon: "/api/favicon",
         shortcut: "/api/favicon",
+        apple: "/api/favicon",
       },
     };
   }
@@ -54,6 +70,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning className={`${arvo.variable} ${inter.variable} ${roboto.variable} ${display.variable}`}>
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="MaximumFitAPP" />
+        <meta name="theme-color" content="#eab308" />
+      </head>
       <body>
         <SettingsProvider>
           <ToastProvider>
@@ -68,6 +91,7 @@ export default function RootLayout({
                   <AppLayout>
                     {children}
                   </AppLayout>
+                  <PWAInstallPrompt />
                 </AuthProvider>
               </ThemeProvider>
             </FontWrapper>
