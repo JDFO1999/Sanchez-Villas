@@ -2,10 +2,16 @@
 
 import React from "react"
 import { useSettings } from "@/lib/settings-context"
+import { useTheme } from "next-themes"
 import { Dumbbell, Flame, Zap, Activity, Clock, ShieldCheck } from "lucide-react"
 
 export function DisciplinesSection() {
   const { settings } = useSettings()
+  const { theme, resolvedTheme } = useTheme()
+  const currentTheme = resolvedTheme || theme
+  const logoSrc = currentTheme === "dark"
+    ? (settings.logoUrlDark || settings.logoUrl)
+    : (settings.logoUrl || settings.logoUrlDark)
 
   const disciplines = settings.landingSettings?.disciplines?.length
     ? settings.landingSettings.disciplines
@@ -129,8 +135,16 @@ export function DisciplinesSection() {
       {settings.trainingPhilosophy && (
         <div className="mt-16 p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-card via-primary/5 to-card border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shrink-0 border border-primary/30">
-              <Dumbbell className="w-7 h-7" />
+            <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center text-primary shrink-0 border border-primary/30 overflow-hidden p-2">
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={settings.appName || "Logo"}
+                  className="w-full h-full object-contain transition-all duration-300"
+                />
+              ) : (
+                <Dumbbell className="w-7 h-7" />
+              )}
             </div>
             <div>
               <h4 className="font-display font-black text-lg sm:text-xl uppercase text-foreground">
@@ -142,7 +156,7 @@ export function DisciplinesSection() {
             </div>
           </div>
           <a
-            href="#contacto"
+            href="#planes"
             className="shrink-0 px-6 py-3 rounded-xl bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-95 font-bold text-sm tracking-wide transition-all"
           >
             Comenzar Ahora

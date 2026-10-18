@@ -2,19 +2,20 @@
 
 import { Loader } from "@/components/ui/loader"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { Check, Dumbbell, ArrowLeft, Sun, Moon } from "lucide-react"
 import Link from "next/link"
-import { athleteService } from "@/lib/data-service"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
+import { getPublicCoaches } from "@/app/actions/users"
 
 export default function RegistroPage() {
   const { registerAthlete, login } = useAuth()
   const { settings } = useSettings()
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   
   const [nombre, setNombre] = useState("")
@@ -25,10 +26,25 @@ export default function RegistroPage() {
   const [clave, setClave] = useState("")
   const [confirmClave, setConfirmClave] = useState("")
   const [genero, setGenero] = useState<'M' | 'F'>('M')
-  const [entrenador, setEntrenador] = useState("") 
+  const [entrenador, setEntrenador] = useState("")
+  const [coaches, setCoaches] = useState<{ id: string; name: string }[]>([])
   
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    getPublicCoaches().then(res => {
+      if (res.success && Array.isArray(res.coaches)) {
+        setCoaches(res.coaches)
+      }
+    }).catch(() => {})
+  }, [])
+
+  const currentTheme = mounted ? (theme === 'system' ? resolvedTheme : theme) : 'dark'
+  const logoSrc = currentTheme === 'dark'
+    ? (settings.logoUrlDark || settings.logoUrl)
+    : (settings.logoUrl || settings.logoUrlDark)
 
   const claveMatch = clave && confirmClave && clave === confirmClave
 
@@ -39,16 +55,21 @@ export default function RegistroPage() {
       setError("Las contraseñas no coinciden.")
       return
     }
+    const cleanCedula = cedula.replace(/\D/g, "").trim()
+    if (!cleanCedula) {
+      setError("Ingresa un número de cédula válido.")
+      return
+    }
     
     setIsLoading(true)
 
-    const newUser = await registerAthlete(cedula, clave, { 
+    const newUser = await registerAthlete(cleanCedula, clave, { 
       name: nombre, 
       gender: genero, 
       phone: telefono, 
       email: correo, 
       address: direccion, 
-      coachId: entrenador 
+      coachId: entrenador || undefined
     })
     if (!newUser) {
       setError("La cédula ya está registrada o hubo un error en el servidor.")
@@ -59,7 +80,7 @@ export default function RegistroPage() {
     // Attempt login if not staff
     const storedUserId = localStorage.getItem('gympro_session_id')
     if (!storedUserId) {
-      const loginSuccess = await login(cedula, clave)
+      const loginSuccess = await login(cleanCedula, clave)
       if (loginSuccess) {
         router.push("/")
       } else {
@@ -92,8 +113,8 @@ export default function RegistroPage() {
         </div>
 
         {settings.logoSettings?.showInLogin && (
-          settings.logoUrl ? (
-            <img src={settings.logoUrl} alt="Logo" style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin, objectFit: settings.logoSettings.objectFit || 'contain' }} className={`mb-0 ${settings.logoSettings.fadeEffect ? 'opacity-80' : ''}`} />
+          logoSrc ? (
+            <img src={logoSrc} alt="Logo" style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin, objectFit: settings.logoSettings.objectFit || 'contain' }} className={`mb-0 ${settings.logoSettings.fadeEffect ? 'opacity-80' : ''}`} />
           ) : (
             <div style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-0">
               <Dumbbell className="text-primary" style={{ width: settings.logoSettings.widthLogin / 2, height: settings.logoSettings.heightLogin / 2 }} />
@@ -104,7 +125,7 @@ export default function RegistroPage() {
           Únete a {settings.logoSettings?.showNameInLogin ? settings.appName : 'nuestra comunidad'}
         </h1>
         <p className="text-muted-foreground mb-6 mt-0 text-center text-sm z-10">
-          Crea tu cuenta de atleta y selecciona a tu entrenador
+          Crea tu cuenta de atleta (si ya pagaste tu plan en recepción con tu cédula, se enlazará automáticamente)
         </p>
 
         {error && (
@@ -120,8 +141,8 @@ export default function RegistroPage() {
               <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
             </div>
             <div className="col-span-2 md:col-span-1">
-              <label className="text-xs font-medium text-foreground mb-1 block">Cédula</label>
-              <input type="text" value={cedula} onChange={e => setCedula(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="12345678" required />
+              <label className="text-xs font-medium text-foreground mb-1 block">Cédula (Solo números)</label>
+              <input type="text" value={cedula} onChange={e => setCedula(e.target.value.replace(/\D/g, ""))} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm font-mono focus:border-primary" placeholder="12345678" required />
             </div>
           </div>
 
@@ -174,7 +195,9 @@ export default function RegistroPage() {
               <div className="relative">
                 <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
                   <option value="">-- Sin entrenador --</option>
-                  <option value="4">Carlos (Staff)</option>
+                  {coaches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-foreground">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>

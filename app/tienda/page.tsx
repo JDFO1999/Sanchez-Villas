@@ -38,9 +38,58 @@ export default function TiendaPOSPage() {
   const [walkInPhone, setWalkInPhone] = useState("")
   const [categories, setCategories] = useState<string[]>([])
   
-  // Athlete View Cart
+  // Athlete View Cart & Plan Selector Modal
   const [showAthleteCart, setShowAthleteCart] = useState(false)
   const [showAdminCart, setShowAdminCart] = useState(false)
+  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [planMonths, setPlanMonths] = useState(1)
+
+  const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || []).map((p: any) => {
+    const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
+    return {
+      name: String(p.name || "Plan Promocional").trim(),
+      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : (settings.monthlyFee || 25),
+      period: p.period || "/mes",
+      description: p.description || "",
+      features: Array.isArray(p.features) ? p.features : [],
+      popular: Boolean(p.popular)
+    }
+  })
+  const baseMonthlyPrice = settings.monthlyFee || 25
+  const availableStorePlans = [
+    ...promotionalPlans,
+    {
+      name: "Mensualidad Básica",
+      price: baseMonthlyPrice,
+      period: "/mes",
+      description: "Acceso general mensual a las instalaciones del gimnasio.",
+      features: ["Acceso general a sala de musculación"],
+      popular: false
+    }
+  ]
+
+  const selectPlanForCart = (plan: { name: string; price: number }) => {
+    const months = Math.max(1, Math.min(12, Number(planMonths) || 1))
+    const newItem: TransactionItem = {
+      productId: `PLAN:${plan.name}`,
+      name: `Mensualidad - ${plan.name}`,
+      qty: months,
+      price: plan.price,
+      subtotal: plan.price * months
+    }
+    setCart(prev => {
+      const withoutPlans = prev.filter(
+        i => i.productId !== 'MEMBRESIA-001' && i.productId !== 'MEMB' && !i.productId.startsWith('PLAN:')
+      )
+      return [...withoutPlans, newItem]
+    })
+    setShowPlanModal(false)
+    if (user?.role === 'athlete') {
+      setShowAthleteCart(true)
+    } else {
+      setShowAdminCart(true)
+    }
+  }
 
   const [cartAnim, setCartAnim] = useState(false)
   const [flyingItems, setFlyingItems] = useState<{id: number, x: number, y: number, image?: string}[]>([])
@@ -87,6 +136,12 @@ export default function TiendaPOSPage() {
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('elegirPlan') === '1') {
+        setShowPlanModal(true)
+      }
+    }
     async function load() {
       const { getAthletes } = await import('@/app/actions/users')
       const athRes = await getAthletes()
@@ -172,8 +227,8 @@ export default function TiendaPOSPage() {
           const product = products.find(p => p.id === productId)
           const newQty = item.qty + delta
           if (newQty <= 0) return null
-          if (productId === 'MEMBRESIA-001' && newQty > 1) {
-            showToast("Solo puedes pagar 1 mes a la vez.", "warning")
+          if ((productId === 'MEMBRESIA-001' || productId === 'MEMB' || productId.startsWith('PLAN:')) && newQty > 12) {
+            showToast("Puedes pagar hasta 12 meses a la vez.", "warning")
             return item
           }
           if (product && newQty > product.currentStock) {
@@ -392,34 +447,146 @@ export default function TiendaPOSPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado a la Tienda.</div>
   }
 
+  const renderPlanSelectorModal = () => {
+    if (!showPlanModal) return null
+    return (
+      <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+        <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl glass max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="p-5 border-b border-black/10 dark:border-white/10 bg-black/20 flex items-center justify-between">
+            <div>
+              <h3 className="font-black text-lg sm:text-xl flex items-center gap-2 uppercase tracking-tight">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Elegir Plan o Mensualidad
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Selecciona uno de nuestros planes promocionales o la mensualidad básica y la cantidad de meses a pagar.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPlanModal(false)}
+              className="text-muted-foreground hover:text-foreground font-bold text-2xl leading-none px-2"
+            >
+              &times;
+            </button>
+          </div>
+
+          <div className="p-5 overflow-y-auto space-y-5">
+            {/* Selector de meses */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-primary/10 border border-primary/20">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-primary block">Duración del Pago</span>
+                <span className="text-xs text-muted-foreground">¿Cuántos meses deseas pagar por adelantado?</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlanMonths(m => Math.max(1, m - 1))}
+                  className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="min-w-[90px] text-center font-black text-sm">
+                  {planMonths} {planMonths === 1 ? 'Mes' : 'Meses'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPlanMonths(m => Math.min(12, m + 1))}
+                  className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Tarjetas de Planes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {availableStorePlans.map((plan) => {
+                const totalForMonths = plan.price * planMonths
+                return (
+                  <div
+                    key={plan.name}
+                    className={`rounded-2xl p-5 border flex flex-col justify-between transition-all ${
+                      plan.popular
+                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40'
+                        : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.03] hover:border-primary/50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-black text-base uppercase tracking-tight">{plan.name}</h4>
+                        {plan.popular && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground shrink-0">
+                            Más Popular
+                          </span>
+                        )}
+                      </div>
+                      {plan.description && (
+                        <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
+                      )}
+                      <div className="flex items-baseline gap-1 mb-4">
+                        <span className="text-3xl font-black text-primary">
+                          {settings.storeCurrency}{plan.price}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{plan.period}</span>
+                        {planMonths > 1 && (
+                          <span className="ml-auto text-xs font-bold text-emerald-500">
+                            Total ({planMonths}m): {settings.storeCurrency}{totalForMonths.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+
+                      {plan.features && plan.features.length > 0 && (
+                        <ul className="space-y-1.5 mb-4 border-t border-black/10 dark:border-white/10 pt-3">
+                          {plan.features.map((feat: string, idx: number) => (
+                            <li key={idx} className="text-xs flex items-start gap-2 text-foreground/90">
+                              <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                              <span>{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => selectPlanForCart(plan)}
+                      className={`w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+                        plan.popular
+                          ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20'
+                          : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
+                      }`}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      Elegir {plan.name} ({settings.storeCurrency}{totalForMonths.toFixed(2)})
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ===== VISTA CATÁLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
     return (
       <div className="space-y-6 max-w-full mx-auto pb-20">
+        {renderPlanSelectorModal()}
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
             <h1 className="page-title">Catálogo {settings.appName}</h1>
-            <p className="text-muted-foreground mt-1">Reserva tus productos desde aquí y retíralos en recepción.</p>
+            <p className="text-muted-foreground mt-1">Reserva tus productos o paga tu plan mensual desde aquí.</p>
           </div>
-          <div className="relative flex gap-2">
+          <div className="relative flex flex-wrap gap-2">
             <button 
-              onClick={() => {
-                setCart(prev => {
-                  if (prev.find(i => i.productId === 'MEMBRESIA-001')) return prev;
-                  return [...prev, {
-                    productId: 'MEMBRESIA-001',
-                    name: 'Pago Mensualidad',
-                    qty: 1,
-                    price: 30, // Default mock price
-                    subtotal: 30
-                  }];
-                });
-                setShowAthleteCart(true);
-              }}
-              className="bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm"
+              onClick={() => setShowPlanModal(true)}
+              className="bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition shadow-sm"
             >
-              <User className="h-5 w-5" />
-              <span>Pagar Mensualidad</span>
+              <CreditCard className="h-5 w-5" />
+              <span>Pagar Mensualidad / Elegir Plan</span>
             </button>
             <button onClick={() => setShowAthleteCart(true)} className="bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm">
               <ShoppingCart className="h-5 w-5" />
@@ -854,13 +1021,22 @@ export default function TiendaPOSPage() {
   // ===== VISTA POS PARA EMPLEADOS / ADMIN =====
   return (
     <div className="space-y-4 max-w-full mx-auto h-[calc(100vh-100px)] flex flex-col">
+      {renderPlanSelectorModal()}
       <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
           <h1 className="page-title mb-4">Tienda {settings.appName}</h1>
           <StoreNav />
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-warning text-warning font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-warning/10 transition shadow-sm mr-2"><Package className="h-5 w-5" /><span>Pedidos Online</span></button><div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowPlanModal(true)}
+            className="bg-primary/10 border-2 border-primary text-primary font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-primary hover:text-primary-foreground transition shadow-sm"
+          >
+            <CreditCard className="h-5 w-5" />
+            <span>Cobrar Plan / Mensualidad</span>
+          </button>
+          <button onClick={() => { fetchPendingOrders(); setShowPendingOrders(true); }} className="bg-transparent border-2 border-warning text-warning font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-warning/10 transition shadow-sm"><Package className="h-5 w-5" /><span>Pedidos Online</span></button>
+          <div className="relative">
             <button onClick={() => setShowAdminCart(true)} className={`bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm ${cartAnim ? 'animate-bounce' : ''}`}>
               <ShoppingCart className="h-5 w-5" />
               <span>Pagar / Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>
@@ -1528,26 +1704,30 @@ export default function TiendaPOSPage() {
             <h3 className="text-xl font-bold mb-4">Nuevo Cliente</h3>
             <form onSubmit={async (e) => {
                 e.preventDefault();
-                const fullCedula = `${walkInCedulaType}-${walkInCedula}`;
-                if (walkInName && walkInCedula) {
+                const cleanCedula = walkInCedula.replace(/\D/g, "").trim() || walkInCedula.trim();
+                if (walkInName && cleanCedula) {
                   const { createAthlete } = await import('@/app/actions/users');
                   const res = await createAthlete({
                     name: walkInName,
-                    cedula: fullCedula,
+                    cedula: cleanCedula,
                     role: 'athlete',
-                    password: walkInCedula,
+                    password: cleanCedula,
                     gender: 'M',
                     address: walkInAddress,
                     phone: walkInPhone
                   });
 
-                  if (res.success && res.user) {
-                    setAthletes((prev: any) => [...prev, res.user]);
-                    setSelectedAthleteId(res.user.id);
-                    setClientSearchQuery(`${res.user.name} (${res.user.cedula})`);
+                  const createdUser = (res as any).athlete || (res as any).user;
+                  if (res.success && createdUser) {
+                    setAthletes((prev: any) => {
+                      const filtered = prev.filter((p: any) => p.id !== createdUser.id);
+                      return [...filtered, createdUser];
+                    });
+                    setSelectedAthleteId(createdUser.id);
+                    setClientSearchQuery(`${createdUser.name} (${createdUser.cedula})`);
                     setShowWalkInModal(false);
                     setWalkInName(""); setWalkInCedula(""); setWalkInAddress(""); setWalkInPhone(""); setWalkInCedulaType("V");
-                    showToast("Cliente agregado.", "success");
+                    showToast("Cliente agregado y enlazado por Cédula.", "success");
                   } else {
                     showToast(res.error || "Error al crear cliente", "error");
                   }

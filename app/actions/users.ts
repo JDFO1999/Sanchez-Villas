@@ -234,12 +234,25 @@ export async function getAllEmployees() {
   }
 }
 
+export async function getPublicCoaches() {
+  try {
+    const coaches = await prisma.user.findMany({
+      where: { role: 'coach' },
+      select: { id: true, name: true, specialties: true, profilePicture: true }
+    })
+    return { success: true, coaches }
+  } catch (error: any) {
+    return { success: false, coaches: [] }
+  }
+}
+
 /**
- * Crea un atleta. Acepta `createAthlete(data)` y la forma antigua `createAthlete(cedula, clave, perfil)`
- * que usa el formulario público de registro.
+ * Crea o enlaza un atleta por cédula. Acepta `createAthlete(data)` y `createAthlete(cedula, clave, perfil)`.
  *
- * - Sin sesión (registro público): limitado por IP, contraseña obligatoria, sin membresía ni entrenador libre.
- * - Personal (POS, admin…): puede asignar membresía y entrenador; sin contraseña válida se genera una aleatoria.
+ * - Si un cliente NO registrado compró un plan en Recepción/Tienda (usando su cédula) y luego entra a `/registro`
+ *   con su misma cédula, el sistema detecta su ficha pre-creada (`PRE_REGISTERED_POS` o sin correo/reclamo),
+ *   actualiza sus datos personales y su contraseña elegida, y conserva intacto su plan/membresía ya pagada.
+ * - Si el personal de Recepción/Caja inscribe o cobra a una cédula que ya existe, actualiza su membresía/plan sin duplicar usuario.
  */
 export async function createAthlete(input: any, legacyClave?: string, legacyProfile?: any) {
   try {
@@ -257,12 +270,14 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       if (!limit.allowed) return { success: false, error: "Demasiados registros desde esta conexión. Intenta más tarde." }
     }
 
-    if (!CEDULA_RE.test(String(data.cedula ?? ""))) return { success: false, error: "Cédula no válida." }
+    const rawCedula = String(data.cedula ?? "").trim()
+    const cleanCedula = rawCedula.replace(/^[VEJvej]-?/i, "").trim()
+    if (!CEDULA_RE.test(cleanCedula)) return { success: false, error: "Cédula no válida." }
     if (!data.name || String(data.name).length > 120) return { success: false, error: "Nombre no válido." }
 
     let plain: string
     if (staff) {
-      plain = data.password && String(data.password).length >= MIN_PASSWORD ? String(data.password) : randomPassword()
+      plain = data.password && String(data.password).length >= MIN_PASSWORD ? String(data.password) : cleanCedula.padEnd(MIN_PASSWORD, "0")
     } else {
       if (!data.password || String(data.password).length < MIN_PASSWORD) {
         return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
@@ -277,18 +292,95 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       if (coach) coachId = coach.id
     }
 
-    const user = await prisma.user.create({
-        data: {
-          name: data.name,
-          cedula: data.cedula,
-          role: 'athlete', // siempre atleta: el rol nunca se toma del cliente
-          password: await bcrypt.hash(plain, 10),
-          gender: data.gender,
-          ...(coachId ? { coach: { connect: { id: coachId } } } : {}),
-          phone: data.phone || null,
-          address: data.address || null,
-          email: data.email || null,
+    // Buscar si ya existe un usuario con esa cédula (con o sin prefijo V-/E-/J-)
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { cedula: cleanCedula },
+          { cedula: rawCedula },
+          { cedula: `V-${cleanCedula}` },
+          { cedula: `E-${cleanCedula}` }
+        ]
+      },
+      include: {
+        memberships: { orderBy: { endDate: 'desc' }, take: 1 }
+      }
+    })
+
+    if (existing) {
+      if (existing.role !== 'athlete') {
+        return { success: false, error: "Esta cédula pertenece a un miembro del personal del gimnasio." }
+      }
+
+      // Caso 1: El personal de Recepción/Caja está cobrando un plan a una cédula ya registrada
+      if (staff) {
+        const updatedUser = await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            cedula: cleanCedula,
+            name: data.name || existing.name,
+            phone: data.phone || existing.phone,
+            address: data.address || existing.address,
+            ...(coachId ? { coachId } : {})
+          }
+        })
+
+        if (data.membershipEnd && me && isPos(me.role)) {
+          await prisma.membership.create({
+            data: {
+              athleteId: existing.id,
+              startDate: new Date(),
+              endDate: new Date(data.membershipEnd),
+              status: 'ACTIVE',
+              planName: data.planName || 'Plan Estándar'
+            }
+          })
         }
+
+        revalidatePath("/atletas")
+        revalidatePath("/membresias")
+        return { success: true, user: stripSecrets(updatedUser), linkedExisting: true }
+      }
+
+      // Caso 2: El cliente compró un plan en Recepción antes de registrarse y ahora se registra en /registro con su cédula
+      const isPreRegisteredByPos = existing.profession === "PRE_REGISTERED_POS" || !existing.email
+      if (!staff && isPreRegisteredByPos) {
+        const linkedUser = await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            cedula: cleanCedula,
+            name: data.name,
+            password: await bcrypt.hash(plain, 10),
+            gender: data.gender || existing.gender || 'M',
+            phone: data.phone || existing.phone || null,
+            address: data.address || existing.address || null,
+            email: data.email || existing.email || null,
+            profession: null, // Cuenta ya reclamada y activada por el atleta
+            ...(coachId && !existing.coachId ? { coachId } : {})
+          }
+        })
+
+        revalidatePath("/atletas")
+        revalidatePath("/membresias")
+        return { success: true, user: stripSecrets(linkedUser), linkedExisting: true }
+      }
+
+      return { success: false, error: "La cédula ya está registrada. Inicia sesión con tu contraseña." }
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        cedula: cleanCedula,
+        role: 'athlete', // siempre atleta: el rol nunca se toma del cliente
+        password: await bcrypt.hash(plain, 10),
+        gender: data.gender || 'M',
+        ...(coachId ? { coach: { connect: { id: coachId } } } : {}),
+        phone: data.phone || null,
+        address: data.address || null,
+        email: data.email || null,
+        profession: staff ? "PRE_REGISTERED_POS" : null,
+      }
     });
 
     // La membresía solo la asigna personal de caja/administración
@@ -298,7 +390,8 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
           athleteId: user.id,
           startDate: new Date(),
           endDate: new Date(data.membershipEnd),
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          planName: data.planName || 'Plan Estándar'
         }
       })
     }
@@ -389,13 +482,16 @@ export async function updateAthlete(id: string, data: any) {
             athleteId: id,
             startDate: new Date(),
             endDate: new Date(data.membershipEnd),
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            planName: data.planName || data.membershipType || 'Plan Estándar'
          }
       });
     }
 
     revalidatePath(`/atletas/${id}`)
     revalidatePath("/atletas")
+    revalidatePath("/membresias")
+    revalidatePath("/finanzas")
     return { success: true, user: stripSecrets(user) }
   } catch (error: any) {
     return { success: false, error: friendlyError(error) }

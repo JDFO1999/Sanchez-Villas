@@ -25,8 +25,39 @@ export default function MembresíasPage() {
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
 
-  // Renovar Modal State
+  // Helper to get available promotional plans + Mensualidad Básica
+  const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || []).map((p: any) => {
+    const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
+    return {
+      name: String(p.name || "Plan Promocional").trim(),
+      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : (settings.monthlyFee || 25),
+      period: p.period || "/mes",
+      description: p.description || "",
+      features: Array.isArray(p.features) ? p.features : [],
+      popular: Boolean(p.popular)
+    }
+  })
+  const baseMonthlyPrice = settings.monthlyFee || 25
+  const availablePlans = [
+    ...promotionalPlans,
+    {
+      name: "Mensualidad Básica",
+      price: baseMonthlyPrice,
+      period: "/mes",
+      description: "Acceso general mensual al gimnasio",
+      features: ["Acceso general a sala de musculación"],
+      popular: false
+    }
+  ]
+
+  // Renovar / Activar Modal State
   const [showRenovarModal, setShowRenovarModal] = useState<AthleteProfile | null>(null)
+  const [isWalkInMode, setIsWalkInMode] = useState(false)
+  const [walkInCedula, setWalkInCedula] = useState("")
+  const [walkInName, setWalkInName] = useState("")
+  const [walkInPhone, setWalkInPhone] = useState("")
+  const [selectedPlanName, setSelectedPlanName] = useState<string>("")
+  const [selectedPlanPrice, setSelectedPlanPrice] = useState<number>(25)
   const [renovarIncludeCoach, setRenovarIncludeCoach] = useState(false)
   const [renovarSelectedCoach, setRenovarSelectedCoach] = useState("")
   const [renovarMonths, setRenovarMonths] = useState(1)
@@ -70,13 +101,14 @@ export default function MembresíasPage() {
         if (athRes.success) {
           setAthletes(athRes.athletes.map((a: any) => ({
             ...a,
-            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+            membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
           })))
         }
         
         const empRes = await getAllEmployees()
         if (empRes.success) {
-          setAllCoaches(empRes.employees.filter((e: any) => e.role === 'employee'))
+          setAllCoaches(empRes.employees.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
         }
       } catch (err) {
         console.error("Error cargando membresías:", err)
@@ -171,11 +203,41 @@ export default function MembresíasPage() {
     setMessageText("")
   }
 
+  const syncSingleSplitAmount = (planPrice: number, months: number, includeCoach: boolean, coachId: string) => {
+    const mem = planPrice * months
+    let cPrice = 0
+    if (includeCoach && coachId) {
+      if (settings.coachCustomPricing) {
+        const coachInfo = allCoaches.find((e: any) => e.id === coachId)
+        cPrice = (coachInfo?.commissionRate || 15) * months
+      } else {
+        cPrice = 15 * months
+      }
+    }
+    const newTotal = mem + cPrice
+    setRenovarSplits(prev => {
+      const copy = [...prev]
+      if (renovarSplitCount === 1) {
+        copy[0] = { ...copy[0], amount: newTotal }
+      }
+      return copy
+    })
+  }
+
   const openRenovarModal = (a: AthleteProfile) => {
+    setIsWalkInMode(false)
+    setWalkInCedula("")
+    setWalkInName("")
+    setWalkInPhone("")
+    const defaultPlan = availablePlans.find(p => p.name.toLowerCase() === (a.membershipType || "").toLowerCase()) || availablePlans.find(p => p.popular) || availablePlans[0]
+    const pName = defaultPlan?.name || "Mensualidad Básica"
+    const pPrice = defaultPlan?.price || baseMonthlyPrice
+    setSelectedPlanName(pName)
+    setSelectedPlanPrice(pPrice)
     setRenovarSelectedCoach(a.coachId || "")
     setRenovarIncludeCoach(!!a.coachId)
     setRenovarMonths(1)
-    const baseTotal = 30 + (a.coachId ? 15 : 0)
+    const baseTotal = pPrice + (a.coachId ? 15 : 0)
     setRenovarSplitCount(1)
     setRenovarSplits([
       { method: 'Efectivo', amount: baseTotal, reference: '', receiptImage: null },
@@ -185,12 +247,53 @@ export default function MembresíasPage() {
     setShowRenovarModal(a)
   }
 
+  const openWalkInPlanModal = () => {
+    setIsWalkInMode(true)
+    setWalkInCedula("")
+    setWalkInName("")
+    setWalkInPhone("")
+    const defaultPlan = availablePlans.find(p => p.popular) || availablePlans[0]
+    const pName = defaultPlan?.name || "Mensualidad Básica"
+    const pPrice = defaultPlan?.price || baseMonthlyPrice
+    setSelectedPlanName(pName)
+    setSelectedPlanPrice(pPrice)
+    setRenovarSelectedCoach("")
+    setRenovarIncludeCoach(false)
+    setRenovarMonths(1)
+    setRenovarSplitCount(1)
+    setRenovarSplits([
+      { method: 'Efectivo', amount: pPrice, reference: '', receiptImage: null },
+      { method: 'Pago Móvil', amount: '', reference: '', receiptImage: null },
+      { method: 'Tarjeta', amount: '', reference: '', receiptImage: null }
+    ])
+    setShowRenovarModal({
+      id: "WALK_IN",
+      name: "Nuevo Cliente (Por Cédula)",
+      cedula: "",
+      membershipType: pName,
+      membershipEnd: new Date(0).toISOString(),
+      status: "Activa"
+    } as any)
+  }
+
   const handleRenovar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showRenovarModal) return
+
+    if (isWalkInMode) {
+      const cleanCed = walkInCedula.replace(/\D/g, "").trim()
+      if (!cleanCed) {
+        Swal.fire('Cédula Requerida', 'Ingresa el número de cédula del cliente para enlazar su plan.', 'warning')
+        return
+      }
+      if (!walkInName.trim()) {
+        Swal.fire('Nombre Requerido', 'Ingresa el nombre del cliente.', 'warning')
+        return
+      }
+    }
     
     // Calculate total
-    const membershipPrice = 30 * renovarMonths
+    const membershipPrice = selectedPlanPrice * renovarMonths
     let coachPrice = 0
 
     if (renovarIncludeCoach && renovarSelectedCoach) {
@@ -236,8 +339,8 @@ export default function MembresíasPage() {
     }
 
     const confirm = await Swal.fire({
-      title: '¿Confirmar Renovación?',
-      html: `El total a cobrar es de <b>${settings.storeCurrency} ${total}</b>.<br><span class="text-xs text-muted-foreground mt-1 block">Formas de pago: ${renovarSplitCount === 1 ? activeSplits[0].method : activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}</span>`,
+      title: isWalkInMode ? '¿Confirmar Cobro de Plan?' : '¿Confirmar Plan / Renovación?',
+      html: `Plan: <b>${selectedPlanName}</b> (${renovarMonths} mes/es)<br>Total a cobrar: <b>${settings.storeCurrency} ${total.toFixed(2)}</b>.<br><span class="text-xs text-muted-foreground mt-1 block">Formas de pago: ${renovarSplitCount === 1 ? activeSplits[0].method : activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}</span>`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, procesar',
@@ -261,15 +364,40 @@ export default function MembresíasPage() {
     }
 
     const { createTransaction } = await import('@/app/actions/store')
+    const { createAthlete, updateAthlete, getAthletes } = await import('@/app/actions/users')
+
+    let targetAthleteId = showRenovarModal.id
+    const currentEnd = new Date(showRenovarModal.membershipEnd)
+    const now = new Date()
+    let startFrom = currentEnd > now ? new Date(currentEnd) : new Date(now)
+    startFrom.setMonth(startFrom.getMonth() + renovarMonths)
+
+    if (isWalkInMode) {
+      const cleanCed = walkInCedula.replace(/\D/g, "").trim()
+      const createRes = await createAthlete({
+        cedula: cleanCed,
+        name: walkInName.trim(),
+        phone: walkInPhone.trim() || undefined,
+        coachId: renovarIncludeCoach && renovarSelectedCoach ? renovarSelectedCoach : undefined,
+        membershipEnd: startFrom.toISOString(),
+        planName: selectedPlanName,
+        pricePaid: membershipPrice
+      })
+      if (!createRes.success || !createRes.athlete) {
+        Swal.fire('Error', createRes.error || 'No se pudo registrar o actualizar al cliente por cédula.', 'error')
+        return
+      }
+      targetAthleteId = createRes.athlete.id
+    }
     
     // Process Transaction
     const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
     await createTransaction({
        cashierId: user?.id || 'admin',
-       customerId: showRenovarModal.id,
+       customerId: targetAthleteId,
        items: [
-         { productId: 'MEMB', name: `Membresía (${renovarMonths} mes/es)`, price: membershipPrice, qty: 1, subtotal: membershipPrice },
-         ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice, qty: 1, subtotal: coachPrice }] : [])
+         { productId: 'MEMB', name: `${selectedPlanName} (${renovarMonths} mes/es)`, price: selectedPlanPrice, qty: renovarMonths, subtotal: membershipPrice },
+         ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice / renovarMonths, qty: renovarMonths, subtotal: coachPrice }] : [])
        ],
        subtotal: total,
        tax: 0,
@@ -279,23 +407,22 @@ export default function MembresíasPage() {
        receiptImage: finalReceiptImage
     })
 
-    // Update Athlete Membership
-    const currentEnd = new Date(showRenovarModal.membershipEnd)
-    const now = new Date()
-    let startFrom = currentEnd > now ? currentEnd : now
-    startFrom.setMonth(startFrom.getMonth() + renovarMonths)
-
-    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
-    await updateAthlete(showRenovarModal.id, {
-      membershipEnd: startFrom.toISOString(),
-      coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
-    })
+    // Update Athlete Membership (when not already handled by createAthlete in walk-in mode)
+    if (!isWalkInMode) {
+      await updateAthlete(targetAthleteId, {
+        membershipEnd: startFrom.toISOString(),
+        planName: selectedPlanName,
+        pricePaid: membershipPrice,
+        coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
+      })
+    }
     
     const athRes = await getAthletes()
     if (athRes.success) {
       setAthletes(athRes.athletes.map((a: any) => ({
         ...a,
-        membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+        membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
       })))
     }
     setShowRenovarModal(null)
@@ -305,36 +432,152 @@ export default function MembresíasPage() {
       toast: true,
       position: 'top-end',
       showConfirmButton: false,
-      timer: 3000,
+      timer: 3500,
       timerProgressBar: true,
       didOpen: (toast) => {
         toast.addEventListener('mouseenter', Swal.stopTimer)
         toast.addEventListener('mouseleave', Swal.resumeTimer)
       }
     })
-    Toast.fire({ icon: 'success', title: 'Renovación y cobro exitosos' })
+    Toast.fire({
+      icon: 'success',
+      title: isWalkInMode
+        ? 'Plan cobrado y enlazado a la cédula exitosamente'
+        : 'Plan activado/renovado y cobrado exitosamente'
+    })
   }
 
   return (
     <div className="space-y-6 max-w-full mx-auto relative">
       
-      {/* RENOVAR MODAL */}
+      {/* RENOVAR / ACTIVAR PLAN MODAL */}
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-2">Renovar Membresía</h3>
-            <p className="text-sm text-muted-foreground mb-4">Se creará el cobro automáticamente en la caja.</p>
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+            <h3 className="text-xl font-bold mb-1">
+              {isWalkInMode
+                ? 'Cobrar Plan a Cliente por Cédula'
+                : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 ? `Activar Plan — ${showRenovarModal.name}` : `Renovar Plan — ${showRenovarModal.name}`)}
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              {isWalkInMode
+                ? 'Si el cliente aún no se ha registrado en la web, el plan quedará asociado a su Cédula y se enlazará automáticamente cuando se registre en /registro.'
+                : `C.I. ${showRenovarModal.cedula} • Se registrará el cobro en caja y se activará el plan seleccionado.`}
+            </p>
             <form onSubmit={handleRenovar} className="space-y-4">
+              {isWalkInMode && (
+                <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-primary mb-1 block">Cédula del Cliente (Solo números) *</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="Ej: 28123456"
+                        value={walkInCedula}
+                        onChange={e => {
+                          const clean = e.target.value.replace(/\D/g, "")
+                          setWalkInCedula(clean)
+                          const existingAth = athletes.find(x => x.cedula.replace(/\D/g, "") === clean)
+                          if (existingAth && !walkInName) {
+                            setWalkInName(existingAth.name)
+                            if (existingAth.phone) setWalkInPhone(existingAth.phone)
+                          }
+                        }}
+                        className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm font-mono focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold mb-1 block">Nombre y Apellido *</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="Ej: María Pérez"
+                        value={walkInName}
+                        onChange={e => setWalkInName(e.target.value)}
+                        className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono / WhatsApp (Opcional)</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: 04141234567"
+                      value={walkInPhone}
+                      onChange={e => setWalkInPhone(e.target.value)}
+                      className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm focus:border-primary"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Selector de Plan Promocional o Mensualidad Básica */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
+                  Seleccionar Plan o Mensualidad
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {availablePlans.map((plan) => {
+                    const isSelected = selectedPlanName === plan.name
+                    return (
+                      <button
+                        key={plan.name}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlanName(plan.name)
+                          setSelectedPlanPrice(plan.price)
+                          syncSingleSplitAmount(plan.price, renovarMonths, renovarIncludeCoach, renovarSelectedCoach)
+                        }}
+                        className={`text-left p-3 rounded-xl border transition-all flex flex-col justify-between ${
+                          isSelected
+                            ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                            : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="font-black text-xs uppercase tracking-tight leading-snug">{plan.name}</span>
+                          {plan.popular && (
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground shrink-0">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-1">
+                          <span className="text-lg font-black text-primary">{settings.storeCurrency}{plan.price}</span>
+                          <span className="text-[10px] text-muted-foreground">{plan.period}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
-                <input type="number" min="1" max="12" value={renovarMonths} onChange={e => setRenovarMonths(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm" />
+                <input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={renovarMonths}
+                  onChange={e => {
+                    const m = Math.max(1, Number(e.target.value) || 1)
+                    setRenovarMonths(m)
+                    syncSingleSplitAmount(selectedPlanPrice, m, renovarIncludeCoach, renovarSelectedCoach)
+                  }}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm"
+                />
               </div>
               <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
                 <input 
                   type="checkbox" 
                   id="includeCoach" 
                   checked={renovarIncludeCoach} 
-                  onChange={e => setRenovarIncludeCoach(e.target.checked)} 
+                  onChange={e => {
+                    const checked = e.target.checked
+                    setRenovarIncludeCoach(checked)
+                    syncSingleSplitAmount(selectedPlanPrice, renovarMonths, checked, renovarSelectedCoach)
+                  }} 
                   className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
                 />
                 <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
@@ -348,7 +591,11 @@ export default function MembresíasPage() {
                   <select 
                     required 
                     value={renovarSelectedCoach} 
-                    onChange={e => setRenovarSelectedCoach(e.target.value)} 
+                    onChange={e => {
+                      const cId = e.target.value
+                      setRenovarSelectedCoach(cId)
+                      syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, cId)
+                    }} 
                     className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
                   >
                     <option value="">Seleccione uno...</option>
@@ -360,7 +607,7 @@ export default function MembresíasPage() {
               )}
               
               {(() => {
-                const mem = 30 * renovarMonths
+                const mem = selectedPlanPrice * renovarMonths
                 let coachPrice = 0
                 if (renovarIncludeCoach && renovarSelectedCoach) {
                   if (settings.coachCustomPricing) {
@@ -379,7 +626,10 @@ export default function MembresíasPage() {
                 return (
                   <>
                     <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl mt-4 mb-4 flex justify-between items-center">
-                      <span className="font-medium text-sm text-primary">Total a Cobrar:</span>
+                      <div>
+                        <span className="font-bold text-sm text-primary block">Total a Cobrar:</span>
+                        <span className="text-[11px] text-muted-foreground">{selectedPlanName} × {renovarMonths} mes(es)</span>
+                      </div>
                       <span className="text-2xl font-black text-primary">
                         {settings.storeCurrency} {totalCalculado.toFixed(2)}
                       </span>
@@ -808,13 +1058,20 @@ export default function MembresíasPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Membresias y Gestion Social</h1>
+          <h1 className="page-title">Membresías y Gestión de Planes</h1>
           <p className="text-muted-foreground mt-1">
-            Gestiona accesos, planes Comunicacion con los Atletas.
+            Gestiona accesos, planes promocionales y comunicación con los atletas.
           </p>
         </div>
         
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+          <button
+            type="button"
+            onClick={openWalkInPlanModal}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs px-3.5 py-2.5 rounded-lg transition shadow-md shadow-primary/20 flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <DollarSign className="h-4 w-4" /> + Cobrar Plan por Cédula
+          </button>
           <select 
             value={filterType} 
             onChange={e => setFilterType(e.target.value)}
@@ -823,13 +1080,13 @@ export default function MembresíasPage() {
             <option value="Todas">Todas</option>
             <option value="Activas">Activas</option>
             <option value="Por Vencer">Por Vencer</option>
-            <option value="Vencidas">Vencidas</option>
+            <option value="Vencidas">Vencidas / Sin Plan</option>
           </select>
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Buscar por Cedula o nombre..." 
+              placeholder="Buscar por Cédula o nombre..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
@@ -882,7 +1139,9 @@ export default function MembresíasPage() {
             const today = new Date()
             const diffDays = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
             const isExpired = hasValidMemb && diffDays <= 0
-            const noMembYet = !hasValidMemb
+            const noMembYet = !hasMembValidHelper(hasValidMemb)
+
+            function hasMembValidHelper(v: boolean) { return v }
 
             return (
               <Card key={a.id} className="glass overflow-hidden hover:border-primary/40 transition-all duration-200">
@@ -917,7 +1176,7 @@ export default function MembresíasPage() {
                       </div>
                       <div className="pr-24">
                         <h3 className="font-bold text-lg leading-tight">{a.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">C.C. {a.cedula}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">C.I. {a.cedula}</p>
                       </div>
                     </div>
 
@@ -925,7 +1184,7 @@ export default function MembresíasPage() {
                     <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                       <div className="flex items-center gap-2 mb-1">
                         <CreditCard className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">{noMembYet ? 'Sin plan activo' : (a.membershipType || 'Plan Estándar')}</span>
+                        <span className="text-sm font-bold">{noMembYet ? 'Sin plan activo' : (a.membershipType || 'Plan Estándar')}</span>
                       </div>
                       <div className="text-sm">
                         <span className="text-muted-foreground text-xs">{noMembYet ? 'Estado: ' : 'Vence: '}</span>
@@ -958,15 +1217,14 @@ export default function MembresíasPage() {
                     {/* Acciones */}
                     <div className="p-5 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-row md:flex-col items-center justify-center gap-2">
                       <button 
-                        onClick={() => isExpired && openRenovarModal(a)}
-                        disabled={!isExpired}
+                        onClick={() => openRenovarModal(a)}
                         className={`flex-1 md:w-full px-3 py-2 rounded-lg transition text-xs font-bold flex items-center justify-center gap-1.5 ${
-                          isExpired 
+                          noMembYet || isExpired
                             ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20' 
-                            : 'bg-black/5 dark:bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed'
+                            : 'bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30'
                         }`}
                       >
-                        <DollarSign className="h-3.5 w-3.5" /> Renovar
+                        <DollarSign className="h-3.5 w-3.5" /> {noMembYet ? 'Activar Plan' : 'Renovar Plan'}
                       </button>
                       <button 
                         onClick={() => openEditModal(a)}

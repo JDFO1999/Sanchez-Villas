@@ -242,30 +242,70 @@ export function AthleteDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col justify-between">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Membresía</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Membresía / Plan</CardTitle>
             <CreditCard className="h-4 w-4 text-success" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             {memberships.length > 0 ? (() => {
-              const active = memberships.find(m => m.status === 'ACTIVE');
-              if (active) {
-                const daysLeft = Math.ceil((new Date(active.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+              const active = memberships.find(m => m.status === 'ACTIVE') || memberships[0];
+              const endDate = active?.endDate ? new Date(active.endDate) : null;
+              const hasValidDate = Boolean(endDate && endDate.getFullYear() > 1970);
+              const daysLeft = hasValidDate && endDate
+                ? Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+                : 0;
+
+              if (hasValidDate && daysLeft > 0) {
                 return (
-                  <>
-                    <div className="stat-number text-4xl">{daysLeft} días</div>
-                    <p className="text-xs text-muted-foreground mt-1 text-success">
-                      Vence el {new Date(active.endDate).toLocaleDateString()}
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="stat-number text-4xl">{daysLeft} días</div>
+                      {active?.planName && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                          {active.planName}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-1 text-success font-medium">
+                      Vence el {endDate?.toLocaleDateString()}
                     </p>
-                  </>
+                  </div>
+                );
+              } else if (hasValidDate && daysLeft <= 0) {
+                return (
+                  <div>
+                    <div className="text-base font-black text-destructive">Membresía Vencida</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Venció el {endDate?.toLocaleDateString()}
+                    </p>
+                  </div>
                 );
               } else {
-                return <div className="text-sm font-bold text-destructive">Inactiva</div>;
+                return (
+                  <div>
+                    <div className="text-base font-black text-amber-500">Sin plan activo</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Elige tu plan o paga tu mensualidad en línea
+                    </p>
+                  </div>
+                );
               }
             })() : (
-              <div className="text-sm font-bold text-destructive">Sin membresía</div>
+              <div>
+                <div className="text-base font-black text-amber-500">Sin membresía activa</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Elige un plan promocional o mensualidad básica
+                </p>
+              </div>
             )}
+            <Link
+              href="/tienda?elegirPlan=1"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 font-bold text-xs transition shadow-sm"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Pagar / Elegir Plan Online
+            </Link>
           </CardContent>
         </Card>
       </div>

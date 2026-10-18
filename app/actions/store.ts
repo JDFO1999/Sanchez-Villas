@@ -131,10 +131,13 @@ export async function createTransaction(data: any) {
           // El atleta no puede pedir más de lo que hay; el personal puede forzar (override de stock del admin)
           if (isAthlete && product.stock < qty) throw new Error(`Stock insuficiente de "${product.name}".`)
           lines.push({ productId, name: product.name, price: product.price, qty, subtotal: product.price * qty, physical: true })
-        } else if (isPosUser && ['MEMB', 'COACH', 'COACH_FEE'].includes(productId)) {
-          // Membresías y planes no son productos de inventario: el precio lo fija el personal de caja
+        } else if (
+          ['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE'].includes(productId) ||
+          productId.startsWith('PLAN:')
+        ) {
+          // Membresías y planes promocionales son ítems virtuales (sin stock físico)
           const price = Number(item?.price)
-          if (!Number.isFinite(price) || price < 0 || price > 1_000_000) throw new Error('Precio no válido.')
+          if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) throw new Error('Precio no válido.')
           lines.push({ productId, name: String(item?.name ?? productId).slice(0, 120), price, qty, subtotal: price * qty, physical: false })
         } else {
           throw new Error('Uno de los productos ya no está disponible.')
@@ -195,6 +198,37 @@ export async function createTransaction(data: any) {
         }
       }
 
+      // 3b. Si es una venta directa en caja (POS en /tienda) de un Plan/Membresía (MEMBRESIA-001 o PLAN:*),
+      // activamos/extendemos automáticamente la membresía del cliente (en /membresias se usa 'MEMB' y updateAthlete aparte).
+      if (cashierId && customerId) {
+        for (const l of lines) {
+          if (l.productId === 'MEMBRESIA-001' || l.productId.startsWith('PLAN:')) {
+            const latestMemb = await tx.membership.findFirst({
+              where: { userId: customerId },
+              orderBy: { endDate: 'desc' }
+            });
+            const now = new Date();
+            const currentEnd = latestMemb?.endDate ? new Date(latestMemb.endDate) : new Date(0);
+            const startFrom = currentEnd > now ? new Date(currentEnd) : new Date(now);
+            startFrom.setMonth(startFrom.getMonth() + l.qty);
+            const planName = l.productId.startsWith('PLAN:')
+              ? (l.productId.slice(5).trim() || 'Mensual')
+              : (l.name.replace(/^Mensualidad\s*[-–:]?\s*/i, '').trim() || 'Mensual');
+
+            await tx.membership.create({
+              data: {
+                userId: customerId,
+                status: 'ACTIVE',
+                planName,
+                startDate: now,
+                endDate: startFrom,
+                pricePaid: l.subtotal
+              }
+            });
+          }
+        }
+      }
+
       // 4. Update debt if FIADO
       if (isCredit && customerId) {
         await tx.user.update({
@@ -209,6 +243,9 @@ export async function createTransaction(data: any) {
     })
 
     revalidatePath('/tienda');
+    revalidatePath('/membresias');
+    revalidatePath('/atletas');
+    revalidatePath('/finanzas');
     revalidatePath('/');
     await audit("sale.create", g.user, { transactionId: transaction.id, total: transaction.total, method });
     return { success: true, transaction }
@@ -250,7 +287,7 @@ async function cancelExpiredCashOrders() {
   for (const tx of expiredTxs) {
     await prisma.transaction.update({ where: { id: tx.id }, data: { status: 'CANCELED' } });
     for (const item of tx.items) {
-      if (!['MEMB', 'COACH'].includes(item.productId)) {
+      if (!['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE'].includes(item.productId) && !item.productId.startsWith('PLAN:')) {
         const prod = await prisma.product.findUnique({ where: { id: item.productId } });
         if (prod) {
           await prisma.product.update({
@@ -308,6 +345,42 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
         include: { items: true }
       });
 
+      // Hook for Membership / Promotional Plan online payments
+      if (updatedTx.customerId) {
+        for (const item of updatedTx.items) {
+          if (
+            item.productId === 'MEMB' ||
+            item.productId === 'MEMBRESIA-001' ||
+            item.productId.startsWith('PLAN:')
+          ) {
+            const latestMemb = await tx.membership.findFirst({
+              where: { userId: updatedTx.customerId },
+              orderBy: { endDate: 'desc' }
+            });
+            const now = new Date();
+            const currentEnd = latestMemb?.endDate ? new Date(latestMemb.endDate) : new Date(0);
+            const startFrom = currentEnd > now ? new Date(currentEnd) : new Date(now);
+            const monthsToAdd = Math.max(1, Number(item.qty) || 1);
+            startFrom.setMonth(startFrom.getMonth() + monthsToAdd);
+
+            const planName = item.productId.startsWith('PLAN:')
+              ? (item.productId.slice(5).trim() || 'Mensual')
+              : (item.name.replace(/^Mensualidad\s*[-–:]?\s*/i, '').replace(/\s*\(\d+\s*mes.*?\)\s*$/i, '').trim() || 'Mensual');
+
+            await tx.membership.create({
+              data: {
+                userId: updatedTx.customerId,
+                status: 'ACTIVE',
+                planName,
+                startDate: now,
+                endDate: startFrom,
+                pricePaid: item.subtotal
+              }
+            });
+          }
+        }
+      }
+
       // Hook for Coach Change Fee
       const hasCoachFee = updatedTx.items.some((i: any) => i.productId === 'COACH_FEE');
       if (hasCoachFee && updatedTx.customerId) {
@@ -330,6 +403,11 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
       return updatedTx;
     });
 
+    revalidatePath('/tienda');
+    revalidatePath('/membresias');
+    revalidatePath('/atletas');
+    revalidatePath('/finanzas');
+    revalidatePath('/');
     return { success: true, transaction };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -351,7 +429,7 @@ export async function cancelTransaction(transactionId: string) {
     const isPosUser = (ROLES.POS as readonly string[]).includes(g.user.role)
     if (!isPosUser && tx.customerId !== g.user.id) return { success: false, error: 'No autorizado' };
     if (tx.status !== 'PENDING_DELIVERY') return { success: false, error: 'La transacción no está pendiente' };
-    if (tx.paymentMethod !== 'Efectivo') return { success: false, error: 'Solo se pueden cancelar facturas en Efectivo' };
+    if (!isPosUser && tx.paymentMethod !== 'Efectivo') return { success: false, error: 'Solo se pueden cancelar facturas en Efectivo' };
 
     await prisma.$transaction(async (txPrisma) => {
       await txPrisma.transaction.update({
@@ -360,10 +438,15 @@ export async function cancelTransaction(transactionId: string) {
       });
 
       for (const item of tx.items) {
-        await txPrisma.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.qty } }
-        });
+        if (!['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE'].includes(item.productId) && !item.productId.startsWith('PLAN:')) {
+          const prod = await txPrisma.product.findUnique({ where: { id: item.productId } });
+          if (prod) {
+            await txPrisma.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.qty } }
+            });
+          }
+        }
       }
     });
 
@@ -396,7 +479,7 @@ export async function adminRefundTransaction(transactionId: string) {
 
       // 2. Return stock for physical items
       for (const item of tx.items) {
-        if (!['MEMB', 'COACH'].includes(item.productId)) {
+        if (!['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE'].includes(item.productId) && !item.productId.startsWith('PLAN:')) {
           const productExists = await txPrisma.product.findUnique({ where: { id: item.productId } });
           if (productExists) {
             await txPrisma.product.update({
