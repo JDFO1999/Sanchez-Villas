@@ -16,9 +16,9 @@ export const DENIED = "No autorizado"
 
 export const ROLES = {
   ADMIN: ["admin"],
-  STAFF: ["admin", "coach", "cajero", "recepcion", "employee"],
-  POS: ["admin", "cajero", "recepcion"],
-  TRAINER: ["admin", "coach", "employee"],
+  STAFF: ["admin", "gerente", "coach", "cajero", "recepcion", "employee"],
+  POS: ["admin", "gerente", "cajero", "recepcion"],
+  TRAINER: ["admin", "gerente", "coach", "employee"],
 } as const
 
 export interface AuthUser {
@@ -61,11 +61,11 @@ export async function guardSelfOr(targetUserId: string, roles: readonly string[]
   return { ok: false, error: DENIED }
 }
 
-/** Quien puede tomar asistencia: admin, cajero, recepción o quien tenga el permiso explícito. */
+/** Quien puede tomar asistencia: admin, gerente, cajero, recepción o quien tenga el permiso explícito. */
 export async function guardAttendance(): Promise<Guard> {
   const user = await getAuthUser()
   if (!user) return { ok: false, error: DENIED }
-  const allowed = ["admin", "cajero", "recepcion"].includes(user.role) || user.canManageAttendance
+  const allowed = ["admin", "gerente", "cajero", "recepcion"].includes(user.role) || user.canManageAttendance
   return allowed ? { ok: true, user } : { ok: false, error: DENIED }
 }
 

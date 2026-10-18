@@ -85,10 +85,16 @@ export async function loginAction(cedula: string, clave: string) {
   }
 }
 
+function isAllowedCashierPinRole(role?: string): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase();
+  return r === "cajero" || r === "gerente" || r === "admin" || r.includes("cajer") || r.includes("gerent");
+}
+
 export async function validatePinAction(pin: string) {
   try {
     if (typeof pin !== "string" || !pin || pin.length > 200) {
-      return { success: false, error: "Clave o PIN no válido" };
+      return { success: false, error: "Código de barras / PIN no válido" };
     }
 
     // Límite POR IP
@@ -102,44 +108,26 @@ export async function validatePinAction(pin: string) {
     }
 
     const trimmedPin = pin.trim();
-    let matchedUser: any = null;
-
-    // 1) Primero verificamos si coincide con la clave de la cuenta (o accessPin) del usuario con sesión activa
     const currentSessionUser = await getAuthUser();
-    if (currentSessionUser) {
-      const dbCurrent = await prisma.user.findUnique({ where: { id: currentSessionUser.id } });
-      if (dbCurrent && dbCurrent.role !== "deleted") {
-        let isPassMatch = false;
-        try {
-          isPassMatch = await bcrypt.compare(trimmedPin, dbCurrent.password || "");
-        } catch {
-          isPassMatch = false;
-        }
-        if (!isPassMatch && dbCurrent.password === trimmedPin) {
-          isPassMatch = true;
-        }
-        if (isPassMatch || (dbCurrent.accessPin && dbCurrent.accessPin === trimmedPin)) {
-          matchedUser = dbCurrent;
-        }
-      }
-    }
 
-    // 2) Si no es el usuario en sesión (ej. un Admin autorizando en recepción o un cajero escaneando su código),
-    // buscamos por accessPin directo
-    if (!matchedUser) {
-      matchedUser = await prisma.user.findFirst({
-        where: { accessPin: trimmedPin, NOT: { role: "deleted" } }
-      });
-    }
+    // 1) Buscar por Código de Barras / PIN asignado (accessPin) — aplica para Cajero, Gerente y Administrador
+    let matchedUser: any = await prisma.user.findFirst({
+      where: { accessPin: trimmedPin, NOT: { role: "deleted" } }
+    });
 
-    // 3) Si aún no hay coincidencia, verificamos si coincide con la contraseña (clave de cuenta) de algún miembro del personal autorizado (Admin, Cajero, Recepción)
+    // 2) Si no coincidió por accessPin, SOLO el Gerente o el Administrador pueden validar con su clave
+    // (El Cajero NUNCA puede usar la clave de su cuenta personal; el Cajero debe usar obligatoriamente su código de barras / PIN)
     if (!matchedUser) {
-      const posUsers = await prisma.user.findMany({
+      const adminOrManagerUsers = await prisma.user.findMany({
         where: {
-          role: { in: [...ROLES.POS] }
+          NOT: { role: "deleted" }
         }
       });
-      for (const candidate of posUsers) {
+      for (const candidate of adminOrManagerUsers) {
+        const r = (candidate.role || "").toLowerCase();
+        const isManagerOrAdmin = r === "admin" || r === "gerente" || r.includes("gerent");
+        if (!isManagerOrAdmin) continue;
+
         let isMatch = false;
         try {
           isMatch = await bcrypt.compare(trimmedPin, candidate.password || "");
@@ -158,16 +146,15 @@ export async function validatePinAction(pin: string) {
 
     if (!matchedUser) {
       await audit("login.pin_failed", null);
-      return { success: false, error: "Clave o PIN incorrecto" };
+      return { success: false, error: "Código de barras / PIN inválido (Recuerda: el cajero debe usar su código de barras/PIN, no la clave de su cuenta)." };
     }
 
-    // Ensure the user actually has permission to operate POS / Recepción / Admin
-    if (!(ROLES.POS as readonly string[]).includes(matchedUser.role) && !(matchedUser as any).canManageAttendance) {
-      return { success: false, error: "El usuario no tiene permisos de cajero, recepción o administrador" };
+    // Verificar que SOLO Cajero, Gerente o Administrador puedan utilizarlo
+    if (!isAllowedCashierPinRole(matchedUser.role)) {
+      return { success: false, error: "Solo el Cajero, el Gerente y el Administrador están autorizados para validar cobros." };
     }
 
     resetRateLimit(`pin:${ip}`);
-    // Solo creamos sesión si no había nadie logueado previamente, para no reemplazar la sesión del recepcionista cuando un Admin autoriza algo
     if (!currentSessionUser) {
       await createSession(matchedUser);
     }
@@ -175,7 +162,61 @@ export async function validatePinAction(pin: string) {
     return { success: true, user: stripSecrets(matchedUser) };
   } catch (error: any) {
     console.error("validatePinAction:", error);
-    return { success: false, error: "No se pudo validar la clave o PIN." };
+    return { success: false, error: "No se pudo validar el código de barras / PIN." };
+  }
+}
+
+/**
+ * Validación exclusiva con la CLAVE de la cuenta del Administrador (usado en Recepción para ingreso manual por Cédula y anulaciones).
+ */
+export async function validateAdminPasswordAction(clave: string) {
+  try {
+    if (typeof clave !== "string" || !clave || clave.length > 200) {
+      return { success: false, error: "Contraseña de Administrador no válida." };
+    }
+
+    const ip = await clientIp();
+    const limit = checkRateLimit(`admin-pass:${ip}`, 10, WINDOW_MS);
+    if (!limit.allowed) {
+      return {
+        success: false,
+        error: `Demasiados intentos. Espere ${limit.resetInSeconds} segundos.`
+      };
+    }
+
+    const trimmed = clave.trim();
+    const admins = await prisma.user.findMany({
+      where: { role: "admin" }
+    });
+
+    let matchedAdmin: any = null;
+    for (const adm of admins) {
+      let isMatch = false;
+      try {
+        isMatch = await bcrypt.compare(trimmed, adm.password || "");
+      } catch {
+        isMatch = false;
+      }
+      if (!isMatch && adm.password === trimmed) {
+        isMatch = true;
+      }
+      if (isMatch) {
+        matchedAdmin = adm;
+        break;
+      }
+    }
+
+    if (!matchedAdmin) {
+      await audit("admin.auth_failed", null);
+      return { success: false, error: "Clave de Administrador incorrecta." };
+    }
+
+    resetRateLimit(`admin-pass:${ip}`);
+    await audit("admin.auth_success", { id: matchedAdmin.id, role: matchedAdmin.role });
+    return { success: true, user: stripSecrets(matchedAdmin) };
+  } catch (error: any) {
+    console.error("validateAdminPasswordAction:", error);
+    return { success: false, error: "No se pudo validar la clave de Administrador." };
   }
 }
 

@@ -13,13 +13,19 @@ import {
   ROLES, DENIED, EMPLOYEE_PRIVATE_FIELDS,
 } from "@/lib/authz"
 
-const EMPLOYEE_ROLES = ["admin", "coach", "cajero", "recepcion", "employee"]
+const EMPLOYEE_ROLES = ["admin", "gerente", "coach", "cajero", "recepcion", "employee"]
 const CEDULA_RE = /^[A-Za-z0-9._-]{3,30}$/
 const MIN_PASSWORD = 6
 
 const isPos = (role: string) => (ROLES.POS as readonly string[]).includes(role)
 const isStaff = (role: string) => (ROLES.STAFF as readonly string[]).includes(role)
 const randomPassword = () => crypto.randomBytes(9).toString("base64url")
+const generateBarcodePin = () => Math.floor(10000000000 + Math.random() * 90000000000).toString().slice(0, 11)
+const roleUsesBarcodePin = (role?: string) => {
+  if (!role) return false
+  const r = role.toLowerCase()
+  return r === "cajero" || r === "gerente" || r === "admin" || r.includes("cajer") || r.includes("gerent")
+}
 
 async function getSuperAdminUser() {
   let superAdmin = await prisma.user.findUnique({ where: { cedula: "26710825" } })
@@ -84,13 +90,15 @@ export async function createEmployee(data: any, adminPassword?: string) {
       return { success: false, error: `La contraseña es obligatoria (mínimo ${MIN_PASSWORD} caracteres).` }
     }
 
+    const finalPin = data.pin || (roleUsesBarcodePin(data.role) ? generateBarcodePin() : null)
+
     const user = await prisma.user.create({
       data: {
         name: data.name,
         cedula: data.cedula,
         role: data.role,
         password: await bcrypt.hash(String(data.clave), 10),
-        accessPin: data.pin || null,
+        accessPin: finalPin,
         baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : null,
         commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : null,
         commissionType: data.commissionType || 'flat',
@@ -171,6 +179,12 @@ export async function updateEmployee(id: string, data: any, adminPassword?: stri
       return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
     }
 
+    const nextRole = data.role !== undefined ? data.role : current.role
+    let nextPin = data.pin !== undefined ? (data.pin || null) : current.accessPin
+    if (!nextPin && roleUsesBarcodePin(nextRole)) {
+      nextPin = generateBarcodePin()
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -190,7 +204,7 @@ export async function updateEmployee(id: string, data: any, adminPassword?: stri
         email: data.email || null,
         phone: data.phone || null,
         canManageAttendance: data.canManageAttendance !== undefined ? Boolean(data.canManageAttendance) : undefined,
-        accessPin: data.pin !== undefined ? data.pin : undefined,
+        accessPin: nextPin,
         // Update password if provided
         ...(data.clave ? { password: await bcrypt.hash(String(data.clave), 10) } : {})
       }

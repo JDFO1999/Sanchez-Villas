@@ -26,26 +26,26 @@ export default function AsistenciaPage() {
   const processAttendance = async (query: string, isCedula: boolean) => {
     if (!query) return
     
-    // Si es por cédula, requerimos clave de administrador
+    // Si es por cédula, requerimos exclusivamente la clave de la cuenta del Administrador
     if (isCedula) {
-      const { value: pin } = await Swal.fire({
-        title: 'Validación de Seguridad',
-        text: 'Ingreso manual por cédula requiere autorización de Administrador:',
+      const { value: adminClave } = await Swal.fire({
+        title: 'Autorización de Administrador',
+        text: 'El ingreso manual por cédula en recepción requiere la clave de Administrador:',
         input: 'password',
-        inputPlaceholder: 'Ingrese su PIN...',
+        inputPlaceholder: 'Ingrese clave de Administrador...',
         showCancelButton: true,
-        confirmButtonText: 'Validar',
+        confirmButtonText: 'Autorizar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#10b981',
       })
       
-      if (!pin) return // Cancelado
+      if (!adminClave) return // Cancelado
       
-      const { validatePinAction } = await import('@/app/actions/auth')
-      const authRes = await validatePinAction(pin)
+      const { validateAdminPasswordAction } = await import('@/app/actions/auth')
+      const authRes = await validateAdminPasswordAction(adminClave)
       
       if (!authRes.success || !authRes.user || authRes.user.role !== 'admin') {
-        Swal.fire('Denegado', 'PIN incorrecto o no tiene permisos de Administrador.', 'error')
+        Swal.fire('Denegado', authRes.error || 'Clave de Administrador incorrecta.', 'error')
         return
       }
     }
