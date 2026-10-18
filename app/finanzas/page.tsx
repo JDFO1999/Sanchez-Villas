@@ -48,8 +48,8 @@ export default function FinanzasPage() {
       if (athRes.success) {
         setAthletes(athRes.athletes.map((a: any) => ({
           ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-          debt: a.debt || 0
+          membershipEnd: a.memberships?.[0]?.endDate || "",
+          debt: a.debt || a.storeDebt || 0
         })))
       }
 
@@ -73,20 +73,22 @@ export default function FinanzasPage() {
   
   const balanceNeto = totalIngresos - totalEgresos
 
-  // Calcular Morosos y Fiados
+  // Calcular Morosos, Pendientes de Membresía y Fiados
   const now = new Date()
+  const hasValidDate = (d?: string) => Boolean(d && new Date(d).getFullYear() > 1970)
+
   const overdueAthletes = athletes.filter(a => {
-    let isOverdue = false
-    if (a.membershipEnd) {
-      isOverdue = new Date(a.membershipEnd) < now
-    }
+    const noMembershipYet = !hasValidDate(a.membershipEnd)
+    const isOverdue = hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) < now
     const hasDebt = (a.debt || 0) > 0
-    return isOverdue || hasDebt
+    return noMembershipYet || isOverdue || hasDebt
   })
   
-  // Deuda total: Membresías vencidas (estimado 30$) + Deudas reales de tienda
+  // Deuda total: Membresías vencidas o pendientes (estimado 30$) + Deudas reales de tienda
   const estimatedDebt = overdueAthletes.reduce((sum, a) => {
-    let memberDebt = (a.membershipEnd && new Date(a.membershipEnd) < now) ? 30 : 0
+    const noMembershipYet = !hasValidDate(a.membershipEnd)
+    const isOverdue = hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) < now
+    const memberDebt = (noMembershipYet || isOverdue) ? 30 : 0
     return sum + memberDebt + (a.debt || 0)
   }, 0)
 
@@ -562,7 +564,10 @@ export default function FinanzasPage() {
         title = 'Cuentas por Cobrar';
         cols = ['Atleta', 'Cedula', 'Plan', 'Vencimiento', 'Monto Estimado Deuda'];
         overdueAthletes.forEach(a => {
-          const row = [a.name, a.cedula, a.membershipType||'Base', new Date(a.membershipEnd).toLocaleDateString(), '30'];
+          const vencimientoTexto = hasValidDate(a.membershipEnd)
+            ? new Date(a.membershipEnd).toLocaleDateString()
+            : 'Sin membresía (Pendiente)';
+          const row = [a.name, a.cedula, a.membershipType||'Base', vencimientoTexto, '30'];
           pdfData.push(row);
           excelData.push({ Atleta: row[0], Cedula: row[1], Plan: row[2], Vencimiento: row[3], Deuda: row[4] });
         });
@@ -1278,17 +1283,18 @@ export default function FinanzasPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {overdueAthletes.map(a => {
-                    let membershipStatus = "Al día";
-                    let isMembOverdue = false;
-                    let diffDays = 0;
-                    if (a.membershipEnd) {
-                      isMembOverdue = new Date(a.membershipEnd) < now;
+                    let membershipStatus = "Sin membresía (Pendiente de pago)";
+                    let badgeStyle = "bg-warning/20 text-warning font-semibold";
+                    if (hasValidDate(a.membershipEnd)) {
+                      const isMembOverdue = new Date(a.membershipEnd) < now;
                       if (isMembOverdue) {
                         const diffTime = Math.abs(now.getTime() - new Date(a.membershipEnd).getTime());
-                        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         membershipStatus = `Vencida (${diffDays} días)`;
+                        badgeStyle = "bg-destructive/20 text-destructive font-semibold";
                       } else {
                         membershipStatus = `Activa hasta ${new Date(a.membershipEnd).toLocaleDateString()}`;
+                        badgeStyle = "bg-success/20 text-success font-semibold";
                       }
                     }
 
@@ -1299,7 +1305,7 @@ export default function FinanzasPage() {
                           <div className="text-xs text-muted-foreground">{a.cedula}</div>
                         </td>
                         <td className="p-4">
-                          <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-destructive/20 text-destructive' : 'bg-success/20 text-success'}`}>
+                          <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
                             {membershipStatus}
                           </span>
                         </td>
@@ -1346,17 +1352,18 @@ export default function FinanzasPage() {
               {/* Mobile View */}
               <div className="md:hidden flex flex-col divide-y divide-white/5">
                 {overdueAthletes.map(a => {
-                  let membershipStatus = "Al día";
-                  let isMembOverdue = false;
-                  let diffDays = 0;
-                  if (a.membershipEnd) {
-                    isMembOverdue = new Date(a.membershipEnd) < now;
+                  let membershipStatus = "Sin membresía (Pendiente de pago)";
+                  let badgeStyle = "bg-warning/20 text-warning font-semibold";
+                  if (hasValidDate(a.membershipEnd)) {
+                    const isMembOverdue = new Date(a.membershipEnd) < now;
                     if (isMembOverdue) {
                       const diffTime = Math.abs(now.getTime() - new Date(a.membershipEnd).getTime());
-                      diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                       membershipStatus = `Vencida (${diffDays} días)`;
+                      badgeStyle = "bg-destructive/20 text-destructive font-semibold";
                     } else {
                       membershipStatus = `Activa hasta ${new Date(a.membershipEnd).toLocaleDateString()}`;
+                      badgeStyle = "bg-success/20 text-success font-semibold";
                     }
                   }
 
@@ -1377,7 +1384,7 @@ export default function FinanzasPage() {
                         </div>
                       </div>
                       <div className="flex justify-between items-center text-sm pt-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${isMembOverdue ? 'bg-destructive/20 text-destructive' : 'bg-success/20 text-success'}`}>
+                        <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
                           {membershipStatus}
                         </span>
                         <div className="flex gap-2">

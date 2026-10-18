@@ -657,16 +657,16 @@ export default function AtletaPerfilPage() {
                 <p className="text-xs text-muted-foreground mb-1.5 uppercase font-bold tracking-wider">Estado</p>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-sm border shadow-sm"
                   style={{
-                    backgroundColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.1)' : diffDays > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    borderColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.25)' : diffDays > 0 ? 'rgba(245, 158, 11, 0.25)' : 'rgba(239, 68, 68, 0.25)',
-                    color: diffDays > 7 ? '#10b981' : diffDays > 0 ? '#f59e0b' : '#ef4444'
+                    backgroundColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.1)' : (diffDays > 0 || !endDate) ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderColor: diffDays > 7 ? 'rgba(16, 185, 129, 0.25)' : (diffDays > 0 || !endDate) ? 'rgba(245, 158, 11, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                    color: diffDays > 7 ? '#10b981' : (diffDays > 0 || !endDate) ? '#f59e0b' : '#ef4444'
                   }}
                 >
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${diffDays > 7 ? 'bg-emerald-400' : diffDays > 0 ? 'bg-amber-400' : 'bg-rose-400'}`} />
-                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${diffDays > 7 ? 'bg-emerald-500' : diffDays > 0 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${diffDays > 7 ? 'bg-emerald-400' : (diffDays > 0 || !endDate) ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${diffDays > 7 ? 'bg-emerald-500' : (diffDays > 0 || !endDate) ? 'bg-amber-500' : 'bg-rose-500'}`} />
                   </span>
-                  <span>{diffDays > 0 ? `${diffDays} días restantes` : 'Membresía Vencida'}</span>
+                  <span>{diffDays > 0 ? `${diffDays} días restantes` : endDate ? 'Membresía Vencida' : 'Sin Membresía (Pendiente de Pago)'}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">

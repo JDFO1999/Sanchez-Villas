@@ -137,17 +137,23 @@ export default function AtletasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
           {filteredAthletes.map((atleta) => {
             // Determinar estado de membresía
-            const endDate = new Date(atleta.membershipEnd)
+            const hasValidMemb = Boolean(atleta.membershipEnd && new Date(atleta.membershipEnd).getFullYear() > 1970)
+            const endDate = hasValidMemb ? new Date(atleta.membershipEnd) : null
             const today = new Date()
-            const diffTime = endDate.getTime() - today.getTime()
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            const diffTime = endDate ? endDate.getTime() - today.getTime() : -1
+            const diffDays = endDate ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0
             
             let estadoColor = "text-success bg-success/10 border-success/20"
             let dotPing = "bg-emerald-400"
             let dotSolid = "bg-emerald-500"
             let estadoTexto = "Activa"
 
-            if (diffDays <= 0) {
+            if (!hasValidMemb) {
+              estadoColor = "text-warning bg-warning/10 border-warning/20"
+              dotPing = "bg-amber-400"
+              dotSolid = "bg-amber-500"
+              estadoTexto = "Sin membresía"
+            } else if (diffDays <= 0) {
               estadoColor = "text-rose-500 bg-rose-500/10 border-rose-500/20"
               dotPing = "bg-rose-400"
               dotSolid = "bg-rose-500"
@@ -181,7 +187,7 @@ export default function AtletasPage() {
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
-                      {diffDays > 0 && (() => {
+                      {hasValidMemb && diffDays > 0 && (() => {
                         const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
                         const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))
                         const pct = Math.min(100, Math.max(4, (diffDays / totalDays) * 100))
@@ -197,7 +203,12 @@ export default function AtletasPage() {
                           </div>
                         )
                       })()}
-                      {diffDays <= 0 && (
+                      {!hasValidMemb && (
+                        <div className="flex items-center gap-2 text-warning text-xs font-bold bg-warning/10 border border-warning/20 rounded-lg px-3 py-1.5">
+                          <span>⏳</span> Sin Membresía (Pendiente de pago)
+                        </div>
+                      )}
+                      {hasValidMemb && diffDays <= 0 && (
                         <div className="flex items-center gap-2 text-rose-500 text-xs font-bold bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-1.5">
                           <span>⚠️</span> Membresía Vencida
                         </div>

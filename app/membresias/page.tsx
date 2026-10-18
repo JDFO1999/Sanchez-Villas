@@ -877,10 +877,12 @@ export default function MembresíasPage() {
           </div>
         ) : (
           filtered.map(a => {
-            const endDate = new Date(a.membershipEnd)
+            const hasValidMemb = Boolean(a.membershipEnd && new Date(a.membershipEnd).getFullYear() > 1970)
+            const endDate = hasValidMemb ? new Date(a.membershipEnd) : null
             const today = new Date()
-            const diffDays = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-            const isExpired = diffDays <= 0
+            const diffDays = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0
+            const isExpired = hasValidMemb && diffDays <= 0
+            const noMembYet = !hasValidMemb
 
             return (
               <Card key={a.id} className="glass overflow-hidden hover:border-primary/40 transition-all duration-200">
@@ -891,7 +893,9 @@ export default function MembresíasPage() {
                     <div className="p-5 flex-1 flex items-center gap-4 relative">
                       {/* Dynamic Semaphore Status Badge */}
                       <div className={`absolute top-4 right-4 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm ${
-                        isExpired 
+                        noMembYet
+                          ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                          : isExpired 
                           ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' 
                           : diffDays <= 5 
                           ? 'text-warning bg-warning/10 border-warning/30' 
@@ -899,13 +903,13 @@ export default function MembresíasPage() {
                       }`}>
                         <span className="relative flex h-2 w-2">
                           <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                            isExpired ? 'bg-rose-400' : diffDays <= 5 ? 'bg-amber-400' : 'bg-emerald-400'
+                            noMembYet ? 'bg-amber-400' : isExpired ? 'bg-rose-400' : diffDays <= 5 ? 'bg-amber-400' : 'bg-emerald-400'
                           }`} />
                           <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                            isExpired ? 'bg-rose-500' : diffDays <= 5 ? 'bg-amber-500' : 'bg-emerald-500'
+                            noMembYet ? 'bg-amber-500' : isExpired ? 'bg-rose-500' : diffDays <= 5 ? 'bg-amber-500' : 'bg-emerald-500'
                           }`} />
                         </span>
-                        <span>{isExpired ? 'VENCIDA' : diffDays <= 5 ? 'POR VENCER' : 'ACTIVA'}</span>
+                        <span>{noMembYet ? 'SIN MEMBRESÍA' : isExpired ? 'VENCIDA' : diffDays <= 5 ? 'POR VENCER' : 'ACTIVA'}</span>
                       </div>
 
                       <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
@@ -921,19 +925,23 @@ export default function MembresíasPage() {
                     <div className="p-5 flex-1 border-t md:border-t-0 md:border-l border-black/5 dark:border-white/5 flex flex-col justify-center">
                       <div className="flex items-center gap-2 mb-1">
                         <CreditCard className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">{a.membershipType || 'Plan Estándar'}</span>
+                        <span className="text-sm font-medium">{noMembYet ? 'Sin plan activo' : (a.membershipType || 'Plan Estándar')}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-muted-foreground text-xs">Vence: </span>
-                        <span className={isExpired ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>{new Date(a.membershipEnd).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground text-xs">{noMembYet ? 'Estado: ' : 'Vence: '}</span>
+                        <span className={noMembYet ? 'text-warning font-bold' : isExpired ? 'text-rose-500 font-bold' : 'text-foreground font-semibold'}>
+                          {noMembYet ? 'Pendiente de pago' : endDate?.toLocaleDateString()}
+                        </span>
                         <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold border ${
-                          isExpired 
+                          noMembYet
+                            ? 'bg-warning/10 text-warning border-warning/20'
+                            : isExpired 
                             ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' 
                             : diffDays <= 5
                             ? 'bg-warning/10 text-warning border-warning/20'
                             : 'bg-success/10 text-success border-success/20'
                         }`}>
-                          {isExpired ? 'Vencida' : `${diffDays} días`}
+                          {noMembYet ? 'Por activar' : isExpired ? 'Vencida' : `${diffDays} días`}
                         </span>
                       </div>
                     </div>

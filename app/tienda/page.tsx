@@ -1042,12 +1042,21 @@ export default function TiendaPOSPage() {
               {selectedAthleteId && (() => {
                 const athlete = athletes.find(a => a.id === selectedAthleteId);
                 if (!athlete) return null;
+                const hasValidMemb = Boolean(athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970);
+                if (!hasValidMemb) {
+                  return (
+                    <div className="mt-2 bg-warning/20 border border-warning/50 p-2 rounded flex gap-2 items-start text-xs text-warning">
+                      <span className="font-bold uppercase">¡Aviso!</span>
+                      <span>Sin membresía activa (Pendiente de pago). Ofrece la inscripción o mensualidad.</span>
+                    </div>
+                  );
+                }
                 const isExpired = new Date(athlete.membershipEnd).getTime() < new Date().getTime();
                 if (isExpired) {
                   return (
                     <div className="mt-2 bg-destructive/20 border border-destructive/50 p-2 rounded flex gap-2 items-start text-xs text-destructive">
                       <span className="font-bold uppercase">¡Atención!</span>
-                      <span>Membresía Vencida ({athlete.membershipEnd}). Ofrece la renovación.</span>
+                      <span>Membresía Vencida ({new Date(athlete.membershipEnd).toLocaleDateString()}). Ofrece la renovación.</span>
                     </div>
                   );
                 }
