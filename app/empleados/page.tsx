@@ -139,14 +139,34 @@ export default function EmpleadosPage() {
   }
   
   const buscarAtleta = async () => {
+    const { swalTheme, themeColor } = await import('@/lib/confirm')
+    const theme = swalTheme()
+
     const { value: cedulaStr } = await Swal.fire({
       title: 'Buscar Atleta Existente',
+      html: `
+        <div style="text-align: left; padding: 0 4px;">
+          <p style="font-size: 0.875rem; margin-bottom: 8px; opacity: 0.85;">
+            Ingresa la cédula del atleta para ascenderlo a Administrador, Gerente, Cajero o Entrenador:
+          </p>
+        </div>
+      `,
       input: 'text',
-      inputLabel: 'Ingrese la cédula del atleta:',
       inputPlaceholder: 'Ej: 12345678',
       showCancelButton: true,
-      confirmButtonText: 'Buscar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: 'Buscar Atleta',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      ...theme,
+      confirmButtonColor: themeColor('primary') || '#eab308',
+      cancelButtonColor: 'rgba(150, 150, 150, 0.4)',
+      customClass: {
+        popup: 'border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl glass',
+        title: 'font-black text-xl tracking-tight text-foreground',
+        input: 'bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-base text-foreground font-mono focus:border-primary',
+        confirmButton: 'font-bold rounded-xl px-5 py-2.5 shadow-md',
+        cancelButton: 'font-bold rounded-xl px-4 py-2.5'
+      }
     })
 
     if (!cedulaStr) return;
@@ -160,9 +180,45 @@ export default function EmpleadosPage() {
         email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
         existingAthleteFound: true,
       });
-      Swal.fire('¡Encontrado!', `Atleta ${atleta.name} cargado. Puedes elegir su nuevo rol (ej. Administrador) y mantener su contraseña actual dejando el campo en blanco.`, 'success');
+
+      const avatarHtml = (atleta as any).profilePicture || atleta.avatar
+        ? `<img src="${(atleta as any).profilePicture || atleta.avatar}" alt="${atleta.name}" style="width:64px;height:64px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid ${themeColor('primary') || '#eab308'};" />`
+        : `<div style="width:56px;height:56px;border-radius:9999px;margin:0 auto 10px auto;background:rgba(234,179,8,0.15);color:${themeColor('primary') || '#eab308'};display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:2px solid ${themeColor('primary') || '#eab308'};">${atleta.name.charAt(0)}</div>`
+
+      Swal.fire({
+        title: '¡Atleta Encontrado!',
+        html: `
+          ${avatarHtml}
+          <p style="font-size:1.15rem;font-weight:800;margin-bottom:4px;">${atleta.name}</p>
+          <p style="font-size:0.875rem;opacity:0.75;margin-bottom:12px;">C.I. ${atleta.cedula}</p>
+          <p style="font-size:0.85rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:8px 12px;color:${themeColor('primary') || '#eab308'};font-weight:600;">
+            Datos precargados. Puedes seleccionar su nuevo rol de personal y dejar la contraseña en blanco para que conserve la suya actual.
+          </p>
+        `,
+        icon: 'success',
+        confirmButtonText: 'Continuar',
+        ...theme,
+        confirmButtonColor: themeColor('primary') || '#eab308',
+        customClass: {
+          popup: 'border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl glass',
+          title: 'font-black text-xl text-foreground',
+          confirmButton: 'font-bold rounded-xl px-6 py-2.5'
+        }
+      });
     } else {
-      Swal.fire('No Encontrado', 'No se encontró ningún atleta con esa cédula.', 'error');
+      Swal.fire({
+        title: 'No Encontrado',
+        text: `No se encontró ningún atleta registrado con la cédula "${cedulaStr.trim()}".`,
+        icon: 'error',
+        confirmButtonText: 'Entendido',
+        ...theme,
+        confirmButtonColor: themeColor('destructive') || '#ef4444',
+        customClass: {
+          popup: 'border border-destructive/30 rounded-2xl shadow-2xl glass',
+          title: 'font-black text-xl text-destructive',
+          confirmButton: 'font-bold rounded-xl px-5 py-2.5'
+        }
+      });
     }
   }
 
