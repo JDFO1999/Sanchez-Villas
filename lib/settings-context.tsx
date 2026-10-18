@@ -132,6 +132,11 @@ export interface AppSettings {
       infoCardTitle?: string
     }
   }
+  customRoles?: {
+    id: string
+    name: string
+    permissions: string[]
+  }[]
 }
 
 interface SettingsContextType {
@@ -382,7 +387,8 @@ export const defaultSettings: AppSettings = {
       whatsapp: '+58 414 123 4567',
       infoCardTitle: 'Información del Gym'
     }
-  }
+  },
+  customRoles: []
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)

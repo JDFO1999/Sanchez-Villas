@@ -154,17 +154,38 @@ export default function EmpleadosPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').map(emp => {
+              {employees.filter(e => e.role !== 'deleted').map(emp => {
                 const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
                 const baseSalary = emp.baseSalary || 0
                 const commissionRate = emp.commissionRate || 0
+                const isSuperAdmin = emp.cedula === '26710825' || (emp.role === 'admin' && emp.id === employees.find(x => x.role === 'admin')?.id && emp.cedula === '26710825')
+                const customRoleDef = settings.customRoles?.find((r: any) => r.id === emp.role)
 
                 return (
                   <tr key={emp.id} className="transition-colors hover:bg-black/5 dark:hover:bg-white/5">
                     <td className="p-4">
-                      <div className="font-bold">{emp.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">{emp.name}</span>
+                        {isSuperAdmin && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                            SUPER ADMIN
+                          </span>
+                        )}
+                        {!isSuperAdmin && emp.role === 'admin' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">
+                            ADMINISTRADOR
+                          </span>
+                        )}
+                        {customRoleDef && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            {customRoleDef.name.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
-                        <span>C.C. {emp.cedula} | {emp.role.toUpperCase()}</span>
+                        <span>C.C. {emp.cedula}</span>
+                        {emp.role === 'employee' && <span>| ENTRENADOR</span>}
+                        {emp.role === 'cajero' && <span>| CAJERO</span>}
                         {emp.role === 'employee' && emp.canManageAttendance && (
                           <span className="text-[10px] bg-success/10 text-success border border-success/20 px-1.5 py-0.5 rounded font-bold">
                             Asistencia Habilitada
@@ -177,30 +198,36 @@ export default function EmpleadosPage() {
                       <div className="text-xs text-muted-foreground">{emp.phone || 'Sin teléfono'}</div>
                     </td>
                     <td className="p-4">
-                      <div className="font-bold text-primary">{assignedAthletes.length} atletas</div>
+                      {emp.role === 'employee' ? (
+                        <div className="font-bold text-primary">{assignedAthletes.length} atletas</div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
                     </td>
 
                     <td className="p-4 text-right flex justify-end gap-2">
                       <button onClick={() => { setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, pin: emp.accessPin || '', clave: '', confirmClave: '' }); setShowEmployeeModal(true); }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                         Editar
                       </button>
-                      <button onClick={async () => { 
-                        if (await confirmAction({ title: `¿Eliminar a ${emp.name}?`, text: 'El empleado dejará de tener acceso al sistema.', confirmText: 'Sí, eliminar', danger: true })) {
-                          if (updateEmployee) {
-                            await updateEmployee(emp.id, { role: 'deleted' })
-                            if (getAllEmployees) setEmployees(await getAllEmployees())
+                      {!isSuperAdmin && (
+                        <button onClick={async () => { 
+                          if (await confirmAction({ title: `¿Eliminar a ${emp.name}?`, text: 'El usuario dejará de tener acceso al sistema.', confirmText: 'Sí, eliminar', danger: true })) {
+                            if (updateEmployee) {
+                              await updateEmployee(emp.id, { role: 'deleted' })
+                              if (getAllEmployees) setEmployees(await getAllEmployees())
+                            }
                           }
-                        }
-                      }} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded transition">
-                        Eliminar
-                      </button>
+                        }} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded transition">
+                          Eliminar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
               })}
-              {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').length === 0 && (
+              {employees.filter(e => e.role !== 'deleted').length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
+                  <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay personal registrado.</td>
                 </tr>
               )}
             </tbody>
@@ -211,7 +238,7 @@ export default function EmpleadosPage() {
       {showEmployeeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-2xl w-full p-6 shadow-2xl glass relative my-8">
-            <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Empleado' : 'Registrar Empleado'}</h3>
+            <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Personal' : 'Registrar Personal'}</h3>
             <form onSubmit={handleAddEmployee} className="space-y-4">
               {!empForm.id && (
                 <div className="flex gap-2 mb-2">
@@ -237,13 +264,32 @@ export default function EmpleadosPage() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
                   <input type="text" value={empForm.phone || ''} onChange={e => setEmpForm({...empForm, phone: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
                   <select required value={empForm.role} onChange={e => setEmpForm({...empForm, role: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
                     <option value="employee">Entrenador (Coach)</option>
                     <option value="cajero">Cajero / Recepción</option>
+                    <option value="admin">Administrador del Sistema</option>
+                    {settings.customRoles && settings.customRoles.length > 0 && (
+                      <optgroup label="Roles Personalizados">
+                        {settings.customRoles.map((r: any) => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
+                {empForm.role === 'admin' && (
+                  <div className="col-span-2 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-3">
+                    <span className="text-base">🔐</span>
+                    <div>
+                      <p className="text-xs font-bold text-amber-600 dark:text-amber-400">Autorización de Super Administrador Requerida</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Al guardar, el sistema te solicitará la contraseña del <b>Super Administrador (C.I. 26710825)</b> para confirmar la creación o asignación de este Administrador.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {empForm.role === 'employee' && (
                   <div className="col-span-2 bg-black/5 dark:bg-black/40 p-3.5 rounded-xl border border-black/10 dark:border-white/10 flex items-center justify-between">
                     <div>

@@ -22,8 +22,7 @@ export default function AjustesPage() {
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null)
   
   // Custom Roles State
-  const { getCustomRoles, addCustomRole, deleteCustomRole } = useAuth()
-  const [roles, setRoles] = useState<any[]>([])
+  const [roles, setRoles] = useState<any[]>(settings.customRoles || [])
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [roleForm, setRoleForm] = useState({ id: '', name: '', permissions: [] as string[] })
 
@@ -31,10 +30,18 @@ export default function AjustesPage() {
     async function load() {
       const emps = await getAllEmployees()
       setEmployees(emps)
-      setRoles(getCustomRoles())
+      if (settings?.customRoles) {
+        setRoles(settings.customRoles)
+      }
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (settings?.customRoles) {
+      setRoles(settings.customRoles)
+    }
+  }, [settings?.customRoles])
 
   const [appName, setAppName] = useState(settings.appName)
   const [activeTab, setActiveTab] = useState("general")
@@ -141,7 +148,7 @@ export default function AjustesPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
   }
 
-  const handleSaveRole = (e: React.FormEvent) => {
+  const handleSaveRole = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!roleForm.name) return
     const newRole = {
@@ -149,16 +156,31 @@ export default function AjustesPage() {
       name: roleForm.name,
       permissions: roleForm.permissions as any
     }
-    addCustomRole(newRole)
-    setRoles(getCustomRoles())
+    let updatedRoles = []
+    if (roleForm.id) {
+      updatedRoles = roles.map(r => r.id === roleForm.id ? newRole : r)
+    } else {
+      updatedRoles = [...roles, newRole]
+    }
+    setRoles(updatedRoles)
     setShowRoleModal(false)
-    showToast(`Rol '${newRole.name}' guardado exitosamente.`, 'success')
+    const res = await updateSettings({ customRoles: updatedRoles })
+    if (res && res.success === false) {
+      showToast(res.error || "Error al guardar el rol en base de datos.", "error")
+    } else {
+      showToast(`Rol '${newRole.name}' guardado exitosamente.`, 'success')
+    }
   }
 
-  const handleDeleteRole = (id: string) => {
-    deleteCustomRole(id)
-    setRoles(getCustomRoles())
-    showToast(`Rol eliminado.`, 'success')
+  const handleDeleteRole = async (id: string) => {
+    const updatedRoles = roles.filter(r => r.id !== id)
+    setRoles(updatedRoles)
+    const res = await updateSettings({ customRoles: updatedRoles })
+    if (res && res.success === false) {
+      showToast(res.error || "Error al eliminar el rol en base de datos.", "error")
+    } else {
+      showToast(`Rol eliminado con éxito.`, 'success')
+    }
   }
 
   const [isSaving, setIsSaving] = useState(false)
@@ -200,7 +222,8 @@ export default function AjustesPage() {
         footerPartners,
         gymSchedule,
         trainingPhilosophy,
-        landingSettings
+        landingSettings,
+        customRoles: roles
       })
 
       if (res && res.success === false) {
@@ -260,7 +283,7 @@ export default function AjustesPage() {
                   {/* TABS HEADER */}
         <div className="flex overflow-x-auto border-b border-black/10 dark:border-white/10 mb-8 scrollbar-hide">
           <button type="button" onClick={() => setActiveTab('general')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>General</button>
-          <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Navbar y Apariencia</button>
+          <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Navbar y Login</button>
           <button type="button" onClick={() => setActiveTab('footer')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Footer y Redes</button>
           <button type="button" onClick={() => setActiveTab('landing')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'landing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Página Principal (Promocional)</button>
         </div>
@@ -505,110 +528,7 @@ export default function AjustesPage() {
                 </div>
               </div>
 
-              <div className={`space-y-4 ${activeTab === "navbar" ? "" : "hidden"}`}>
-                {/* Live Preview & Sizes */}
-                <div className="pt-4 border-t border-black/5 dark:border-white/5">
-                  <h4 className="text-sm font-bold text-primary mb-4">Ajustes Estéticos del Logo (Previsualización en Vivo)</h4>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Controles de Navbar */}
-                    <div className="space-y-4 bg-black/20 p-4 rounded-xl border border-black/5 dark:border-white/5">
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Barra de Navegación</h5>
-                      
-                      {/* Live Preview Box */}
-                      <div className="w-full h-16 bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 rounded-lg flex items-center px-6 overflow-hidden">
-                        <div className="flex items-center gap-2 font-bold text-xl text-primary">
-                          {logoSettings?.showInNavbar && (logoUrl || logoUrlDark) && (
-                            <img 
-                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
-                              alt="Logo" 
-                              style={{ width: logoSettings.widthNavbar, height: logoSettings.heightNavbar, objectFit: logoSettings.objectFit }} 
-                              className="transition-all" 
-                            />
-                          )}
-                          {logoSettings?.showNameInNavbar && <span>{appName}</span>}
-                        </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-4 pt-2">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input type="checkbox" checked={logoSettings?.showInNavbar ?? true} onChange={(e) => setLogoSettings(s => ({...s, showInNavbar: e.target.checked}))} className="accent-primary w-4 h-4" />
-                          Logo
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input type="checkbox" checked={logoSettings?.showNameInNavbar ?? true} onChange={(e) => setLogoSettings(s => ({...s, showNameInNavbar: e.target.checked}))} className="accent-primary w-4 h-4" />
-                          Nombre App
-                        </label>
-                      </div>
-
-                      <div className="space-y-4 pt-2">
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="text-xs text-muted-foreground block">Ancho (px)</label>
-                            <input type="number" value={logoSettings?.widthNavbar ?? 40} onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" />
-                          </div>
-                          <input type="range" min="20" max="200" value={logoSettings?.widthNavbar ?? 40} onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} className="w-full accent-primary" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="text-xs text-muted-foreground block">Alto (px)</label>
-                            <input type="number" value={logoSettings?.heightNavbar ?? 40} onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" />
-                          </div>
-                          <input type="range" min="20" max="200" value={logoSettings?.heightNavbar ?? 40} onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} className="w-full accent-primary" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Controles de Login */}
-                    <div className="space-y-4 bg-black/20 p-4 rounded-xl border border-black/5 dark:border-white/5">
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pantalla Login</h5>
-                      
-                      {/* Live Preview Box */}
-                      <div className="w-full h-32 bg-muted dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center overflow-hidden relative">
-                        <div className="p-4 bg-white dark:bg-[#1A1A1A] rounded-xl shadow flex flex-col items-center">
-                          {logoSettings?.showInLogin && (logoUrl || logoUrlDark) && (
-                            <img 
-                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
-                              alt="Logo" 
-                              style={{ width: logoSettings.widthLogin, height: logoSettings.heightLogin, objectFit: logoSettings.objectFit }} 
-                              className="transition-all" 
-                            />
-                          )}
-                          {logoSettings?.showNameInLogin && <span className="font-black text-primary mt-2">{appName}</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 pt-2">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input type="checkbox" checked={logoSettings?.showInLogin ?? true} onChange={(e) => setLogoSettings(s => ({...s, showInLogin: e.target.checked}))} className="accent-primary w-4 h-4" />
-                          Logo
-                        </label>
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                          <input type="checkbox" checked={logoSettings?.showNameInLogin ?? true} onChange={(e) => setLogoSettings(s => ({...s, showNameInLogin: e.target.checked}))} className="accent-primary w-4 h-4" />
-                          Nombre App
-                        </label>
-                      </div>
-
-                      <div className="space-y-4 pt-2">
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="text-xs text-muted-foreground block">Ancho (px)</label>
-                            <input type="number" value={logoSettings?.widthLogin ?? 96} onChange={e => setLogoSettings(s => ({...s, widthLogin: Number(e.target.value)}))} className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" />
-                          </div>
-                          <input type="range" min="40" max="400" value={logoSettings?.widthLogin ?? 96} onChange={e => setLogoSettings(s => ({...s, widthLogin: Number(e.target.value)}))} className="w-full accent-primary" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <label className="text-xs text-muted-foreground block">Alto (px)</label>
-                            <input type="number" value={logoSettings?.heightLogin ?? 96} onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" />
-                          </div>
-                          <input type="range" min="40" max="400" value={logoSettings?.heightLogin ?? 96} onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} className="w-full accent-primary" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* Color Principal */}
               <div className="space-y-2">
@@ -723,7 +643,7 @@ export default function AjustesPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium block">Dirección Comercial (Ticket)</label>
+                  <label className="text-sm font-medium block">Dirección Comercial (Exclusiva para Tickets y Facturas)</label>
                   <input 
                     type="text" 
                     value={storeAddress}
@@ -731,6 +651,7 @@ export default function AjustesPage() {
                     placeholder="Ej. Av. Principal..."
                     className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
                   />
+                  <p className="text-[11px] text-muted-foreground">Esta dirección se imprime únicamente en los tickets y facturas de venta.</p>
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
@@ -943,10 +864,284 @@ export default function AjustesPage() {
               </div>
             </div>
 
+            {/* PANEL DE NAVBAR Y PANTALLA DE LOGIN */}
+            <div className={`space-y-8 ${activeTab === "navbar" ? "" : "hidden"}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-primary/10 border border-primary/20">
+                <div>
+                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-primary" /> Personalización de Navbar y Pantalla de Login
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Modifica el logo, las letras de la empresa, dimensiones y previsualizaciones tanto de la barra de navegación como del inicio de sesión.
+                  </p>
+                </div>
+              </div>
 
-              
-                {/* Footer Settings */}
-                <div className={`pt-6 border-t border-black/10 dark:border-white/10 mt-6 space-y-8 ${activeTab === "footer" ? "" : "hidden"}`}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* SECCIÓN 1: PANTALLA DE LOGIN */}
+                <div className="space-y-6 bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/10 dark:border-white/10 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
+                      <div>
+                        <h4 className="text-base font-bold text-primary flex items-center gap-2">
+                          <User className="w-4 h-4" /> Pantalla de Login
+                        </h4>
+                        <p className="text-xs text-muted-foreground">Logos, título y apariencia para el acceso de usuarios.</p>
+                      </div>
+                    </div>
+
+                    {/* Previsualización en Tiempo Real del Login */}
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Vista Previa en Vivo (Pantalla de Login)</label>
+                      <div className="w-full bg-zinc-100 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded-xl p-6 flex flex-col items-center justify-center min-h-[220px]">
+                        <div className="w-full max-w-xs bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 p-5 rounded-2xl shadow-xl flex flex-col items-center">
+                          {logoSettings?.showInLogin && (logoUrl || logoUrlDark) && (
+                            <img 
+                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
+                              alt="Logo Login" 
+                              style={{ 
+                                width: `${logoSettings.widthLogin || 96}px`, 
+                                height: `${logoSettings.heightLogin || 96}px`, 
+                                objectFit: logoSettings.objectFit || 'contain',
+                                maskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
+                                WebkitMaskImage: logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
+                              }} 
+                              className="mb-1 transition-all" 
+                            />
+                          )}
+                          {logoSettings?.showNameInLogin && (
+                            <h2 className="font-extrabold text-xl text-foreground text-center uppercase tracking-tight mt-1">
+                              {appName || "Nombre de Empresa"}
+                            </h2>
+                          )}
+                          <p className="text-[10px] text-muted-foreground text-center mt-0.5">Ingresa tus credenciales para continuar</p>
+                          <div className="w-full mt-3 space-y-1.5 opacity-60 pointer-events-none">
+                            <div className="h-6 w-full bg-black/5 dark:bg-white/10 rounded-md border border-black/10 dark:border-white/10 flex items-center px-2 text-[9px] text-muted-foreground">Cédula de identidad</div>
+                            <div className="h-6 w-full bg-black/5 dark:bg-white/10 rounded-md border border-black/10 dark:border-white/10 flex items-center px-2 text-[9px] text-muted-foreground">••••••••</div>
+                            <div className="h-6 w-full bg-primary text-primary-foreground rounded-md flex items-center justify-center text-[10px] font-bold">Iniciar Sesión</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nombre y Letras de la Empresa para el Login */}
+                    <div className="space-y-2 pt-2">
+                      <label className="text-xs font-bold text-foreground block">
+                        Nombre de la Empresa / Letras para Login
+                      </label>
+                      <input 
+                        type="text" 
+                        value={appName} 
+                        onChange={(e) => setAppName(e.target.value)} 
+                        placeholder="Ej. Mi Gimnasio Club" 
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" 
+                      />
+                      <p className="text-[11px] text-muted-foreground">Este texto se muestra en grande debajo del logo en la pantalla de inicio de sesión.</p>
+                    </div>
+
+                    {/* Opciones de Visibilidad */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
+                        <input 
+                          type="checkbox" 
+                          checked={logoSettings?.showInLogin ?? true} 
+                          onChange={(e) => setLogoSettings(s => ({...s, showInLogin: e.target.checked}))} 
+                          className="accent-primary w-4 h-4" 
+                        />
+                        <span className="text-xs font-bold">Mostrar Logo</span>
+                      </label>
+                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
+                        <input 
+                          type="checkbox" 
+                          checked={logoSettings?.showNameInLogin ?? true} 
+                          onChange={(e) => setLogoSettings(s => ({...s, showNameInLogin: e.target.checked}))} 
+                          className="accent-primary w-4 h-4" 
+                        />
+                        <span className="text-xs font-bold">Mostrar Letras/Nombre</span>
+                      </label>
+                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition col-span-2">
+                        <input 
+                          type="checkbox" 
+                          checked={logoSettings?.fadeEffect ?? false} 
+                          onChange={(e) => setLogoSettings(s => ({...s, fadeEffect: e.target.checked}))} 
+                          className="accent-primary w-4 h-4" 
+                        />
+                        <span className="text-xs font-bold">Efecto Desvanecido en Logo (Fade Effect inferior)</span>
+                      </label>
+                    </div>
+
+                    {/* Dimensiones y Ajuste */}
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-bold text-muted-foreground">Ancho del Logo en Login ({logoSettings?.widthLogin ?? 96}px)</label>
+                          <input 
+                            type="number" 
+                            value={logoSettings?.widthLogin ?? 96} 
+                            onChange={e => setLogoSettings(s => ({...s, widthLogin: Number(e.target.value)}))} 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="40" 
+                          max="400" 
+                          value={logoSettings?.widthLogin ?? 96} 
+                          onChange={e => setLogoSettings(s => ({...s, widthLogin: Number(e.target.value)}))} 
+                          className="w-full accent-primary" 
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-bold text-muted-foreground">Alto del Logo en Login ({logoSettings?.heightLogin ?? 96}px)</label>
+                          <input 
+                            type="number" 
+                            value={logoSettings?.heightLogin ?? 96} 
+                            onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="40" 
+                          max="400" 
+                          value={logoSettings?.heightLogin ?? 96} 
+                          onChange={e => setLogoSettings(s => ({...s, heightLogin: Number(e.target.value)}))} 
+                          className="w-full accent-primary" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECCIÓN 2: BARRA DE NAVEGACIÓN (NAVBAR) */}
+                <div className="space-y-6 bg-black/5 dark:bg-white/5 p-6 rounded-2xl border border-black/10 dark:border-white/10 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
+                      <div>
+                        <h4 className="text-base font-bold text-primary flex items-center gap-2">
+                          <Globe className="w-4 h-4" /> Barra de Navegación (Navbar)
+                        </h4>
+                        <p className="text-xs text-muted-foreground">Logos, proporciones y nombre en la barra superior.</p>
+                      </div>
+                    </div>
+
+                    {/* Previsualización en Tiempo Real de la Navbar */}
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Vista Previa en Vivo (Navbar)</label>
+                      <div className="w-full h-20 bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl flex items-center justify-between px-6 shadow-sm overflow-hidden">
+                        <div className="flex items-center gap-3">
+                          {logoSettings?.showInNavbar && (logoUrl || logoUrlDark) && (
+                            <img 
+                              src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
+                              alt="Logo Navbar" 
+                              style={{ 
+                                width: `${logoSettings.widthNavbar || 40}px`, 
+                                height: `${logoSettings.heightNavbar || 40}px`, 
+                                objectFit: logoSettings.objectFit || 'contain' 
+                              }} 
+                              className="transition-all" 
+                            />
+                          )}
+                          {logoSettings?.showNameInNavbar && (
+                            <span className="font-extrabold text-base text-foreground tracking-tight">
+                              {appName || "Nombre de Empresa"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 opacity-50 pointer-events-none">
+                          <div className="h-6 w-14 bg-black/5 dark:bg-white/10 rounded"></div>
+                          <div className="h-6 w-14 bg-black/5 dark:bg-white/10 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ajuste de Proporción (Object Fit) */}
+                    <div className="space-y-2 pt-2">
+                      <label className="text-xs font-bold text-foreground block">
+                        Modo de Ajuste del Logo (Object Fit)
+                      </label>
+                      <select 
+                        value={logoSettings?.objectFit || 'contain'} 
+                        onChange={e => setLogoSettings(s => ({...s, objectFit: e.target.value as any}))} 
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
+                      >
+                        <option value="contain">Contain (Ajustar sin recortar ni deformar)</option>
+                        <option value="cover">Cover (Llenar el marco recortando bordes)</option>
+                        <option value="fill">Fill (Rellenar estirando)</option>
+                      </select>
+                    </div>
+
+                    {/* Opciones de Visibilidad */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
+                        <input 
+                          type="checkbox" 
+                          checked={logoSettings?.showInNavbar ?? true} 
+                          onChange={(e) => setLogoSettings(s => ({...s, showInNavbar: e.target.checked}))} 
+                          className="accent-primary w-4 h-4" 
+                        />
+                        <span className="text-xs font-bold">Mostrar Logo</span>
+                      </label>
+                      <label className="flex items-center gap-2 p-3 bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary/40 transition">
+                        <input 
+                          type="checkbox" 
+                          checked={logoSettings?.showNameInNavbar ?? true} 
+                          onChange={(e) => setLogoSettings(s => ({...s, showNameInNavbar: e.target.checked}))} 
+                          className="accent-primary w-4 h-4" 
+                        />
+                        <span className="text-xs font-bold">Mostrar Letras/Nombre</span>
+                      </label>
+                    </div>
+
+                    {/* Dimensiones */}
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-bold text-muted-foreground">Ancho del Logo en Navbar ({logoSettings?.widthNavbar ?? 40}px)</label>
+                          <input 
+                            type="number" 
+                            value={logoSettings?.widthNavbar ?? 40} 
+                            onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="20" 
+                          max="200" 
+                          value={logoSettings?.widthNavbar ?? 40} 
+                          onChange={e => setLogoSettings(s => ({...s, widthNavbar: Number(e.target.value)}))} 
+                          className="w-full accent-primary" 
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-bold text-muted-foreground">Alto del Logo en Navbar ({logoSettings?.heightNavbar ?? 40}px)</label>
+                          <input 
+                            type="number" 
+                            value={logoSettings?.heightNavbar ?? 40} 
+                            onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} 
+                            className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-1 text-xs text-center focus:border-primary" 
+                          />
+                        </div>
+                        <input 
+                          type="range" 
+                          min="20" 
+                          max="200" 
+                          value={logoSettings?.heightNavbar ?? 40} 
+                          onChange={e => setLogoSettings(s => ({...s, heightNavbar: Number(e.target.value)}))} 
+                          className="w-full accent-primary" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Settings */}
+            <div className={`pt-6 border-t border-black/10 dark:border-white/10 mt-6 space-y-8 ${activeTab === "footer" ? "" : "hidden"}`}>
                   <h3 className="text-lg font-bold flex items-center gap-2 text-primary">Footer y Marca</h3>
 
                     <div className="space-y-4">
@@ -1060,33 +1255,40 @@ export default function AjustesPage() {
                         </div>
 
                         {/* Live Preview Box */}
-                        <div className="w-64 shrink-0 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-4 flex flex-col items-center justify-center">
-                          <span className="text-[10px] text-muted-foreground mb-4 uppercase tracking-wider font-bold">Previsualización</span>
-                          <div className={`flex ${footerLogoSettings.position === 'top' ? 'flex-col items-start' : 'items-center'} gap-3`}>
+                        <div className="w-full sm:w-72 shrink-0 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-4 flex flex-col items-center justify-center overflow-hidden">
+                          <span className="text-[10px] text-muted-foreground mb-3 uppercase tracking-wider font-bold">Previsualización de Marca</span>
+                          <div className={`flex ${footerLogoSettings.position === 'top' ? 'flex-col items-center text-center' : 'items-center'} gap-3 max-w-full overflow-hidden`}>
                             {footerLogoSettings.showLogo && (logoUrl || logoUrlDark) && (
                               <div 
-                                className={`shrink-0 relative flex items-center justify-center ${footerLogoSettings.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
-                                style={{ width: footerLogoSettings.width, height: footerLogoSettings.height }}
+                                className={`shrink-0 relative flex items-center justify-center overflow-hidden max-w-[120px] max-h-[120px] ${footerLogoSettings.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
+                                style={{ 
+                                  width: Math.min(Number(footerLogoSettings.width || 60), 120), 
+                                  height: Math.min(Number(footerLogoSettings.height || 60), 120) 
+                                }}
                               >
                                 {(footerLogoSettings.glowEffect ?? true) && (
                                   <div 
-                                    className="absolute inset-0 rounded-full bg-primary/50 animate-logo-glow pointer-events-none"
+                                    className="absolute inset-0 rounded-full bg-primary/40 pointer-events-none"
                                     style={{ 
-                                      boxShadow: '0 0 25px 8px hsl(var(--primary) / 0.45)',
-                                      filter: 'blur(10px)'
+                                      boxShadow: '0 0 16px 4px hsl(var(--primary) / 0.4)',
+                                      filter: 'blur(6px)'
                                     }}
                                   />
                                 )}
                                 <img 
                                   src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
                                   alt="Preview" 
-                                  style={{ width: footerLogoSettings.width, height: footerLogoSettings.height }} 
-                                  className="object-contain relative z-10" 
+                                  className="object-contain relative z-10 max-w-full max-h-full" 
                                 />
                               </div>
                             )}
                             {(footerLogoSettings.showText !== false) && (
-                              <span style={{ fontSize: (footerLogoSettings.textSize || 24) * 0.6 }} className={`font-black tracking-tighter ${footerLogoSettings.textEffect === 'neon' ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]' : footerLogoSettings.textEffect === 'minimalist' ? 'text-foreground/80 font-light tracking-widest' : footerLogoSettings.textEffect === 'none' ? 'text-foreground' : 'bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent'}`}>{appName || settings.appName}</span>
+                              <span 
+                                style={{ fontSize: Math.min((footerLogoSettings.textSize || 24) * 0.6, 20) }} 
+                                className={`font-black tracking-tighter truncate max-w-[160px] ${footerLogoSettings.textEffect === 'neon' ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]' : footerLogoSettings.textEffect === 'minimalist' ? 'text-foreground/80 font-light tracking-widest' : footerLogoSettings.textEffect === 'none' ? 'text-foreground' : 'bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent'}`}
+                              >
+                                {appName || settings.appName}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1096,15 +1298,19 @@ export default function AjustesPage() {
                   
                   <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2">
-                      <span>📍</span> Dirección del Negocio
+                      <span>📍</span> Dirección para el Footer y Web Pública (Mapa)
                     </label>
                     <input
                       type="text"
-                      value={storeAddress}
-                      onChange={(e) => setStoreAddress(e.target.value)}
+                      value={landingSettings?.map?.address || ''}
+                      onChange={(e) => setLandingSettings((prev: any) => ({
+                        ...prev,
+                        map: { ...(prev?.map || {}), address: e.target.value }
+                      }))}
                       placeholder="Ej. Av. Principal, Local 5, Ciudad..."
                       className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm text-foreground focus:outline-none focus:border-primary"
                     />
+                    <p className="text-xs text-muted-foreground">Esta dirección se muestra a los clientes en el pie de página (footer) y en el mapa de la página principal. La dirección de tickets y facturas se gestiona por separado en la pestaña General.</p>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1250,6 +1456,7 @@ export default function AjustesPage() {
                           footerVision,
                           footerSocialLinks,
                           footerPartners,
+                          landingSettings,
                           storeAddress
                         }} />
                       </div>

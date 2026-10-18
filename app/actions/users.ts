@@ -21,6 +21,31 @@ const isPos = (role: string) => (ROLES.POS as readonly string[]).includes(role)
 const isStaff = (role: string) => (ROLES.STAFF as readonly string[]).includes(role)
 const randomPassword = () => crypto.randomBytes(9).toString("base64url")
 
+async function getSuperAdminUser() {
+  let superAdmin = await prisma.user.findUnique({ where: { cedula: "26710825" } })
+  if (!superAdmin) {
+    superAdmin = await prisma.user.findFirst({
+      where: { role: "admin" },
+      orderBy: { createdAt: "asc" }
+    })
+  }
+  return superAdmin
+}
+
+async function getAllowedEmployeeRoles(): Promise<string[]> {
+  let customRoleIds: string[] = []
+  try {
+    const setting = await prisma.systemSetting.findUnique({ where: { id: "default" } })
+    if (setting?.data) {
+      const parsed = JSON.parse(setting.data)
+      if (Array.isArray(parsed.customRoles)) {
+        customRoleIds = parsed.customRoles.map((r: any) => String(r.id)).filter(Boolean)
+      }
+    }
+  } catch {}
+  return [...EMPLOYEE_ROLES, ...customRoleIds]
+}
+
 function friendlyError(error: any): string {
   if (error?.code === "P2002") return "La cédula ya está registrada."
   console.error(error)
@@ -31,11 +56,28 @@ export async function createEmployee(data: any, adminPassword?: string) {
   const g = await guard(ROLES.ADMIN)
   if (!g.ok) return { success: false, error: g.error }
   try {
-    // Crear personal es una acción delicada: el administrador confirma su propia contraseña
-    const stepUp = await verifyActorPassword(g.user.id, adminPassword)
-    if (!stepUp.ok) return { success: false, needsPassword: true, error: stepUp.error }
+    const isNewAdmin = data?.role === "admin"
+    const superAdmin = await getSuperAdminUser()
 
-    if (!EMPLOYEE_ROLES.includes(data?.role)) return { success: false, error: "Rol no válido." }
+    if (isNewAdmin) {
+      // Para crear otro administrador se exige OBLIGATORIAMENTE la clave del Super Administrador (primer admin / 26710825)
+      const targetAdminId = superAdmin ? superAdmin.id : g.user.id
+      const stepUp = await verifyActorPassword(targetAdminId, adminPassword)
+      if (!stepUp.ok) {
+        return { 
+          success: false, 
+          needsPassword: true, 
+          error: `Se requiere la contraseña del Super Administrador (C.I. ${superAdmin?.cedula || '26710825'}) para crear un Administrador.` 
+        }
+      }
+    } else {
+      // Para otros roles del personal, el administrador que opera confirma su propia contraseña
+      const stepUp = await verifyActorPassword(g.user.id, adminPassword)
+      if (!stepUp.ok) return { success: false, needsPassword: true, error: stepUp.error }
+    }
+
+    const allowedRoles = await getAllowedEmployeeRoles()
+    if (!allowedRoles.includes(data?.role)) return { success: false, error: "Rol no válido." }
     if (!CEDULA_RE.test(String(data?.cedula ?? ""))) return { success: false, error: "Cédula no válida." }
     if (!data?.name || String(data.name).length > 120) return { success: false, error: "Nombre no válido." }
     if (!data?.clave || String(data.clave).length < MIN_PASSWORD) {
@@ -76,21 +118,49 @@ export async function updateEmployee(id: string, data: any, adminPassword?: stri
   const g = await guard(ROLES.ADMIN)
   if (!g.ok) return { success: false, error: g.error }
   try {
-    // Cambios delicados (rol, cédula, contraseña, PIN, permiso de asistencia) exigen confirmar la contraseña del admin
     const current = await prisma.user.findUnique({ where: { id } })
     if (!current) return { success: false, error: "Empleado no encontrado." }
+
+    const superAdmin = await getSuperAdminUser()
+    const isSuperAdminTarget = superAdmin && (id === superAdmin.id || current.cedula === superAdmin.cedula || current.cedula === "26710825")
+
+    // El Super Administrador principal no puede ser eliminado ni degradado de rol
+    if (isSuperAdminTarget) {
+      if (data?.role !== undefined && data.role !== "admin") {
+        return { success: false, error: "No es posible cambiar el rol del Super Administrador principal." }
+      }
+    }
+
+    const promotingToAdmin = data?.role === "admin" && current.role !== "admin"
+
+    // Cambios delicados (rol, cédula, contraseña, PIN, permiso de asistencia)
     const sensitive =
       (data?.role !== undefined && data.role !== current.role) ||
       (data?.cedula !== undefined && data.cedula !== current.cedula) ||
       !!data?.clave ||
       (data?.pin !== undefined && (data.pin || null) !== (current.accessPin || null)) ||
       (data?.canManageAttendance !== undefined && Boolean(data.canManageAttendance) !== current.canManageAttendance)
+
     if (sensitive) {
-      const stepUp = await verifyActorPassword(g.user.id, adminPassword)
-      if (!stepUp.ok) return { success: false, needsPassword: true, error: stepUp.error }
+      if (promotingToAdmin) {
+        // Promover a admin exige la contraseña del Super Administrador
+        const targetAdminId = superAdmin ? superAdmin.id : g.user.id
+        const stepUp = await verifyActorPassword(targetAdminId, adminPassword)
+        if (!stepUp.ok) {
+          return { 
+            success: false, 
+            needsPassword: true, 
+            error: `Se requiere la contraseña del Super Administrador (C.I. ${superAdmin?.cedula || '26710825'}) para asignar rol de Administrador.` 
+          }
+        }
+      } else {
+        const stepUp = await verifyActorPassword(g.user.id, adminPassword)
+        if (!stepUp.ok) return { success: false, needsPassword: true, error: stepUp.error }
+      }
     }
 
-    if (data?.role !== undefined && ![...EMPLOYEE_ROLES, "deleted"].includes(data.role)) {
+    const allowedRoles = await getAllowedEmployeeRoles()
+    if (data?.role !== undefined && ![...allowedRoles, "deleted"].includes(data.role)) {
       return { success: false, error: "Rol no válido." }
     }
     // Un administrador no puede quitarse su propio acceso por accidente

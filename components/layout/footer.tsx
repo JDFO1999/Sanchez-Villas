@@ -17,6 +17,7 @@ export function BaseFooter({
   const pY = settings.footerLogoSettings?.footerPadding !== undefined ? settings.footerLogoSettings.footerPadding : 12;
   const mT = settings.footerLogoSettings?.footerMarginTop !== undefined ? settings.footerLogoSettings.footerMarginTop : 0;
   
+  const footerAddress = settings.landingSettings?.map?.address || settings.storeAddress;
   const layoutTheme = settings.footerLogoSettings?.layoutTheme || 'modern';
   // En modo oscuro usar logoUrlDark (o fallback a logoUrl); en modo claro usar logoUrl (o fallback a logoUrlDark)
   const logoSrc = isDark 
@@ -132,10 +133,10 @@ export function BaseFooter({
                   </div>
                 </div>
               )}
-              {settings.storeAddress && (
+              {footerAddress && (
                 <div className="flex flex-col items-center text-center gap-2 text-sm text-muted-foreground mt-auto">
                   <div className="flex items-center gap-2 text-primary font-semibold"><MapPin className="h-4 w-4" /><span>Ubicación</span></div>
-                  <p className="max-w-xs">{settings.storeAddress}</p>
+                  <p className="max-w-xs">{footerAddress}</p>
                 </div>
               )}
             </div>
@@ -151,10 +152,10 @@ export function BaseFooter({
                   <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
                 )}
               </div>
-              {settings.storeAddress && (
+              {footerAddress && (
                 <div className="flex items-start gap-2 text-sm text-muted-foreground mt-4">
                   <MapPin className="h-5 w-5 shrink-0 text-primary" />
-                  <p>{settings.storeAddress}</p>
+                  <p>{footerAddress}</p>
                 </div>
               )}
             </div>
@@ -232,10 +233,10 @@ export function BaseFooter({
               ))}
             </div>
             
-            {settings.storeAddress && (
+            {footerAddress && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <p>{settings.storeAddress}</p>
+                <p>{footerAddress}</p>
               </div>
             )}
             
