@@ -67,6 +67,9 @@ export default function MembresíasPage() {
     { method: 'Pago Móvil', amount: '', reference: '', receiptImage: null },
     { method: 'Tarjeta', amount: '', reference: '', receiptImage: null }
   ])
+  const [renovarReceivedAmount, setRenovarReceivedAmount] = useState<string>("")
+  const [renovarChangeMethod, setRenovarChangeMethod] = useState<'Efectivo' | 'Pago Móvil' | 'Transferencia'>('Efectivo')
+  const [renovarChangeRef, setRenovarChangeRef] = useState<string>("")
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
   // Edit Modal State
@@ -229,6 +232,9 @@ export default function MembresíasPage() {
     setWalkInCedula("")
     setWalkInName("")
     setWalkInPhone("")
+    setRenovarReceivedAmount("")
+    setRenovarChangeMethod("Efectivo")
+    setRenovarChangeRef("")
     const defaultPlan = availablePlans.find(p => p.name.toLowerCase() === (a.membershipType || "").toLowerCase()) || availablePlans.find(p => p.popular) || availablePlans[0]
     const pName = defaultPlan?.name || "Mensualidad Básica"
     const pPrice = defaultPlan?.price || baseMonthlyPrice
@@ -252,6 +258,9 @@ export default function MembresíasPage() {
     setWalkInCedula("")
     setWalkInName("")
     setWalkInPhone("")
+    setRenovarReceivedAmount("")
+    setRenovarChangeMethod("Efectivo")
+    setRenovarChangeRef("")
     const defaultPlan = availablePlans.find(p => p.popular) || availablePlans[0]
     const pName = defaultPlan?.name || "Mensualidad Básica"
     const pPrice = defaultPlan?.price || baseMonthlyPrice
@@ -338,16 +347,31 @@ export default function MembresíasPage() {
       }
     }
 
-    const confirm = await Swal.fire({
-      title: isWalkInMode ? '¿Confirmar Cobro de Plan?' : '¿Confirmar Plan / Renovación?',
-      html: `Plan: <b>${selectedPlanName}</b> (${renovarMonths} mes/es)<br>Total a cobrar: <b>${settings.storeCurrency} ${total.toFixed(2)}</b>.<br><span class="text-xs text-muted-foreground mt-1 block">Formas de pago: ${renovarSplitCount === 1 ? activeSplits[0].method : activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}</span>`,
-      icon: 'question',
+    const receivedNum = parseFloat(renovarReceivedAmount) || 0;
+    const changeToReturn = receivedNum > total ? Math.round((receivedNum - total) * 100) / 100 : 0;
+
+    // Validación de PIN de Seguridad del Recepcionista / Cajero
+    const { value: pin } = await Swal.fire({
+      title: 'Validación de Seguridad',
+      html: `Plan: <b>${selectedPlanName}</b> (${renovarMonths} mes/es) — Total: <b>${settings.storeCurrency} ${total.toFixed(2)}</b>${changeToReturn > 0 ? `<br><span class="text-xs text-warning">Recibido: ${settings.storeCurrency} ${receivedNum.toFixed(2)} | Vuelto: ${settings.storeCurrency} ${changeToReturn.toFixed(2)} (${renovarChangeMethod})</span>` : ''}<br><br><span class="text-xs text-muted-foreground">Ingrese su PIN de Recepcionista/Cajero o escanee su código para registrar el cobro en Finanzas y activar la membresía:</span>`,
+      input: 'password',
+      inputPlaceholder: 'Ingrese su PIN...',
       showCancelButton: true,
-      confirmButtonText: 'Sí, procesar',
-      cancelButtonText: 'Cancelar'
+      confirmButtonText: 'Validar y Cobrar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981',
     })
-    
-    if (!confirm.isConfirmed) return;
+
+    if (!pin) return
+
+    const { validatePinAction } = await import('@/app/actions/auth')
+    const pinRes = await validatePinAction(pin)
+    if (!pinRes.success || !pinRes.user) {
+      Swal.fire('PIN Incorrecto', pinRes.error || 'No se pudo validar el PIN. La membresía no fue activada.', 'error')
+      return
+    }
+
+    const validatedCashierId = pinRes.user.id
 
     let finalPaymentMethod: string;
     let finalReference: string | undefined;
@@ -363,14 +387,15 @@ export default function MembresíasPage() {
       finalReceiptImage = activeSplits.find(s => s.receiptImage)?.receiptImage || undefined;
     }
 
+    if (changeToReturn > 0) {
+      const changeTag = `Recibido: $${receivedNum.toFixed(2)} | Vuelto: $${changeToReturn.toFixed(2)} (${renovarChangeMethod}${renovarChangeRef.trim() ? ` Ref: ${renovarChangeRef.trim()}` : ''})`;
+      finalReference = finalReference ? `${finalReference} | ${changeTag}` : changeTag;
+    }
+
     const { createTransaction } = await import('@/app/actions/store')
     const { createAthlete, updateAthlete, getAthletes } = await import('@/app/actions/users')
 
     let targetAthleteId = showRenovarModal.id
-    const currentEnd = new Date(showRenovarModal.membershipEnd)
-    const now = new Date()
-    let startFrom = currentEnd > now ? new Date(currentEnd) : new Date(now)
-    startFrom.setMonth(startFrom.getMonth() + renovarMonths)
 
     if (isWalkInMode) {
       const cleanCed = walkInCedula.replace(/\D/g, "").trim()
@@ -379,9 +404,7 @@ export default function MembresíasPage() {
         name: walkInName.trim(),
         phone: walkInPhone.trim() || undefined,
         coachId: renovarIncludeCoach && renovarSelectedCoach ? renovarSelectedCoach : undefined,
-        membershipEnd: startFrom.toISOString(),
-        planName: selectedPlanName,
-        pricePaid: membershipPrice
+        skipMembershipCreation: true
       })
       if (!createRes.success || !createRes.athlete) {
         Swal.fire('Error', createRes.error || 'No se pudo registrar o actualizar al cliente por cédula.', 'error')
@@ -390,13 +413,13 @@ export default function MembresíasPage() {
       targetAthleteId = createRes.athlete.id
     }
     
-    // Process Transaction
+    // Process Transaction (which atomically creates/extends Membership in DB)
     const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
-    await createTransaction({
-       cashierId: user?.id || 'admin',
+    const txRes = await createTransaction({
+       cashierId: validatedCashierId,
        customerId: targetAthleteId,
        items: [
-         { productId: 'MEMB', name: `${selectedPlanName} (${renovarMonths} mes/es)`, price: selectedPlanPrice, qty: renovarMonths, subtotal: membershipPrice },
+         { productId: `PLAN:${selectedPlanName}`, name: `${selectedPlanName} (${renovarMonths} mes/es)`, price: selectedPlanPrice, qty: renovarMonths, subtotal: membershipPrice },
          ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice / renovarMonths, qty: renovarMonths, subtotal: coachPrice }] : [])
        ],
        subtotal: total,
@@ -407,13 +430,15 @@ export default function MembresíasPage() {
        receiptImage: finalReceiptImage
     })
 
-    // Update Athlete Membership (when not already handled by createAthlete in walk-in mode)
-    if (!isWalkInMode) {
+    if (!txRes.success) {
+      Swal.fire('Error al Procesar Pago', txRes.error || 'No se pudo registrar la transacción financiera. La membresía no fue activada.', 'error')
+      return
+    }
+
+    // Update Athlete Coach if changed (membership already created atomically by createTransaction)
+    if (!isWalkInMode && renovarIncludeCoach && renovarSelectedCoach && renovarSelectedCoach !== showRenovarModal.coachId) {
       await updateAthlete(targetAthleteId, {
-        membershipEnd: startFrom.toISOString(),
-        planName: selectedPlanName,
-        pricePaid: membershipPrice,
-        coachId: renovarIncludeCoach ? renovarSelectedCoach : showRenovarModal.coachId
+        coachId: renovarSelectedCoach
       })
     }
     
@@ -442,8 +467,8 @@ export default function MembresíasPage() {
     Toast.fire({
       icon: 'success',
       title: isWalkInMode
-        ? 'Plan cobrado y enlazado a la cédula exitosamente'
-        : 'Plan activado/renovado y cobrado exitosamente'
+        ? `Plan cobrado por ${pinRes.user.name} y enlazado a la cédula`
+        : `Plan activado y registrado en Finanzas por ${pinRes.user.name}`
     })
   }
 
@@ -915,6 +940,66 @@ export default function MembresíasPage() {
                           </span>
                         </div>
                       )}
+
+                      {/* Calculadora y Registro de Vuelto (Cuando el cliente entrega billete mayor al total) */}
+                      <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-amber-500 flex items-center gap-1.5">
+                            <DollarSign className="w-3.5 h-3.5" /> Calculadora y Registro de Vuelto (Opcional)
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">Descuenta automáticamente de Caja / Banco</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Monto Recibido del Cliente ({settings.storeCurrency})</label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              placeholder={`Ej: 20.00 (Total: ${totalCalculado.toFixed(2)})`}
+                              value={renovarReceivedAmount}
+                              onChange={e => setRenovarReceivedAmount(e.target.value)}
+                              className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-mono font-bold focus:border-amber-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-muted-foreground mb-1 block">Método de Entrega del Vuelto</label>
+                            <select
+                              value={renovarChangeMethod}
+                              onChange={e => setRenovarChangeMethod(e.target.value as any)}
+                              className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-semibold focus:border-amber-500"
+                            >
+                              <option value="Efectivo">Efectivo (Descontar de Caja)</option>
+                              <option value="Pago Móvil">Pago Móvil (Descontar de Banco)</option>
+                              <option value="Transferencia">Transferencia (Descontar de Banco)</option>
+                            </select>
+                          </div>
+                        </div>
+                        {(parseFloat(renovarReceivedAmount) || 0) > totalCalculado && (() => {
+                          const changeUsd = Math.round(((parseFloat(renovarReceivedAmount) || 0) - totalCalculado) * 100) / 100;
+                          const changeBs = settings.storeExchangeRate > 0 ? changeUsd * settings.storeExchangeRate : 0;
+                          return (
+                            <div className="pt-2 border-t border-amber-500/20 space-y-2">
+                              <div className="flex items-center justify-between text-xs font-black text-amber-500">
+                                <span>Vuelto a Entregar al Cliente:</span>
+                                <span>
+                                  {settings.storeCurrency} {changeUsd.toFixed(2)}
+                                  {changeBs > 0 && settings.storeCurrencySecondary ? ` (${settings.storeCurrencySecondary} ${changeBs.toFixed(2)})` : ''}
+                                </span>
+                              </div>
+                              {renovarChangeMethod !== 'Efectivo' && (
+                                <input
+                                  type="text"
+                                  placeholder={`N° Referencia del vuelto por ${renovarChangeMethod} (Opcional)...`}
+                                  value={renovarChangeRef}
+                                  onChange={e => setRenovarChangeRef(e.target.value)}
+                                  className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-1.5 text-xs focus:border-amber-500"
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </>
                 )
@@ -922,7 +1007,7 @@ export default function MembresíasPage() {
 
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={() => setShowRenovarModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">Confirmar y Cobrar</button>
+                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">Validar PIN y Cobrar</button>
               </div>
             </form>
           </div>

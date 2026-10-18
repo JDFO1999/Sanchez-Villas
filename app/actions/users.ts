@@ -325,7 +325,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
           }
         })
 
-        if (data.membershipEnd && me && isPos(me.role)) {
+        if (data.membershipEnd && !data.skipMembershipCreation && me && isPos(me.role)) {
           await prisma.membership.create({
             data: {
               athleteId: existing.id,
@@ -337,9 +337,10 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
           })
         }
 
+        const safeUpdated = stripSecrets(updatedUser)
         revalidatePath("/atletas")
         revalidatePath("/membresias")
-        return { success: true, user: stripSecrets(updatedUser), linkedExisting: true }
+        return { success: true, user: safeUpdated, athlete: safeUpdated, linkedExisting: true }
       }
 
       // Caso 2: El cliente compró un plan en Recepción antes de registrarse y ahora se registra en /registro con su cédula
@@ -360,9 +361,10 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
           }
         })
 
+        const safeLinked = stripSecrets(linkedUser)
         revalidatePath("/atletas")
         revalidatePath("/membresias")
-        return { success: true, user: stripSecrets(linkedUser), linkedExisting: true }
+        return { success: true, user: safeLinked, athlete: safeLinked, linkedExisting: true }
       }
 
       return { success: false, error: "La cédula ya está registrada. Inicia sesión con tu contraseña." }
@@ -384,7 +386,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     });
 
     // La membresía solo la asigna personal de caja/administración
-    if (data.membershipEnd && me && isPos(me.role)) {
+    if (data.membershipEnd && !data.skipMembershipCreation && me && isPos(me.role)) {
       await prisma.membership.create({
         data: {
           athleteId: user.id,
@@ -396,9 +398,10 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       })
     }
 
+    const safeCreated = stripSecrets(user)
     revalidatePath("/atletas")
     revalidatePath("/membresias")
-    return { success: true, user: stripSecrets(user) }
+    return { success: true, user: safeCreated, athlete: safeCreated }
   } catch (error: any) {
     return { success: false, error: friendlyError(error) }
   }

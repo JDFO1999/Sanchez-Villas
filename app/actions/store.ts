@@ -170,7 +170,7 @@ export async function createTransaction(data: any) {
           tax,
           total,
           paymentMethod: method,
-          reference: data.reference ? String(data.reference).slice(0, 80) : null,
+          reference: data.reference ? String(data.reference).slice(0, 190) : null,
           receiptImage: receiptImage || null,
           status: cashierId ? 'COMPLETED' : 'PENDING_DELIVERY',
           items: {
@@ -198,31 +198,31 @@ export async function createTransaction(data: any) {
         }
       }
 
-      // 3b. Si es una venta directa en caja (POS en /tienda) de un Plan/Membresía (MEMBRESIA-001 o PLAN:*),
-      // activamos/extendemos automáticamente la membresía del cliente (en /membresias se usa 'MEMB' y updateAthlete aparte).
+      // 3b. Activación unificada y atómica de Membresía/Plan al facturar en Recepción/Caja (/tienda o /membresias).
+      // Garantiza que NINGUNA membresía se active sin su respectiva transacción financiera en /finanzas.
       if (cashierId && customerId) {
         for (const l of lines) {
-          if (l.productId === 'MEMBRESIA-001' || l.productId.startsWith('PLAN:')) {
+          if (l.productId === 'MEMB' || l.productId === 'MEMBRESIA-001' || l.productId.startsWith('PLAN:')) {
             const latestMemb = await tx.membership.findFirst({
-              where: { userId: customerId },
+              where: { athleteId: customerId },
               orderBy: { endDate: 'desc' }
             });
             const now = new Date();
             const currentEnd = latestMemb?.endDate ? new Date(latestMemb.endDate) : new Date(0);
             const startFrom = currentEnd > now ? new Date(currentEnd) : new Date(now);
-            startFrom.setMonth(startFrom.getMonth() + l.qty);
+            const monthsToAdd = Math.max(1, Number(l.qty) || 1);
+            startFrom.setMonth(startFrom.getMonth() + monthsToAdd);
             const planName = l.productId.startsWith('PLAN:')
               ? (l.productId.slice(5).trim() || 'Mensual')
-              : (l.name.replace(/^Mensualidad\s*[-–:]?\s*/i, '').trim() || 'Mensual');
+              : (l.name.replace(/^Mensualidad\s*[-–:]?\s*/i, '').replace(/\s*\(\d+\s*mes.*?\)\s*$/i, '').trim() || 'Mensual');
 
             await tx.membership.create({
               data: {
-                userId: customerId,
+                athleteId: customerId,
                 status: 'ACTIVE',
                 planName,
                 startDate: now,
-                endDate: startFrom,
-                pricePaid: l.subtotal
+                endDate: startFrom
               }
             });
           }
@@ -247,7 +247,7 @@ export async function createTransaction(data: any) {
     revalidatePath('/atletas');
     revalidatePath('/finanzas');
     revalidatePath('/');
-    await audit("sale.create", g.user, { transactionId: transaction.id, total: transaction.total, method });
+    await audit("sale.create", g.user, { transactionId: transaction.id, total: transaction.total, method, reference: transaction.reference });
     return { success: true, transaction }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -320,7 +320,7 @@ export async function getPendingTransactions() {
   }
 }
 
-export async function deliverTransaction(transactionId: string, cashierId: string) {
+export async function deliverTransaction(transactionId: string, cashierId: string, changeNote?: string) {
   // guard:deliverTransaction
   const g = await guard(ROLES.POS)
   if (!g.ok) return { success: false, error: g.error }
@@ -335,12 +335,18 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
         throw new Error('No tienes un turno de caja abierto para registrar esta entrega.');
       }
 
+      const existingTx = await tx.transaction.findUnique({ where: { id: transactionId } });
+      const combinedRef = changeNote
+        ? [existingTx?.reference, changeNote].filter(Boolean).join(' | ').slice(0, 190)
+        : existingTx?.reference;
+
       const updatedTx = await tx.transaction.update({
         where: { id: transactionId },
         data: {
           status: 'COMPLETED',
           cashierId: cashierId,
-          cashSessionId: activeSession.id
+          cashSessionId: activeSession.id,
+          ...(changeNote ? { reference: combinedRef } : {})
         },
         include: { items: true }
       });
@@ -354,7 +360,7 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
             item.productId.startsWith('PLAN:')
           ) {
             const latestMemb = await tx.membership.findFirst({
-              where: { userId: updatedTx.customerId },
+              where: { athleteId: updatedTx.customerId },
               orderBy: { endDate: 'desc' }
             });
             const now = new Date();
@@ -369,12 +375,11 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
 
             await tx.membership.create({
               data: {
-                userId: updatedTx.customerId,
+                athleteId: updatedTx.customerId,
                 status: 'ACTIVE',
                 planName,
                 startDate: now,
-                endDate: startFrom,
-                pricePaid: item.subtotal
+                endDate: startFrom
               }
             });
           }

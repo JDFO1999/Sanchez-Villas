@@ -121,6 +121,9 @@ export default function TiendaPOSPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Efectivo')
   const [txReference, setTxReference] = useState("")
   const [txReceiptImage, setTxReceiptImage] = useState("")
+  const [posReceivedAmount, setPosReceivedAmount] = useState<string>("")
+  const [posChangeMethod, setPosChangeMethod] = useState<'Efectivo' | 'Pago Móvil' | 'Transferencia'>('Efectivo')
+  const [posChangeRef, setPosChangeRef] = useState<string>("")
   
   // Admin Override
   const [showAdminOverride, setShowAdminOverride] = useState(false)
@@ -343,9 +346,12 @@ export default function TiendaPOSPage() {
       }
       
       // Confirm cashier name
+      const receivedNum = parseFloat(posReceivedAmount) || 0;
+      const changeToReturn = receivedNum > total ? Math.round((receivedNum - total) * 100) / 100 : 0;
+
       const { isConfirmed } = await Swal.fire({
         title: 'Cajero Validado',
-        html: `La venta será procesada por: <br><br><span class="text-xl font-bold text-primary">${res.user.name}</span>`,
+        html: `La venta será procesada por: <br><br><span class="text-xl font-bold text-primary">${res.user.name}</span>${changeToReturn > 0 ? `<br><span class="text-xs font-bold text-amber-500 mt-2 block">Recibido: ${settings.storeCurrency} ${receivedNum.toFixed(2)} | Vuelto a entregar: ${settings.storeCurrency} ${changeToReturn.toFixed(2)} (${posChangeMethod})</span>` : ''}`,
         icon: 'success',
         showCancelButton: true,
         confirmButtonText: 'Procesar Venta',
@@ -370,6 +376,15 @@ export default function TiendaPOSPage() {
       finalPaymentMethod = `Mixto: ${activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}`
       finalReference = activeSplits.filter(s => s.reference?.trim()).map(s => `${s.method}: ${s.reference.trim()}`).join(' | ') || undefined
       finalReceiptImage = activeSplits.find(s => s.receiptImage)?.receiptImage || undefined
+    }
+
+    if (!isAthlete) {
+      const receivedNum = parseFloat(posReceivedAmount) || 0;
+      const changeToReturn = receivedNum > total ? Math.round((receivedNum - total) * 100) / 100 : 0;
+      if (changeToReturn > 0) {
+        const changeTag = `Recibido: $${receivedNum.toFixed(2)} | Vuelto: $${changeToReturn.toFixed(2)} (${posChangeMethod}${posChangeRef.trim() ? ` Ref: ${posChangeRef.trim()}` : ''})`;
+        finalReference = finalReference ? `${finalReference} | ${changeTag}` : changeTag;
+      }
     }
 
     const tx: Transaction = {
@@ -429,6 +444,9 @@ export default function TiendaPOSPage() {
         setShowAdminCart(false);
         setTxReference("");
         setTxReceiptImage("");
+        setPosReceivedAmount("");
+        setPosChangeMethod("Efectivo");
+        setPosChangeRef("");
         showToast("Compra completada eéxitosamente.", "success");
         router.refresh();
       }
@@ -1548,6 +1566,64 @@ export default function TiendaPOSPage() {
                   </div>
                 )
               })()}
+
+              {/* Calculadora y Registro de Vuelto (Cuando el cliente paga con billete mayor al total) */}
+              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-500">Calculadora y Registro de Vuelto (Opcional)</span>
+                  <span className="text-[10px] text-muted-foreground">Descuenta de Caja / Banco</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-1">Monto Recibido ({settings.storeCurrency})</label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder={`Ej: 20.00`}
+                      value={posReceivedAmount}
+                      onChange={e => setPosReceivedAmount(e.target.value)}
+                      className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-mono font-bold focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-1">Método del Vuelto</label>
+                    <select
+                      value={posChangeMethod}
+                      onChange={e => setPosChangeMethod(e.target.value as any)}
+                      className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-semibold focus:border-amber-500"
+                    >
+                      <option value="Efectivo">Efectivo (Caja)</option>
+                      <option value="Pago Móvil">Pago Móvil (Banco)</option>
+                      <option value="Transferencia">Transferencia (Banco)</option>
+                    </select>
+                  </div>
+                </div>
+                {(parseFloat(posReceivedAmount) || 0) > total && (() => {
+                  const changeUsd = Math.round(((parseFloat(posReceivedAmount) || 0) - total) * 100) / 100;
+                  const changeBs = settings.storeExchangeRate > 0 ? changeUsd * settings.storeExchangeRate : 0;
+                  return (
+                    <div className="pt-2 border-t border-amber-500/20 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-black text-amber-500">
+                        <span>Vuelto a Entregar:</span>
+                        <span>
+                          {settings.storeCurrency} {changeUsd.toFixed(2)}
+                          {changeBs > 0 && settings.storeCurrencySecondary ? ` (${settings.storeCurrencySecondary} ${changeBs.toFixed(2)})` : ''}
+                        </span>
+                      </div>
+                      {posChangeMethod !== 'Efectivo' && (
+                        <input
+                          type="text"
+                          placeholder={`N° Referencia del vuelto por ${posChangeMethod} (Opcional)...`}
+                          value={posChangeRef}
+                          onChange={e => setPosChangeRef(e.target.value)}
+                          className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-1.5 text-xs focus:border-amber-500"
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             <div className="pt-2 space-y-1">
@@ -1625,7 +1701,8 @@ export default function TiendaPOSPage() {
                           <span className="font-mono bg-warning/20 text-warning px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
                           <span className="font-bold">{order.customer?.name} ({order.customer?.cedula})</span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{new Date(order.date).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground mb-1">{new Date(order.date).toLocaleString()} • <span className="font-bold text-foreground">{order.paymentMethod}</span></p>
+                        {order.reference && <p className="text-xs text-muted-foreground mb-2">Ref: {order.reference}</p>}
                         <div className="flex flex-wrap gap-2">
                           {order.items.map((item: any) => (
                             <span key={item.id} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded">
@@ -1636,22 +1713,25 @@ export default function TiendaPOSPage() {
                       </div>
                       
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className="text-lg font-black"></span>
+                        <span className="text-lg font-black text-primary">{settings.storeCurrency} {Number(order.total || 0).toFixed(2)}</span>
                         <button 
                           onClick={async () => {
                             if (!user?.id) return;
                             const result = await Swal.fire({
-                              title: '¿Entregar Pedido?',
-                              text: `¿Confirmas que vas a entregar este pedido a ${order.customer?.name}? Esta venta se asignará a tu caja actual.`, 
+                              title: '¿Confirmar y Entregar Pedido?',
+                              html: `Pedido de <b>${order.customer?.name}</b> por <b>${settings.storeCurrency} ${Number(order.total || 0).toFixed(2)}</b> (${order.paymentMethod}).<br><span class="text-xs text-muted-foreground">Si el cliente pagó en efectivo con un billete mayor y entregaste vuelto, puedes anotarlo abajo (ej. Vuelto: $5.00 (Efectivo)) para descontarlo de tu caja:</span>`, 
+                              input: 'text',
+                              inputPlaceholder: 'Opcional: Recibido: $20.00 | Vuelto: $5.00 (Efectivo)',
                               icon: 'question',
                               showCancelButton: true,
-                              confirmButtonText: 'Si Entregar'
+                              confirmButtonText: 'Sí, Confirmar y Entregar'
                             });
                             if (result.isConfirmed) {
                               const { deliverTransaction } = await import('@/app/actions/store');
-                              const res = await deliverTransaction(order.id, user.id);
+                              const changeNote = typeof result.value === 'string' && result.value.trim() ? result.value.trim() : undefined;
+                              const res = await deliverTransaction(order.id, user.id, changeNote);
                               if (res.success) {
-                                showToast('Pedido entregado con éxito y asignado a tu caja.', 'success');
+                                showToast('Pedido confirmado, asignado a tu caja y membresía activada (si aplica).', 'success');
                                 fetchPendingOrders();
                               } else {
                                 showToast(res.error || 'Error al entregar pedido.', 'error');
@@ -1660,7 +1740,7 @@ export default function TiendaPOSPage() {
                           }}
                           className="border-2 border-warning text-warning hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2"
                         >
-                          <Check className="h-4 w-4" /> Entregar
+                          <Check className="h-4 w-4" /> Confirmar / Entregar
                         </button>
                       </div>
                     </div>

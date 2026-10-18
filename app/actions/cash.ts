@@ -78,6 +78,7 @@ export async function closeCashSession(sessionId: string, declaredCash: number) 
     for (const tx of session.transactions) {
       if (tx.status === 'COMPLETED') {
         const method = (tx.paymentMethod || '').toLowerCase()
+        const ref = String(tx.reference || '')
         if (method.startsWith('mixto')) {
           // Parse format: "Mixto: Efectivo ($10.00) + Pago Móvil ($15.00)"
           const parts = tx.paymentMethod.replace(/^mixto:\s*/i, '').split(/\s*\+\s*/)
@@ -97,6 +98,29 @@ export async function closeCashSession(sessionId: string, declaredCash: number) 
           if (method === 'efectivo') expectedEfectivo += tx.total
           else if (method === 'tarjeta' || method === 'punto de venta') expectedTarjeta += tx.total
           else expectedTransferencia += tx.total
+        }
+
+        // Ajuste contable de Vuelto:
+        // Si el cliente pagó en Efectivo (ej. billete de $20 por un plan de $15) pero el vuelto ($5) se entregó por Pago Móvil/Transferencia,
+        // en la gaveta física de efectivo quedaron los $20 completos (+$5 en efectivo físico) y salieron -$5 de banco.
+        // Si el cliente pagó por vía digital y el vuelto se entregó en Efectivo de caja, salieron -$5 de la gaveta física.
+        const vueltoMatch = ref.match(/Vuelto:\s*[^0-9]*([\d.]+)\s*\(([^)]+)\)/i)
+        if (vueltoMatch) {
+          const vueltoAmount = parseFloat(vueltoMatch[1]) || 0
+          const vueltoMethod = vueltoMatch[2].toLowerCase()
+          if (vueltoAmount > 0) {
+            const paidCashOnly = method === 'efectivo'
+            const vueltoByDigital = vueltoMethod.includes('móvil') || vueltoMethod.includes('movil') || vueltoMethod.includes('transfer') || vueltoMethod.includes('binance')
+            const vueltoByCash = vueltoMethod.includes('efectivo')
+
+            if (paidCashOnly && vueltoByDigital) {
+              expectedEfectivo += vueltoAmount
+              expectedTransferencia -= vueltoAmount
+            } else if (!paidCashOnly && !method.startsWith('mixto') && vueltoByCash) {
+              expectedEfectivo -= vueltoAmount
+              expectedTransferencia += vueltoAmount
+            }
+          }
         }
       }
     }

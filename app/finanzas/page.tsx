@@ -135,11 +135,13 @@ export default function FinanzasPage() {
   const COLORS_IN = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
 
   const ingresosPorCategoria = transactions.reduce((acc, tx) => {
+    if (tx.status === 'CANCELED') return acc;
     tx.items.forEach((item: any) => {
       let cat = 'Tienda'
       const pId = String(item.productId || '').toLowerCase()
-      const pName = String(item.productName || '').toLowerCase()
-      if (pId === 'memb' || pName.includes('mensualidad') || pName.includes('mes')) cat = 'Mensualidades'
+      const pName = String(item.name || item.productName || '').toLowerCase()
+      if (pId === 'memb' || pId === 'membresia-001' || pId.startsWith('plan:') || pName.includes('mensualidad') || pName.includes('plan') || pName.includes('mes')) cat = 'Planes y Mensualidades'
+      else if (pId === 'coach' || pName.includes('entrenador')) cat = 'Entrenadores'
       else if (pName.includes('inscrip')) cat = 'Inscripciones'
       acc[cat] = (acc[cat] || 0) + (item.subtotal || 0);
     })
@@ -995,30 +997,61 @@ export default function FinanzasPage() {
                   <tr>
                     <th className="p-4 font-medium">Fecha</th>
                     <th className="p-4 font-medium">Ticket #</th>
+                    <th className="p-4 font-medium">Cliente / Atleta</th>
+                    <th className="p-4 font-medium">Concepto / Plan</th>
+                    <th className="p-4 font-medium">Cobrado por</th>
                     <th className="p-4 font-medium">Método</th>
-                    <th className="p-4 font-medium">Referencia</th>
+                    <th className="p-4 font-medium">Referencia / Vuelto</th>
                     <th className="p-4 font-medium">Monto</th>
+                    <th className="p-4 font-medium text-center">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tx => (
+                  {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx: any) => {
+                    const hasVuelto = typeof tx.reference === 'string' && tx.reference.includes('Vuelto:')
+                    const itemsText = Array.isArray(tx.items) && tx.items.length > 0
+                      ? tx.items.map((it: any) => `${it.qty}x ${it.name || it.productName || 'Producto'}`).join(', ')
+                      : 'Venta General'
+                    return (
                     <tr key={tx.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
-                      <td className="p-4 text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                      <td className="p-4 font-medium font-mono text-xs">
+                      <td className="p-4 text-muted-foreground whitespace-nowrap text-xs">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                      <td className="p-4 font-medium font-mono text-xs whitespace-nowrap">
                         <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline hover:text-primary/80 transition-colors">
-                          {tx.id}
+                          {tx.id.slice(-8).toUpperCase()}
                         </button>
+                      </td>
+                      <td className="p-4 text-xs">
+                        {tx.customer ? (
+                          <div>
+                            <div className="font-bold text-foreground">{tx.customer.name}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono">C.I. {tx.customer.cedula}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic">Cliente de Paso</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-xs max-w-[220px]">
+                        <span className="font-semibold text-foreground line-clamp-2" title={itemsText}>{itemsText}</span>
+                      </td>
+                      <td className="p-4 text-xs">
+                        {tx.cashier ? (
+                          <span className="font-medium text-foreground">{tx.cashier.name}</span>
+                        ) : (
+                          <span className="text-[10px] bg-warning/20 text-warning px-2 py-0.5 rounded font-bold uppercase">Online (Por Confirmar)</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
                       </td>
-                      <td className="p-4 text-xs text-muted-foreground flex items-center gap-2">
-                        {tx.reference || '-'}
-                        {['Transferencia', 'Pago Móvil', 'Binance'].includes(tx.paymentMethod) && tx.receiptImage && (
-                          <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
-                        )}
+                      <td className="p-4 text-xs text-muted-foreground">
+                        <div className="flex flex-col gap-1">
+                          <span className={hasVuelto ? "text-amber-500 font-semibold" : ""}>{tx.reference || '-'}</span>
+                          {tx.receiptImage && (
+                            <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold text-left">Ver Comprobante</button>
+                          )}
+                        </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 whitespace-nowrap">
                         <div className="font-bold text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
                           <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
                         </td>
@@ -1030,10 +1063,11 @@ export default function FinanzasPage() {
                           )}
                         </td>
                       </tr>
-                  ))}
+                    )
+                  })}
                   {transactions.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-muted-foreground">No hay ingresos registrados aún.</td>
+                      <td colSpan={9} className="p-8 text-center text-muted-foreground">No hay ingresos registrados aún.</td>
                     </tr>
                   )}
                 </tbody>
@@ -1041,16 +1075,23 @@ export default function FinanzasPage() {
 
               {/* Mobile View */}
               <div className="md:hidden flex flex-col divide-y divide-white/5">
-                {transactions.map(tx => (
+                {transactions.map((tx: any) => {
+                  const itemsText = Array.isArray(tx.items) && tx.items.length > 0
+                    ? tx.items.map((it: any) => `${it.qty}x ${it.name || it.productName || 'Producto'}`).join(', ')
+                    : 'Venta General'
+                  return (
                   <div key={tx.id} className="p-4 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-mono text-xs font-bold">
                           <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline">
-                            {tx.id}
+                            #{tx.id.slice(-8).toUpperCase()}
                           </button>
                         </div>
                         <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        {tx.customer && <div className="text-xs font-bold mt-1">{tx.customer.name} (C.I. {tx.customer.cedula})</div>}
+                        <div className="text-xs text-primary font-semibold">{itemsText}</div>
+                        <div className="text-[10px] text-muted-foreground">Cobrado por: {tx.cashier?.name || 'Online (Por Confirmar)'}</div>
                       </div>
                       <div className="text-right">
                         <div className="font-black text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
@@ -1061,13 +1102,14 @@ export default function FinanzasPage() {
                       <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-xs text-muted-foreground">{tx.reference || '-'}</span>
-                        {['Transferencia', 'Pago Móvil', 'Binance'].includes(tx.paymentMethod) && tx.receiptImage && (
+                        {tx.receiptImage && (
                           <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
                         )}
                       </div>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
                 {transactions.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground">No hay ingresos registrados aún.</div>
                 )}
