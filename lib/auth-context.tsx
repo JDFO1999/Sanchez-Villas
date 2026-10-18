@@ -96,13 +96,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // Borra la cookie httpOnly "session"; sin esto el middleware sigue viendo la sesión y redirige /login -> /
+      // Borra la cookie httpOnly "session" en el servidor
       await logoutAction()
+    } catch (e) {
+      console.error("Error durante logoutAction:", e)
     } finally {
-      localStorage.removeItem('gympro_session_id')
+      // Limpiar datos locales y cookies accesibles por cliente
+      try {
+        localStorage.removeItem('gympro_session_id')
+        localStorage.removeItem('gympro_cached_user')
+        sessionStorage.clear()
+        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0;"
+      } catch {}
       setUser(null)
-      // Redirige a la página principal promocional
-      window.location.assign('/')
+      // Redirige siempre a la página principal promocional
+      window.location.replace('/inicio')
     }
   }
 

@@ -287,6 +287,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">{user.role}</span>
                 </div>
               </Link>
+              <button
+                onClick={() => logout()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 text-xs font-bold transition-colors"
+                title="Cerrar Sesión y salir"
+              >
+                <Unplug className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Salir</span>
+              </button>
             </div>
           )}
         </header>
