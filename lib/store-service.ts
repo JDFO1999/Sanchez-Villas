@@ -28,7 +28,7 @@ export interface Transaction {
   subtotal: number
   tax: number
   total: number
-  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
+  paymentMethod: 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado' | string
   reference?: string // For Transferencia, Pago Movil y Binance
   receiptImage?: string // For Transferencia, Pago Movil y Binance (Base64)
   status?: 'COMPLETED' | 'PENDING_PICKUP' | 'PENDING_DELIVERY' | 'CANCELED' | string

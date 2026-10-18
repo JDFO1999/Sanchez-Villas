@@ -6,9 +6,18 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon } from "lucide-react"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
+
+type PaymentMethodType = 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
+
+interface PaymentSplit {
+  method: PaymentMethodType;
+  amount: number | string;
+  reference: string;
+  receiptImage: string | null;
+}
 
 export default function MembresíasPage() {
   const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
@@ -21,9 +30,12 @@ export default function MembresíasPage() {
   const [renovarIncludeCoach, setRenovarIncludeCoach] = useState(false)
   const [renovarSelectedCoach, setRenovarSelectedCoach] = useState("")
   const [renovarMonths, setRenovarMonths] = useState(1)
-  const [renovarPaymentMethod, setRenovarPaymentMethod] = useState<'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Efectivo')
-  const [renovarReference, setRenovarReference] = useState("")
-  const [renovarReceiptImage, setRenovarReceiptImage] = useState<string | null>(null)
+  const [renovarSplitCount, setRenovarSplitCount] = useState<1 | 2 | 3>(1)
+  const [renovarSplits, setRenovarSplits] = useState<PaymentSplit[]>([
+    { method: 'Efectivo', amount: '', reference: '', receiptImage: null },
+    { method: 'Pago Móvil', amount: '', reference: '', receiptImage: null },
+    { method: 'Tarjeta', amount: '', reference: '', receiptImage: null }
+  ])
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
   // Edit Modal State
@@ -163,9 +175,13 @@ export default function MembresíasPage() {
     setRenovarSelectedCoach(a.coachId || "")
     setRenovarIncludeCoach(!!a.coachId)
     setRenovarMonths(1)
-    setRenovarPaymentMethod('Efectivo')
-    setRenovarReference('')
-    setRenovarReceiptImage(null)
+    const baseTotal = 30 + (a.coachId ? 15 : 0)
+    setRenovarSplitCount(1)
+    setRenovarSplits([
+      { method: 'Efectivo', amount: baseTotal, reference: '', receiptImage: null },
+      { method: 'Pago Móvil', amount: '', reference: '', receiptImage: null },
+      { method: 'Tarjeta', amount: '', reference: '', receiptImage: null }
+    ])
     setShowRenovarModal(a)
   }
 
@@ -189,23 +205,39 @@ export default function MembresíasPage() {
     
     const total = membershipPrice + coachPrice
     
-    if (!renovarPaymentMethod) return;
+    const activeSplits = renovarSplits.slice(0, renovarSplitCount);
+    const assignedTotal = activeSplits.reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0);
 
-    if (['Transferencia', 'Pago Móvil', 'Binance'].includes(renovarPaymentMethod)) {
-        if (!renovarReference.trim() || !renovarReceiptImage) {
-          Swal.fire('Advertencia', `Debes ingresar la referencia y el capture de tu ${renovarPaymentMethod}.`, 'warning');
+    if (renovarSplitCount > 1) {
+      if (Math.abs(total - assignedTotal) > 0.05) {
+        Swal.fire('Monto Incompleto', `La suma de las formas de pago (${settings.storeCurrency} ${assignedTotal.toFixed(2)}) debe coincidir exactamente con el total de la membresía (${settings.storeCurrency} ${total.toFixed(2)}).`, 'warning');
+        return;
+      }
+    }
+
+    for (let i = 0; i < activeSplits.length; i++) {
+      const s = activeSplits[i];
+      const sAmount = parseFloat(String(s.amount)) || 0;
+      if (sAmount <= 0) {
+        Swal.fire('Monto no válido', `El monto de la forma de pago #${i + 1} (${s.method}) debe ser mayor a 0.`, 'warning');
+        return;
+      }
+      if (['Transferencia', 'Pago Móvil', 'Binance'].includes(s.method)) {
+        if (!s.reference?.trim()) {
+          Swal.fire('Referencia Requerida', `Debes ingresar la referencia para la forma de pago #${i + 1} (${s.method}).`, 'warning');
           return;
         }
-      } else if (renovarPaymentMethod === 'Tarjeta') {
-        if (!renovarReference.trim()) {
-          Swal.fire('Advertencia', 'Debes ingresar el número de transacción para el pago con Tarjeta.', 'warning');
+      } else if (s.method === 'Tarjeta') {
+        if (!s.reference?.trim()) {
+          Swal.fire('Transacción Requerida', `Debes ingresar el número de transacción/voucher para la Tarjeta (forma #${i + 1}).`, 'warning');
           return;
         }
       }
+    }
 
     const confirm = await Swal.fire({
       title: '¿Confirmar Renovación?',
-      text: `El total a cobrar es de ${settings.storeCurrency} ${total}. ¿Deseas procesar el pago y la renovación?`,
+      html: `El total a cobrar es de <b>${settings.storeCurrency} ${total}</b>.<br><span class="text-xs text-muted-foreground mt-1 block">Formas de pago: ${renovarSplitCount === 1 ? activeSplits[0].method : activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}</span>`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, procesar',
@@ -213,6 +245,20 @@ export default function MembresíasPage() {
     })
     
     if (!confirm.isConfirmed) return;
+
+    let finalPaymentMethod: string;
+    let finalReference: string | undefined;
+    let finalReceiptImage: string | undefined;
+
+    if (renovarSplitCount === 1) {
+      finalPaymentMethod = activeSplits[0].method;
+      finalReference = activeSplits[0].reference?.trim() || undefined;
+      finalReceiptImage = activeSplits[0].receiptImage || undefined;
+    } else {
+      finalPaymentMethod = `Mixto: ${activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}`;
+      finalReference = activeSplits.filter(s => s.reference?.trim()).map(s => `${s.method}: ${s.reference.trim()}`).join(' | ') || undefined;
+      finalReceiptImage = activeSplits.find(s => s.receiptImage)?.receiptImage || undefined;
+    }
 
     const { createTransaction } = await import('@/app/actions/store')
     
@@ -228,9 +274,9 @@ export default function MembresíasPage() {
        subtotal: total,
        tax: 0,
        total,
-       paymentMethod: renovarPaymentMethod,
-       reference: renovarReference,
-       receiptImage: renovarReceiptImage || undefined
+       paymentMethod: finalPaymentMethod,
+       reference: finalReference,
+       receiptImage: finalReceiptImage
     })
 
     // Update Athlete Membership
@@ -313,129 +359,255 @@ export default function MembresíasPage() {
                 </div>
               )}
               
-              <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg mt-4 mb-4 flex justify-between items-center">
-                <span className="font-medium text-sm text-primary">Total a Cobrar:</span>
-                <span className="text-2xl font-black text-primary">
-                  {settings.storeCurrency} {(() => {
-                    const mem = 30 * renovarMonths
-                    let coachPrice = 0
-                    if (renovarIncludeCoach && renovarSelectedCoach) {
-                      if (settings.coachCustomPricing) {
-                        const coachInfo = allCoaches.find((e: any) => e.id === renovarSelectedCoach);
-                        coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
-                      } else {
-                        coachPrice = 15 * renovarMonths
-                      }
-                    }
-                    return mem + coachPrice
-                  })()}
-                </span>
-              </div>
+              {(() => {
+                const mem = 30 * renovarMonths
+                let coachPrice = 0
+                if (renovarIncludeCoach && renovarSelectedCoach) {
+                  if (settings.coachCustomPricing) {
+                    const coachInfo = allCoaches.find((e: any) => e.id === renovarSelectedCoach);
+                    coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
+                  } else {
+                    coachPrice = 15 * renovarMonths
+                  }
+                }
+                const totalCalculado = mem + coachPrice
 
-              {/* Método de Pago */}
-              <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
-                <h4 className="font-bold text-sm">Detalles de Facturación</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-medium mb-1 block">Método de Pago</label>
-                    <select 
-                      value={renovarPaymentMethod}
-                      onChange={e => setRenovarPaymentMethod(e.target.value as any)}
-                      className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2 text-sm"
-                    >
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Tarjeta">Punto de Venta (Tarjeta)</option>
-                      <option value="Pago Móvil">Pago Móvil</option>
-                      <option value="Transferencia">Transferencia</option>
-                      <option value="Binance">Binance</option>
-                      <option value="Crédito/Fiado">Crédito/Fiado</option>
-                    </select>
-                  </div>
-                  {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(renovarPaymentMethod) && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                        <label className="text-xs font-medium text-muted-foreground block">
-                          {renovarPaymentMethod === 'Tarjeta' ? 'N° de Transacción' : `N° de Referencia (${renovarPaymentMethod})`}
-                        </label>
-                        {(() => {
-                          const qr = renovarPaymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
-                            : renovarPaymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
-                            : renovarPaymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
-                          return qr ? (
-                            <button type="button" onClick={() => setShowQRModal(qr)} className="p-1 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0" title="Ver QR">
-                              <Eye className="h-4 w-4 text-primary" />
+                const assignedSum = renovarSplits.slice(0, renovarSplitCount).reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
+                const diff = Math.round((totalCalculado - assignedSum) * 100) / 100
+                const isExact = Math.abs(diff) < 0.01
+
+                return (
+                  <>
+                    <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl mt-4 mb-4 flex justify-between items-center">
+                      <span className="font-medium text-sm text-primary">Total a Cobrar:</span>
+                      <span className="text-2xl font-black text-primary">
+                        {settings.storeCurrency} {totalCalculado.toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Método de Pago */}
+                    <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <h4 className="font-bold text-sm">Detalles de Facturación y Pago</h4>
+                        
+                        {/* Selector de 1, 2 o 3 formas de pago */}
+                        <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg border border-black/10 dark:border-white/10 text-xs">
+                          <span className="text-[10px] text-muted-foreground font-semibold px-1">Formas:</span>
+                          {([1, 2, 3] as const).map(num => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => {
+                                setRenovarSplitCount(num)
+                                setRenovarSplits(prev => {
+                                  const copy = [...prev]
+                                  if (num === 1) {
+                                    copy[0].amount = totalCalculado
+                                  } else if (num === 2) {
+                                    const half = Math.round((totalCalculado / 2) * 100) / 100
+                                    copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : half
+                                    copy[1].amount = Math.max(0, Math.round((totalCalculado - Number(copy[0].amount || 0)) * 100) / 100)
+                                  } else if (num === 3) {
+                                    const third = Math.round((totalCalculado / 3) * 100) / 100
+                                    copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : third
+                                    copy[1].amount = copy[1].amount && Number(copy[1].amount) > 0 ? copy[1].amount : third
+                                    copy[2].amount = Math.max(0, Math.round((totalCalculado - Number(copy[0].amount || 0) - Number(copy[1].amount || 0)) * 100) / 100)
+                                  }
+                                  return copy
+                                })
+                              }}
+                              className={`px-2.5 py-1 rounded font-bold transition ${
+                                renovarSplitCount === num 
+                                  ? 'bg-primary text-primary-foreground shadow-sm' 
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              {num === 1 ? '1 Forma' : `${num} Formas`}
                             </button>
-                          ) : null;
-                        })()}
+                          ))}
+                        </div>
                       </div>
-                      
-                      {renovarPaymentMethod === 'Binance' && settings.storePaymentInstructions?.binance && (
-                        <div className="text-[10px] text-muted-foreground mb-1 p-1 bg-black/5 dark:bg-white/5 rounded">
-                          {settings.storePaymentInstructions.binance}
+
+                      {/* Lista de formas de pago */}
+                      <div className="space-y-3">
+                        {Array.from({ length: renovarSplitCount }).map((_, idx) => {
+                          const split = renovarSplits[idx] || { method: 'Efectivo', amount: '', reference: '', receiptImage: null }
+                          return (
+                            <div key={idx} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                                  <CreditCard className="w-3.5 h-3.5" /> Forma de Pago #{idx + 1}
+                                </span>
+                                {renovarSplitCount > 1 && (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    Subtotal: <b>{settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}</b>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-muted-foreground mb-1 block">Método de Pago</label>
+                                  <select 
+                                    value={split.method}
+                                    onChange={e => {
+                                      const newMethod = e.target.value as any
+                                      setRenovarSplits(prev => {
+                                        const c = [...prev]
+                                        c[idx] = { ...c[idx], method: newMethod }
+                                        return c
+                                      })
+                                    }}
+                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                                  >
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Tarjeta">Punto de Venta (Tarjeta)</option>
+                                    <option value="Pago Móvil">Pago Móvil</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                    <option value="Binance">Binance</option>
+                                    <option value="Crédito/Fiado">Crédito/Fiado</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-xs text-muted-foreground mb-1 block">
+                                    Monto a Pagar ({settings.storeCurrency})
+                                  </label>
+                                  <input 
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    max={totalCalculado}
+                                    value={split.amount}
+                                    onChange={e => {
+                                      const val = e.target.value
+                                      setRenovarSplits(prev => {
+                                        const c = [...prev]
+                                        c[idx] = { ...c[idx], amount: val }
+                                        // Auto-calculate remainder for subsequent split if configured
+                                        if (renovarSplitCount === 2 && idx === 0) {
+                                          const numVal = parseFloat(val) || 0
+                                          c[1] = { ...c[1], amount: Math.max(0, Math.round((totalCalculado - numVal) * 100) / 100) }
+                                        } else if (renovarSplitCount === 3 && (idx === 0 || idx === 1)) {
+                                          const num0 = idx === 0 ? (parseFloat(val) || 0) : (parseFloat(String(c[0].amount)) || 0)
+                                          const num1 = idx === 1 ? (parseFloat(val) || 0) : (parseFloat(String(c[1].amount)) || 0)
+                                          c[2] = { ...c[2], amount: Math.max(0, Math.round((totalCalculado - num0 - num1) * 100) / 100) }
+                                        }
+                                        return c
+                                      })
+                                    }}
+                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm font-mono focus:border-primary"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Datos adicionales si es transferencia, pago móvil, binance o tarjeta */}
+                              {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
+                                <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-xs text-muted-foreground">
+                                      {split.method === 'Tarjeta' ? 'N° de Transacción / Voucher' : `N° Referencia (${split.method})`}
+                                    </label>
+                                    {(() => {
+                                      const qr = split.method === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
+                                        : split.method === 'Transferencia' ? settings.storePaymentQRs?.transferencia
+                                        : split.method === 'Binance' ? settings.storePaymentQRs?.binance : null;
+                                      return qr ? (
+                                        <button type="button" onClick={() => setShowQRModal(qr)} className="p-1 rounded bg-primary/20 hover:bg-primary/30 transition text-[11px] text-primary flex items-center gap-1 font-bold">
+                                          <Eye className="h-3 w-3" /> Ver QR
+                                        </button>
+                                      ) : null;
+                                    })()}
+                                  </div>
+
+                                  {split.method === 'Binance' && settings.storePaymentInstructions?.binance && (
+                                    <div className="text-[10px] text-muted-foreground p-1.5 bg-black/5 dark:bg-white/5 rounded">
+                                      {settings.storePaymentInstructions.binance}
+                                    </div>
+                                  )}
+
+                                  <input 
+                                    type="text" 
+                                    value={split.reference} 
+                                    onChange={e => {
+                                      const refVal = e.target.value
+                                      setRenovarSplits(prev => {
+                                        const c = [...prev]
+                                        c[idx] = { ...c[idx], reference: refVal }
+                                        return c
+                                      })
+                                    }}
+                                    placeholder={split.method === 'Tarjeta' ? 'Ej. 000123' : 'Número de referencia...'}
+                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary"
+                                  />
+
+                                  {['Transferencia', 'Pago Móvil', 'Binance'].includes(split.method) && (
+                                    <div className="flex items-center gap-2 pt-1">
+                                      <label className="flex-1 flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg py-1.5 text-xs font-semibold cursor-pointer transition">
+                                        <ImageIcon className="h-3.5 w-3.5" />
+                                        <span>{split.receiptImage ? '✓ Comprobante listo' : 'Subir Comprobante (Capture)'}</span>
+                                        <input 
+                                          type="file" 
+                                          accept="image/*"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0]
+                                            if (file) {
+                                              const reader = new FileReader()
+                                              reader.onloadend = () => {
+                                                setRenovarSplits(prev => {
+                                                  const c = [...prev]
+                                                  c[idx] = { ...c[idx], receiptImage: reader.result as string }
+                                                  return c
+                                                })
+                                              }
+                                              reader.readAsDataURL(file)
+                                            }
+                                          }}
+                                          className="hidden" 
+                                        />
+                                      </label>
+                                      {split.receiptImage && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setRenovarSplits(prev => {
+                                              const c = [...prev]
+                                              c[idx] = { ...c[idx], receiptImage: null }
+                                              return c
+                                            })
+                                          }}
+                                          className="text-xs text-destructive hover:underline p-1 font-bold"
+                                        >
+                                          Quitar
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Resumen del balance cuando son 2 o 3 formas de pago */}
+                      {renovarSplitCount > 1 && (
+                        <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-bold ${
+                          isExact 
+                            ? 'bg-success/10 border-success/30 text-success' 
+                            : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                        }`}>
+                          <span>Total: {settings.storeCurrency} {totalCalculado.toFixed(2)} | Asignado: {settings.storeCurrency} {assignedSum.toFixed(2)}</span>
+                          <span>
+                            {isExact ? '✓ Monto completo distribuido' : diff > 0 ? `Falta asignar: ${settings.storeCurrency} ${diff.toFixed(2)}` : `Excede por: ${settings.storeCurrency} ${Math.abs(diff).toFixed(2)}`}
+                          </span>
                         </div>
                       )}
-
-                      <input 
-                        required
-                        type="text" 
-                        value={renovarReference} 
-                        onChange={e => setRenovarReference(e.target.value)} 
-                        placeholder={renovarPaymentMethod === 'Tarjeta' ? 'Ej. 000123' : 'Obligatorio...'}
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary"
-                      />
                     </div>
-                  )}
-                </div>
-
-                {['Transferencia', 'Pago Móvil', 'Binance'].includes(renovarPaymentMethod) && (
-                  <div className="mt-4 p-3 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                    <label className="text-xs font-medium mb-2 block">Comprobante de Pago</label>
-                    <div className="flex gap-2">
-                      <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
-                        <span>Subir Archivo o Tomar Foto</span>
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          capture="environment"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                          className="hidden" 
-                        />
-                      </label>
-                      <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
-                        <Camera className="h-4 w-4 shrink-0" />
-                        <span className="truncate">Cámara</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              const reader = new FileReader()
-                              reader.onloadend = () => setRenovarReceiptImage(reader.result as string)
-                              reader.readAsDataURL(file)
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    {renovarReceiptImage && (
-                      <div className="mt-2 relative w-20 h-20">
-                        <img src={renovarReceiptImage} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-primary/30" />
-                        <button type="button" onClick={() => setRenovarReceiptImage(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">&times;</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  </>
+                )
+              })()}
 
               <div className="flex gap-3 justify-end pt-4">
                 <button type="button" onClick={() => setShowRenovarModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>

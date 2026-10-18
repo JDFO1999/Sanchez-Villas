@@ -77,10 +77,27 @@ export async function closeCashSession(sessionId: string, declaredCash: number) 
 
     for (const tx of session.transactions) {
       if (tx.status === 'COMPLETED') {
-        const method = tx.paymentMethod.toLowerCase()
-        if (method === 'efectivo') expectedEfectivo += tx.total
-        else if (method === 'tarjeta' || method === 'punto de venta') expectedTarjeta += tx.total
-        else expectedTransferencia += tx.total
+        const method = (tx.paymentMethod || '').toLowerCase()
+        if (method.startsWith('mixto')) {
+          // Parse format: "Mixto: Efectivo ($10.00) + Pago Móvil ($15.00)"
+          const parts = tx.paymentMethod.replace(/^mixto:\s*/i, '').split(/\s*\+\s*/)
+          for (const part of parts) {
+            const match = part.match(/^(.*?)\s*\([^0-9]*([\d.]+)\)/i)
+            if (match) {
+              const subMethod = match[1].trim().toLowerCase()
+              const subAmount = parseFloat(match[2]) || 0
+              if (subMethod.includes('efectivo')) expectedEfectivo += subAmount
+              else if (subMethod.includes('tarjeta') || subMethod.includes('punto')) expectedTarjeta += subAmount
+              else expectedTransferencia += subAmount
+            } else {
+              expectedTransferencia += tx.total
+            }
+          }
+        } else {
+          if (method === 'efectivo') expectedEfectivo += tx.total
+          else if (method === 'tarjeta' || method === 'punto de venta') expectedTarjeta += tx.total
+          else expectedTransferencia += tx.total
+        }
       }
     }
 

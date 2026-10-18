@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 // Imports
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +10,7 @@ import { storeService, Product, TransactionItem, Transaction } from "@/lib/store
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon } from "lucide-react"
+import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon, CreditCard } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 import Swal from "sweetalert2"
@@ -53,7 +53,23 @@ export default function TiendaPOSPage() {
   // Cart
   const [cart, setCart] = useState<TransactionItem[]>([])
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>("")
-  const [paymentMethod, setPaymentMethod] = useState<'Seleccionar' | 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'>('Seleccionar')
+  
+  type PaymentMethodType = 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado';
+
+  interface PaymentSplit {
+    method: PaymentMethodType;
+    amount: number | string;
+    reference: string;
+    receiptImage: string | null;
+  }
+
+  const [paymentSplitCount, setPaymentSplitCount] = useState<1 | 2 | 3>(1)
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([
+    { method: 'Efectivo', amount: '', reference: '', receiptImage: null },
+    { method: 'Pago Móvil', amount: '', reference: '', receiptImage: null },
+    { method: 'Tarjeta', amount: '', reference: '', receiptImage: null }
+  ])
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Efectivo')
   const [txReference, setTxReference] = useState("")
   const [txReceiptImage, setTxReceiptImage] = useState("")
   
@@ -195,6 +211,16 @@ export default function TiendaPOSPage() {
   const tax = subtotal * (settings.storeTaxRate / 100)
   const total = subtotal + tax
 
+  useEffect(() => {
+    if (paymentSplitCount === 1) {
+      setPaymentSplits(prev => {
+        const copy = [...prev]
+        copy[0].amount = total
+        return copy
+      })
+    }
+  }, [total, paymentSplitCount])
+
   const handleCheckout = async () => {
     if (cart.length === 0) return
     const isAthlete = user?.role === 'athlete'
@@ -202,20 +228,38 @@ export default function TiendaPOSPage() {
       showToast("Debe seleccionar o registrar un cliente antes de facturar.", "error")
       return
     }
-    
-    if (paymentMethod === 'Seleccionar') {
-      showToast("Debe seleccionar un método de pago.", "error")
-      return
-    }
 
-    if (['Transferencia', 'Pago Móvil', 'Binance'].includes(paymentMethod)) {
-      if (!txReference.trim()) {
-        showToast(`Debe ingresar la referencia para ${paymentMethod}.`, "error")
+    const activeSplits = paymentSplits.slice(0, paymentSplitCount)
+    const assignedTotal = activeSplits.reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
+
+    if (paymentSplitCount > 1) {
+      if (Math.abs(total - assignedTotal) > 0.05) {
+        showToast(`La suma de las formas de pago (${settings.storeCurrency} ${assignedTotal.toFixed(2)}) debe coincidir con el total (${settings.storeCurrency} ${total.toFixed(2)}).`, "error")
         return
       }
-      if (!txReceiptImage) {
-        showToast(`Debe subir el comprobante para ${paymentMethod}.`, "error")
+    }
+
+    for (let i = 0; i < activeSplits.length; i++) {
+      const s = activeSplits[i]
+      const sAmount = parseFloat(String(s.amount)) || 0
+      if (sAmount <= 0) {
+        showToast(`El monto de la forma de pago #${i + 1} (${s.method}) debe ser mayor a 0.`, "error")
         return
+      }
+      if (['Transferencia', 'Pago Móvil', 'Binance'].includes(s.method)) {
+        if (!s.reference?.trim()) {
+          showToast(`Debe ingresar la referencia para la forma #${i + 1} (${s.method}).`, "error")
+          return
+        }
+        if (isAthlete && !s.receiptImage) {
+          showToast(`Debe subir el comprobante para la forma #${i + 1} (${s.method}).`, "error")
+          return
+        }
+      } else if (s.method === 'Tarjeta') {
+        if (!s.reference?.trim()) {
+          showToast(`Debe ingresar el número de transacción/voucher para la Tarjeta (forma #${i + 1}).`, "error")
+          return
+        }
       }
     }
 
@@ -259,6 +303,20 @@ export default function TiendaPOSPage() {
       cashierIdToUse = res.user.id;
     }
 
+    let finalPaymentMethod: string
+    let finalReference: string | undefined
+    let finalReceiptImage: string | undefined
+
+    if (paymentSplitCount === 1) {
+      finalPaymentMethod = activeSplits[0].method
+      finalReference = activeSplits[0].reference?.trim() || undefined
+      finalReceiptImage = activeSplits[0].receiptImage || undefined
+    } else {
+      finalPaymentMethod = `Mixto: ${activeSplits.map(s => `${s.method} (${settings.storeCurrency} ${Number(s.amount).toFixed(2)})`).join(' + ')}`
+      finalReference = activeSplits.filter(s => s.reference?.trim()).map(s => `${s.method}: ${s.reference.trim()}`).join(' | ') || undefined
+      finalReceiptImage = activeSplits.find(s => s.receiptImage)?.receiptImage || undefined
+    }
+
     const tx: Transaction = {
       id: `TX-${Date.now()}`,
       date: new Date().toISOString(),
@@ -268,17 +326,11 @@ export default function TiendaPOSPage() {
       subtotal,
       tax,
       total,
-      paymentMethod,
-      reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReference : undefined,
-      receiptImage: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReceiptImage : undefined,
+      paymentMethod: finalPaymentMethod,
+      reference: finalReference,
+      receiptImage: finalReceiptImage,
       status: isAthlete ? 'PENDING_PICKUP' : 'COMPLETED',
       pickupCode: isAthlete ? `ATH-${Math.floor(1000 + Math.random() * 9000)}` : undefined
-    }
-
-    if (paymentMethod === 'Crédito/Fiado' && selectedAthleteId && !isAthlete) {
-      // Find athlete and save debt
-      const { updateAthlete } = await import('@/app/actions/users');
-      
     }
 
     const { createTransaction, getProducts } = await import('@/app/actions/store');
@@ -290,9 +342,9 @@ export default function TiendaPOSPage() {
        subtotal,
        tax,
        total,
-       paymentMethod,
-       reference: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReference : undefined,
-       receiptImage: (paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') ? txReceiptImage : undefined
+       paymentMethod: finalPaymentMethod,
+       reference: finalReference,
+       receiptImage: finalReceiptImage
     });
 
     if (res.success) {
@@ -483,102 +535,227 @@ export default function TiendaPOSPage() {
                 )}
               </div>
               <div className="p-4 border-t border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40 space-y-4 flex-shrink-0 overflow-y-auto max-h-[50vh]">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground block">Método de Pago</label>
-                  <select 
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary appearance-none"
-                  >
-                    <option value="Seleccionar">Seleccionar</option>
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Pago Móvil">Pago Móvil</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Binance">Binance</option>
-                  </select>
-                  {paymentMethod === 'Efectivo' && (
-                    <div className="mt-2 text-[10px] sm:text-xs text-warning bg-warning/10 p-2 rounded border border-warning/20">
-                      <span className="font-bold">Aviso:</span> Al seleccionar Efectivo, cuentas con <strong>24 horas</strong> para dirigirte a la tienda y pagar. De lo contrario, la reserva será cancelada.
-                    </div>
-                  )}
-                </div>
-                {(paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') && (
-                  <div className="space-y-3 pt-2">
-                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg whitespace-pre-wrap text-xs text-primary font-medium flex items-center gap-3">
-                      <div className="flex-1">
-                        {paymentMethod === 'Pago Móvil' && settings.storePaymentInstructions?.pagoMovil}
-                        {paymentMethod === 'Transferencia' && settings.storePaymentInstructions?.transferencia}
-                        {paymentMethod === 'Binance' && settings.storePaymentInstructions?.binance}
-                      </div>
-                      {(() => {
-                        const qr = paymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
-                          : paymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
-                          : paymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
-                        return qr ? (
-                          <button type="button" onClick={() => setShowQRModal(qr)} className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0" title="Ver QR">
-                            <Eye className="h-5 w-5 text-primary" />
-                          </button>
-                        ) : null;
-                      })()}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Numero de Referencia ({paymentMethod})</label>
-                      <input 
-                        type="text" 
-                        value={txReference}
-                        onChange={(e) => setTxReference(e.target.value)}
-                        placeholder="Ej. 12345678"
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Comprobante (Capture)</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
-                          <ImageIcon className="h-5 w-5 shrink-0" />
-                          <span className="truncate w-full">Galería</span>
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                const reader = new FileReader()
-                                reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                                reader.readAsDataURL(file)
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground">Forma(s) de Pago</label>
+                    <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg border border-black/10 dark:border-white/10 text-xs">
+                      {([1, 2, 3] as const).map(num => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => {
+                            setPaymentSplitCount(num)
+                            setPaymentSplits(prev => {
+                              const copy = [...prev]
+                              if (num === 1) {
+                                copy[0].amount = total
+                              } else if (num === 2) {
+                                const half = Math.round((total / 2) * 100) / 100
+                                copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : half
+                                copy[1].amount = Math.max(0, Math.round((total - Number(copy[0].amount || 0)) * 100) / 100)
+                              } else if (num === 3) {
+                                const third = Math.round((total / 3) * 100) / 100
+                                copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : third
+                                copy[1].amount = copy[1].amount && Number(copy[1].amount) > 0 ? copy[1].amount : third
+                                copy[2].amount = Math.max(0, Math.round((total - Number(copy[0].amount || 0) - Number(copy[1].amount || 0)) * 100) / 100)
                               }
-                            }}
-                            className="hidden" 
-                          />
-                        </label>
-                        <label className="flex flex-col items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl py-3 text-xs font-bold cursor-pointer transition text-center px-1">
-                          <Camera className="h-5 w-5 shrink-0" />
-                          <span className="truncate w-full">Tomar Foto</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                const reader = new FileReader()
-                                reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                                reader.readAsDataURL(file)
-                              }
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                      {txReceiptImage && (
-                        <div className="mt-2 relative w-20 h-20">
-                          <img src={txReceiptImage} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-primary/30" />
-                          <button onClick={() => setTxReceiptImage("")} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">&times;</button>
-                        </div>
-                      )}
+                              return copy
+                            })
+                          }}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                            paymentSplitCount === num 
+                              ? 'bg-primary text-primary-foreground shadow-sm' 
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {num === 1 ? '1 Forma' : `${num} Formas`}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                )}
+
+                  {/* Lista de formas de pago */}
+                  <div className="space-y-2.5">
+                    {Array.from({ length: paymentSplitCount }).map((_, idx) => {
+                      const split = paymentSplits[idx] || { method: 'Efectivo', amount: '', reference: '', receiptImage: null }
+                      return (
+                        <div key={idx} className="p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-primary flex items-center gap-1">
+                              <CreditCard className="w-3.5 h-3.5" /> Forma de Pago #{idx + 1}
+                            </span>
+                            {paymentSplitCount > 1 && (
+                              <span className="text-[11px] text-muted-foreground">
+                                Monto: <b>{settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}</b>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-muted-foreground block mb-0.5">Método</label>
+                              <select 
+                                value={split.method}
+                                onChange={e => {
+                                  const newM = e.target.value as any
+                                  setPaymentSplits(prev => {
+                                    const c = [...prev]
+                                    c[idx] = { ...c[idx], method: newM }
+                                    return c
+                                  })
+                                }}
+                                className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs focus:border-primary"
+                              >
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Pago Móvil">Pago Móvil</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Binance">Binance</option>
+                                <option value="Tarjeta">Tarjeta / Punto</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] text-muted-foreground block mb-0.5">
+                                Monto ({settings.storeCurrency})
+                              </label>
+                              <input 
+                                type="number"
+                                step="any"
+                                min="0"
+                                max={total}
+                                value={split.amount}
+                                onChange={e => {
+                                  const val = e.target.value
+                                  setPaymentSplits(prev => {
+                                    const c = [...prev]
+                                    c[idx] = { ...c[idx], amount: val }
+                                    if (paymentSplitCount === 2 && idx === 0) {
+                                      const numVal = parseFloat(val) || 0
+                                      c[1] = { ...c[1], amount: Math.max(0, Math.round((total - numVal) * 100) / 100) }
+                                    } else if (paymentSplitCount === 3 && (idx === 0 || idx === 1)) {
+                                      const num0 = idx === 0 ? (parseFloat(val) || 0) : (parseFloat(String(c[0].amount)) || 0)
+                                      const num1 = idx === 1 ? (parseFloat(val) || 0) : (parseFloat(String(c[1].amount)) || 0)
+                                      c[2] = { ...c[2], amount: Math.max(0, Math.round((total - num0 - num1) * 100) / 100) }
+                                    }
+                                    return c
+                                  })
+                                }}
+                                className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs font-mono focus:border-primary"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+
+                          {split.method === 'Efectivo' && (
+                            <p className="text-[10px] text-warning bg-warning/10 p-1.5 rounded border border-warning/20">
+                              Cuentas con 24h para dirigirte al gimnasio y pagar en efectivo.
+                            </p>
+                          )}
+
+                          {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
+                            <div className="space-y-1.5 pt-1.5 border-t border-black/5 dark:border-white/5">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] text-muted-foreground">
+                                  {split.method === 'Tarjeta' ? 'N° Transacción' : `N° Referencia (${split.method})`}
+                                </label>
+                                {(() => {
+                                  const qr = split.method === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
+                                    : split.method === 'Transferencia' ? settings.storePaymentQRs?.transferencia
+                                    : split.method === 'Binance' ? settings.storePaymentQRs?.binance : null;
+                                  return qr ? (
+                                    <button type="button" onClick={() => setShowQRModal(qr)} className="p-0.5 rounded bg-primary/20 hover:bg-primary/30 transition text-[10px] text-primary flex items-center gap-0.5 font-bold">
+                                      <Eye className="h-3 w-3" /> Ver QR
+                                    </button>
+                                  ) : null;
+                                })()}
+                              </div>
+
+                              {split.method === 'Binance' && settings.storePaymentInstructions?.binance && (
+                                <div className="text-[10px] text-muted-foreground p-1 bg-black/5 dark:bg-white/5 rounded">
+                                  {settings.storePaymentInstructions.binance}
+                                </div>
+                              )}
+
+                              <input 
+                                type="text" 
+                                value={split.reference} 
+                                onChange={e => {
+                                  const refVal = e.target.value
+                                  setPaymentSplits(prev => {
+                                    const c = [...prev]
+                                    c[idx] = { ...c[idx], reference: refVal }
+                                    return c
+                                  })
+                                }}
+                                placeholder={split.method === 'Tarjeta' ? 'Ej. 000123' : 'Número de referencia...'}
+                                className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs focus:border-primary"
+                              />
+
+                              {['Transferencia', 'Pago Móvil', 'Binance'].includes(split.method) && (
+                                <div className="flex items-center gap-2 pt-1">
+                                  <label className="flex-1 flex items-center justify-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg py-1 text-[11px] font-semibold cursor-pointer transition">
+                                    <ImageIcon className="h-3.5 w-3.5" />
+                                    <span>{split.receiptImage ? '✓ Capture listo' : 'Subir Comprobante'}</span>
+                                    <input 
+                                      type="file" 
+                                      accept="image/*"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0]
+                                        if (file) {
+                                          const reader = new FileReader()
+                                          reader.onloadend = () => {
+                                            setPaymentSplits(prev => {
+                                              const c = [...prev]
+                                              c[idx] = { ...c[idx], receiptImage: reader.result as string }
+                                              return c
+                                            })
+                                          }
+                                          reader.readAsDataURL(file)
+                                        }
+                                      }}
+                                      className="hidden" 
+                                    />
+                                  </label>
+                                  {split.receiptImage && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPaymentSplits(prev => {
+                                          const c = [...prev]
+                                          c[idx] = { ...c[idx], receiptImage: null }
+                                          return c
+                                        })
+                                      }}
+                                      className="text-[11px] text-destructive hover:underline font-bold"
+                                    >
+                                      Quitar
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {paymentSplitCount > 1 && (() => {
+                    const assignedSum = paymentSplits.slice(0, paymentSplitCount).reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
+                    const diff = Math.round((total - assignedSum) * 100) / 100
+                    const isExact = Math.abs(diff) < 0.01
+                    return (
+                      <div className={`p-2 rounded-lg border text-[11px] font-bold flex items-center justify-between ${
+                        isExact 
+                          ? 'bg-success/10 border-success/30 text-success' 
+                          : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                      }`}>
+                        <span>Asignado: {settings.storeCurrency} {assignedSum.toFixed(2)}</span>
+                        <span>{isExact ? '✓ Completo' : diff > 0 ? `Falta: ${settings.storeCurrency} ${diff.toFixed(2)}` : `Exceso: ${settings.storeCurrency} ${Math.abs(diff).toFixed(2)}`}</span>
+                      </div>
+                    )
+                  })()}
+                </div>
                 <div className="pt-2 space-y-1">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Subtotal</span>
@@ -596,18 +773,7 @@ export default function TiendaPOSPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    if (paymentMethod === 'Seleccionar') {
-                      showToast("Debes seleccionar un método de pago.", "error");
-                      return;
-                    }
-                    if (['Transferencia', 'Pago Móvil', 'Binance'].includes(paymentMethod)) {
-                      if (!txReference.trim() || !txReceiptImage) {
-                        showToast(`Debes ingresar la referencia y el capture de tu ${paymentMethod}.`, "warning");
-                        return;
-                      }
-                    }
                     handleCheckout();
-                    setShowAthleteCart(false);
                   }}
                   disabled={cart.length === 0}
                   className="w-full bg-transparent border-2 border-success text-success font-black py-3.5 rounded-xl hover:bg-success/10 transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -828,98 +994,258 @@ export default function TiendaPOSPage() {
               })()}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Método de Pago</label>
-              <div className="flex gap-2 flex-wrap">
-                {['Efectivo', 'Tarjeta', 'Transferencia', 'Pago Móvil', 'Binance'].map(m => (
-                  <button 
-                    key={m}
-                    onClick={() => setPaymentMethod(m as any)}
-                    className={`flex-auto px-2 py-2 rounded border text-xs font-bold transition whitespace-nowrap ${paymentMethod === m ? 'bg-primary/20 border-primary text-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/10 dark:bg-white/10'}`}
-                  >
-                    {m === 'Transferencia' ? 'Transf.' : m}
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground">Forma(s) de Pago</label>
+                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg border border-black/10 dark:border-white/10 text-xs">
+                  {([1, 2, 3] as const).map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => {
+                        setPaymentSplitCount(num)
+                        setPaymentSplits(prev => {
+                          const copy = [...prev]
+                          if (num === 1) {
+                            copy[0].amount = total
+                          } else if (num === 2) {
+                            const half = Math.round((total / 2) * 100) / 100
+                            copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : half
+                            copy[1].amount = Math.max(0, Math.round((total - Number(copy[0].amount || 0)) * 100) / 100)
+                          } else if (num === 3) {
+                            const third = Math.round((total / 3) * 100) / 100
+                            copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : third
+                            copy[1].amount = copy[1].amount && Number(copy[1].amount) > 0 ? copy[1].amount : third
+                            copy[2].amount = Math.max(0, Math.round((total - Number(copy[0].amount || 0) - Number(copy[1].amount || 0)) * 100) / 100)
+                          }
+                          return copy
+                        })
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                        paymentSplitCount === num 
+                          ? 'bg-primary text-primary-foreground shadow-sm' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {num === 1 ? '1 Forma' : `${num} Formas`}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {(paymentMethod === 'Transferencia' || paymentMethod === 'Pago Móvil' || paymentMethod === 'Binance') && (
-              <div className="space-y-3 pt-2">
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg whitespace-pre-wrap text-xs text-primary font-medium flex items-center gap-3">
-                  <div className="flex-1">
-                    {paymentMethod === 'Pago Móvil' && settings.storePaymentInstructions?.pagoMovil}
-                    {paymentMethod === 'Transferencia' && settings.storePaymentInstructions?.transferencia}
-                    {paymentMethod === 'Binance' && settings.storePaymentInstructions?.binance}
-                  </div>
-                  {(() => {
-                    const qr = paymentMethod === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
-                      : paymentMethod === 'Transferencia' ? settings.storePaymentQRs?.transferencia
-                      : paymentMethod === 'Binance' ? settings.storePaymentQRs?.binance : null;
-                    return qr ? (
-                      <button type="button" onClick={() => setShowQRModal(qr)} className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0" title="Ver QR">
-                        <Eye className="h-5 w-5 text-primary" />
-                      </button>
-                    ) : null;
-                  })()}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Número de Referencia ({paymentMethod})</label>
-                  <input 
-                    type="text" 
-                    value={txReference}
-                    onChange={(e) => setTxReference(e.target.value)}
-                    placeholder="Ej. 12345678"
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Comprobante (Capture)</label>
-                  <div className="flex gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
-                      <ImageIcon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Galeri­a</span>
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                            reader.readAsDataURL(file)
-                          }
-                        }}
-                        className="hidden" 
-                      />
-                    </label>
-                    <label className="flex-1 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-2 text-xs font-semibold cursor-pointer transition">
-                      <Camera className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Cámara</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onloadend = () => setTxReceiptImage(reader.result as string)
-                            reader.readAsDataURL(file)
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  {txReceiptImage && (
-                    <div className="mt-2 relative w-20 h-20">
-                      <img src={txReceiptImage} alt="Comprobante" className="w-20 h-20 object-cover rounded-lg border border-primary/30" />
-                      <button onClick={() => setTxReceiptImage("")} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">&times;</button>
+              {/* Lista de formas de pago */}
+              <div className="space-y-2.5 max-h-[38vh] overflow-y-auto pr-1">
+                {Array.from({ length: paymentSplitCount }).map((_, idx) => {
+                  const split = paymentSplits[idx] || { method: 'Efectivo', amount: '', reference: '', receiptImage: null }
+                  return (
+                    <div key={idx} className="p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary flex items-center gap-1">
+                          <CreditCard className="w-3.5 h-3.5" /> Forma #{idx + 1}
+                        </span>
+                        {paymentSplitCount > 1 && (
+                          <span className="text-xs text-muted-foreground font-semibold">
+                            Monto: <b className="text-foreground">{settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}</b>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground block mb-1 font-medium">Método</label>
+                          <select 
+                            value={split.method}
+                            onChange={e => {
+                              const newM = e.target.value as any
+                              setPaymentSplits(prev => {
+                                const c = [...prev]
+                                c[idx] = { ...c[idx], method: newM }
+                                return c
+                              })
+                            }}
+                            className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary font-medium"
+                          >
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta / Punto</option>
+                            <option value="Pago Móvil">Pago Móvil</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Binance">Binance</option>
+                            <option value="Crédito/Fiado">Crédito / Fiado</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-muted-foreground block mb-1 font-medium">
+                            Monto ({settings.storeCurrency})
+                          </label>
+                          <input 
+                            type="number"
+                            step="any"
+                            min="0"
+                            max={total}
+                            value={split.amount}
+                            onChange={e => {
+                              const val = e.target.value
+                              setPaymentSplits(prev => {
+                                const c = [...prev]
+                                c[idx] = { ...c[idx], amount: val }
+                                if (paymentSplitCount === 2 && idx === 0) {
+                                  const numVal = parseFloat(val) || 0
+                                  c[1] = { ...c[1], amount: Math.max(0, Math.round((total - numVal) * 100) / 100) }
+                                } else if (paymentSplitCount === 3 && (idx === 0 || idx === 1)) {
+                                  const num0 = idx === 0 ? (parseFloat(val) || 0) : (parseFloat(String(c[0].amount)) || 0)
+                                  const num1 = idx === 1 ? (parseFloat(val) || 0) : (parseFloat(String(c[1].amount)) || 0)
+                                  c[2] = { ...c[2], amount: Math.max(0, Math.round((total - num0 - num1) * 100) / 100) }
+                                }
+                                return c
+                              })
+                            }}
+                            className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs font-mono font-bold focus:border-primary"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
+                        <div className="space-y-2 pt-1 border-t border-black/5 dark:border-white/5">
+                          {(split.method === 'Pago Móvil' || split.method === 'Transferencia' || split.method === 'Binance') && (
+                            <div className="p-2.5 bg-primary/10 border border-primary/20 rounded-lg whitespace-pre-wrap text-xs text-primary font-medium flex items-center gap-2">
+                              <div className="flex-1 text-[11px] leading-tight">
+                                {split.method === 'Pago Móvil' && settings.storePaymentInstructions?.pagoMovil}
+                                {split.method === 'Transferencia' && settings.storePaymentInstructions?.transferencia}
+                                {split.method === 'Binance' && settings.storePaymentInstructions?.binance}
+                              </div>
+                              {(() => {
+                                const qr = split.method === 'Pago Móvil' ? settings.storePaymentQRs?.pagoMovil
+                                  : split.method === 'Transferencia' ? settings.storePaymentQRs?.transferencia
+                                  : split.method === 'Binance' ? settings.storePaymentQRs?.binance : null;
+                                return qr ? (
+                                  <button type="button" onClick={() => setShowQRModal(qr)} className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 transition shrink-0" title="Ver QR">
+                                    <Eye className="h-4 w-4 text-primary" />
+                                  </button>
+                                ) : null;
+                              })()}
+                            </div>
+                          )}
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground font-medium">
+                              {split.method === 'Tarjeta' ? 'N° Transacción / Voucher' : `Número de Referencia (${split.method})`}
+                            </label>
+                            <input 
+                              type="text" 
+                              value={split.reference} 
+                              onChange={e => {
+                                const refVal = e.target.value
+                                setPaymentSplits(prev => {
+                                  const c = [...prev]
+                                  c[idx] = { ...c[idx], reference: refVal }
+                                  return c
+                                })
+                              }}
+                              placeholder={split.method === 'Tarjeta' ? 'Ej. 000123' : 'Ej. 12345678'}
+                              className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] text-muted-foreground font-medium">Comprobante (Opcional en Caja)</label>
+                              {split.receiptImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPaymentSplits(prev => {
+                                      const c = [...prev]
+                                      c[idx] = { ...c[idx], receiptImage: null }
+                                      return c
+                                    })
+                                  }}
+                                  className="text-[10px] text-destructive hover:underline font-bold"
+                                >
+                                  Eliminar capture
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <label className="flex-1 flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-1.5 text-xs font-semibold cursor-pointer transition">
+                                <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{split.receiptImage ? '✓ Cambiar' : 'Galería'}</span>
+                                <input 
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                      const reader = new FileReader()
+                                      reader.onloadend = () => {
+                                        setPaymentSplits(prev => {
+                                          const c = [...prev]
+                                          c[idx] = { ...c[idx], receiptImage: reader.result as string }
+                                          return c
+                                        })
+                                      }
+                                      reader.readAsDataURL(file)
+                                    }
+                                  }}
+                                  className="hidden" 
+                                />
+                              </label>
+                              <label className="flex-1 flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg p-1.5 text-xs font-semibold cursor-pointer transition">
+                                <Camera className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">Cámara</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                      const reader = new FileReader()
+                                      reader.onloadend = () => {
+                                        setPaymentSplits(prev => {
+                                          const c = [...prev]
+                                          c[idx] = { ...c[idx], receiptImage: reader.result as string }
+                                          return c
+                                        })
+                                      }
+                                      reader.readAsDataURL(file)
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                            {split.receiptImage && (
+                              <div className="mt-1 relative w-16 h-16">
+                                <img src={split.receiptImage} alt="Capture" className="w-16 h-16 object-cover rounded-lg border border-primary/30" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  )
+                })}
               </div>
-            )}
+
+              {/* Indicador de balance para pagos divididos */}
+              {paymentSplitCount > 1 && (() => {
+                const assignedSum = paymentSplits.slice(0, paymentSplitCount).reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
+                const diff = Math.round((total - assignedSum) * 100) / 100
+                const isExact = Math.abs(diff) < 0.01
+                return (
+                  <div className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-between ${
+                    isExact 
+                      ? 'bg-success/10 border-success/30 text-success' 
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+                  }`}>
+                    <span>Asignado: {settings.storeCurrency} {assignedSum.toFixed(2)}</span>
+                    <span>{isExact ? '✓ Completo' : diff > 0 ? `Falta: ${settings.storeCurrency} ${diff.toFixed(2)}` : `Exceso: ${settings.storeCurrency} ${Math.abs(diff).toFixed(2)}`}</span>
+                  </div>
+                )
+              })()}
+            </div>
 
             <div className="pt-2 space-y-1">
               <div className="flex justify-between text-sm text-muted-foreground">
