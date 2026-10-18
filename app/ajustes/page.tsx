@@ -1242,10 +1242,53 @@ export default function AjustesPage() {
                             <label className="text-xs text-muted-foreground block font-bold text-primary">Estructura Global del Footer (Padding, Margen y Alineación)</label>
                             
                             <div className="space-y-2">
-                              <label className="text-xs text-muted-foreground block">Alineación del Contenido (Texto de las Columnas)</label>
-                              <select value={footerLogoSettings.footerAlignment || 'left'} onChange={e => setFooterLogoSettings((s: any) => ({...s, footerAlignment: e.target.value}))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
+                              <label className="text-xs text-muted-foreground block font-semibold">Alineación de Párrafos de Texto (Misión, Visión y Dirección)</label>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setFooterLogoSettings((s: any) => ({ ...s, footerTextAlign: 'justify' }))}
+                                  className={`p-2.5 border rounded-lg text-xs font-bold transition ${
+                                    (footerLogoSettings.footerTextAlign || (footerLogoSettings.footerAlignment === 'center' ? 'center' : 'justify')) === 'justify'
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                      : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                                  }`}
+                                >
+                                  Texto Justificado
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setFooterLogoSettings((s: any) => ({ ...s, footerTextAlign: 'center' }))}
+                                  className={`p-2.5 border rounded-lg text-xs font-bold transition ${
+                                    (footerLogoSettings.footerTextAlign || (footerLogoSettings.footerAlignment === 'center' ? 'center' : 'justify')) === 'center'
+                                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                      : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                                  }`}
+                                >
+                                  Texto Centrado
+                                </button>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                Nota: Los bloques de <b>Socios Comerciales</b> y <b>Ubicación</b> se mantienen siempre centrados, mientras que el texto se mostrará justificado o centrado según elijas aquí.
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-xs text-muted-foreground block">Alineación de Encabezados de Columnas (Misión, Visión, Redes)</label>
+                              <select
+                                value={footerLogoSettings.footerAlignment || 'left'}
+                                onChange={e => {
+                                  const val = e.target.value
+                                  setFooterLogoSettings((s: any) => ({
+                                    ...s,
+                                    footerAlignment: val,
+                                    ...(val === 'justify' ? { footerTextAlign: 'justify' } : val === 'center' && !s.footerTextAlign ? { footerTextAlign: 'center' } : {})
+                                  }))
+                                }}
+                                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm"
+                              >
                                 <option value="left">Izquierda</option>
                                 <option value="center">Centro</option>
+                                <option value="justify">Centrado con Texto Justificado</option>
                                 <option value="right">Derecha</option>
                               </select>
                             </div>

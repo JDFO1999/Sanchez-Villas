@@ -30,19 +30,23 @@ export function BaseFooter({
   const logoWidth = footerSettings.width || 60;
   const logoHeight = footerSettings.height || 60;
 
-  // Alignment
+  // Alignment for columns/headings
   const alignment = footerSettings.footerAlignment || 'left';
-  const alignItemsClass = alignment === 'center' ? 'items-center' : alignment === 'right' ? 'items-end' : 'items-start';
-  const textAlignClass = alignment === 'center' ? 'text-center' : alignment === 'right' ? 'text-right' : 'text-left';
-  const justifyClass = alignment === 'center' ? 'justify-center' : alignment === 'right' ? 'justify-end' : 'justify-start';
-  const alignPClass = alignment === 'center' ? 'text-center' : alignment === 'right' ? 'text-right' : 'text-justify';
+  const alignItemsClass = (alignment === 'center' || alignment === 'justify') ? 'items-center' : alignment === 'right' ? 'items-end' : 'items-start';
+  const textAlignClass = (alignment === 'center' || alignment === 'justify') ? 'text-center' : alignment === 'right' ? 'text-right' : 'text-left';
+  const justifyClass = (alignment === 'center' || alignment === 'justify') ? 'justify-center' : alignment === 'right' ? 'justify-end' : 'justify-start';
+
+  // Alignment for paragraph texts (Misión, Visión, Ubicación text): supports 'justify' and 'center' explicitly
+  const textMode = footerSettings.footerTextAlign || (alignment === 'center' ? 'center' : alignment === 'right' ? 'right' : 'justify');
+  const alignPClass = textMode === 'center' ? 'text-center' : textMode === 'left' ? 'text-left' : textMode === 'right' ? 'text-right' : 'text-justify';
 
   // Position: 'side' (horizontal) or 'top' / 'top-center' (vertical)
   const isLogoTop = footerSettings.position === 'top' || footerSettings.position === 'top-center';
   const isLogoTopCentered = footerSettings.position === 'top-center';
   const col1AlignItems = isLogoTopCentered ? 'items-center' : (isLogoTop ? alignItemsClass : 'items-start');
   const col1TextAlign = isLogoTopCentered ? 'text-center' : textAlignClass;
-  const col1AlignP = isLogoTopCentered ? 'text-center' : alignPClass;
+  // El texto del párrafo de Misión siempre respeta si el usuario eligió Justificado o Centrado
+  const col1AlignP = alignPClass;
 
   // Text effect
   const getTextEffectClass = (effect?: string) => {
@@ -112,14 +116,14 @@ export function BaseFooter({
             {/* Column 1: Brand Logo + Mission */}
             <div className={`flex ${isLogoTop ? 'flex-col' : 'flex-row'} ${col1AlignItems} gap-6`}>
               {renderLogo()}
-              <div className={`flex flex-col gap-3 ${col1TextAlign}`}>
+              <div className={`flex flex-col gap-3 w-full ${col1TextAlign}`}>
                 {showText && (
                   <span style={{ fontSize: textSize }} className={`font-black tracking-tighter ${textEffectClass}`}>
                     {settings.appName}
                   </span>
                 )}
                 {settings.footerMission && (
-                  <div className={`text-sm text-muted-foreground ${col1TextAlign}`}>
+                  <div className={`text-sm text-muted-foreground w-full ${col1TextAlign}`}>
                     <h4 className="font-bold text-foreground mb-2">Nuestra Misión</h4>
                     <p className={`leading-relaxed ${col1AlignP}`}>{settings.footerMission}</p>
                   </div>
@@ -128,9 +132,9 @@ export function BaseFooter({
             </div>
 
             {/* Column 2: Vision + Contact & Socials */}
-            <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-8`}>
+            <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-8 w-full`}>
               {settings.footerVision && (
-                <div className={`text-sm text-muted-foreground ${textAlignClass}`}>
+                <div className={`text-sm text-muted-foreground w-full ${textAlignClass}`}>
                   <h4 className="font-bold text-foreground mb-2">Nuestra Visión</h4>
                   <p className={`leading-relaxed ${alignPClass}`}>{settings.footerVision}</p>
                 </div>
@@ -138,7 +142,7 @@ export function BaseFooter({
               <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-4`}>
                 <h4 className="font-bold text-lg text-foreground relative inline-block">
                   Redes y Contacto
-                  <span className={`absolute -bottom-2 ${alignment === 'center' ? 'left-1/2 -translate-x-1/2' : alignment === 'right' ? 'right-0' : 'left-0'} w-1/2 h-0.5 bg-primary/50 rounded-full`}></span>
+                  <span className={`absolute -bottom-2 ${(alignment === 'center' || alignment === 'justify') ? 'left-1/2 -translate-x-1/2' : alignment === 'right' ? 'right-0' : 'left-0'} w-1/2 h-0.5 bg-primary/50 rounded-full`}></span>
                 </h4>
                 <div className={`flex flex-wrap ${justifyClass} gap-4 pt-2`}>
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
@@ -150,15 +154,15 @@ export function BaseFooter({
               </div>
             </div>
 
-            {/* Column 3: Partners & Location */}
-            <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-8`}>
+            {/* Column 3: Partners & Location (Socios Comerciales y Ubicación SIEMPRE centrados, texto de ubicación justificable o centrado) */}
+            <div className="flex flex-col items-center text-center space-y-8 w-full">
               {settings.footerPartners && settings.footerPartners.length > 0 && (
-                <div className={`flex flex-col ${alignItemsClass} w-full space-y-4`}>
+                <div className="flex flex-col items-center text-center w-full space-y-4">
                   <h4 className="font-bold text-lg text-foreground relative inline-block">
                     Socios Comerciales
-                    <span className={`absolute -bottom-2 ${alignment === 'center' ? 'left-1/2 -translate-x-1/2' : alignment === 'right' ? 'right-0' : 'left-0'} w-1/2 h-0.5 bg-primary/50 rounded-full`}></span>
+                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
                   </h4>
-                  <div className={`flex flex-wrap ${justifyClass} gap-6 pt-2`}>
+                  <div className="flex flex-wrap justify-center gap-6 pt-2">
                     {settings.footerPartners.map((partner: any) => (
                       <div key={partner.id} className="opacity-80 hover:opacity-100 grayscale hover:grayscale-0 dark:bg-white/90 dark:p-2 dark:rounded-xl dark:border dark:border-white/20">
                         {partner.link ? (
@@ -172,9 +176,12 @@ export function BaseFooter({
                 </div>
               )}
               {footerAddress && (
-                <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} gap-2 text-sm text-muted-foreground mt-auto`}>
-                  <div className="flex items-center gap-2 text-primary font-semibold"><MapPin className="h-4 w-4" /><span>Ubicación</span></div>
-                  <p className="max-w-xs">{footerAddress}</p>
+                <div className="flex flex-col items-center text-center gap-2 text-sm text-muted-foreground mt-auto w-full">
+                  <div className="flex items-center justify-center gap-2 text-primary font-semibold">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span>Ubicación</span>
+                  </div>
+                  <p className={`max-w-xs w-full leading-relaxed ${alignPClass}`}>{footerAddress}</p>
                 </div>
               )}
             </div>
@@ -191,9 +198,12 @@ export function BaseFooter({
                 )}
               </div>
               {footerAddress && (
-                <div className={`flex items-start gap-2 text-sm text-muted-foreground mt-4 ${col1TextAlign}`}>
-                  <MapPin className="h-5 w-5 shrink-0 text-primary" />
-                  <p>{footerAddress}</p>
+                <div className="flex flex-col items-center text-center gap-2 text-sm text-muted-foreground mt-4 w-full">
+                  <div className="flex items-center justify-center gap-1.5 text-primary font-semibold">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span>Ubicación</span>
+                  </div>
+                  <p className={`w-full leading-relaxed ${alignPClass}`}>{footerAddress}</p>
                 </div>
               )}
             </div>
@@ -208,10 +218,10 @@ export function BaseFooter({
               {settings.footerVision && <p className={`text-sm text-muted-foreground leading-relaxed ${alignPClass}`}>{settings.footerVision}</p>}
             </div>
 
-            <div className={`flex flex-col gap-8 ${alignItemsClass}`}>
-              <div className={textAlignClass}>
+            <div className="flex flex-col gap-8 items-center text-center">
+              <div className="text-center">
                 <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Síguenos</h4>
-                <div className={`flex flex-wrap ${justifyClass} gap-3`}>
+                <div className="flex flex-wrap justify-center gap-3">
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
                     <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center">
                       {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: link.width*0.8, height: link.height*0.8 }} className="object-contain" /> : <span className="text-xs font-bold">{link.name.substring(0,2)}</span>}
@@ -221,9 +231,9 @@ export function BaseFooter({
               </div>
               
               {settings.footerPartners && settings.footerPartners.length > 0 && (
-                <div className={textAlignClass}>
-                  <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Partners</h4>
-                  <div className={`flex flex-wrap ${justifyClass} gap-4`}>
+                <div className="text-center w-full">
+                  <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Socios Comerciales</h4>
+                  <div className="flex flex-wrap justify-center gap-4">
                     {settings.footerPartners.map((partner: any) => (
                       <div key={partner.id} className="opacity-80 hover:opacity-100 dark:bg-white/90 dark:p-1 dark:rounded">
                         <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width*0.8, height: partner.height*0.8 }} className="object-contain" />
@@ -246,17 +256,17 @@ export function BaseFooter({
             </div>
             
             {(settings.footerMission || settings.footerVision) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-muted-foreground w-full">
                 {settings.footerMission && (
                   <div>
                     <h4 className="font-bold text-foreground mb-2 uppercase tracking-widest text-xs">Misión</h4>
-                    <p className="leading-relaxed">{settings.footerMission}</p>
+                    <p className={`leading-relaxed ${alignPClass}`}>{settings.footerMission}</p>
                   </div>
                 )}
                 {settings.footerVision && (
                   <div>
                     <h4 className="font-bold text-foreground mb-2 uppercase tracking-widest text-xs">Visión</h4>
-                    <p className="leading-relaxed">{settings.footerVision}</p>
+                    <p className={`leading-relaxed ${alignPClass}`}>{settings.footerVision}</p>
                   </div>
                 )}
               </div>
@@ -272,9 +282,12 @@ export function BaseFooter({
             </div>
             
             {footerAddress && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <p>{footerAddress}</p>
+              <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground w-full">
+                <div className="flex items-center justify-center gap-2 text-primary font-semibold">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>Ubicación</span>
+                </div>
+                <p className={`max-w-md w-full leading-relaxed ${alignPClass}`}>{footerAddress}</p>
               </div>
             )}
             

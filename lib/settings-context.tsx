@@ -43,7 +43,8 @@ export interface AppSettings {
     showAppName?: boolean
     textSize?: number
     textEffect?: 'gradient' | 'minimalist' | 'neon' | 'none'
-    footerAlignment?: 'left' | 'center' | 'right'
+    footerAlignment?: 'left' | 'center' | 'right' | 'justify'
+    footerTextAlign?: 'justify' | 'center' | 'left' | 'right'
     footerPadding?: number
     footerMarginTop?: number
     bgColor?: string
