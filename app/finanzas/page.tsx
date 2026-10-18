@@ -49,7 +49,8 @@ export default function FinanzasPage() {
         setAthletes(athRes.athletes.map((a: any) => ({
           ...a,
           membershipEnd: a.memberships?.[0]?.endDate || "",
-          debt: a.debt || a.storeDebt || 0
+          membershipType: a.memberships?.[0]?.planName || a.membershipType || "",
+          debt: Number(a.storeDebt ?? a.debt ?? 0)
         })))
       }
 
@@ -65,34 +66,75 @@ export default function FinanzasPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado al Módulo de Finanzas.</div>
   }
 
-  // Calcular Ingresos Totales de las transacciones
-  const totalIngresos = transactions.reduce((sum, tx) => sum + tx.total, 0)
+  // Helpers para distinguir monto cobrado en caja vs monto otorgado a Crédito/Fiado
+  const getTxCreditAmount = (tx: any): number => {
+    const pm = String(tx?.paymentMethod || '')
+    if (!/fiado|cr[eé]dito/i.test(pm)) return 0
+    const total = Number(tx?.total) || 0
+    if (/^mixto:/i.test(pm)) {
+      const m = pm.match(/cr[eé]dito\s*\/?\s*fiado\s*\([^0-9]*([0-9]+(?:\.[0-9]+)?)\)/i)
+      if (m) return Math.min(total, parseFloat(m[1]) || 0)
+    }
+    return total
+  }
+
+  const getTxPaidAmount = (tx: any): number => {
+    if (tx?.status === 'CANCELED') return 0
+    const total = Number(tx?.total) || 0
+    const credit = getTxCreditAmount(tx)
+    return Math.max(0, total - credit)
+  }
+
+  // Calcular Ingresos Totales reales cobrados (el fiado va a Cuentas por Cobrar hasta que se salde)
+  const totalIngresos = transactions.reduce((sum, tx) => sum + getTxPaidAmount(tx), 0)
   
   // Calcular Egresos Totales
   const totalEgresos = expenses.reduce((sum, ex) => sum + ex.amount, 0)
   
   const balanceNeto = totalIngresos - totalEgresos
 
-  // Calcular Morosos, Pendientes de Membresía y Fiados
+  // Cuentas por Cobrar: ÚNICAMENTE atletas que ya seleccionaron un plan/producto y tienen un Crédito/Fiado autorizado por el Administrador (debt > 0)
   const now = new Date()
   const hasValidDate = (d?: string) => Boolean(d && new Date(d).getFullYear() > 1970)
 
-  const overdueAthletes = athletes.filter(a => {
-    const noMembershipYet = !hasValidDate(a.membershipEnd)
-    const isOverdue = hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) < now
-    const hasDebt = (a.debt || 0) > 0
-    return noMembershipYet || isOverdue || hasDebt
-  })
+  const overdueAthletes = athletes.filter(a => (a.debt || 0) > 0)
   
-  // Deuda total: Membresías vencidas o pendientes (estimado 30$) + Deudas reales de tienda
-  const estimatedDebt = overdueAthletes.reduce((sum, a) => {
-    const noMembershipYet = !hasValidDate(a.membershipEnd)
-    const isOverdue = hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) < now
-    const memberDebt = (noMembershipYet || isOverdue) ? 30 : 0
-    return sum + memberDebt + (a.debt || 0)
-  }, 0)
+  // Deuda total real por cobrar (sin asumir $30 en atletas nuevos o sin crédito)
+  const estimatedDebt = overdueAthletes.reduce((sum, a) => sum + (a.debt || 0), 0)
 
-  // Generar datos diarios para el gráfico de los últimos 7 días
+  // Obtener el precio real del plan elegido por un atleta (0 si aún no tiene plan)
+  const getAthletePlanPrice = (a: AthleteProfile): number => {
+    if (!hasValidDate(a.membershipEnd) && !a.membershipType) return 0
+    const planName = String(a.membershipType || '').trim().toLowerCase()
+    const configuredPlans = settings.landingSettings?.plansSettings?.plans || []
+    if (planName) {
+      const matched = configuredPlans.find((p: any) => String(p.name || '').trim().toLowerCase() === planName)
+      if (matched) {
+        const pNum = parseFloat(String(matched.price || '').replace(/[^0-9.]/g, ''))
+        if (Number.isFinite(pNum) && pNum > 0) return pNum
+      }
+    }
+    // Buscar en su última transacción de plan/membresía
+    const lastPlanTx = transactions.find(tx =>
+      tx.status !== 'CANCELED' &&
+      tx.customerId === a.id &&
+      Array.isArray(tx.items) &&
+      tx.items.some((it: any) => {
+        const pid = String(it.productId || '')
+        return pid === 'MEMB' || pid === 'MEMBRESIA-001' || pid.startsWith('PLAN:')
+      })
+    )
+    if (lastPlanTx) {
+      const planItem = lastPlanTx.items.find((it: any) => {
+        const pid = String(it.productId || '')
+        return pid === 'MEMB' || pid === 'MEMBRESIA-001' || pid.startsWith('PLAN:')
+      })
+      if (planItem && Number(planItem.price) > 0) return Number(planItem.price)
+    }
+    return hasValidDate(a.membershipEnd) ? (Number(settings.monthlyFee) || 25) : 0
+  }
+
+  // Generar datos diarios para el gráfico de los últimos 7 días (solo ingresos efectivamente cobrados)
   const last7Days = Array.from({length: 7}).map((_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (6 - i))
@@ -104,7 +146,7 @@ export default function FinanzasPage() {
     const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'short' })
     const dayIngresos = transactions
       .filter(tx => tx.date && new Date(tx.date).toISOString().startsWith(dateStr))
-      .reduce((sum, tx) => sum + tx.total, 0)
+      .reduce((sum, tx) => sum + getTxPaidAmount(tx), 0)
     const dayEgresos = expenses
       .filter(ex => ex.date && new Date(ex.date).toISOString().startsWith(dateStr))
       .reduce((sum, ex) => sum + ex.amount, 0)
@@ -112,13 +154,13 @@ export default function FinanzasPage() {
     return { name: dayName.charAt(0).toUpperCase() + dayName.slice(1), ingresos: dayIngresos, egresos: dayEgresos }
   })
   
-  // Calcular Ganancia por Entrenadores
+  // Calcular Ganancia por Entrenadores (solo sobre atletas con membresía activa y el precio real de su plan)
   const totalGymProfitFromCoaches = employees.filter(e => e.role !== 'admin').reduce((sum, emp) => {
-    const assignedAthletes = athletes.filter(a => a.coachId === emp.id)
+    const assignedAthletes = athletes.filter(a => a.coachId === emp.id && hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) >= now)
     const commissionRate = emp.commissionRate || 0
     const commission = assignedAthletes.length * commissionRate
-    const avgMembership = 30
-    const profit = (assignedAthletes.length * avgMembership) - commission
+    const plansRevenue = assignedAthletes.reduce((acc, a) => acc + getAthletePlanPrice(a), 0)
+    const profit = plansRevenue - commission
     return sum + (profit > 0 ? profit : 0)
   }, 0)
   
@@ -136,14 +178,16 @@ export default function FinanzasPage() {
 
   const ingresosPorCategoria = transactions.reduce((acc, tx) => {
     if (tx.status === 'CANCELED') return acc;
+    const paidRatio = (Number(tx.total) || 0) > 0 ? getTxPaidAmount(tx) / Number(tx.total) : 0;
+    if (paidRatio <= 0) return acc;
     tx.items.forEach((item: any) => {
       let cat = 'Tienda'
       const pId = String(item.productId || '').toLowerCase()
       const pName = String(item.name || item.productName || '').toLowerCase()
-      if (pId === 'memb' || pId === 'membresia-001' || pId.startsWith('plan:') || pName.includes('mensualidad') || pName.includes('plan') || pName.includes('mes')) cat = 'Planes y Mensualidades'
+      if (pId === 'memb' || pId === 'membresia-001' || pId.startsWith('plan:') || pId === 'debt_payment' || pName.includes('mensualidad') || pName.includes('plan') || pName.includes('mes') || pName.includes('cuenta por cobrar')) cat = 'Planes y Mensualidades'
       else if (pId === 'coach' || pName.includes('entrenador')) cat = 'Entrenadores'
       else if (pName.includes('inscrip')) cat = 'Inscripciones'
-      acc[cat] = (acc[cat] || 0) + (item.subtotal || 0);
+      acc[cat] = (acc[cat] || 0) + ((item.subtotal || 0) * paidRatio);
     })
     return acc;
   }, {} as Record<string, number>);
@@ -152,11 +196,11 @@ export default function FinanzasPage() {
     name, value
   }));
 
-  const activeAthletesCount = athletes.filter(a => {
-    if (!a.membershipEnd) return false;
+  const activeAthletesList = athletes.filter(a => {
+    if (!hasValidDate(a.membershipEnd)) return false;
     return new Date(a.membershipEnd) >= new Date();
-  }).length;
-  const mrr = activeAthletesCount * 30; // Ingreso recurrente mensual estimado
+  });
+  const mrr = activeAthletesList.reduce((sum, a) => sum + getAthletePlanPrice(a), 0); // Ingreso recurrente mensual según el plan real de cada atleta activo
   const upcomingPayroll = employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').reduce((sum, e) => sum + (e.baseSalary || 0), 0);
   const projectedLiquidity = mrr - upcomingPayroll;
 
@@ -246,10 +290,12 @@ export default function FinanzasPage() {
     localStorage.setItem(`emp_extra_${payrollForm.cedula}`, JSON.stringify(extraData))
 
     if (payrollForm.id) {
-      await updateEmployee(payrollForm.id, payrollForm)
+      const ok = await updateEmployee(payrollForm.id, payrollForm)
+      if ((ok as any) === false) return
       Swal.fire('Actualizado', 'Configuración de nómina guardada', 'success')
     } else {
-      await addEmployee(payrollForm, payrollForm.clave)
+      const ok = await addEmployee(payrollForm, payrollForm.clave)
+      if ((ok as any) === false) return
       Swal.fire('¡Empleado Creado!', 'Se ha agregado el empleado a la nómina', 'success')
     }
     setShowPayrollModal(false)
@@ -443,38 +489,88 @@ export default function FinanzasPage() {
     })
   }
   
-  const handleSaldarDeuda = (athleteId: string, debtAmount: number) => {
-    Swal.fire({
-      title: 'Saldar Deuda',
-      text: `¿Saldar la deuda de ${settings.storeCurrency} ${debtAmount}? (Esto registrará un ingreso)`,
-      icon: 'question',
+  const handleSaldarDeuda = async (athleteId: string, debtAmount: number) => {
+    const athlete = athletes.find(a => a.id === athleteId)
+    const { value: formValues } = await Swal.fire({
+      title: 'Saldar / Abonar Cuenta por Cobrar',
+      html: `
+        <div style="text-align:left;font-size:13px;display:flex;flex-direction:column;gap:10px;">
+          <div>Atleta: <b>${escapeHtml(athlete?.name || '')}</b> ${athlete?.membershipType ? `(${escapeHtml(athlete.membershipType)})` : ''}</div>
+          <div>Deuda Pendiente: <b style="color:#f59e0b">${escapeHtml(settings.storeCurrency)} ${debtAmount.toFixed(2)}</b></div>
+          <div>
+            <label style="display:block;font-size:11px;margin-bottom:4px;">Monto a Pagar (${escapeHtml(settings.storeCurrency)}):</label>
+            <input id="swal-debt-amount" type="number" step="0.01" min="0.01" max="${debtAmount}" value="${debtAmount.toFixed(2)}" class="swal2-input" style="margin:0;width:100%;height:38px;font-size:14px;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;margin-bottom:4px;">Método de Pago:</label>
+            <select id="swal-debt-method" class="swal2-input" style="margin:0;width:100%;height:38px;font-size:14px;">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Pago Móvil">Pago Móvil</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Tarjeta">Tarjeta / Punto</option>
+              <option value="Binance">Binance</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;margin-bottom:4px;">Referencia (Opcional):</label>
+            <input id="swal-debt-ref" type="text" placeholder="N° de referencia o nota..." class="swal2-input" style="margin:0;width:100%;height:38px;font-size:13px;" />
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: 'Sí, saldar',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        storeService.addTransaction({
-          id: `TX-${Date.now()}`,
-          date: new Date().toISOString(),
-          cashierId: user?.id || 'unknown',
-          customerId: athleteId,
-          items: [{ productId: 'DEBT', name: 'Pago de Deuda (Fiado)', price: debtAmount, qty: 1, subtotal: debtAmount }],
-          subtotal: debtAmount,
-          tax: 0,
-          total: debtAmount,
-          paymentMethod: 'Efectivo',
-          status: 'COMPLETED'
-        })
-        athleteService.updateAthlete(athleteId, { debt: 0 } as any) // we just overwrite that field by fetching first
-        const athlete = athleteService.getAthlete(athleteId)
-        if (athlete) {
-           athleteService.updateAthlete({...athlete, debt: 0})
+      confirmButtonText: 'Registrar Pago',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981',
+      preConfirm: () => {
+        const amtEl = document.getElementById('swal-debt-amount') as HTMLInputElement | null
+        const methodEl = document.getElementById('swal-debt-method') as HTMLSelectElement | null
+        const refEl = document.getElementById('swal-debt-ref') as HTMLInputElement | null
+        const amt = parseFloat(amtEl?.value || '0')
+        if (!Number.isFinite(amt) || amt <= 0 || amt > debtAmount + 0.01) {
+          Swal.showValidationMessage('Ingrese un monto válido menor o igual a la deuda.')
+          return false
         }
-        setAthletes(athleteService.getAthletes())
-        setTransactions(storeService.getTransactions())
-        Swal.fire('¡Saldado!', 'La deuda ha sido pagada con éxito.', 'success')
+        return {
+          amount: Math.min(debtAmount, amt),
+          paymentMethod: methodEl?.value || 'Efectivo',
+          reference: refEl?.value?.trim() || undefined
+        }
       }
     })
+
+    if (!formValues) return
+
+    const { settleAthleteDebt, getTransactions } = await import('@/app/actions/store')
+    const { getAthletes } = await import('@/app/actions/users')
+    const res = await settleAthleteDebt({
+      athleteId,
+      amount: formValues.amount,
+      paymentMethod: formValues.paymentMethod,
+      reference: formValues.reference
+    })
+
+    if (res.success) {
+      const [athRes, txRes] = await Promise.all([getAthletes(), getTransactions()])
+      if (athRes.success) {
+        setAthletes(athRes.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || "",
+          membershipType: a.memberships?.[0]?.planName || a.membershipType || "",
+          debt: Number(a.storeDebt ?? a.debt ?? 0)
+        })))
+      }
+      if (txRes.success) setTransactions(txRes.transactions as any)
+      Swal.fire(
+        '¡Pago Registrado!',
+        res.remainingDebt && res.remainingDebt > 0
+          ? `Se abonaron ${settings.storeCurrency} ${formValues.amount.toFixed(2)}. Saldo restante: ${settings.storeCurrency} ${res.remainingDebt.toFixed(2)}.`
+          : 'La cuenta por cobrar ha sido saldada en su totalidad y registrada en los ingresos.',
+        'success'
+      )
+    } else {
+      Swal.fire('Error', res.error || 'No se pudo registrar el pago.', 'error')
+    }
   }
 
   const handleDownloadReport = (seccion: string) => {
@@ -563,13 +659,14 @@ export default function FinanzasPage() {
           excelData.push({ Fecha: row[0], Descripcion: row[1], Categoria: row[2], MontoUSD: row[3] });
         });
       } else if (reportSection === 'Cuentas por Cobrar') {
-        title = 'Cuentas por Cobrar';
-        cols = ['Atleta', 'Cedula', 'Plan', 'Vencimiento', 'Monto Estimado Deuda'];
+        title = 'Cuentas por Cobrar (Créditos / Fiados Autorizados)';
+        cols = ['Atleta', 'Cedula', 'Plan Seleccionado', 'Vencimiento', 'Deuda Real (Fiado)'];
         overdueAthletes.forEach(a => {
           const vencimientoTexto = hasValidDate(a.membershipEnd)
             ? new Date(a.membershipEnd).toLocaleDateString()
-            : 'Sin membresía (Pendiente)';
-          const row = [a.name, a.cedula, a.membershipType||'Base', vencimientoTexto, '30'];
+            : 'Sin membresía';
+          const realDebt = Number(a.debt || 0).toFixed(2);
+          const row = [a.name, a.cedula, a.membershipType || 'Tienda / Plan', vencimientoTexto, realDebt];
           pdfData.push(row);
           excelData.push({ Atleta: row[0], Cedula: row[1], Plan: row[2], Vencimiento: row[3], Deuda: row[4] });
         });
@@ -1315,10 +1412,15 @@ export default function FinanzasPage() {
 
       {activeTab === 'cuentas_cobrar' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Atletas en Mora / Deudas de Tienda</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h2 className="text-xl font-bold">Cuentas por Cobrar (Crédito / Fiado Autorizado)</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Solo aparecen atletas a quienes el Administrador les autorizó un Plan o consumo a Crédito / Fiado.
+              </p>
+            </div>
             <button onClick={() => handleDownloadReport('Cuentas por Cobrar')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
-              <Download className="h-4 w-4" /> Exportar Morosos
+              <Download className="h-4 w-4" /> Exportar Cuentas por Cobrar
             </button>
           </div>
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
@@ -1327,14 +1429,15 @@ export default function FinanzasPage() {
                 <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
                   <tr>
                     <th className="p-4 font-medium">Atleta / Cédula</th>
+                    <th className="p-4 font-medium">Plan Seleccionado / Concepto</th>
                     <th className="p-4 font-medium">Estado Membresía</th>
-                    <th className="p-4 font-medium">Deuda Tienda (Fiado)</th>
+                    <th className="p-4 font-medium">Saldo Pendiente (Fiado)</th>
                     <th className="p-4 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {overdueAthletes.map(a => {
-                    let membershipStatus = "Sin membresía (Pendiente de pago)";
+                    let membershipStatus = "Sin membresía activa";
                     let badgeStyle = "bg-warning/20 text-warning font-semibold";
                     if (hasValidDate(a.membershipEnd)) {
                       const isMembOverdue = new Date(a.membershipEnd) < now;
@@ -1367,6 +1470,11 @@ export default function FinanzasPage() {
                           </div>
                         </td>
                         <td className="p-4">
+                          <span className="font-bold text-primary">
+                            {a.membershipType || 'Crédito en Tienda / Plan'}
+                          </span>
+                        </td>
+                        <td className="p-4">
                           <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
                             {membershipStatus}
                           </span>
@@ -1388,7 +1496,7 @@ export default function FinanzasPage() {
                             </button>
                           )}
                           <a 
-                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20pagos%20pendientes.`} 
+                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20un%20saldo%20pendiente%20de%20${encodeURIComponent(settings.storeCurrency)}%20${(a.debt || 0).toFixed(2)}.`} 
                             target="_blank" 
                             rel="noreferrer"
                             className="inline-flex p-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-lg transition"
@@ -1404,7 +1512,7 @@ export default function FinanzasPage() {
                     <tr>
                       <td colSpan={5} className="p-8 text-center text-muted-foreground">
                         <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
-                        ¡Excelente! No hay cuentas por cobrar ni atletas en mora.
+                        ¡Excelente! No hay cuentas por cobrar (créditos o fiados pendientes).
                       </td>
                     </tr>
                   )}
@@ -1414,7 +1522,7 @@ export default function FinanzasPage() {
               {/* Mobile View */}
               <div className="md:hidden flex flex-col divide-y divide-white/5">
                 {overdueAthletes.map(a => {
-                  let membershipStatus = "Sin membresía (Pendiente de pago)";
+                  let membershipStatus = "Sin membresía activa";
                   let badgeStyle = "bg-warning/20 text-warning font-semibold";
                   if (hasValidDate(a.membershipEnd)) {
                     const isMembOverdue = new Date(a.membershipEnd) < now;
@@ -1443,6 +1551,7 @@ export default function FinanzasPage() {
                           <div>
                             <div className="font-bold">{a.name}</div>
                             <div className="text-xs text-muted-foreground">{a.cedula}</div>
+                            <div className="text-xs font-bold text-primary mt-0.5">{a.membershipType || 'Crédito en Tienda / Plan'}</div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -1451,7 +1560,7 @@ export default function FinanzasPage() {
                           ) : (
                             <div className="text-muted-foreground">-</div>
                           )}
-                          <div className="text-xs font-bold mt-1 uppercase">Deuda Tienda</div>
+                          <div className="text-xs font-bold mt-1 uppercase">Saldo Fiado</div>
                         </div>
                       </div>
                       <div className="flex justify-between items-center text-sm pt-2">
@@ -1468,7 +1577,7 @@ export default function FinanzasPage() {
                             </button>
                           )}
                           <a 
-                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20pagos%20pendientes.`} 
+                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20un%20saldo%20pendiente%20de%20${encodeURIComponent(settings.storeCurrency)}%20${(a.debt || 0).toFixed(2)}.`} 
                             target="_blank" 
                             rel="noreferrer"
                             className="inline-flex p-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded transition text-xs font-bold gap-1 items-center"
@@ -1483,7 +1592,7 @@ export default function FinanzasPage() {
                 {overdueAthletes.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground">
                     <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
-                    ¡Excelente! No hay cuentas por cobrar ni atletas en mora.
+                    ¡Excelente! No hay cuentas por cobrar (créditos o fiados pendientes).
                   </div>
                 )}
               </div>
@@ -1551,7 +1660,7 @@ export default function FinanzasPage() {
                             const extra = extraStr ? JSON.parse(extraStr) : {}
                             return (
                               <div className="space-y-1">
-                                {extra.bankAccount ? <div className="text-muted-foreground"><span className="font-bold">Cta:</span> {extra.bankName ? `${extra.bankName} - ` : ''}{extra.bankAccount}</div> : null}
+                                {extra.bankAccount ? <div className="text-muted-foreground"><span className="font-bold">Cta:</span> {extra.bankAccount ? `${extra.bankName ? `${extra.bankName} - ` : ''}${extra.bankAccount}` : ''}</div> : null}
                                 {extra.mobilePayment ? <div className="text-muted-foreground"><span className="font-bold">Pago Móvil:</span> {extra.mobilePaymentBank ? `${extra.mobilePaymentBank} - ` : ''}{extra.mobilePayment}</div> : null}
                                 {!extra.bankAccount && !extra.mobilePayment && <span className="text-destructive/70">Sin datos registrados</span>}
                               </div>
@@ -1605,12 +1714,12 @@ export default function FinanzasPage() {
                   <div className="bg-primary/10 p-6 rounded-xl border border-primary/20 text-center">
                     <h3 className="text-sm font-bold text-primary mb-2">Ingreso Potencial por Renovaciones</h3>
                     <p className="text-4xl font-black text-primary">
-                      {settings.storeCurrency} {(athletes.filter(a => {
+                      {settings.storeCurrency} {athletes.filter(a => {
                         const end = new Date(a.membershipEnd)
                         const nextMonth = new Date()
                         nextMonth.setDate(nextMonth.getDate() + 30)
                         return end <= nextMonth && end >= new Date()
-                      }).length * 30).toFixed(2)} {/* Promedio $30 por membresía */}
+                      }).reduce((acc, a) => acc + getAthletePlanPrice(a), 0).toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       ({athletes.filter(a => {
@@ -1674,8 +1783,18 @@ export default function FinanzasPage() {
                     <select required value={payrollForm.role} onChange={e => setPayrollForm({...payrollForm, role: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
                       <option value="employee">Entrenador (Coach)</option>
                       <option value="cajero">Cajero / Recepción</option>
+                      <option value="gerente">Gerente</option>
+                      <option value="admin">Administrador del Sistema</option>
                     </select>
                   </div>
+                  {payrollForm.role === 'admin' && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-2.5">
+                      <span className="text-sm">🔐</span>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Al guardar como <b>Administrador</b>, se te solicitará la contraseña del <b>Super Administrador (primer administrador creado)</b>.
+                      </p>
+                    </div>
+                  )}
                   {!payrollForm.id && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>

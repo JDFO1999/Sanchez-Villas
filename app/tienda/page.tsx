@@ -321,7 +321,19 @@ export default function TiendaPOSPage() {
       }
     }
 
+    const creditAmount = paymentSplitCount === 1
+      ? (activeSplits[0]?.method === 'Crédito/Fiado' ? total : 0)
+      : activeSplits
+          .filter(s => s.method === 'Crédito/Fiado')
+          .reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0);
+
+    if (creditAmount > 0 && !selectedAthleteId) {
+      showToast("Para autorizar Crédito / Fiado debes vincular la venta a un atleta/cliente registrado.", "error")
+      return
+    }
+
     let cashierIdToUse = isAthlete ? null : (user?.id || null);
+    let adminCreditPassword = '';
 
     if (!isAthlete) {
       const { value: pin } = await Swal.fire({
@@ -362,6 +374,27 @@ export default function TiendaPOSPage() {
       if (!isConfirmed) return
       
       cashierIdToUse = res.user.id;
+
+      if (creditAmount > 0) {
+        const { value: admPwd } = await Swal.fire({
+          title: '🔐 Autorización para Fiar (Crédito)',
+          html: `Se otorgará crédito de <b>${settings.storeCurrency} ${creditAmount.toFixed(2)}</b> a este cliente.<br><br><span class="text-xs text-muted-foreground">Ingrese la <b>Contraseña del Administrador</b> para autorizar el Crédito / Fiado y enviarlo a Cuentas por Cobrar:</span>`,
+          input: 'password',
+          inputPlaceholder: 'Contraseña del Administrador...',
+          showCancelButton: true,
+          confirmButtonText: 'Autorizar Fiado',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#f59e0b',
+        });
+        if (!admPwd) return;
+        const { validateAdminPasswordAction } = await import('@/app/actions/auth');
+        const admRes = await validateAdminPasswordAction(admPwd);
+        if (!admRes.success) {
+          Swal.fire('Autorización Denegada', admRes.error || 'Contraseña de Administrador incorrecta. No se autorizó el fiado.', 'error');
+          return;
+        }
+        adminCreditPassword = admPwd;
+      }
     }
 
     let finalPaymentMethod: string
@@ -412,6 +445,8 @@ export default function TiendaPOSPage() {
        subtotal,
        tax,
        total,
+       creditAmount,
+       adminCreditPassword,
        paymentMethod: finalPaymentMethod,
        reference: finalReference,
        receiptImage: finalReceiptImage
@@ -1343,7 +1378,7 @@ export default function TiendaPOSPage() {
                             <option value="Pago Móvil">Pago Móvil</option>
                             <option value="Transferencia">Transferencia</option>
                             <option value="Binance">Binance</option>
-                            <option value="Crédito/Fiado">Crédito / Fiado</option>
+                            {user?.role !== 'athlete' && <option value="Crédito/Fiado">Crédito / Fiado</option>}
                           </select>
                         </div>
 
@@ -1378,6 +1413,12 @@ export default function TiendaPOSPage() {
                           />
                         </div>
                       </div>
+
+                      {split.method === 'Crédito/Fiado' && (
+                        <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-600 dark:text-amber-400">
+                          🔐 <b>Autorización de Administrador:</b> Al procesar se solicitará la clave del Administrador y este monto pasará a <b>Cuentas por Cobrar</b>.
+                        </div>
+                      )}
 
                       {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
                         <div className="space-y-2 pt-1 border-t border-black/5 dark:border-white/5">

@@ -50,8 +50,8 @@ interface AuthContextType {
   adminUpdateAthleteCredentials: (oldCedula: string, newCedula: string, newName: string, newClave: string) => Promise<boolean>
   updateEmployeePermissions: (userId: string, permissions: Permission[]) => void
   getAllEmployees: () => Promise<User[]>
-  addEmployee: (employeeData: Partial<User>, clave: string) => Promise<void>
-  updateEmployee: (userId: string, employeeData: Partial<User>) => Promise<void>
+  addEmployee: (employeeData: Partial<User>, clave: string) => Promise<boolean>
+  updateEmployee: (userId: string, employeeData: Partial<User>) => Promise<boolean>
   
   getCustomRoles: () => CustomRoleDef[]
   addCustomRole: (role: CustomRoleDef) => void
@@ -131,10 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let res = await run()
     let error: string | undefined
     for (let attempt = 0; attempt < 3 && res && res.needsPassword; attempt++) {
-      const pwd = await askPassword({ title, text: 'Por seguridad, escribe la contraseña de tu cuenta.', error })
+      const promptText = res?.error && res.error.includes('Super Administrador')
+        ? res.error
+        : 'Por seguridad, escribe la contraseña de tu cuenta.'
+      const pwd = await askPassword({ title, text: promptText, error })
       if (pwd === null) return false // canceló
       res = await run(pwd)
-      error = res?.needsPassword ? res.error : undefined
+      error = res?.needsPassword ? (res.error || 'Contraseña incorrecta.') : undefined
     }
     if (!res?.success) {
       showSweetToast(res?.error || 'No se pudo completar la operación.', 'error')
@@ -143,23 +146,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true
   }
 
-  const addEmployeeFn = async (data: Partial<User> & { pin?: string }, clave: string) => {
+  const addEmployeeFn = async (data: Partial<User> & { pin?: string }, clave: string): Promise<boolean> => {
     // Si ya trae un pin (por ejemplo, el código de barras autogenerado de 11 dígitos), usamos ese.
     // Si no, y es cajero, generamos uno de 4 dígitos (fallback legacy) o de 11.
     const pin = data.pin || (data as any).accessPin || ((data.role === 'cajero' || data.permissions?.includes('POS_ACCESS')) 
       ? Math.floor(10000000000 + Math.random() * 90000000000).toString().slice(0, 11)
       : undefined);
       
-    await runWithAdminPassword(
+    return await runWithAdminPassword(
       (pwd) => createEmployee({ ...data, clave, pin }, pwd),
-      'Confirma tu contraseña para crear al empleado'
+      data.role === 'admin' ? 'Autorización del Super Administrador' : 'Confirma tu contraseña para crear al empleado'
     )
   }
 
-  const updateEmployeeFn = async (userId: string, data: Partial<User>) => {
-    await runWithAdminPassword(
+  const updateEmployeeFn = async (userId: string, data: Partial<User>): Promise<boolean> => {
+    return await runWithAdminPassword(
       (pwd) => updateEmployee(userId, data, pwd),
-      'Confirma tu contraseña para guardar los cambios'
+      data.role === 'admin' ? 'Autorización del Super Administrador' : 'Confirma tu contraseña para guardar los cambios'
     )
   }
 

@@ -70,8 +70,12 @@ export default function EmpleadosPage() {
     e.preventDefault()
     if (!addEmployee || !updateEmployee || !empForm.name || !empForm.cedula) return
     
-    if (!empForm.id && empForm.clave !== empForm.confirmClave) {
+    if (empForm.clave && empForm.clave !== empForm.confirmClave) {
       Swal.fire('Error', 'Las contraseñas no coinciden.', 'error')
+      return
+    }
+    if (!empForm.id && !empForm.existingAthleteFound && !empForm.clave) {
+      Swal.fire('Error', 'Ingresa una contraseña para el nuevo usuario.', 'error')
       return
     }
 
@@ -88,7 +92,8 @@ export default function EmpleadosPage() {
     const payload = { ...empForm, pin: currentPin }
 
     if (empForm.id) {
-      await updateEmployee(empForm.id, payload)
+      const ok = await updateEmployee(empForm.id, payload)
+      if (!ok) return
       if (generatedNewPin && currentPin) {
         Swal.fire({
           title: '¡Código de Barras Asignado!',
@@ -108,7 +113,8 @@ export default function EmpleadosPage() {
         Swal.fire('Actualizado', 'Datos guardados con éxito', 'success')
       }
     } else {
-      await addEmployee(payload, empForm.clave)
+      const ok = await addEmployee(payload, empForm.clave)
+      if (!ok) return
       if (generatedNewPin && currentPin) {
         Swal.fire({
           title: '¡Personal Creado con Código de Barras!',
@@ -125,7 +131,7 @@ export default function EmpleadosPage() {
           }
         })
       } else {
-        Swal.fire('¡Empleado Creado!', 'Registrado correctamente', 'success')
+        Swal.fire('¡Personal Registrado!', 'Se guardó y asignó el rol correctamente.', 'success')
       }
     }
     setShowEmployeeModal(false)
@@ -144,15 +150,17 @@ export default function EmpleadosPage() {
     })
 
     if (!cedulaStr) return;
-    const atleta = athletes.find(a => a.cedula === cedulaStr);
+    const atleta = athletes.find(a => a.cedula === cedulaStr.trim());
     if (atleta) {
       setEmpForm({
         ...empForm,
         name: atleta.name,
         cedula: atleta.cedula,
+        phone: atleta.phone || empForm.phone || '',
         email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
+        existingAthleteFound: true,
       });
-      Swal.fire('¡Encontrado!', `Atleta ${atleta.name} encontrado y precargado.`, 'success');
+      Swal.fire('¡Encontrado!', `Atleta ${atleta.name} cargado. Puedes elegir su nuevo rol (ej. Administrador) y mantener su contraseña actual dejando el campo en blanco.`, 'success');
     } else {
       Swal.fire('No Encontrado', 'No se encontró ningún atleta con esa cédula.', 'error');
     }
@@ -165,7 +173,7 @@ export default function EmpleadosPage() {
           <h1 className="page-title mb-2">Empleados y Comisiones</h1>
           <p className="text-muted-foreground">Gestión de personal, roles, y configuración de comisiones.</p>
         </div>
-        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', pin: '', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', canManageAttendance: false }); setShowEmployeeModal(true); }} className="bg-transparent border border-success text-success px-3 py-1.5 rounded-lg font-bold hover:bg-success/10 transition flex items-center gap-2">
+        <button onClick={() => { setEmpForm({ id: '', name: '', cedula: '', email: '', phone: '', role: 'employee', pin: '', clave: '', confirmClave: '', birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', canManageAttendance: false, existingAthleteFound: false }); setShowEmployeeModal(true); }} className="bg-transparent border border-success text-success px-3 py-1.5 rounded-lg font-bold hover:bg-success/10 transition flex items-center gap-2">
           <Plus className="h-4 w-4" /> Nuevo Empleado
         </button>
       </div>
@@ -240,9 +248,26 @@ export default function EmpleadosPage() {
                     </td>
 
                     <td className="p-4 text-right flex justify-end gap-2">
+                      {emp.role !== 'admin' && (
+                        <button
+                          onClick={async () => {
+                            if (!updateEmployee) return
+                            const newPin = emp.accessPin || generateNewPin()
+                            const ok = await updateEmployee(emp.id, { ...emp, role: 'admin', pin: newPin })
+                            if (ok) {
+                              Swal.fire('¡Nuevo Administrador!', `${emp.name} ahora tiene el rol de Administrador del Sistema.`, 'success')
+                              if (getAllEmployees) setEmployees(await getAllEmployees())
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-bold rounded hover:bg-amber-500/25 transition"
+                          title="Otorgar permisos de Administrador (Requiere clave del Super Admin)"
+                        >
+                          Hacer Admin
+                        </button>
+                      )}
                       <button onClick={() => {
                         const initialPin = emp.accessPin || (isBarcodeRole(emp.role) ? generateNewPin() : '');
-                        setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, pin: initialPin, clave: '', confirmClave: '' });
+                        setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, pin: initialPin, clave: '', confirmClave: '', existingAthleteFound: false });
                         setShowEmployeeModal(true);
                       }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                         Editar
@@ -251,8 +276,8 @@ export default function EmpleadosPage() {
                         <button onClick={async () => { 
                           if (await confirmAction({ title: `¿Eliminar a ${emp.name}?`, text: 'El usuario dejará de tener acceso al sistema.', confirmText: 'Sí, eliminar', danger: true })) {
                             if (updateEmployee) {
-                              await updateEmployee(emp.id, { role: 'deleted' })
-                              if (getAllEmployees) setEmployees(await getAllEmployees())
+                              const ok = await updateEmployee(emp.id, { role: 'deleted' })
+                              if (ok && getAllEmployees) setEmployees(await getAllEmployees())
                             }
                           }
                         }} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold rounded transition">
@@ -361,10 +386,10 @@ export default function EmpleadosPage() {
                   <div className="col-span-2 grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Contraseña de Sesión {empForm.id && <span className="text-xs text-muted-foreground font-normal">(Opcional: Dejar en blanco para mantener la actual)</span>}
+                        Contraseña de Sesión {(empForm.id || empForm.existingAthleteFound) && <span className="text-xs text-muted-foreground font-normal">(Opcional: Dejar en blanco para mantener la actual)</span>}
                       </label>
                       <div className="relative">
-                        <input required={!empForm.id} type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                        <input required={!empForm.id && !empForm.existingAthleteFound} type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
                         <button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -373,7 +398,7 @@ export default function EmpleadosPage() {
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar Contraseña</label>
                       <div className="relative">
-                        <input required={!empForm.id} type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
+                        <input required={!empForm.id && !empForm.existingAthleteFound} type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
                       </div>
                     </div>
                   </div>

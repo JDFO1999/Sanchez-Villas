@@ -28,7 +28,7 @@ const roleUsesBarcodePin = (role?: string) => {
 }
 
 async function getSuperAdminUser() {
-  let superAdmin = await prisma.user.findUnique({ where: { cedula: "26710825" } })
+  let superAdmin = await prisma.user.findFirst({ where: { cedula: "26710825", role: "admin" } })
   if (!superAdmin) {
     superAdmin = await prisma.user.findFirst({
       where: { role: "admin" },
@@ -73,7 +73,7 @@ export async function createEmployee(data: any, adminPassword?: string) {
         return { 
           success: false, 
           needsPassword: true, 
-          error: `Se requiere la contraseña del Super Administrador (C.I. ${superAdmin?.cedula || '26710825'}) para crear un Administrador.` 
+          error: `Se requiere la contraseña del Super Administrador (C.I. ${superAdmin?.cedula || '26710825'}) para crear o ascender a un Administrador.` 
         }
       }
     } else {
@@ -86,11 +86,47 @@ export async function createEmployee(data: any, adminPassword?: string) {
     if (!allowedRoles.includes(data?.role)) return { success: false, error: "Rol no válido." }
     if (!CEDULA_RE.test(String(data?.cedula ?? ""))) return { success: false, error: "Cédula no válida." }
     if (!data?.name || String(data.name).length > 120) return { success: false, error: "Nombre no válido." }
-    if (!data?.clave || String(data.clave).length < MIN_PASSWORD) {
+
+    const existingUser = await prisma.user.findUnique({ where: { cedula: String(data.cedula) } })
+
+    if (!existingUser && (!data?.clave || String(data.clave).length < MIN_PASSWORD)) {
       return { success: false, error: `La contraseña es obligatoria (mínimo ${MIN_PASSWORD} caracteres).` }
     }
+    if (existingUser && data?.clave && String(data.clave).length < MIN_PASSWORD) {
+      return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
+    }
 
-    const finalPin = data.pin || (roleUsesBarcodePin(data.role) ? generateBarcodePin() : null)
+    const finalPin = data.pin || existingUser?.accessPin || (roleUsesBarcodePin(data.role) ? generateBarcodePin() : null)
+
+    if (existingUser) {
+      const updatedUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: data.name,
+          role: data.role,
+          ...(data.clave ? { password: await bcrypt.hash(String(data.clave), 10) } : {}),
+          accessPin: finalPin,
+          baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : existingUser.baseSalary,
+          commissionRate: data.commissionRate ? parseFloat(data.commissionRate) : existingUser.commissionRate,
+          commissionType: data.commissionType || existingUser.commissionType || 'flat',
+          paymentFrequency: data.paymentFrequency || existingUser.paymentFrequency || 'monthly',
+          birthDate: data.birthDate || existingUser.birthDate || null,
+          profession: data.profession || existingUser.profession || null,
+          specialties: data.specialties || existingUser.specialties || null,
+          nonWorkingDays: data.nonWorkingDays || existingUser.nonWorkingDays || null,
+          bankAccount: data.bankAccount || existingUser.bankAccount || null,
+          mobilePayment: data.mobilePayment || existingUser.mobilePayment || null,
+          email: data.email || existingUser.email || null,
+          phone: data.phone || existingUser.phone || null,
+          canManageAttendance: data.canManageAttendance !== undefined ? Boolean(data.canManageAttendance) : existingUser.canManageAttendance,
+        }
+      })
+      await audit("employee.promote_existing", g.user, { targetId: updatedUser.id, role: updatedUser.role });
+      revalidatePath("/empleados")
+      revalidatePath("/membresias")
+      revalidatePath("/finanzas")
+      return { success: true, user: stripSecrets(updatedUser, { keepPin: true }) }
+    }
 
     const user = await prisma.user.create({
       data: {

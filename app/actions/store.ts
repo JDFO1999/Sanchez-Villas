@@ -105,10 +105,21 @@ export async function createTransaction(data: any) {
     }
     const method = String(data.paymentMethod || '')
     if (!method) return { success: false, error: 'Falta el método de pago.' }
-    // Crédito/Fiado solo lo registra el personal de caja y siempre a un cliente
+    // Crédito/Fiado solo lo registra el personal de caja a un cliente y SIEMPRE con autorización de Administrador
     const isCredit = /fiado|cr[eé]dito/i.test(method)
     if (isCredit && (isAthlete || !data.customerId)) {
-      return { success: false, error: 'El crédito solo puede registrarlo un cajero a un cliente.' }
+      return { success: false, error: 'El crédito solo puede registrarlo el personal a un cliente registrado.' }
+    }
+
+    if (isCredit) {
+      const { validateAdminPasswordAction } = await import('@/app/actions/auth')
+      const adminAuth = await validateAdminPasswordAction(String(data.adminCreditPassword || ''))
+      if (!adminAuth.success) {
+        return {
+          success: false,
+          error: adminAuth.error || 'Se requiere la contraseña de un Administrador para autorizar el Crédito / Fiado.'
+        }
+      }
     }
 
     const receiptImage = await saveBase64Image(data.receiptImage, 'receipt');
@@ -132,7 +143,7 @@ export async function createTransaction(data: any) {
           if (isAthlete && product.stock < qty) throw new Error(`Stock insuficiente de "${product.name}".`)
           lines.push({ productId, name: product.name, price: product.price, qty, subtotal: product.price * qty, physical: true })
         } else if (
-          ['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE'].includes(productId) ||
+          ['MEMB', 'MEMBRESIA-001', 'COACH', 'COACH_FEE', 'DEBT_PAYMENT'].includes(productId) ||
           productId.startsWith('PLAN:')
         ) {
           // Membresías y planes promocionales son ítems virtuales (sin stock físico)
@@ -151,6 +162,20 @@ export async function createTransaction(data: any) {
       // El personal puede aplicar un descuento (total menor); jamás un total mayor ni negativo.
       const totalIn = Number(data.total)
       const total = isPosUser && Number.isFinite(totalIn) && totalIn >= 0 && totalIn <= expected ? totalIn : expected
+
+      // Calcular el monto exacto fiado (completo o parcial en pago Mixto)
+      let creditAmount = 0
+      if (isCredit) {
+        const rawCredit = Number(data.creditAmount)
+        if (Number.isFinite(rawCredit) && rawCredit > 0 && rawCredit <= total) {
+          creditAmount = rawCredit
+        } else if (/^mixto:/i.test(method)) {
+          const match = method.match(/cr[eé]dito\s*\/?\s*fiado\s*\([^0-9]*([0-9]+(?:\.[0-9]+)?)\)/i)
+          creditAmount = match ? Math.min(total, parseFloat(match[1]) || total) : total
+        } else {
+          creditAmount = total
+        }
+      }
 
       // 0. Encontrar el turno de caja abierto del cajero (si hay cajero)
       let activeSession = null;
@@ -229,12 +254,12 @@ export async function createTransaction(data: any) {
         }
       }
 
-      // 4. Update debt if FIADO
-      if (isCredit && customerId) {
+      // 4. Update debt if FIADO (incrementa storeDebt por el monto exacto autorizado como Crédito/Fiado)
+      if (isCredit && customerId && creditAmount > 0) {
         await tx.user.update({
           where: { id: customerId },
           data: {
-            storeDebt: { increment: total }
+            storeDebt: { increment: creditAmount }
           }
         })
       }
@@ -496,19 +521,116 @@ export async function adminRefundTransaction(transactionId: string) {
       }
 
       // 3. Deduct from FIADO debt if applicable
-      if (tx.paymentMethod === 'FIADO' || tx.paymentMethod === 'Crédito/Fiado') {
-        if (tx.customerId) {
+      const pm = String(tx.paymentMethod || '')
+      if (/fiado|cr[eé]dito/i.test(pm) && tx.customerId) {
+        let creditToDeduct = tx.total
+        if (/^mixto:/i.test(pm)) {
+          const match = pm.match(/cr[eé]dito\s*\/?\s*fiado\s*\([^0-9]*([0-9]+(?:\.[0-9]+)?)\)/i)
+          if (match) creditToDeduct = parseFloat(match[1]) || tx.total
+        }
+        const customer = await txPrisma.user.findUnique({ where: { id: tx.customerId } })
+        if (customer) {
+          const nextDebt = Math.max(0, (customer.storeDebt || 0) - creditToDeduct)
           await txPrisma.user.update({
             where: { id: tx.customerId },
-            data: { storeDebt: { decrement: tx.total } }
-          });
+            data: { storeDebt: nextDebt }
+          })
         }
       }
     });
 
     await audit("sale.refund", g.user, { transactionId });
+    revalidatePath('/finanzas');
+    revalidatePath('/membresias');
+    revalidatePath('/tienda');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
+
+export async function settleAthleteDebt(data: {
+  athleteId: string;
+  amount: number;
+  paymentMethod: string;
+  reference?: string;
+}) {
+  const g = await guard(ROLES.POS)
+  if (!g.ok) return { success: false, error: g.error }
+  try {
+    const amount = Number(data?.amount)
+    if (!data?.athleteId || !Number.isFinite(amount) || amount <= 0) {
+      return { success: false, error: 'Monto o cliente no válido.' }
+    }
+    const method = String(data?.paymentMethod || 'Efectivo').trim()
+    if (/fiado|cr[eé]dito/i.test(method)) {
+      return { success: false, error: 'No puedes saldar una deuda con otro Crédito/Fiado.' }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const athlete = await tx.user.findUnique({
+        where: { id: data.athleteId },
+        include: { memberships: { orderBy: { endDate: 'desc' }, take: 1 } }
+      })
+      if (!athlete) throw new Error('Atleta no encontrado.')
+      const currentDebt = Number(athlete.storeDebt || 0)
+      if (currentDebt <= 0) throw new Error('El atleta no posee cuentas por cobrar pendientes.')
+
+      const payAmount = Math.min(currentDebt, Math.round(amount * 100) / 100)
+      const nextDebt = Math.max(0, Math.round((currentDebt - payAmount) * 100) / 100)
+      const activeSession = await tx.cashSession.findFirst({
+        where: { cashierId: g.user.id, status: 'OPEN' }
+      })
+
+      const planLabel = athlete.memberships?.[0]?.planName ? ` (${athlete.memberships[0].planName})` : ''
+      const paymentTx = await tx.transaction.create({
+        data: {
+          cashierId: g.user.id,
+          cashSessionId: activeSession ? activeSession.id : null,
+          customerId: athlete.id,
+          subtotal: payAmount,
+          tax: 0,
+          total: payAmount,
+          paymentMethod: method,
+          reference: data.reference ? String(data.reference).slice(0, 190) : 'Pago de Cuenta por Cobrar',
+          status: 'COMPLETED',
+          items: {
+            create: [
+              {
+                productId: 'DEBT_PAYMENT',
+                name: `Pago de Cuenta por Cobrar / Fiado${planLabel}`.slice(0, 120),
+                price: payAmount,
+                qty: 1,
+                subtotal: payAmount
+              }
+            ]
+          }
+        },
+        include: { items: true }
+      })
+
+      await tx.user.update({
+        where: { id: athlete.id },
+        data: { storeDebt: nextDebt }
+      })
+
+      return { paymentTx, nextDebt }
+    })
+
+    await audit("sale.create", g.user, {
+      transactionId: result.paymentTx.id,
+      total: result.paymentTx.total,
+      method,
+      note: "settle_debt"
+    })
+    revalidatePath('/finanzas')
+    revalidatePath('/membresias')
+    revalidatePath('/atletas')
+    revalidatePath('/tienda')
+    revalidatePath('/')
+    return { success: true, transaction: result.paymentTx, remainingDebt: result.nextDebt }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'No se pudo registrar el pago de la deuda.' }
+  }
+}
+

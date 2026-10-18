@@ -21,7 +21,7 @@ interface PaymentSplit {
 }
 
 export default function MembresíasPage() {
-  const { user, adminUpdateAthleteCredentials, getAllEmployees } = useAuth()
+  const { user, adminUpdateAthleteCredentials, getAllEmployees, updateEmployee } = useAuth()
   const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
@@ -79,6 +79,7 @@ export default function MembresíasPage() {
   const [editCedula, setEditCedula] = useState("")
   const [editPhone, setEditPhone] = useState("")
   const [editAddress, setEditAddress] = useState("")
+  const [editRole, setEditRole] = useState("athlete")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
 
@@ -148,6 +149,7 @@ export default function MembresíasPage() {
     setEditCedula(a.cedula)
     setEditPhone(a.phone || "")
     setEditAddress(a.address || "")
+    setEditRole("athlete")
     setEditPassword("")
     setEditConfirmPassword("")
     setShowEditModal(a)
@@ -163,22 +165,16 @@ export default function MembresíasPage() {
       return
     }
 
-    // Update credentials in auth system
-    const success = await adminUpdateAthleteCredentials(
-      showEditModal.cedula,
-      editCedula,
-      editName,
-      editPassword
-    )
-
-    if (success) {
-      const { updateAthlete, getAthletes } = await import('@/app/actions/users')
-      await updateAthlete(showEditModal.id, {
+    if (user?.role === 'admin' && editRole !== 'athlete' && updateEmployee) {
+      const ok = await updateEmployee(showEditModal.id, {
         name: editName,
+        cedula: editCedula,
         phone: editPhone,
-        address: editAddress
-      })
-      
+        role: editRole,
+        ...(editPassword ? { clave: editPassword } : {})
+      } as any)
+      if ((ok as any) === false) return
+      const { getAthletes } = await import('@/app/actions/users')
       const athRes = await getAthletes()
       if (athRes.success) {
         setAthletes(athRes.athletes.map((a: any) => ({
@@ -187,9 +183,37 @@ export default function MembresíasPage() {
         })))
       }
       setShowEditModal(null)
-      showSweetToast("Credenciales actualizadas correctamente.", "success")
+      showSweetToast("Usuario promovido a rol de sistema exitosamente.", "success")
+      return
+    }
+
+    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
+    const res = await updateAthlete(showEditModal.id, {
+      name: editName,
+      phone: editPhone,
+      address: editAddress
+    })
+
+    if (res.success) {
+      if (editPassword && updateEmployee && user?.role === 'admin') {
+        await updateEmployee(showEditModal.id, {
+          name: editName,
+          cedula: editCedula,
+          role: 'athlete',
+          clave: editPassword
+        } as any)
+      }
+      const athRes = await getAthletes()
+      if (athRes.success) {
+        setAthletes(athRes.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
+        })))
+      }
+      setShowEditModal(null)
+      showSweetToast("Datos actualizados correctamente.", "success")
     } else {
-      showSweetToast("Error al actualizar credenciales.", "error")
+      showSweetToast(res.error || "Error al actualizar datos.", "error")
     }
   }
 
@@ -374,6 +398,34 @@ export default function MembresíasPage() {
 
     const validatedCashierId = pinRes.user.id
 
+    const creditAmount = renovarSplitCount === 1
+      ? (activeSplits[0]?.method === 'Crédito/Fiado' ? total : 0)
+      : activeSplits
+          .filter(s => s.method === 'Crédito/Fiado')
+          .reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0);
+
+    let adminCreditPassword = '';
+    if (creditAmount > 0) {
+      const { value: admPwd } = await Swal.fire({
+        title: '🔐 Autorización para Fiar (Crédito)',
+        html: `El cliente solicita <b>${settings.storeCurrency} ${creditAmount.toFixed(2)}</b> a <b>Crédito / Fiado</b> para el plan <b>${selectedPlanName}</b>.<br><br><span class="text-xs text-muted-foreground">Ingrese la <b>Contraseña del Administrador</b> para autorizar el crédito y registrarlo en Cuentas por Cobrar:</span>`,
+        input: 'password',
+        inputPlaceholder: 'Contraseña del Administrador...',
+        showCancelButton: true,
+        confirmButtonText: 'Autorizar Fiado',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#f59e0b',
+      });
+      if (!admPwd) return;
+      const { validateAdminPasswordAction } = await import('@/app/actions/auth');
+      const admRes = await validateAdminPasswordAction(admPwd);
+      if (!admRes.success) {
+        Swal.fire('Autorización Denegada', admRes.error || 'Contraseña de Administrador incorrecta. No se autorizó el fiado.', 'error');
+        return;
+      }
+      adminCreditPassword = admPwd;
+    }
+
     let finalPaymentMethod: string;
     let finalReference: string | undefined;
     let finalReceiptImage: string | undefined;
@@ -426,6 +478,8 @@ export default function MembresíasPage() {
        subtotal: total,
        tax: 0,
        total,
+       creditAmount,
+       adminCreditPassword,
        paymentMethod: finalPaymentMethod,
        reference: finalReference,
        receiptImage: finalReceiptImage
@@ -778,6 +832,15 @@ export default function MembresíasPage() {
                                 </div>
                               </div>
 
+                              {split.method === 'Crédito/Fiado' && (
+                                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2">
+                                  <span>🔐</span>
+                                  <span>
+                                    <b>Crédito autorizado por Administrador:</b> Se solicitará la contraseña del Administrador al confirmar y este monto ({settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}) irá a <b>Cuentas por Cobrar</b> con el plan elegido.
+                                  </span>
+                                </div>
+                              )}
+
                               {/* Datos adicionales si es transferencia, pago móvil, binance o tarjeta */}
                               {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
                                 <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
@@ -1042,6 +1105,28 @@ export default function MembresíasPage() {
                   <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
                 </div>
               </div>
+
+              {user?.role === 'admin' && (
+                <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
+                  <label className="text-xs font-bold text-primary block">Rol en el Sistema (Ascender Usuario)</label>
+                  <select
+                    value={editRole}
+                    onChange={e => setEditRole(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary font-medium"
+                  >
+                    <option value="athlete">Atleta (Cliente)</option>
+                    <option value="employee">Entrenador (Coach)</option>
+                    <option value="cajero">Cajero / Recepción</option>
+                    <option value="gerente">Gerente</option>
+                    <option value="admin">Administrador del Sistema</option>
+                  </select>
+                  {editRole === 'admin' && (
+                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-600 dark:text-amber-400">
+                      🔐 <b>Super Administrador Requerido:</b> Al guardar se te pedirá la contraseña del <b>Super Administrador (primer administrador creado)</b> para autorizar el rol de Administrador.
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 border-t border-black/5 dark:border-white/5">
                 <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
