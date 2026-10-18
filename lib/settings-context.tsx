@@ -32,18 +32,23 @@ export interface AppSettings {
   }
   footerLogoSettings?: {
     showLogo: boolean
-    position: 'side' | 'top'
+    customLogoUrl?: string
+    position: 'side' | 'top' | 'top-center'
     width: number
     height: number
     glassEffect: boolean
     glowEffect: boolean
     alignment?: 'left' | 'center' | 'right'
     showText?: boolean
+    showAppName?: boolean
     textSize?: number
     textEffect?: 'gradient' | 'minimalist' | 'neon' | 'none'
     footerAlignment?: 'left' | 'center' | 'right'
     footerPadding?: number
     footerMarginTop?: number
+    bgColor?: string
+    copyrightText?: string
+    layoutTheme?: 'modern' | 'classic' | 'minimalist'
   }
   storeCurrency: string
   storeCurrencySecondary: string

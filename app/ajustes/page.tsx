@@ -1111,24 +1111,93 @@ export default function AjustesPage() {
 
                     <div className="space-y-4">
                       <h4 className="text-sm font-bold text-primary border-b border-black/10 dark:border-white/10 pb-2">Ajustes de Marca (Footer)</h4>
-                      <div className="flex gap-4 items-start">
-                        <div className="flex-1 space-y-4">
+                      <div className="flex flex-col lg:flex-row gap-6 items-start">
+                        <div className="flex-1 space-y-4 w-full">
                           <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={footerLogoSettings.showLogo} onChange={e => setFooterLogoSettings((s: any) => ({...s, showLogo: e.target.checked}))} className="rounded border-black/20" />
-                            <span className="text-sm">Mostrar Logo en el Footer</span>
+                            <input type="checkbox" checked={footerLogoSettings.showLogo ?? true} onChange={e => setFooterLogoSettings((s: any) => ({...s, showLogo: e.target.checked}))} className="rounded border-black/20 accent-primary" />
+                            <span className="text-sm font-semibold">Mostrar Logo en el Footer</span>
                           </label>
+
                           <div className="space-y-2">
-                            <label className="text-xs text-muted-foreground block">Posición del Logo</label>
-                            <select value={footerLogoSettings.position} onChange={e => setFooterLogoSettings((s: any) => ({...s, position: e.target.value as any}))} className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm">
-                              <option value="side">Al lado del Texto</option>
-                              <option value="top">Arriba del Texto</option>
+                            <label className="text-xs text-muted-foreground block font-medium">Posición del Logo respecto a Nuestra Misión</label>
+                            <select 
+                              value={footerLogoSettings.position || 'side'} 
+                              onChange={e => setFooterLogoSettings((s: any) => ({...s, position: e.target.value as any}))} 
+                              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary"
+                            >
+                              <option value="side">Al lado de Nuestra Misión (Horizontal)</option>
+                              <option value="top">Arriba de Nuestra Misión (Vertical)</option>
+                              <option value="top-center">Arriba y Centrado sobre Nuestra Misión</option>
                             </select>
                           </div>
+
+                          {/* Logo Exclusivo del Footer */}
+                          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <label className="text-xs text-muted-foreground block font-medium">Logo del Footer (Opcional - diferente al principal)</label>
+                            <div className="flex items-center gap-3">
+                              <div className="w-14 h-14 bg-black/5 dark:bg-black/40 rounded-lg border border-black/10 dark:border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                                {(footerLogoSettings.customLogoUrl || logoUrl || logoUrlDark) ? (
+                                  <img 
+                                    src={footerLogoSettings.customLogoUrl || (theme === 'dark' && logoUrlDark ? logoUrlDark : (logoUrl || logoUrlDark))} 
+                                    alt="Footer Logo" 
+                                    className="w-full h-full object-contain p-1"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">Sin logo</span>
+                                )}
+                              </div>
+                              <div className="flex-1 flex flex-wrap gap-2">
+                                <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-xs font-semibold transition">
+                                  Subir Logo Footer
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const { compressImage } = await import('@/lib/image-compress');
+                                        const base64 = await compressImage(file, 600, 600, 0.9);
+                                        setFooterLogoSettings((s: any) => ({ ...s, customLogoUrl: base64 }));
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                {footerLogoSettings.customLogoUrl && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => setFooterLogoSettings((s: any) => ({ ...s, customLogoUrl: undefined }))}
+                                    className="px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive text-xs font-semibold transition"
+                                  >
+                                    Usar Logo Principal
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="space-y-2">
-                            <label className="text-xs text-muted-foreground block">Tamaño (Ancho / Alto)</label>
-                            <div className="flex gap-2">
-                              <input type="range" min="20" max="150" value={footerLogoSettings.width} onChange={e => setFooterLogoSettings((s: any) => ({...s, width: Number(e.target.value), height: Number(e.target.value)}))} className="w-full accent-primary" />
-                              <span className="text-xs">{footerLogoSettings.width}px</span>
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs text-muted-foreground block font-medium">Tamaño del Logo (Ancho / Alto)</label>
+                              <span className="text-xs font-mono font-bold text-primary">{footerLogoSettings.width || 60}px</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="range" 
+                                min="20" 
+                                max="300" 
+                                value={footerLogoSettings.width || 60} 
+                                onChange={e => setFooterLogoSettings((s: any) => ({...s, width: Number(e.target.value), height: Number(e.target.value)}))} 
+                                className="w-full accent-primary" 
+                              />
+                              <input 
+                                type="number" 
+                                min="20" 
+                                max="300" 
+                                value={footerLogoSettings.width || 60} 
+                                onChange={e => setFooterLogoSettings((s: any) => ({...s, width: Number(e.target.value) || 60, height: Number(e.target.value) || 60}))} 
+                                className="w-16 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-1 text-xs text-center font-mono font-bold" 
+                              />
                             </div>
                           </div>
 
@@ -1159,15 +1228,17 @@ export default function AjustesPage() {
                               </div>
                             </label>
                           </div>
-                          <div className="space-y-2">
-                            <span className="text-xs text-muted-foreground block font-bold text-primary mb-2">Tema del Footer</span>
-                              <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
-                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'modern'}))} className={`p-3 border rounded-lg text-xs font-bold ${(footerLogoSettings.layoutTheme || 'modern') === 'modern' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Moderno (Actual)</button>
-                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'classic'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'classic' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Clásico</button>
-                                <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'minimalist'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'minimalist' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Minimalista</button>
-                              </div>
+
+                          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <span className="text-xs font-bold text-primary mb-2 block">Tema del Footer</span>
+                            <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+                              <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'modern'}))} className={`p-3 border rounded-lg text-xs font-bold ${(footerLogoSettings.layoutTheme || 'modern') === 'modern' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Moderno (Actual)</button>
+                              <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'classic'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'classic' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Clásico</button>
+                              <button type="button" onClick={() => setFooterLogoSettings((s: any) => ({...s, layoutTheme: 'minimalist'}))} className={`p-3 border rounded-lg text-xs font-bold ${footerLogoSettings.layoutTheme === 'minimalist' ? 'bg-primary text-primary-foreground border-primary' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10'}`}>Minimalista</button>
                             </div>
-                            <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5 w-full mt-4">
+                          </div>
+
+                          <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5 w-full mt-4">
                             <label className="text-xs text-muted-foreground block font-bold text-primary">Estructura Global del Footer (Padding, Margen y Alineación)</label>
                             
                             <div className="space-y-2">
@@ -1192,13 +1263,42 @@ export default function AjustesPage() {
                                 <span className="text-xs w-8">{footerLogoSettings.footerMarginTop ?? 0}</span>
                               </div>
                             </div>
+
+                            {/* Color de Fondo del Footer */}
+                            <div className="space-y-2">
+                              <label className="text-xs text-muted-foreground block font-medium">Color de Fondo del Footer</label>
+                              <div className="flex items-center gap-3">
+                                <input 
+                                  type="color" 
+                                  value={footerLogoSettings.bgColor || '#09090b'} 
+                                  onChange={e => setFooterLogoSettings((s: any) => ({ ...s, bgColor: e.target.value }))}
+                                  className="w-9 h-9 rounded-lg border border-black/10 dark:border-white/10 cursor-pointer bg-transparent"
+                                />
+                                <input 
+                                  type="text" 
+                                  value={footerLogoSettings.bgColor || ''} 
+                                  onChange={e => setFooterLogoSettings((s: any) => ({ ...s, bgColor: e.target.value }))} 
+                                  placeholder="Por defecto (Translúcido / Tarjeta)"
+                                  className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs font-mono"
+                                />
+                                {footerLogoSettings.bgColor && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => setFooterLogoSettings((s: any) => ({ ...s, bgColor: undefined }))}
+                                    className="text-xs text-muted-foreground hover:text-foreground px-2 py-1"
+                                  >
+                                    Restablecer
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
                           <div className="space-y-4 pt-4 border-t border-black/5 dark:border-white/5">
                             <label className="text-xs text-muted-foreground block font-bold">Texto y Alineación</label>
                             <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={footerLogoSettings.showText ?? true} onChange={e => setFooterLogoSettings((s: any) => ({...s, showText: e.target.checked}))} className="rounded border-black/20" />
-                              <span className="text-sm">Mostrar Nombre (Texto)</span>
+                              <input type="checkbox" checked={footerLogoSettings.showText ?? true} onChange={e => setFooterLogoSettings((s: any) => ({...s, showText: e.target.checked}))} className="rounded border-black/20 accent-primary" />
+                              <span className="text-sm font-semibold">Mostrar Nombre (Texto)</span>
                             </label>
                             <div className="space-y-2">
                               <label className="text-xs text-muted-foreground block">Tamaño del Texto</label>
@@ -1216,19 +1316,31 @@ export default function AjustesPage() {
                                 <option value="none">Sólido Normal</option>
                               </select>
                             </div>
+
+                            {/* Texto de Copyright */}
+                            <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                              <label className="text-xs text-muted-foreground block font-medium">Texto de Derechos de Autor (Copyright)</label>
+                              <input 
+                                type="text" 
+                                value={footerLogoSettings.copyrightText || ''} 
+                                onChange={e => setFooterLogoSettings((s: any) => ({ ...s, copyrightText: e.target.value }))} 
+                                placeholder={`© ${new Date().getFullYear()} ${appName || 'GymPro'}. Todos los derechos reservados.`}
+                                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary"
+                              />
+                            </div>
                           </div>
                         </div>
 
                         {/* Live Preview Box */}
-                        <div className="w-full sm:w-72 shrink-0 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-4 flex flex-col items-center justify-center overflow-hidden">
-                          <span className="text-[10px] text-muted-foreground mb-3 uppercase tracking-wider font-bold">Previsualización de Marca</span>
-                          <div className={`flex ${footerLogoSettings.position === 'top' ? 'flex-col items-center text-center' : 'items-center'} gap-3 max-w-full overflow-hidden`}>
-                            {footerLogoSettings.showLogo && (logoUrl || logoUrlDark) && (
+                        <div className="w-full lg:w-80 shrink-0 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-5 flex flex-col items-center justify-center">
+                          <span className="text-[10px] text-muted-foreground mb-4 uppercase tracking-wider font-bold">Previsualización de Marca</span>
+                          <div className={`flex ${(footerLogoSettings.position === 'top' || footerLogoSettings.position === 'top-center') ? 'flex-col items-center text-center' : 'flex-row items-center'} gap-3 w-full justify-center`}>
+                            {(footerLogoSettings.showLogo ?? true) && (footerLogoSettings.customLogoUrl || logoUrl || logoUrlDark) && (
                               <div 
-                                className={`shrink-0 relative flex items-center justify-center overflow-hidden max-w-[120px] max-h-[120px] ${footerLogoSettings.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
+                                className={`shrink-0 relative flex items-center justify-center ${footerLogoSettings.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
                                 style={{ 
-                                  width: Math.min(Number(footerLogoSettings.width || 60), 120), 
-                                  height: Math.min(Number(footerLogoSettings.height || 60), 120) 
+                                  width: Math.min(Number(footerLogoSettings.width || 60), 90), 
+                                  height: Math.min(Number(footerLogoSettings.height || 60), 90) 
                                 }}
                               >
                                 {(footerLogoSettings.glowEffect ?? true) && (
@@ -1237,11 +1349,11 @@ export default function AjustesPage() {
                                     style={{ 
                                       boxShadow: '0 0 16px 4px hsl(var(--primary) / 0.4)',
                                       filter: 'blur(6px)'
-                                    }}
+                                    }} 
                                   />
                                 )}
                                 <img 
-                                  src={(theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark)} 
+                                  src={footerLogoSettings.customLogoUrl || ((theme === 'dark' && logoUrlDark) ? logoUrlDark : (logoUrl || logoUrlDark))} 
                                   alt="Preview" 
                                   className="object-contain relative z-10 max-w-full max-h-full" 
                                 />
@@ -1249,8 +1361,8 @@ export default function AjustesPage() {
                             )}
                             {(footerLogoSettings.showText !== false) && (
                               <span 
-                                style={{ fontSize: Math.min((footerLogoSettings.textSize || 24) * 0.6, 20) }} 
-                                className={`font-black tracking-tighter truncate max-w-[160px] ${footerLogoSettings.textEffect === 'neon' ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]' : footerLogoSettings.textEffect === 'minimalist' ? 'text-foreground/80 font-light tracking-widest' : footerLogoSettings.textEffect === 'none' ? 'text-foreground' : 'bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent'}`}
+                                style={{ fontSize: Math.min((footerLogoSettings.textSize || 24) * 0.7, 20) }} 
+                                className={`font-black tracking-tighter truncate max-w-[180px] ${footerLogoSettings.textEffect === 'neon' ? 'text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.8)]' : footerLogoSettings.textEffect === 'minimalist' ? 'text-foreground/80 font-light tracking-widest' : footerLogoSettings.textEffect === 'none' ? 'text-foreground' : 'bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent'}`}
                               >
                                 {appName || settings.appName}
                               </span>
@@ -1410,8 +1522,11 @@ export default function AjustesPage() {
 
                     {/* VISTA PREVIA COMPLETA DEL FOOTER */}
                     <div className="mt-8 pt-8 border-t border-black/10 dark:border-white/10 mb-8">
-                      <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Vista Previa del Footer (Tiempo Real)</h3>
-                      <div className="w-full bg-card/50 border border-black/10 dark:border-white/5 backdrop-blur-md rounded-xl overflow-hidden" style={{ transform: 'scale(0.85)', transformOrigin: 'top' }}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Vista Previa del Footer (Tiempo Real)</h3>
+                        <span className="text-xs text-primary font-medium">Refleja tus cambios en vivo</span>
+                      </div>
+                      <div className="w-full bg-card/40 border border-black/10 dark:border-white/10 rounded-2xl overflow-hidden shadow-inner">
                         <BaseFooter settings={{
                           footerLogoSettings,
                           logoUrl,

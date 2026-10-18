@@ -14,27 +14,63 @@ export function BaseFooter({
   const currentTheme = themeOverride || resolvedTheme || theme;
   const isDark = currentTheme === 'dark';
 
-  const pY = settings.footerLogoSettings?.footerPadding !== undefined ? settings.footerLogoSettings.footerPadding : 12;
-  const mT = settings.footerLogoSettings?.footerMarginTop !== undefined ? settings.footerLogoSettings.footerMarginTop : 0;
+  const footerSettings = settings.footerLogoSettings || {};
+  const pY = footerSettings.footerPadding !== undefined ? footerSettings.footerPadding : 12;
+  const mT = footerSettings.footerMarginTop !== undefined ? footerSettings.footerMarginTop : 0;
   
   const footerAddress = settings.landingSettings?.map?.address || settings.storeAddress;
-  const layoutTheme = settings.footerLogoSettings?.layoutTheme || 'modern';
-  // En modo oscuro usar logoUrlDark (o fallback a logoUrl); en modo claro usar logoUrl (o fallback a logoUrlDark)
-  const logoSrc = isDark 
+  const layoutTheme = footerSettings.layoutTheme || 'modern';
+  
+  // Custom logo or default based on theme
+  const logoSrc = footerSettings.customLogoUrl || (isDark 
     ? (settings.logoUrlDark || settings.logoUrl) 
-    : (settings.logoUrl || settings.logoUrlDark);
-  const isGlowActive = settings.footerLogoSettings?.glowEffect !== false;
-  const logoWidth = settings.footerLogoSettings?.width || 60;
-  const logoHeight = settings.footerLogoSettings?.height || 60;
+    : (settings.logoUrl || settings.logoUrlDark));
+
+  const isGlowActive = footerSettings.glowEffect !== false;
+  const logoWidth = footerSettings.width || 60;
+  const logoHeight = footerSettings.height || 60;
+
+  // Alignment
+  const alignment = footerSettings.footerAlignment || 'left';
+  const alignItemsClass = alignment === 'center' ? 'items-center' : alignment === 'right' ? 'items-end' : 'items-start';
+  const textAlignClass = alignment === 'center' ? 'text-center' : alignment === 'right' ? 'text-right' : 'text-left';
+  const justifyClass = alignment === 'center' ? 'justify-center' : alignment === 'right' ? 'justify-end' : 'justify-start';
+  const alignPClass = alignment === 'center' ? 'text-center' : alignment === 'right' ? 'text-right' : 'text-justify';
+
+  // Position: 'side' (horizontal) or 'top' / 'top-center' (vertical)
+  const isLogoTop = footerSettings.position === 'top' || footerSettings.position === 'top-center';
+  const isLogoTopCentered = footerSettings.position === 'top-center';
+  const col1AlignItems = isLogoTopCentered ? 'items-center' : (isLogoTop ? alignItemsClass : 'items-start');
+  const col1TextAlign = isLogoTopCentered ? 'text-center' : textAlignClass;
+  const col1AlignP = isLogoTopCentered ? 'text-center' : alignPClass;
+
+  // Text effect
+  const getTextEffectClass = (effect?: string) => {
+    switch (effect) {
+      case 'neon':
+        return 'text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.85)]';
+      case 'minimalist':
+        return 'text-foreground/80 font-light tracking-widest uppercase';
+      case 'none':
+        return 'text-foreground';
+      case 'gradient':
+      default:
+        return 'bg-gradient-to-r from-primary via-orange-400 to-amber-500 bg-clip-text text-transparent';
+    }
+  };
+
+  const textEffectClass = getTextEffectClass(footerSettings.textEffect);
+  const showText = footerSettings.showText !== false && footerSettings.showAppName !== false;
+  const textSize = footerSettings.textSize || 24;
 
   const renderLogo = (customW?: number, customH?: number) => {
-    if (settings.footerLogoSettings?.showLogo === false || !logoSrc) return null;
+    if (footerSettings.showLogo === false || !logoSrc) return null;
     const w = customW || logoWidth;
     const h = customH || logoHeight;
 
     return (
       <div 
-        className={`shrink-0 relative flex items-center justify-center ${settings.footerLogoSettings?.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
+        className={`shrink-0 relative flex items-center justify-center ${footerSettings.glassEffect ? 'bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-black/10 dark:border-white/10 shadow-xl' : ''}`}
         style={{ width: `${w}px`, height: `${h}px` }}
       >
         {isGlowActive && (
@@ -62,7 +98,7 @@ export function BaseFooter({
       style={{
         paddingTop: `${pY * 0.25}rem`,
         paddingBottom: `${pY * 0.25}rem`,
-        backgroundColor: settings.footerLogoSettings?.bgColor && settings.footerLogoSettings.bgColor !== "#000000" ? settings.footerLogoSettings.bgColor : undefined,
+        backgroundColor: footerSettings.bgColor ? footerSettings.bgColor : undefined,
         marginTop: `${mT * 0.25}rem`
       }}
     >
@@ -74,35 +110,37 @@ export function BaseFooter({
         {layoutTheme === 'modern' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 w-full items-start">
             {/* Column 1: Brand Logo + Mission */}
-            <div className="flex flex-row items-start gap-6">
+            <div className={`flex ${isLogoTop ? 'flex-col' : 'flex-row'} ${col1AlignItems} gap-6`}>
               {renderLogo()}
-              <div className="flex flex-col gap-3">
-                {settings.footerLogoSettings?.showText !== false && settings.footerLogoSettings?.showAppName !== false && (
-                  <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
+              <div className={`flex flex-col gap-3 ${col1TextAlign}`}>
+                {showText && (
+                  <span style={{ fontSize: textSize }} className={`font-black tracking-tighter ${textEffectClass}`}>
+                    {settings.appName}
+                  </span>
                 )}
                 {settings.footerMission && (
-                  <div className="text-sm text-muted-foreground">
+                  <div className={`text-sm text-muted-foreground ${col1TextAlign}`}>
                     <h4 className="font-bold text-foreground mb-2">Nuestra Misión</h4>
-                    <p className="leading-relaxed text-justify">{settings.footerMission}</p>
+                    <p className={`leading-relaxed ${col1AlignP}`}>{settings.footerMission}</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Column 2: Vision + Contact & Socials */}
-            <div className="flex flex-col items-center text-center space-y-8">
+            <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-8`}>
               {settings.footerVision && (
-                <div className="text-sm text-muted-foreground">
+                <div className={`text-sm text-muted-foreground ${textAlignClass}`}>
                   <h4 className="font-bold text-foreground mb-2">Nuestra Visión</h4>
-                  <p className="leading-relaxed text-justify">{settings.footerVision}</p>
+                  <p className={`leading-relaxed ${alignPClass}`}>{settings.footerVision}</p>
                 </div>
               )}
-              <div className="flex flex-col items-center text-center space-y-4">
+              <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-4`}>
                 <h4 className="font-bold text-lg text-foreground relative inline-block">
                   Redes y Contacto
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
+                  <span className={`absolute -bottom-2 ${alignment === 'center' ? 'left-1/2 -translate-x-1/2' : alignment === 'right' ? 'right-0' : 'left-0'} w-1/2 h-0.5 bg-primary/50 rounded-full`}></span>
                 </h4>
-                <div className="flex flex-wrap justify-center gap-4 pt-2">
+                <div className={`flex flex-wrap ${justifyClass} gap-4 pt-2`}>
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
                     <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110 flex items-center justify-center group">
                       {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: link.width, height: link.height }} className="object-contain group-hover:brightness-110" /> : <span className="text-xs font-bold">{link.name.substring(0,2)}</span>}
@@ -113,14 +151,14 @@ export function BaseFooter({
             </div>
 
             {/* Column 3: Partners & Location */}
-            <div className="flex flex-col items-center text-center space-y-8">
+            <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} space-y-8`}>
               {settings.footerPartners && settings.footerPartners.length > 0 && (
-                <div className="flex flex-col items-center w-full space-y-4">
+                <div className={`flex flex-col ${alignItemsClass} w-full space-y-4`}>
                   <h4 className="font-bold text-lg text-foreground relative inline-block">
                     Socios Comerciales
-                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
+                    <span className={`absolute -bottom-2 ${alignment === 'center' ? 'left-1/2 -translate-x-1/2' : alignment === 'right' ? 'right-0' : 'left-0'} w-1/2 h-0.5 bg-primary/50 rounded-full`}></span>
                   </h4>
-                  <div className="flex flex-wrap justify-center gap-6 pt-2">
+                  <div className={`flex flex-wrap ${justifyClass} gap-6 pt-2`}>
                     {settings.footerPartners.map((partner: any) => (
                       <div key={partner.id} className="opacity-80 hover:opacity-100 grayscale hover:grayscale-0 dark:bg-white/90 dark:p-2 dark:rounded-xl dark:border dark:border-white/20">
                         {partner.link ? (
@@ -134,7 +172,7 @@ export function BaseFooter({
                 </div>
               )}
               {footerAddress && (
-                <div className="flex flex-col items-center text-center gap-2 text-sm text-muted-foreground mt-auto">
+                <div className={`flex flex-col ${alignItemsClass} ${textAlignClass} gap-2 text-sm text-muted-foreground mt-auto`}>
                   <div className="flex items-center gap-2 text-primary font-semibold"><MapPin className="h-4 w-4" /><span>Ubicación</span></div>
                   <p className="max-w-xs">{footerAddress}</p>
                 </div>
@@ -144,36 +182,36 @@ export function BaseFooter({
         )}
 
         {layoutTheme === 'classic' && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full items-start text-left">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full items-start">
+            <div className={`flex flex-col gap-4 ${col1TextAlign}`}>
+              <div className={`flex ${isLogoTop ? 'flex-col' : 'flex-row'} ${col1AlignItems} gap-4`}>
                 {renderLogo()}
-                {settings.footerLogoSettings?.showText !== false && (
-                  <span style={{ fontSize: settings.footerLogoSettings?.textSize || 24 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
+                {showText && (
+                  <span style={{ fontSize: textSize }} className={`font-black tracking-tighter ${textEffectClass}`}>{settings.appName}</span>
                 )}
               </div>
               {footerAddress && (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground mt-4">
+                <div className={`flex items-start gap-2 text-sm text-muted-foreground mt-4 ${col1TextAlign}`}>
                   <MapPin className="h-5 w-5 shrink-0 text-primary" />
                   <p>{footerAddress}</p>
                 </div>
               )}
             </div>
             
-            <div>
+            <div className={textAlignClass}>
               <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Misión</h4>
-              {settings.footerMission && <p className="text-sm text-muted-foreground leading-relaxed">{settings.footerMission}</p>}
+              {settings.footerMission && <p className={`text-sm text-muted-foreground leading-relaxed ${alignPClass}`}>{settings.footerMission}</p>}
             </div>
 
-            <div>
+            <div className={textAlignClass}>
               <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Visión</h4>
-              {settings.footerVision && <p className="text-sm text-muted-foreground leading-relaxed">{settings.footerVision}</p>}
+              {settings.footerVision && <p className={`text-sm text-muted-foreground leading-relaxed ${alignPClass}`}>{settings.footerVision}</p>}
             </div>
 
-            <div className="flex flex-col gap-8">
-              <div>
+            <div className={`flex flex-col gap-8 ${alignItemsClass}`}>
+              <div className={textAlignClass}>
                 <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Síguenos</h4>
-                <div className="flex flex-wrap gap-3">
+                <div className={`flex flex-wrap ${justifyClass} gap-3`}>
                   {Array.isArray(settings.footerSocialLinks) && settings.footerSocialLinks.map((link: any) => (
                     <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded bg-black/5 dark:bg-white/5 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center">
                       {link.iconUrl ? <img src={link.iconUrl} alt={link.name} style={{ width: link.width*0.8, height: link.height*0.8 }} className="object-contain" /> : <span className="text-xs font-bold">{link.name.substring(0,2)}</span>}
@@ -183,9 +221,9 @@ export function BaseFooter({
               </div>
               
               {settings.footerPartners && settings.footerPartners.length > 0 && (
-                <div>
+                <div className={textAlignClass}>
                   <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Partners</h4>
-                  <div className="flex flex-wrap gap-4">
+                  <div className={`flex flex-wrap ${justifyClass} gap-4`}>
                     {settings.footerPartners.map((partner: any) => (
                       <div key={partner.id} className="opacity-80 hover:opacity-100 dark:bg-white/90 dark:p-1 dark:rounded">
                         <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width*0.8, height: partner.height*0.8 }} className="object-contain" />
@@ -201,9 +239,9 @@ export function BaseFooter({
         {layoutTheme === 'minimalist' && (
           <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-10">
             <div className="flex flex-col items-center gap-4">
-              {renderLogo(settings.footerLogoSettings?.width || 80, settings.footerLogoSettings?.height || 80)}
-              {settings.footerLogoSettings?.showText !== false && (
-                <span style={{ fontSize: settings.footerLogoSettings?.textSize || 28 }} className="font-black tracking-tighter text-foreground">{settings.appName}</span>
+              {renderLogo(logoWidth, logoHeight)}
+              {showText && (
+                <span style={{ fontSize: textSize }} className={`font-black tracking-tighter ${textEffectClass}`}>{settings.appName}</span>
               )}
             </div>
             
@@ -256,7 +294,7 @@ export function BaseFooter({
         )}
 
         <div className="mt-12 pt-6 border-t border-black/10 dark:border-white/5 flex flex-col justify-center items-center gap-4 text-xs text-muted-foreground w-full text-center">
-          <p>{settings.footerLogoSettings?.copyrightText || `© ${new Date().getFullYear()} ${settings.appName}. Todos los derechos reservados.`}</p>
+          <p>{footerSettings.copyrightText || `© ${new Date().getFullYear()} ${settings.appName}. Todos los derechos reservados.`}</p>
         </div>
       </div>
     </footer>
