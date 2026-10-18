@@ -50,6 +50,7 @@ export interface AppSettings {
     bgColor?: string
     copyrightText?: string
     layoutTheme?: 'modern' | 'classic' | 'minimalist'
+    partnersLayout?: 'pyramid' | 'inverted-pyramid' | 'grid'
   }
   storeCurrency: string
   storeCurrencySecondary: string
@@ -82,7 +83,7 @@ export interface AppSettings {
   footerMission: string
   footerVision: string
   footerSocialLinks: { id: string, name: string, url: string, iconUrl?: string, width: number, height: number }[]
-  footerPartners: { id: string, imageUrl: string, width: number, height: number, link?: string }[]
+  footerPartners: { id: string, imageUrl: string, width: number, height: number, link?: string, tier?: number }[]
   trainingPhilosophy?: string
   gymSchedule?: {
     weekdays: string
@@ -194,7 +195,8 @@ export const defaultSettings: AppSettings = {
     textEffect: 'gradient',
     footerAlignment: 'left',
     footerPadding: 12,
-    footerMarginTop: 0
+    footerMarginTop: 0,
+    partnersLayout: 'pyramid'
   },
   storeCurrency: 'USD',
   storeCurrencySecondary: 'BsS',

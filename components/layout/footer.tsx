@@ -96,6 +96,107 @@ export function BaseFooter({
     );
   };
 
+  const partnersLayout: 'pyramid' | 'inverted-pyramid' | 'grid' = footerSettings.partnersLayout || 'pyramid';
+
+  const getPartnerRows = (partners: any[]) => {
+    if (!Array.isArray(partners) || partners.length === 0) return [];
+    if (partnersLayout === 'grid') return [partners];
+
+    // Si algún socio tiene nivel (tier) asignado manualmente, agrupar por nivel
+    const hasManualTiers = partners.some((p: any) => p?.tier && Number(p.tier) > 0);
+    if (hasManualTiers) {
+      const groupsMap = new Map<number, any[]>();
+      partners.forEach((p: any) => {
+        const t = p?.tier && Number(p.tier) > 0 ? Number(p.tier) : 99;
+        if (!groupsMap.has(t)) groupsMap.set(t, []);
+        groupsMap.get(t)!.push(p);
+      });
+      const sortedKeys = Array.from(groupsMap.keys()).sort((a, b) =>
+        partnersLayout === 'inverted-pyramid' ? b - a : a - b
+      );
+      return sortedKeys.map((k) => groupsMap.get(k)!);
+    }
+
+    const n = partners.length;
+    if (n === 1) return [partners];
+
+    let k = 1;
+    while (((k + 1) * (k + 2)) / 2 <= n) {
+      k++;
+    }
+    const sizes = Array.from({ length: k }, (_, i) => i + 1);
+    const rem = n - (k * (k + 1)) / 2;
+
+    if (rem === k) {
+      sizes.push(k);
+    } else if (rem > 0) {
+      for (let i = 0; i < rem; i++) {
+        sizes[sizes.length - 1 - i] += 1;
+      }
+    }
+
+    if (partnersLayout === 'inverted-pyramid') {
+      sizes.reverse();
+    }
+
+    const rows: any[][] = [];
+    let idx = 0;
+    for (const s of sizes) {
+      rows.push(partners.slice(idx, idx + s));
+      idx += s;
+    }
+    return rows;
+  };
+
+  const renderPartnersPyramid = (scale = 1, itemClass = "opacity-80 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-300 dark:bg-white/90 dark:p-2 dark:rounded-xl dark:border dark:border-white/20") => {
+    const rows = getPartnerRows(settings.footerPartners || []);
+    if (rows.length === 0) return null;
+
+    if (partnersLayout === 'grid') {
+      return (
+        <div className="flex flex-wrap justify-center items-center gap-6 pt-2 w-full">
+          {rows[0].map((partner: any) => {
+            const w = (partner.width || 100) * scale;
+            const h = (partner.height || 40) * scale;
+            const img = <img src={partner.imageUrl} alt="Socio" style={{ width: w, height: h }} className="object-contain drop-shadow-md" />;
+            return (
+              <div key={partner.id} className={itemClass}>
+                {partner.link ? (
+                  <a href={partner.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">{img}</a>
+                ) : (
+                  <div className="flex items-center justify-center">{img}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 pt-2 w-full">
+        {rows.map((row, rIdx) => (
+          <div key={rIdx} className="flex flex-wrap items-center justify-center gap-5 w-full">
+            {row.map((partner: any) => {
+              const w = (partner.width || 100) * scale;
+              const h = (partner.height || 40) * scale;
+              const img = <img src={partner.imageUrl} alt="Socio" style={{ width: w, height: h }} className="object-contain drop-shadow-md" />;
+              return (
+                <div key={partner.id} className={itemClass}>
+                  {partner.link ? (
+                    <a href={partner.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center">{img}</a>
+                  ) : (
+                    <div className="flex items-center justify-center">{img}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <footer 
       className="shrink-0 w-full mt-auto bg-card/50 border-t border-black/20 dark:border-white/10 backdrop-blur-md transition-all duration-300 relative"
@@ -154,7 +255,7 @@ export function BaseFooter({
               </div>
             </div>
 
-            {/* Column 3: Partners & Location (Socios Comerciales y Ubicación SIEMPRE centrados, texto de ubicación justificable o centrado) */}
+            {/* Column 3: Partners & Location (Socios Comerciales en forma piramidal y Ubicación SIEMPRE centrados) */}
             <div className="flex flex-col items-center text-center space-y-8 w-full">
               {settings.footerPartners && settings.footerPartners.length > 0 && (
                 <div className="flex flex-col items-center text-center w-full space-y-4">
@@ -162,17 +263,7 @@ export function BaseFooter({
                     Socios Comerciales
                     <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary/50 rounded-full"></span>
                   </h4>
-                  <div className="flex flex-wrap justify-center gap-6 pt-2">
-                    {settings.footerPartners.map((partner: any) => (
-                      <div key={partner.id} className="opacity-80 hover:opacity-100 grayscale hover:grayscale-0 dark:bg-white/90 dark:p-2 dark:rounded-xl dark:border dark:border-white/20">
-                        {partner.link ? (
-                          <a href={partner.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center"><img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain drop-shadow-md" /></a>
-                        ) : (
-                          <div className="flex items-center justify-center"><img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain drop-shadow-md" /></div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {renderPartnersPyramid(1, "opacity-80 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-300 dark:bg-white/90 dark:p-2 dark:rounded-xl dark:border dark:border-white/20")}
                 </div>
               )}
               {footerAddress && (
@@ -233,13 +324,7 @@ export function BaseFooter({
               {settings.footerPartners && settings.footerPartners.length > 0 && (
                 <div className="text-center w-full">
                   <h4 className="font-bold text-foreground mb-4 uppercase tracking-wider text-sm">Socios Comerciales</h4>
-                  <div className="flex flex-wrap justify-center gap-4">
-                    {settings.footerPartners.map((partner: any) => (
-                      <div key={partner.id} className="opacity-80 hover:opacity-100 dark:bg-white/90 dark:p-1 dark:rounded">
-                        <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width*0.8, height: partner.height*0.8 }} className="object-contain" />
-                      </div>
-                    ))}
-                  </div>
+                  {renderPartnersPyramid(0.8, "opacity-80 hover:opacity-100 transition-all dark:bg-white/90 dark:p-1 dark:rounded")}
                 </div>
               )}
             </div>
@@ -294,13 +379,7 @@ export function BaseFooter({
             {settings.footerPartners && settings.footerPartners.length > 0 && (
               <div className="pt-8 border-t border-black/5 dark:border-white/5 w-full flex flex-col items-center gap-4">
                 <span className="text-xs text-muted-foreground uppercase tracking-widest">Con el respaldo de</span>
-                <div className="flex flex-wrap justify-center gap-8">
-                  {settings.footerPartners.map((partner: any) => (
-                    <div key={partner.id} className="opacity-50 hover:opacity-100 grayscale transition-all dark:bg-white/90 dark:p-1 dark:rounded">
-                      <img src={partner.imageUrl} alt="Socio" style={{ width: partner.width, height: partner.height }} className="object-contain" />
-                    </div>
-                  ))}
-                </div>
+                {renderPartnersPyramid(1, "opacity-50 hover:opacity-100 grayscale transition-all dark:bg-white/90 dark:p-1 dark:rounded")}
               </div>
             )}
           </div>

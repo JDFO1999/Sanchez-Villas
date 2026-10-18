@@ -1506,15 +1506,97 @@ export default function AjustesPage() {
 
                   {/* Socios Comerciales Dinámicos */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-muted-foreground block">Socios Comerciales (Logos)</label>
-                      <button type="button" onClick={() => setFooterPartners([...footerPartners, { id: Date.now().toString(), imageUrl: '', link: '', width: 100, height: 40 }])} className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1.5 rounded-lg transition font-bold">+ Agregar Socio</button>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <label className="text-sm font-bold text-foreground block">Socios Comerciales (Logos en Pirámide)</label>
+                        <span className="text-xs text-muted-foreground">El primer socio de la lista se ubica en la cima de la pirámide, o puedes elegir el nivel exacto de cada uno.</span>
+                      </div>
+                      <button type="button" onClick={() => setFooterPartners([...footerPartners, { id: Date.now().toString(), imageUrl: '', link: '', width: 100, height: 40 }])} className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1.5 rounded-lg transition font-bold shrink-0">+ Agregar Socio</button>
+                    </div>
+
+                    {/* Selector de Estilo de Disposición de Socios */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFooterLogoSettings((s: any) => ({ ...s, partnersLayout: 'pyramid' }))}
+                        className={`p-2.5 border rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          (footerLogoSettings.partnersLayout || 'pyramid') === 'pyramid'
+                            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                            : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                        }`}
+                      >
+                        <span>🔺 Piramidal (1 arriba, base abajo)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFooterLogoSettings((s: any) => ({ ...s, partnersLayout: 'inverted-pyramid' }))}
+                        className={`p-2.5 border rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          footerLogoSettings.partnersLayout === 'inverted-pyramid'
+                            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                            : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                        }`}
+                      >
+                        <span>🔻 Pirámide Invertida</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFooterLogoSettings((s: any) => ({ ...s, partnersLayout: 'grid' }))}
+                        className={`p-2.5 border rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          footerLogoSettings.partnersLayout === 'grid'
+                            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                            : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                        }`}
+                      >
+                        <span>📏 En Línea / Fila Normal</span>
+                      </button>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {footerPartners.map((partner, idx) => (
                         <div key={partner.id || idx} className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4 relative group hover:shadow-md transition">
-                          <button type="button" onClick={() => setFooterPartners(footerPartners.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition p-1 hover:bg-destructive/10 rounded-lg">&times;</button>
+                          <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
+                            <span className="text-[11px] font-bold text-primary">
+                              Socio #{idx + 1} {idx === 0 && (footerLogoSettings.partnersLayout || 'pyramid') === 'pyramid' && !partner.tier ? '(Cima de la Pirámide)' : ''}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                  if (idx === 0) return;
+                                  const arr = [...footerPartners];
+                                  [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                                  setFooterPartners(arr);
+                                }}
+                                title="Subir posición en la pirámide"
+                                className="px-2 py-0.5 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-primary/20 disabled:opacity-30 font-bold"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === footerPartners.length - 1}
+                                onClick={() => {
+                                  if (idx === footerPartners.length - 1) return;
+                                  const arr = [...footerPartners];
+                                  [arr[idx + 1], arr[idx]] = [arr[idx], arr[idx + 1]];
+                                  setFooterPartners(arr);
+                                }}
+                                title="Bajar posición en la pirámide"
+                                className="px-2 py-0.5 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-primary/20 disabled:opacity-30 font-bold"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFooterPartners(footerPartners.filter((_, i) => i !== idx))}
+                                className="text-destructive hover:bg-destructive/10 px-2 py-0.5 rounded text-xs font-bold ml-1"
+                                title="Eliminar socio"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          </div>
                           
                           <div className="flex gap-4">
                             <div className="w-20 h-20 shrink-0 bg-white/10 rounded-xl overflow-hidden flex items-center justify-center border border-black/10 dark:border-white/10 relative">
@@ -1537,7 +1619,26 @@ export default function AjustesPage() {
                               }} />
                             </div>
                             <div className="flex-1 space-y-2 flex flex-col justify-center">
-                              <input type="text" placeholder="URL (Opcional)" value={partner.link || ''} onChange={e => { const arr = [...footerPartners]; arr[idx].link = e.target.value; setFooterPartners(arr); }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                              <input type="text" placeholder="URL (Opcional)" value={partner.link || ''} onChange={e => { const arr = [...footerPartners]; arr[idx].link = e.target.value; setFooterPartners(arr); }} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary" />
+                              <div>
+                                <label className="text-[10px] text-muted-foreground block mb-0.5">Escalón / Fila en la Pirámide:</label>
+                                <select
+                                  value={partner.tier || 0}
+                                  onChange={e => {
+                                    const arr = [...footerPartners];
+                                    const val = Number(e.target.value);
+                                    arr[idx].tier = val > 0 ? val : undefined;
+                                    setFooterPartners(arr);
+                                  }}
+                                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs focus:border-primary"
+                                >
+                                  <option value={0}>Automático (1 → 2 → 3...)</option>
+                                  <option value={1}>Nivel 1 (Punta / Cima)</option>
+                                  <option value={2}>Nivel 2 (Segunda fila)</option>
+                                  <option value={3}>Nivel 3 (Tercera fila)</option>
+                                  <option value={4}>Nivel 4 (Base inferior)</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
 
