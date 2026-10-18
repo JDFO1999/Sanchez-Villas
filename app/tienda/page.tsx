@@ -207,19 +207,19 @@ export default function TiendaPOSPage() {
     setTimeout(() => setCartAnim(false), 300)
   }
 
-  const handleAdminOverride = (e: React.FormEvent) => {
+  const handleAdminOverride = async (e: React.FormEvent) => {
     e.preventDefault()
-    const allUsers = JSON.parse(localStorage.getItem('gympro_users') || '[]')
-    const isAdmin = allUsers.find((u: any) => u.cedula === adminCedula && u.role === 'admin')
+    const { validatePinAction } = await import('@/app/actions/auth')
+    const res = await validatePinAction(adminCedula)
     
-    if (isAdmin) {
+    if (res.success && res.user?.role === 'admin') {
       setShowAdminOverride(false)
       setAdminCedula("")
       if (pendingCartProduct) executeAddToCart(pendingCartProduct)
       setPendingCartProduct(null)
-      showToast("Venta sin stock autorizada.", "success")
+      showToast("Venta sin stock autorizada por Administrador.", "success")
     } else {
-      showToast("Cédula de administrador invalida.", "error")
+      showToast("Clave o PIN de administrador inválido.", "error")
     }
   }
 

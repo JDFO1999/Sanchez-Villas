@@ -87,41 +87,95 @@ export async function loginAction(cedula: string, clave: string) {
 
 export async function validatePinAction(pin: string) {
   try {
-    if (typeof pin !== "string" || !pin || pin.length > 40) {
-      return { success: false, error: "PIN no válido o no asignado" };
+    if (typeof pin !== "string" || !pin || pin.length > 200) {
+      return { success: false, error: "Clave o PIN no válido" };
     }
 
-    // Límite POR IP (antes era global: cualquiera podía bloquear el PIN de todo el gimnasio)
+    // Límite POR IP
     const ip = await clientIp();
     const pinLimit = checkRateLimit(`pin:${ip}`, 10, WINDOW_MS);
     if (!pinLimit.allowed) {
       return {
         success: false,
-        error: `Límite de intentos de PIN excedido. Espere ${pinLimit.resetInSeconds} segundos.`
+        error: `Límite de intentos excedido. Espere ${pinLimit.resetInSeconds} segundos.`
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { accessPin: pin }
-    });
+    const trimmedPin = pin.trim();
+    let matchedUser: any = null;
 
-    if (!user) {
-      await audit("login.pin_failed", null);
-      return { success: false, error: "PIN no válido o no asignado" };
+    // 1) Primero verificamos si coincide con la clave de la cuenta (o accessPin) del usuario con sesión activa
+    const currentSessionUser = await getAuthUser();
+    if (currentSessionUser) {
+      const dbCurrent = await prisma.user.findUnique({ where: { id: currentSessionUser.id } });
+      if (dbCurrent && dbCurrent.role !== "deleted") {
+        let isPassMatch = false;
+        try {
+          isPassMatch = await bcrypt.compare(trimmedPin, dbCurrent.password || "");
+        } catch {
+          isPassMatch = false;
+        }
+        if (!isPassMatch && dbCurrent.password === trimmedPin) {
+          isPassMatch = true;
+        }
+        if (isPassMatch || (dbCurrent.accessPin && dbCurrent.accessPin === trimmedPin)) {
+          matchedUser = dbCurrent;
+        }
+      }
     }
 
-    // Ensure the user actually has permission to operate POS
-    if (!(ROLES.POS as readonly string[]).includes(user.role)) {
-       return { success: false, error: "Usuario no tiene permisos de cajero" };
+    // 2) Si no es el usuario en sesión (ej. un Admin autorizando en recepción o un cajero escaneando su código),
+    // buscamos por accessPin directo
+    if (!matchedUser) {
+      matchedUser = await prisma.user.findFirst({
+        where: { accessPin: trimmedPin, NOT: { role: "deleted" } }
+      });
+    }
+
+    // 3) Si aún no hay coincidencia, verificamos si coincide con la contraseña (clave de cuenta) de algún miembro del personal autorizado (Admin, Cajero, Recepción)
+    if (!matchedUser) {
+      const posUsers = await prisma.user.findMany({
+        where: {
+          role: { in: [...ROLES.POS] }
+        }
+      });
+      for (const candidate of posUsers) {
+        let isMatch = false;
+        try {
+          isMatch = await bcrypt.compare(trimmedPin, candidate.password || "");
+        } catch {
+          isMatch = false;
+        }
+        if (!isMatch && candidate.password === trimmedPin) {
+          isMatch = true;
+        }
+        if (isMatch) {
+          matchedUser = candidate;
+          break;
+        }
+      }
+    }
+
+    if (!matchedUser) {
+      await audit("login.pin_failed", null);
+      return { success: false, error: "Clave o PIN incorrecto" };
+    }
+
+    // Ensure the user actually has permission to operate POS / Recepción / Admin
+    if (!(ROLES.POS as readonly string[]).includes(matchedUser.role) && !(matchedUser as any).canManageAttendance) {
+      return { success: false, error: "El usuario no tiene permisos de cajero, recepción o administrador" };
     }
 
     resetRateLimit(`pin:${ip}`);
-    await createSession(user);
-    await audit("login.pin", { id: user.id, role: user.role });
-    return { success: true, user: stripSecrets(user) };
+    // Solo creamos sesión si no había nadie logueado previamente, para no reemplazar la sesión del recepcionista cuando un Admin autoriza algo
+    if (!currentSessionUser) {
+      await createSession(matchedUser);
+    }
+    await audit("login.pin", { id: matchedUser.id, role: matchedUser.role });
+    return { success: true, user: stripSecrets(matchedUser) };
   } catch (error: any) {
     console.error("validatePinAction:", error);
-    return { success: false, error: "No se pudo validar el PIN." };
+    return { success: false, error: "No se pudo validar la clave o PIN." };
   }
 }
 
