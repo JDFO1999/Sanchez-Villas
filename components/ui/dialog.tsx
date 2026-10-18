@@ -26,23 +26,32 @@ interface DialogProps {
  */
 export function Dialog({ open, onClose, title, description, hideTitle, persistent, className, children }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null)
+  const onCloseRef = React.useRef(onClose)
+  const persistentRef = React.useRef(persistent)
   const titleId = React.useId()
   const descId = React.useId()
+
+  React.useEffect(() => {
+    onCloseRef.current = onClose
+    persistentRef.current = persistent
+  }, [onClose, persistent])
 
   React.useEffect(() => {
     if (!open) return
     const previouslyFocused = document.activeElement as HTMLElement | null
     const panel = panelRef.current
-    const firstField = panel?.querySelector<HTMLElement>("input, textarea, select")
-    ;(firstField ?? panel?.querySelector<HTMLElement>(FOCUSABLE) ?? panel)?.focus()
+    if (panel && !panel.contains(document.activeElement)) {
+      const firstField = panel.querySelector<HTMLElement>("input, textarea, select")
+      ;(firstField ?? panel.querySelector<HTMLElement>(FOCUSABLE) ?? panel)?.focus()
+    }
 
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !persistent) {
+      if (e.key === "Escape" && !persistentRef.current) {
         e.stopPropagation()
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key !== "Tab" || !panel) return
@@ -58,7 +67,7 @@ export function Dialog({ open, onClose, title, description, hideTitle, persisten
       document.body.style.overflow = prevOverflow
       previouslyFocused?.focus?.()
     }
-  }, [open, onClose, persistent])
+  }, [open])
 
   if (!open) return null
 

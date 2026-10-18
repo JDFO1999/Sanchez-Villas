@@ -428,6 +428,7 @@ export async function updateGymScheduleAction(schedule: {
 
     revalidatePath("/comunidad")
     revalidatePath("/ajustes")
+    revalidatePath("/")
     return { success: true, gymSchedule: schedule }
   } catch (error) {
     console.error("Error updating gym schedule:", error)
