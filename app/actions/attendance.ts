@@ -3,13 +3,19 @@
 import prisma from "@/lib/db"
 import { guardAttendance } from "@/lib/authz"
 
-export async function checkInByCedula(cedula: string) {
+export async function checkInByCedula(code: string) {
   // guard:checkInByCedula
   const g = await guardAttendance()
   if (!g.ok) return { success: false, error: g.error }
   try {
-    const user = await prisma.user.findUnique({
-      where: { cedula }
+    const cleanCode = code ? code.trim() : ""
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { cedula: cleanCode },
+          { id: cleanCode }
+        ]
+      }
     });
 
     if (!user) {
@@ -25,7 +31,13 @@ export async function checkInByCedula(cedula: string) {
         }
       });
       if (!activeMembership) {
-        return { success: false, error: "Membresía vencida o inactiva" };
+        const anyMembership = await prisma.membership.findFirst({
+          where: { athleteId: user.id }
+        });
+        return { 
+          success: false, 
+          error: anyMembership ? "Membresía vencida" : "Atleta no tiene membresía activa" 
+        };
       }
     }
 

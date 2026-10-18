@@ -577,8 +577,13 @@ export async function registerAttendance(query: string, isCedula: boolean = fals
     const today = new Date()
     today.setHours(0,0,0,0)
 
-    const user = await prisma.user.findFirst({
-      where: isCedula ? { cedula: query, role: 'athlete' } : { id: query, role: 'athlete' },
+    const cleanQuery = query.trim()
+
+    // Buscar al usuario por cédula o por id (tanto si escanea QR de cédula o QR de ID)
+    let user = await prisma.user.findFirst({
+      where: isCedula 
+        ? { cedula: cleanQuery } 
+        : { OR: [{ id: cleanQuery }, { cedula: cleanQuery }] },
       include: {
         memberships: {
           where: {
@@ -595,16 +600,17 @@ export async function registerAttendance(query: string, isCedula: boolean = fals
       return { success: false, error: 'Atleta no encontrado' }
     }
 
-    if (user.memberships.length === 0) {
-      // Find the last expired membership to return the date
+    if (user.role === 'athlete' && user.memberships.length === 0) {
+      // Buscar si tuvo alguna membresía anterior para distinguir entre "Sin membresía" y "Membresía vencida"
       const lastMembership = await prisma.membership.findFirst({
         where: { athleteId: user.id },
         orderBy: { endDate: 'desc' }
       })
 
+      const isExpired = !!lastMembership?.endDate
       return {
         success: false,
-        error: 'Membresía Vencida',
+        error: isExpired ? 'Membresía Vencida' : 'Atleta no tiene membresía activa',
         lastDate: lastMembership?.endDate,
         user: {
           name: user.name,
