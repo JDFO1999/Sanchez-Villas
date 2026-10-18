@@ -1353,8 +1353,8 @@ export default function FinanzasPage() {
                       <tr key={a.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            {((a as any).profilePicture || a.avatar) ? (
-                              <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
+                            {(a.profilePicture || a.avatar) ? (
+                              <img src={a.profilePicture || a.avatar || ""} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
                             ) : (
                               <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
                                 {a.name.charAt(0)}
@@ -1433,8 +1433,8 @@ export default function FinanzasPage() {
                     <div key={a.id} className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2.5">
-                          {((a as any).profilePicture || a.avatar) ? (
-                            <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
+                          {(a.profilePicture || a.avatar) ? (
+                            <img src={a.profilePicture || a.avatar || ""} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
                           ) : (
                             <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
                               {a.name.charAt(0)}

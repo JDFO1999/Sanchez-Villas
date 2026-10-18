@@ -77,6 +77,7 @@ export interface AppSettings {
   }
   coachCustomPricing: boolean
   gymCommissionPercentage: number
+  monthlyFee?: number
   biometricFields: string[]
   footerMission: string
   footerVision: string

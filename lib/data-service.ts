@@ -105,7 +105,8 @@ export interface AthleteProfile {
   lastLogin?: string
   attendancePercentage: number
   biometrics: BiometricRecord[]
-  profilePicture?: string
+  profilePicture?: string | null
+  avatar?: string | null
   debt?: number // Para fiados/tienda
   previousCoachId?: string | null // Para saber qué entrenador tuvo antes
   createdAt?: string | Date

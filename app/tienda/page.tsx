@@ -1219,8 +1219,8 @@ export default function TiendaPOSPage() {
                         onClick={() => { setSelectedAthleteId(a.id); setClientSearchQuery(`${a.name} (${a.cedula})`); }}
                         className="w-full text-left px-4 py-2 hover:bg-black/10 dark:bg-white/10 text-sm border-b border-black/5 dark:border-white/5 last:border-0 flex items-center gap-2.5"
                       >
-                        {((a as any).profilePicture || a.avatar) ? (
-                          <img src={(a as any).profilePicture || a.avatar} alt={a.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
+                        {(a.profilePicture || a.avatar) ? (
+                          <img src={a.profilePicture || a.avatar || ""} alt={a.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                             {a.name.charAt(0)}

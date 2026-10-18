@@ -7,6 +7,7 @@ import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon } from "lucide-react"
+import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
 
@@ -1256,21 +1257,23 @@ export default function MembresíasPage() {
                         <span>{noMembYet ? 'SIN MEMBRESÍA' : isExpired ? 'VENCIDA' : diffDays <= 5 ? 'POR VENCER' : 'ACTIVA'}</span>
                       </div>
 
-                      {((a as any).profilePicture || a.avatar) ? (
-                        <img
-                          src={(a as any).profilePicture || a.avatar}
-                          alt={a.name}
-                          className="h-12 w-12 rounded-full object-cover shrink-0 border border-primary/30"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
-                          {a.name.charAt(0)}
+                      <Link href={`/atletas/${a.id}`} className="flex items-center gap-4 group/ath pr-24">
+                        {(a.profilePicture || a.avatar) ? (
+                          <img
+                            src={a.profilePicture || a.avatar || ""}
+                            alt={a.name}
+                            className="h-12 w-12 rounded-full object-cover shrink-0 border border-primary/30 group-hover/ath:ring-2 group-hover/ath:ring-primary/50 transition"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xl shrink-0 border border-primary/20">
+                            {a.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-lg leading-tight group-hover/ath:text-primary transition">{a.name}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">C.I. {a.cedula}</p>
                         </div>
-                      )}
-                      <div className="pr-24">
-                        <h3 className="font-bold text-lg leading-tight">{a.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">C.I. {a.cedula}</p>
-                      </div>
+                      </Link>
                     </div>
 
                     {/* Detalles Membresias */}
