@@ -28,23 +28,37 @@ export function PWAInstallPrompt() {
       })
     }
 
-    // 3. Detectar si el usuario ya descartó el aviso en las últimas 24 horas
-    const dismissedAt = localStorage.getItem('maximumfit_pwa_dismissed')
-    if (dismissedAt) {
-      const diffHours = (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60)
-      if (diffHours < 24) return
-    }
-
-    // 4. Detectar si es iOS / Safari
+    // 3. SOLO en teléfonos / dispositivos móviles (NUNCA en equipos de escritorio)
     const ua = window.navigator.userAgent.toLowerCase()
+    const isMobileDevice = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(ua)
+    if (!isMobileDevice) return
+
+    // 4. Si el usuario ya lo descartó con la 'X' o instaló la app, NUNCA volver a mostrar
+    const isDismissed = localStorage.getItem('maximumfit_pwa_dismissed')
+    if (isDismissed) return
+
+    // 5. Mostrar solo UNA VEZ por sesión (al navegar entre páginas no vuelve a salir)
+    const alreadyShownThisSession = sessionStorage.getItem('maximumfit_pwa_session_shown')
+    if (alreadyShownThisSession) return
+
+    // 6. Detectar si es iOS / Safari
     const isIOSDevice = /iphone|ipad|ipod/.test(ua)
     setIsIOS(isIOSDevice)
 
-    // 5. Escuchar evento de instalación estándar (Android / Chrome / Edge)
+    const triggerPrompt = () => {
+      // Doble verificación antes de renderizar
+      if (localStorage.getItem('maximumfit_pwa_dismissed')) return
+      if (sessionStorage.getItem('maximumfit_pwa_session_shown')) return
+
+      sessionStorage.setItem('maximumfit_pwa_session_shown', 'true')
+      setShowPrompt(true)
+    }
+
+    // 7. Escuchar evento de instalación estándar (Android / Chrome Mobile)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      setShowPrompt(true)
+      triggerPrompt()
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -53,7 +67,7 @@ export function PWAInstallPrompt() {
     let iosTimer: any = null
     if (isIOSDevice) {
       iosTimer = setTimeout(() => {
-        setShowPrompt(true)
+        triggerPrompt()
       }, 3000)
     }
 
@@ -69,6 +83,7 @@ export function PWAInstallPrompt() {
       const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
         setShowPrompt(false)
+        localStorage.setItem('maximumfit_pwa_dismissed', 'true')
       }
       setDeferredPrompt(null)
     } else if (isIOS) {
@@ -79,7 +94,8 @@ export function PWAInstallPrompt() {
   const handleDismiss = () => {
     setShowPrompt(false)
     setShowIOSInstructions(false)
-    localStorage.setItem('maximumfit_pwa_dismissed', Date.now().toString())
+    // Cierre definitivo: al presionar 'X', no volver a mostrar jamás
+    localStorage.setItem('maximumfit_pwa_dismissed', 'true')
   }
 
   if (isStandalone || !showPrompt) return null
@@ -135,7 +151,7 @@ export function PWAInstallPrompt() {
                 </div>
                 <h3 className="font-black text-base">Instalar MaximumFitAPP</h3>
               </div>
-              <button onClick={() => setShowIOSInstructions(false)} className="text-muted-foreground hover:text-foreground p-1">
+              <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -171,7 +187,7 @@ export function PWAInstallPrompt() {
             </div>
 
             <button
-              onClick={() => setShowIOSInstructions(false)}
+              onClick={handleDismiss}
               className="w-full bg-primary text-black font-extrabold py-3 rounded-xl shadow-lg hover:bg-primary/90 transition text-sm"
             >
               ¡Entendido!

@@ -21,7 +21,6 @@ import {
   Sun,
   Settings,
   ScanLine,
-  Globe,
   User as UserIcon
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -259,14 +258,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
-                href="/inicio"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-colors border border-primary/20 text-xs font-bold"
-                title="Ver Página Principal Promocional"
-              >
-                <Globe className="w-4 h-4 shrink-0" />
-                <span className="hidden xs:inline sm:inline">Página Principal</span>
-              </Link>
-              <Link
                 href={user.role === 'admin' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
@@ -287,14 +278,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">{user.role}</span>
                 </div>
               </Link>
-              <button
-                onClick={() => logout()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 text-xs font-bold transition-colors"
-                title="Cerrar Sesión y salir"
-              >
-                <Unplug className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Salir</span>
-              </button>
             </div>
           )}
         </header>
