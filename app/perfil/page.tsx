@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useToast } from "@/lib/toast-context"
-import { updateProfilePicture } from "@/app/actions/users"
+import { updateProfilePicture, removeProfilePicture } from "@/app/actions/users"
 import {
   User as UserIcon,
   Camera,
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Lock,
   Sparkles,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -24,8 +26,19 @@ export default function PerfilPage() {
   const { showToast } = useToast()
   
   const [profileImage, setProfileImage] = useState<string | null>(user?.profilePicture || null)
+  const [imageError, setImageError] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Sincronizar imagen cuando cargue el usuario desde la sesión
+  useEffect(() => {
+    if (user?.profilePicture) {
+      setProfileImage(user.profilePicture)
+      setImageError(false)
+    } else {
+      setProfileImage(null)
+    }
+  }, [user?.profilePicture])
 
   // El perfil administrativo es privado: solo admin y gerente acceden
   if (user?.role !== "admin" && user?.role !== "gerente") {
@@ -48,15 +61,17 @@ export default function PerfilPage() {
     const previousImage = profileImage || user?.profilePicture || null
 
     setIsUploading(true)
+    setImageError(false)
     try {
       const { compressImage } = await import("@/lib/image-compress")
-      const base64 = await compressImage(file, 400, 400, 0.8, 55000)
+      const base64 = await compressImage(file, 400, 400, 0.8, 48000)
       setProfileImage(base64)
 
       if (!user?.id) throw new Error("No hay usuario autenticado")
       const res = await updateProfilePicture(user.id, base64)
       if (res.success && res.profilePicture) {
         setProfileImage(res.profilePicture)
+        setImageError(false)
         updateUserProfilePicture(res.profilePicture)
         showToast("Foto de perfil actualizada correctamente.", "success")
       } else {
@@ -71,6 +86,28 @@ export default function PerfilPage() {
       e.target.value = ""
     }
   }
+
+  const handleRemovePhoto = async () => {
+    if (!user?.id) return
+    setIsUploading(true)
+    try {
+      const res = await removeProfilePicture(user.id)
+      if (res.success) {
+        setProfileImage(null)
+        setImageError(false)
+        updateUserProfilePicture("")
+        showToast("Foto de perfil eliminada correctamente.", "success")
+      } else {
+        showToast(res.error || "No se pudo eliminar la imagen.", "error")
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error al eliminar imagen.", "error")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const currentDisplayImage = !imageError && (profileImage || user?.profilePicture)
 
   return (
     <div className="w-full max-w-full space-y-8 pb-16">
@@ -88,12 +125,13 @@ export default function PerfilPage() {
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
           {/* Avatar con botón de subida */}
-          <div className="relative group">
+          <div className="relative group shrink-0">
             <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-primary/40 bg-primary/10 shadow-2xl flex items-center justify-center relative">
-              {profileImage || user?.profilePicture ? (
+              {currentDisplayImage ? (
                 <img
-                  src={profileImage || (user?.profilePicture as string)}
+                  src={currentDisplayImage as string}
                   alt={user?.name || "Perfil Administrador"}
+                  onError={() => setImageError(true)}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
@@ -143,7 +181,14 @@ export default function PerfilPage() {
               Tu foto de perfil se sincroniza en todos los módulos (comunidad, avisos y barra superior). Ningún usuario ajeno tiene acceso a este perfil ni a tus datos privados.
             </p>
 
-            <div className="pt-2">
+            {imageError && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2 text-left">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>La foto guardada previamente presentaba un formato incompatible o dañado. Puedes subir una nueva o restablecer el avatar inicial.</span>
+              </div>
+            )}
+
+            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
               <Button
                 variant="outline"
                 size="sm"
@@ -152,8 +197,21 @@ export default function PerfilPage() {
                 className="rounded-xl gap-2 font-bold"
               >
                 <Camera className="w-4 h-4 text-primary" />
-                <span>{isUploading ? "Cargando..." : "Subir / Cambiar Foto"}</span>
+                <span>{isUploading ? "Procesando..." : currentDisplayImage ? "Cambiar Foto" : "Subir Foto"}</span>
               </Button>
+
+              {(currentDisplayImage || imageError) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemovePhoto}
+                  disabled={isUploading}
+                  className="rounded-xl gap-2 font-bold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar Foto</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>

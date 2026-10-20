@@ -4,13 +4,15 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Users, ChevronRight } from "lucide-react"
+import { Search, Users, ChevronRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
+import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
 
 export default function AtletasPage() {
   const { user } = useAuth()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [coaches, setCoaches] = useState<Record<string, string>>({})
+  const [selectedAthleteForAttendance, setSelectedAthleteForAttendance] = useState<AttendanceModalAthlete | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
 
@@ -31,6 +33,7 @@ export default function AtletasPage() {
             membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
             membershipStart: a.memberships?.[0]?.startDate || null,
             planName: a.memberships?.[0]?.planName || null,
+            attendances: a.attendances || [],
           })))
         }
       } catch (err) {
@@ -166,25 +169,30 @@ export default function AtletasPage() {
             }
 
             return (
-              <Link key={atleta.id} href={`/atletas/${atleta.id}`}>
-                <Card className="glass transition-all duration-300 cursor-pointer group hover:scale-[1.02] hover:border-primary/60 hover:shadow-[0_0_25px_rgba(255,255,255,0.12)] z-0 hover:z-10">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        {atleta.profilePicture ? (
-                          <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border border-primary/30" />
-                        ) : (
-                          <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
-                            {atleta.name.charAt(0)}
+              <Card
+                key={atleta.id}
+                className="glass transition-all duration-300 group hover:border-primary/60 hover:shadow-[0_0_25px_rgba(255,255,255,0.12)] flex flex-col justify-between"
+              >
+                <CardContent className="p-6 flex-1 flex flex-col justify-between">
+                  <div>
+                    <Link href={`/atletas/${atleta.id}`} className="block">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          {atleta.profilePicture ? (
+                            <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border border-primary/30" />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                              {atleta.name.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <h3 className="font-bold text-foreground group-hover:text-primary transition">{atleta.name}</h3>
+                            <p className="text-xs text-muted-foreground">C.C. {atleta.cedula}</p>
                           </div>
-                        )}
-                        <div>
-                          <h3 className="font-bold text-foreground group-hover:text-primary transition">{atleta.name}</h3>
-                          <p className="text-xs text-muted-foreground">C.C. {atleta.cedula}</p>
                         </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
-                    </div>
+                    </Link>
                     
                     <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
                       {hasValidMemb && diffDays > 0 && (() => {
@@ -226,13 +234,37 @@ export default function AtletasPage() {
                         </span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+
+                  {/* Botón para ver Asistencias y Plan */}
+                  <div className="mt-4 pt-3 border-t border-black/10 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedAthleteForAttendance({
+                          ...atleta,
+                          coachName: atleta.coachId ? coaches[atleta.coachId] : undefined,
+                        })
+                      }
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 font-bold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    >
+                      <CalendarCheck className="w-4 h-4 text-primary" />
+                      <span>Ver Asistencias ({atleta.attendances?.length || 0})</span>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
             )
           })}
         </div>
       )}
+
+      {/* Modal de Historial de Asistencia */}
+      <AttendanceHistoryModal
+        open={Boolean(selectedAthleteForAttendance)}
+        onClose={() => setSelectedAthleteForAttendance(null)}
+        athlete={selectedAthleteForAttendance}
+      />
     </div>
   )
 }

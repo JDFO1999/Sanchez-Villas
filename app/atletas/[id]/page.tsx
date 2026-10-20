@@ -5,10 +5,11 @@ import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2 } from "lucide-react"
+import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
+import { AttendanceHistoryModal } from "@/components/athletes/attendance-history-modal"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
@@ -24,6 +25,8 @@ export default function AtletaPerfilPage() {
 
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false)
 
   // Solo el propio atleta puede modificar su foto de perfil
   const canChangePhoto = Boolean(
@@ -534,8 +537,13 @@ export default function AtletaPerfilPage() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-card/40 p-6 rounded-2xl border border-black/5 dark:border-white/5 glass">
         <div className="flex items-center gap-6">
           <div className="relative group shrink-0">
-            {athlete.profilePicture ? (
-              <img src={athlete.profilePicture} alt={athlete.name} className="h-20 w-20 rounded-full object-cover border-2 border-primary shadow-md" />
+            {athlete.profilePicture && !photoError ? (
+              <img
+                src={athlete.profilePicture}
+                alt={athlete.name}
+                onError={() => setPhotoError(true)}
+                className="h-20 w-20 rounded-full object-cover border-2 border-primary shadow-md"
+              />
             ) : (
               <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-3xl border-2 border-primary/30">
                 {athlete.name.charAt(0)}
@@ -683,10 +691,17 @@ export default function AtletaPerfilPage() {
           </Card>
 
           <Card className="glass">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" /> Asistencia
               </CardTitle>
+              <button
+                type="button"
+                onClick={() => setShowAttendanceModal(true)}
+                className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 px-2.5 py-1 rounded-lg transition cursor-pointer"
+              >
+                Historial ({totalAttendances})
+              </button>
             </CardHeader>
             <CardContent>
               <div className="flex items-end justify-between mb-2">
@@ -696,6 +711,14 @@ export default function AtletaPerfilPage() {
               <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full" style={{ width: `${calculatedAttendancePct}%` }} />
               </div>
+              <button
+                type="button"
+                onClick={() => setShowAttendanceModal(true)}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition border border-primary/25 cursor-pointer"
+              >
+                <CalendarCheck className="w-4 h-4" />
+                <span>Ver Días Asistidos y Plan</span>
+              </button>
             </CardContent>
           </Card>
         </div>
@@ -949,6 +972,21 @@ export default function AtletaPerfilPage() {
           </Card>
         </div>
       </div>
+
+      <AttendanceHistoryModal
+        open={showAttendanceModal}
+        onClose={() => setShowAttendanceModal(false)}
+        athlete={
+          athlete
+            ? {
+                ...athlete,
+                coachName: athlete.coachId
+                  ? allCoaches.find((c) => c.id === athlete.coachId)?.name
+                  : undefined,
+              }
+            : null
+        }
+      />
     </div>
   )
 }

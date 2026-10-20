@@ -56,6 +56,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth()
   const { settings } = useSettings()
   const router = useRouter()
+  const [navImgError, setNavImgError] = useState(false)
+
+  useEffect(() => {
+    setNavImgError(false)
+  }, [user?.profilePicture])
 
   useEffect(() => {
     if (!isLoading && !user && pathname !== '/' && pathname !== '/inicio' && pathname !== '/login' && pathname !== '/registro') {
@@ -315,11 +320,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
               >
-                {user.profilePicture ? (
+                {user.profilePicture && !navImgError ? (
                   <img
                     src={user.profilePicture}
                     alt={user.name}
                     className="w-8 h-8 rounded-full object-cover border border-primary/50"
+                    onError={() => setNavImgError(true)}
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center text-xs border border-primary/30">

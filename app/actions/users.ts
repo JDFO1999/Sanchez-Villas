@@ -481,7 +481,10 @@ export async function getAthletes() {
           orderBy: { endDate: 'desc' },
           take: 1
         },
-        coach: true
+        coach: true,
+        attendances: {
+          orderBy: { date: 'desc' }
+        }
       }
     })
     return { success: true, athletes: stripSecrets(athletes) }
@@ -864,6 +867,28 @@ export async function updateProfilePicture(athleteId: string, base64Image: strin
   } catch (error: any) {
     console.error("updateProfilePicture error:", error)
     return { success: false, error: error?.message || "No se pudo guardar la imagen en la base de datos." }
+  }
+}
+
+export async function removeProfilePicture(athleteId: string) {
+  const me = await getAuthUser()
+  if (!me || me.id !== athleteId) {
+    return { success: false, error: "Solo el propio usuario puede modificar su foto de perfil." }
+  }
+  try {
+    await prisma.user.update({
+      where: { id: athleteId },
+      data: { profilePicture: null }
+    })
+    revalidatePath("/atletas")
+    revalidatePath("/atletas/" + athleteId)
+    revalidatePath("/perfil")
+    revalidatePath("/comunidad")
+    revalidatePath("/")
+    return { success: true }
+  } catch (error: any) {
+    console.error("removeProfilePicture error:", error)
+    return { success: false, error: error?.message || "No se pudo eliminar la foto de perfil." }
   }
 }
 

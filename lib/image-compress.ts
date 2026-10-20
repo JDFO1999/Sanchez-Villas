@@ -7,10 +7,10 @@
  */
 export async function compressImage(
   file: File,
-  maxWidth = 800,
-  maxHeight = 800,
-  quality = 0.85,
-  maxBase64Length = 55000
+  maxWidth = 600,
+  maxHeight = 600,
+  quality = 0.8,
+  maxBase64Length = 48000
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     // Si no es imagen o es SVG, retornamos dataUrl directo
@@ -42,8 +42,6 @@ export async function compressImage(
         }
 
         const canvas = document.createElement("canvas")
-        canvas.width = width
-        canvas.height = height
         const ctx = canvas.getContext("2d")
 
         if (!ctx) {
@@ -51,27 +49,37 @@ export async function compressImage(
           return
         }
 
-        ctx.drawImage(img, 0, 0, width, height)
-        let currentQuality = quality
-        let compressedBase64 = canvas.toDataURL("image/jpeg", currentQuality)
-
-        // Si excede maxBase64Length (p. ej. 55KB para caber siempre en columna TEXT de MySQL),
-        // reducimos gradualmente calidad y dimensiones hasta garantizar que quepa.
-        let currentW = width
-        let currentH = height
-        while (compressedBase64.length > maxBase64Length && currentQuality > 0.35) {
-          currentQuality -= 0.12
-          if (compressedBase64.length > maxBase64Length * 1.4 && currentW > 240) {
-            currentW = Math.round(currentW * 0.8)
-            currentH = Math.round(currentH * 0.8)
-            canvas.width = currentW
-            canvas.height = currentH
-            ctx.drawImage(img, 0, 0, currentW, currentH)
-          }
-          compressedBase64 = canvas.toDataURL("image/jpeg", Math.max(0.3, currentQuality))
+        const render = (w: number, h: number, q: number): string => {
+          canvas.width = w
+          canvas.height = h
+          // Fondo blanco sólido para evitar fondos negros en PNG transparentes
+          ctx.fillStyle = "#FFFFFF"
+          ctx.fillRect(0, 0, w, h)
+          ctx.drawImage(img, 0, 0, w, h)
+          return canvas.toDataURL("image/jpeg", q)
         }
 
-        resolve(compressedBase64)
+        let currentW = width
+        let currentH = height
+        let currentQ = quality
+        let result = render(currentW, currentH, currentQ)
+
+        // Si excede maxBase64Length, reducimos gradualmente dimensiones y calidad
+        let attempts = 0
+        while (result.length > maxBase64Length && attempts < 12) {
+          attempts++
+          if (currentQ > 0.45) {
+            currentQ = Math.max(0.35, currentQ - 0.1)
+          } else if (currentW > 160) {
+            currentW = Math.round(currentW * 0.8)
+            currentH = Math.round(currentH * 0.8)
+          } else {
+            currentQ = Math.max(0.2, currentQ - 0.05)
+          }
+          result = render(currentW, currentH, currentQ)
+        }
+
+        resolve(result)
       }
       img.onerror = () => resolve(e.target?.result as string)
       img.src = e.target?.result as string
