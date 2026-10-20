@@ -245,7 +245,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between h-16 px-4 relative bg-card">
+        <header className="flex items-center justify-between h-16 p-0 relative bg-card">
           <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
           <div className="flex items-center gap-3">
             <button aria-label="Abrir menú" className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
