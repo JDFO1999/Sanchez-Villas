@@ -18,7 +18,9 @@ export default function HomePage() {
   }
 
   // Si el usuario está autenticado, renderizar su panel de control correspondiente
-  if (user?.role === 'admin') return <AdminDashboard />
+  if (user?.role === 'admin' || user?.role === 'gerente' || user?.permissions?.includes('FINANCE_MANAGE') || user?.permissions?.includes('STAFF_MANAGE')) {
+    return <AdminDashboard />
+  }
   if (user?.role === 'athlete') return <AthleteDashboard />
   
   // Recepción / Cajero

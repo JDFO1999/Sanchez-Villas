@@ -27,8 +27,8 @@ export default function PerfilPage() {
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // El perfil del administrador es 100% privado: nadie más puede acceder a esta ruta
-  if (user?.role !== "admin") {
+  // El perfil administrativo es privado: solo admin y gerente acceden
+  if (user?.role !== "admin" && user?.role !== "gerente") {
     return (
       <div className="w-full max-w-lg mx-auto mt-16 p-8 rounded-3xl border border-destructive/20 bg-card text-center space-y-4 shadow-xl">
         <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
@@ -36,7 +36,7 @@ export default function PerfilPage() {
         </div>
         <h2 className="text-xl font-black text-foreground">Acceso Denegado</h2>
         <p className="text-sm text-muted-foreground">
-          Este módulo de perfil es exclusivo y privado del Administrador del sistema. Ningún otro usuario puede visualizarlo.
+          Este módulo de perfil es exclusivo del personal administrativo. Ningún otro usuario puede visualizarlo.
         </p>
       </div>
     )

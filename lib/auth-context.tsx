@@ -48,7 +48,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   registerAthlete: (cedula: string, clave: string, profile: any) => Promise<User | false>
   adminUpdateAthleteCredentials: (oldCedula: string, newCedula: string, newName: string, newClave: string) => Promise<boolean>
-  updateEmployeePermissions: (userId: string, permissions: Permission[]) => void
+  updateEmployeePermissions: (userId: string, permissions: Permission[]) => Promise<void> | void
   getAllEmployees: () => Promise<User[]>
   addEmployee: (employeeData: Partial<User>, clave: string) => Promise<boolean>
   updateEmployee: (userId: string, employeeData: Partial<User>) => Promise<boolean>
@@ -120,7 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const getCustomRoles = () => customRoles
   const addCustomRole = (r: CustomRoleDef) => setCustomRoles([...customRoles, r])
   const deleteCustomRole = (id: string) => setCustomRoles(customRoles.filter(cr => cr.id !== id))
-  const updateEmployeePermissions = (userId: string, permissions: Permission[]) => {}
+  const updateEmployeePermissions = async (userId: string, permissions: Permission[]) => {
+    const { updateEmployeePermissionsAction } = await import('@/app/actions/users')
+    await updateEmployeePermissionsAction(userId, permissions)
+    if (user && user.id === userId) {
+      setUser({ ...user, permissions })
+    }
+  }
 
   // Empleados
   const getAllEmployeesFn = async () => {

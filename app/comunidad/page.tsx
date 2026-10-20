@@ -86,8 +86,8 @@ export default function ComunidadPage() {
   const [hallOfFame, setHallOfFame] = useState<any[]>([])
   const [isLoadingHallOfFame, setIsLoadingHallOfFame] = useState(true)
 
-  const canPost = user?.role === "admin" || user?.role === "coach"
-  const isAdmin = user?.role === "admin"
+  const canPost = user?.role === "admin" || user?.role === "gerente" || user?.role === "coach"
+  const isAdmin = user?.role === "admin" || user?.role === "gerente"
   const isCoach = user?.role === "coach"
 
   // Cargar Posts desde la Base de Datos
@@ -338,8 +338,8 @@ export default function ComunidadPage() {
             <div>
               <span className="block text-sm font-extrabold text-foreground">{user?.name || "Invitado"}</span>
               <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                {user?.role === "admin"
-                  ? "Administrador"
+                {user?.role === "admin" || user?.role === "gerente"
+                  ? "Administración"
                   : user?.role === "coach"
                   ? "Entrenador"
                   : "Atleta Oficial"}
@@ -392,7 +392,7 @@ export default function ComunidadPage() {
               {/* Formulario de Publicación: SOLO Administradores y Entrenadores */}
               {canPost ? (
                 <div className="rounded-2xl border border-primary/30 bg-card p-6 shadow-xl space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       {user?.profilePicture ? (
                         <img
@@ -409,7 +409,7 @@ export default function ComunidadPage() {
                         <h4 className="font-extrabold text-sm text-foreground flex items-center gap-2">
                           {user?.name}
                           <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase font-black">
-                            {user?.role === "admin" ? "Admin" : "Coach"}
+                            {user?.role === "admin" || user?.role === "gerente" ? "Admin" : "Coach"}
                           </span>
                         </h4>
                         <p className="text-xs text-muted-foreground">Publicar aviso o comunicado en el muro</p>
@@ -598,7 +598,7 @@ export default function ComunidadPage() {
             <div className="space-y-6">
               {/* Botón para Proponer/Crear Reto: Solo Coaches y Admin */}
               {canPost && (
-                <div className="flex justify-between items-center bg-card p-4 rounded-2xl border border-black/10 dark:border-white/10 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-4 rounded-2xl border border-black/10 dark:border-white/10 shadow-sm">
                   <div>
                     <h4 className="font-extrabold text-sm text-foreground">Gestión de Desafíos Fitness</h4>
                     <p className="text-xs text-muted-foreground">
@@ -607,7 +607,7 @@ export default function ComunidadPage() {
                         : "Como Entrenador puedes proponer retos para que los apruebe el Administrador."}
                     </p>
                   </div>
-                  <Button onClick={() => setShowChallengeModal(true)} size="sm">
+                  <Button onClick={() => setShowChallengeModal(true)} size="sm" className="w-full sm:w-auto shrink-0">
                     <PlusCircle className="w-4 h-4 mr-1.5" />
                     {isAdmin ? "Crear Reto Oficial" : "Proponer Reto del Mes"}
                   </Button>

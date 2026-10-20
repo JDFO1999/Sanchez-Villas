@@ -20,6 +20,17 @@ async function clientIp(): Promise<string> {
   }
 }
 
+function extractUserPermissions(user: any): string[] {
+  if (!user?.specialties) return [];
+  try {
+    if (user.specialties.startsWith('{') && user.specialties.includes('"permissions"')) {
+      const parsed = JSON.parse(user.specialties);
+      if (Array.isArray(parsed.permissions)) return parsed.permissions;
+    }
+  } catch {}
+  return [];
+}
+
 export async function loginAction(cedula: string, clave: string) {
   try {
     if (typeof cedula !== "string" || typeof clave !== "string" || !cedula || !clave || cedula.length > 40 || clave.length > 200) {
@@ -78,7 +89,7 @@ export async function loginAction(cedula: string, clave: string) {
 
     await createSession(user);
     await audit("login.success", { id: user.id, role: user.role });
-    return { success: true, user: stripSecrets(user) };
+    return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
   } catch (error: any) {
     console.error("loginAction:", error);
     return { success: false, error: "No se pudo iniciar sesión. Intente de nuevo." };
@@ -159,7 +170,7 @@ export async function validatePinAction(pin: string) {
       await createSession(matchedUser);
     }
     await audit("login.pin", { id: matchedUser.id, role: matchedUser.role });
-    return { success: true, user: stripSecrets(matchedUser) };
+    return { success: true, user: { ...stripSecrets(matchedUser), permissions: extractUserPermissions(matchedUser) } };
   } catch (error: any) {
     console.error("validatePinAction:", error);
     return { success: false, error: "No se pudo validar el código de barras / PIN." };
@@ -247,7 +258,7 @@ export async function getSessionData() {
   });
 
   if (!user) return { success: false };
-  return { success: true, user: stripSecrets(user) };
+  return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
 }
 
 export async function logoutAction() {

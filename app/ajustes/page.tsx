@@ -143,9 +143,9 @@ export default function AjustesPage() {
   }, [settings])
 
 
-  // Ocultar si no es admin
-  if (user?.role !== 'admin') {
-    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
+  // Ocultar si no es admin ni tiene permiso SETTINGS_MANAGE
+  if (user?.role !== 'admin' && !user?.permissions?.includes('SETTINGS_MANAGE')) {
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores o personal con permiso de ajustes.</div>
   }
 
   const handleSaveRole = async (e: React.FormEvent) => {
@@ -2709,6 +2709,10 @@ export default function AjustesPage() {
                         { id: 'INVENTORY_MANAGE', label: 'Inventario' },
                         { id: 'SALES_VIEW', label: 'Reportes Ventas' },
                         { id: 'CRM_MANAGE', label: 'CRM Membresías' },
+                        { id: 'STAFF_MANAGE', label: 'Personal y Entrenadores' },
+                        { id: 'FINANCE_VIEW', label: 'Ver Finanzas' },
+                        { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas' },
+                        { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema' },
                       ].map(perm => {
                         const hasPerm = emp.permissions?.includes(perm.id as any)
                         return (

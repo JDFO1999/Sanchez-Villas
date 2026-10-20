@@ -104,11 +104,15 @@ export default function MembresíasPage() {
         const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
         const athRes = await getAthletes()
         if (athRes.success) {
-          setAthletes(athRes.athletes.map((a: any) => ({
-            ...a,
-            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-            membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
-          })))
+          setAthletes(
+            athRes.athletes
+              .filter((a: any) => !a.role || a.role === 'athlete')
+              .map((a: any) => ({
+                ...a,
+                membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+                membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
+              }))
+          )
         }
         
         const empRes = await getAllEmployees()
@@ -131,6 +135,7 @@ export default function MembresíasPage() {
   const [filterType, setFilterType] = useState('Todas')
 
   const filtered = athletes.filter(a => {
+    if ((a as any).role && (a as any).role !== 'athlete') return false
     const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.cedula.includes(search)
     if (!matchesSearch) return false
 
@@ -536,7 +541,7 @@ export default function MembresíasPage() {
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
             <h3 className="text-xl font-bold mb-1">
               {isWalkInMode
-                ? 'Cobrar Plan a Cliente por Cédula'
+                ? 'Asignar una Membresía'
                 : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 ? `Activar Plan — ${showRenovarModal.name}` : `Renovar Plan — ${showRenovarModal.name}`)}
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
@@ -1241,7 +1246,7 @@ export default function MembresíasPage() {
             onClick={openWalkInPlanModal}
             className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs px-3.5 py-2.5 rounded-lg transition shadow-md shadow-primary/20 flex items-center gap-1.5 whitespace-nowrap"
           >
-            <DollarSign className="h-4 w-4" /> + Cobrar Plan por Cédula
+            <DollarSign className="h-4 w-4" /> Asignar una Membresía
           </button>
           <select 
             value={filterType} 

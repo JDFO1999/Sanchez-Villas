@@ -263,13 +263,26 @@ export async function getAllEmployees() {
       }
     });
 
+    const attachPermissions = (emps: any[]) => emps.map(e => {
+      let permissions: string[] = []
+      if (e.specialties) {
+        try {
+          if (e.specialties.startsWith('{') && e.specialties.includes('"permissions"')) {
+            const parsed = JSON.parse(e.specialties)
+            if (Array.isArray(parsed.permissions)) permissions = parsed.permissions
+          }
+        } catch {}
+      }
+      return { ...e, permissions }
+    })
+
     // Administrador: ficha completa (incluye PIN para gestionar cajeros), nunca el hash de contraseña.
     if (g.user.role === "admin") {
-      return { success: true, employees: stripSecrets(employees, { keepPin: true }) }
+      return { success: true, employees: attachPermissions(stripSecrets(employees, { keepPin: true })) }
     }
     // Resto del personal: sin salarios, cuentas bancarias, PIN ni datos personales.
     if (isStaff(g.user.role)) {
-      return { success: true, employees: employees.map(e => omitFields(e, EMPLOYEE_PRIVATE_FIELDS)) }
+      return { success: true, employees: attachPermissions(employees.map(e => omitFields(e, EMPLOYEE_PRIVATE_FIELDS))) }
     }
     // Atletas: solo la lista pública de entrenadores (para pedir cambio de entrenador).
     const coaches = employees
@@ -866,6 +879,104 @@ export async function updateCoachProfile(id: string, data: { bio?: string, socia
       where: { id },
       data: safe
     })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: friendlyError(error) }
+  }
+}
+
+export async function getCoachesWithAthletesAction() {
+  const g = await guard(ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error, coaches: [] }
+  try {
+    const coaches = await prisma.user.findMany({
+      where: {
+        role: { in: ["coach", "employee"] },
+        NOT: { role: "deleted" }
+      },
+      select: {
+        id: true,
+        name: true,
+        cedula: true,
+        role: true,
+        profilePicture: true,
+        specialties: true,
+        bio: true,
+        phone: true,
+        email: true,
+        createdAt: true,
+        attendances: {
+          orderBy: { date: "desc" },
+          select: {
+            id: true,
+            date: true,
+          }
+        },
+        coachedAthletes: {
+          where: { NOT: { role: "deleted" } },
+          select: {
+            id: true,
+            name: true,
+            cedula: true,
+            phone: true,
+            profilePicture: true,
+            createdAt: true,
+            memberships: {
+              orderBy: { endDate: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                planName: true,
+                startDate: true,
+                endDate: true,
+                status: true
+              }
+            },
+            attendances: {
+              orderBy: { date: "desc" },
+              select: {
+                id: true,
+                date: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { name: "asc" }
+    })
+
+    return { success: true, coaches: stripSecrets(coaches) }
+  } catch (error: any) {
+    console.error("getCoachesWithAthletesAction error:", error)
+    return { success: false, error: friendlyError(error), coaches: [] }
+  }
+}
+
+export async function updateEmployeePermissionsAction(userId: string, permissions: string[]) {
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
+  try {
+    const target = await prisma.user.findUnique({ where: { id: userId } })
+    if (!target) return { success: false, error: "Usuario no encontrado" }
+
+    let dataObj: any = {}
+    if (target.specialties) {
+      try {
+        if (target.specialties.startsWith('{')) {
+          dataObj = JSON.parse(target.specialties)
+        }
+      } catch {}
+    }
+    dataObj.permissions = permissions
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { specialties: JSON.stringify(dataObj) }
+    })
+
+    revalidatePath("/empleados")
+    revalidatePath("/ajustes")
+    revalidatePath("/")
     return { success: true }
   } catch (error: any) {
     return { success: false, error: friendlyError(error) }

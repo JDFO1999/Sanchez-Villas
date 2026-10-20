@@ -54,8 +54,11 @@ export default function EmpleadosPage() {
     load()
   }, [getAllEmployees])
 
-  if (!user || user.role !== 'admin') {
-    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
+  const customRole = settings?.customRoles?.find((r: any) => r.id === user?.role || r.name?.toLowerCase() === user?.role?.toLowerCase())
+  const hasStaffManage = user?.role === 'admin' || user?.permissions?.includes('STAFF_MANAGE') || customRole?.permissions?.includes('STAFF_MANAGE')
+
+  if (!user || !hasStaffManage) {
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal administrativo autorizado con permiso de gestión de personal.</div>
   }
 
   const isBarcodeRole = (role?: string) => {

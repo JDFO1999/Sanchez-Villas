@@ -15,7 +15,7 @@ import { verifySession, passwordFingerprint } from "@/lib/session"
 export const DENIED = "No autorizado"
 
 export const ROLES = {
-  ADMIN: ["admin"],
+  ADMIN: ["admin", "gerente"],
   STAFF: ["admin", "gerente", "coach", "cajero", "recepcion", "employee"],
   POS: ["admin", "gerente", "cajero", "recepcion"],
   TRAINER: ["admin", "gerente", "coach", "employee"],

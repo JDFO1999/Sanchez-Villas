@@ -18,6 +18,7 @@ const PROTECTED_PREFIXES = [
   "/ajustes",
   "/perfil",
   "/comunidad",
+  "/entrenadores",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -70,14 +71,15 @@ export async function middleware(request: NextRequest) {
   if (validPayload) {
     const role = validPayload.role as string;
     
-    // Only admin can access employees, finance, settings, and admin profile
+    // Admin and gerente can access employees, finance, settings, profile and trainers
     if (
       pathname.startsWith("/empleados") ||
       pathname.startsWith("/finanzas") ||
       pathname.startsWith("/ajustes") ||
-      pathname.startsWith("/perfil")
+      pathname.startsWith("/perfil") ||
+      pathname.startsWith("/entrenadores")
     ) {
-      if (role !== "admin") {
+      if (role !== "admin" && role !== "gerente") {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }

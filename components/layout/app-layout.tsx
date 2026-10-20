@@ -69,13 +69,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
-  let currentNavItems = [...navItems]
+  const customRole = settings?.customRoles?.find(
+    (r: any) => r.id === user?.role || r.name?.toLowerCase() === user?.role?.toLowerCase()
+  )
+  const effectivePermissions = Array.from(
+    new Set([...(user?.permissions || []), ...(customRole?.permissions || [])])
+  )
+  const hasPermission = (perm: string) => effectivePermissions.includes(perm as any)
+
+  let currentNavItems: Array<{ name: string; href: string; icon: any }> = []
+
   if (user?.role === 'admin') {
-    currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
-    currentNavItems.push({ name: "Empleados", href: "/empleados", icon: Users })
-    currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
-    currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
-    currentNavItems.push({ name: "Mi Perfil", href: "/perfil", icon: UserIcon })
+    // Administrador: acceso total e irrestricto por defecto
+    currentNavItems = [
+      ...navItems,
+      { name: "Entrenadores", href: "/entrenadores", icon: Dumbbell },
+      { name: "Asistencia", href: "/asistencia", icon: ScanLine },
+      { name: "Empleados", href: "/empleados", icon: Users },
+      { name: "Finanzas", href: "/finanzas", icon: BarChart3 },
+      { name: "Ajustes", href: "/ajustes", icon: Settings },
+      { name: "Mi Perfil", href: "/perfil", icon: UserIcon },
+    ]
   } else if (user?.role === 'athlete') {
     currentNavItems = [
       { name: "Mi Progreso", href: "/", icon: Home },
@@ -89,25 +103,64 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
       { name: "Mis Atletas", href: "/mis-atletas", icon: Users },
     ]
-    if ((user as any)?.canManageAttendance) {
+    if ((user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
     }
     currentNavItems.push({ name: "Comunidad", href: "/comunidad", icon: MessageSquare })
   } else {
+    // Gerente, Cajero, Recepción y demás personal:
+    // Solo ven los módulos que tengan explícitamente habilitados en sus permisos
     currentNavItems = [
-      { name: "Panel Principal", href: "/", icon: Home },
+      { name: "Dashboard", href: "/", icon: Home },
     ]
-    if (user?.role === 'cajero' || user?.role === 'recepcion' || (user as any)?.canManageAttendance) {
-      currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
+
+    // Atletas (CRM)
+    if (user?.role === 'employee' || hasPermission('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Atletas", href: "/atletas", icon: Users })
     }
-    if (user?.role === 'employee' || user?.permissions?.includes('CRM_MANAGE')) {
-      currentNavItems.push({ name: "Atletas / Rutinas", href: "/atletas", icon: Users })
-    }
-    if (user?.role === 'cajero' || user?.permissions?.includes('POS_ACCESS')) {
+
+    // Membresías
+    if (user?.role === 'cajero' || hasPermission('POS_ACCESS') || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Membresías", href: "/membresias", icon: CreditCard })
+    }
+
+    // Tienda / POS
+    if (user?.role === 'cajero' || hasPermission('POS_ACCESS') || hasPermission('INVENTORY_MANAGE')) {
       currentNavItems.push({ name: "Tienda (POS)", href: "/tienda", icon: Store })
     }
+
+    // Asistencia
+    if (user?.role === 'cajero' || user?.role === 'recepcion' || (user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
+    }
+
+    // Entrenadores (requiere STAFF_MANAGE o CRM_MANAGE)
+    if (hasPermission('STAFF_MANAGE') || hasPermission('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Entrenadores", href: "/entrenadores", icon: Dumbbell })
+    }
+
+    // Empleados y nómina (requiere STAFF_MANAGE)
+    if (hasPermission('STAFF_MANAGE')) {
+      currentNavItems.push({ name: "Empleados", href: "/empleados", icon: Users })
+    }
+
+    // Finanzas (requiere FINANCE_MANAGE o FINANCE_VIEW)
+    if (hasPermission('FINANCE_MANAGE') || hasPermission('FINANCE_VIEW')) {
+      currentNavItems.push({ name: "Finanzas", href: "/finanzas", icon: BarChart3 })
+    }
+
+    // Ajustes globales (requiere SETTINGS_MANAGE)
+    if (hasPermission('SETTINGS_MANAGE')) {
+      currentNavItems.push({ name: "Ajustes", href: "/ajustes", icon: Settings })
+    }
+
+    // Comunidad
     currentNavItems.push({ name: "Comunidad", href: "/comunidad", icon: MessageSquare })
+
+    // Mi Perfil para personal administrativo y gerencia
+    if (user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion' || user?.role === 'employee') {
+      currentNavItems.push({ name: "Mi Perfil", href: "/perfil", icon: UserIcon })
+    }
   }
 
   const LogoComponent = () => (
@@ -258,7 +311,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
-                href={user.role === 'admin' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
+                href={user.role === 'admin' || user.role === 'gerente' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
               >

@@ -62,8 +62,11 @@ export default function FinanzasPage() {
     load()
   }, [getAllEmployees])
   
-  if (!user || (user.role !== 'admin' && !user.permissions?.includes('FINANCE_VIEW') && !user.permissions?.includes('FINANCE_MANAGE'))) {
-    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado al Módulo de Finanzas.</div>
+  const customRole = settings?.customRoles?.find((r: any) => r.id === user?.role || r.name?.toLowerCase() === user?.role?.toLowerCase())
+  const hasFinanceAccess = user?.role === 'admin' || user?.permissions?.includes('FINANCE_VIEW') || user?.permissions?.includes('FINANCE_MANAGE') || customRole?.permissions?.includes('FINANCE_VIEW') || customRole?.permissions?.includes('FINANCE_MANAGE')
+  
+  if (!user || !hasFinanceAccess) {
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado al Módulo de Finanzas. Solo personal con permisos autorizados.</div>
   }
 
   // Helpers para distinguir monto cobrado en caja vs monto otorgado a Crédito/Fiado
@@ -204,8 +207,8 @@ export default function FinanzasPage() {
   const upcomingPayroll = employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').reduce((sum, e) => sum + (e.baseSalary || 0), 0);
   const projectedLiquidity = mrr - upcomingPayroll;
 
-  if (!user || (user.role !== 'admin')) {
-    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo administradores.</div>
+  if (!user || !hasFinanceAccess) {
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal administrativo autorizado con permisos financieros.</div>
   }
 
   const tabs = [
