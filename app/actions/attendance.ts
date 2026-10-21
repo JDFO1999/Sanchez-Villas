@@ -2,13 +2,74 @@
 
 import prisma from "@/lib/db"
 import { guardAttendance } from "@/lib/authz"
+import bcrypt from "bcryptjs"
 
-export async function checkInByCedula(code: string) {
+export async function checkInByCedula(code: string, adminKey?: string, isQr: boolean = false) {
   // guard:checkInByCedula
   const g = await guardAttendance()
   if (!g.ok) return { success: false, error: g.error }
   try {
     const cleanCode = code ? code.trim() : ""
+    if (!cleanCode) {
+      return { success: false, error: "Debes ingresar una cédula o escanear un código." }
+    }
+
+    // Si NO es por escáner QR directo, el registro manual por cédula exige autorización de Gerente o Administrador
+    let authorizedManagerName: string | null = null
+    if (!isQr) {
+      if (!adminKey || !adminKey.trim()) {
+        return {
+          success: false,
+          error: "Se requiere la clave o PIN generado de un Administrador o Gerente para registrar por cédula."
+        }
+      }
+
+      const trimmedKey = adminKey.trim()
+
+      // 1. Buscar coincidencia con PIN generado (accessPin) de Administrador o Gerente
+      let authorizedManager: any = await prisma.user.findFirst({
+        where: {
+          accessPin: trimmedKey,
+          role: { in: ["admin", "gerente"] },
+          NOT: { role: "deleted" }
+        }
+      })
+
+      // 2. Si no coincidió por accessPin, verificar por contraseña (bcrypt o directa)
+      if (!authorizedManager) {
+        const managers = await prisma.user.findMany({
+          where: {
+            role: { in: ["admin", "gerente"] },
+            NOT: { role: "deleted" }
+          }
+        })
+        for (const mgr of managers) {
+          let matches = false
+          try {
+            matches = await bcrypt.compare(trimmedKey, mgr.password || "")
+          } catch {
+            matches = false
+          }
+          if (!matches && mgr.password === trimmedKey) {
+            matches = true
+          }
+          if (matches) {
+            authorizedManager = mgr
+            break
+          }
+        }
+      }
+
+      if (!authorizedManager) {
+        return {
+          success: false,
+          error: "Clave o PIN de autorización incorrecto. Se requiere autorización de un Administrador o Gerente."
+        }
+      }
+
+      authorizedManagerName = authorizedManager.name
+    }
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -19,7 +80,7 @@ export async function checkInByCedula(code: string) {
     });
 
     if (!user) {
-      return { success: false, error: "Usuario no encontrado" };
+      return { success: false, error: "Usuario no encontrado con la cédula indicada." };
     }
     
     // Validar membresía si es atleta
@@ -36,7 +97,7 @@ export async function checkInByCedula(code: string) {
         });
         return { 
           success: false, 
-          error: anyMembership ? "Membresía vencida" : "Atleta no tiene membresía activa" 
+          error: anyMembership ? "Membresía vencida. El atleta debe renovar para ingresar." : "Atleta no tiene membresía activa." 
         };
       }
     }
@@ -53,6 +114,7 @@ export async function checkInByCedula(code: string) {
     return { 
       success: true, 
       user: { name: user.name, role: user.role }, 
+      authorizedBy: authorizedManagerName,
       attendance 
     };
 

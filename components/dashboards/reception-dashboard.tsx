@@ -19,7 +19,6 @@ import {
   RefreshCw,
   ShoppingBag,
 } from "lucide-react"
-import { athleteService, AthleteProfile, dataService } from "@/lib/data-service"
 import Link from "next/link"
 import { QRScanner } from "@/components/qr-scanner"
 import { Loader } from "@/components/ui/loader"
@@ -27,13 +26,10 @@ import Swal from "sweetalert2"
 
 export function ReceptionDashboard() {
   const { user } = useAuth()
-  const [athletes, setAthletes] = useState<AthleteProfile[]>([])
-  const [search, setSearch] = useState("")
   const [pendingOrders, setPendingOrders] = useState<any[]>([])
   const [showScanner, setShowScanner] = useState(false)
   const [cashSession, setCashSession] = useState<any>(null)
   const [isLoadingSession, setIsLoadingSession] = useState(true)
-  const [checkedInIds, setCheckedInIds] = useState<Record<string, boolean>>({})
   const [universalSearch, setUniversalSearch] = useState("")
 
   // Estados para Historial en Vivo de Asistencias y Ventas
@@ -87,7 +83,6 @@ export function ReceptionDashboard() {
   useEffect(() => {
     fetchPendingOrders()
     fetchTodayData()
-    setAthletes(athleteService.getAthletes())
 
     // Consultar turno de caja activo
     if (user?.id) {
@@ -108,23 +103,54 @@ export function ReceptionDashboard() {
 
   const handleUniversalCheckIn = async (e?: React.FormEvent, code?: string) => {
     if (e) e.preventDefault()
-    const targetCode = code || universalSearch
+    const targetCode = (code || universalSearch).trim()
     if (!targetCode) return
 
-    const { checkInByCedula } = await import("@/app/actions/attendance")
-    const res = await checkInByCedula(targetCode)
-    const { swalTheme } = await import("@/lib/confirm")
+    const { swalTheme, themeColor } = await import("@/lib/confirm")
     const theme = swalTheme()
+
+    let managerOrAdminKey: string | undefined = undefined
+
+    // Si el registro es manual por cédula (no por escáner QR directo), solicitar clave o PIN generado de Gerente / Administrador
+    if (!code) {
+      const { value: key } = await Swal.fire({
+        title: "Autorización Requerida",
+        html: `
+          <div class="text-sm text-muted-foreground text-left space-y-2 mb-2">
+            <p>Para recepcionar manualmente por cédula a <b>C.I. ${targetCode}</b>, ingresa la clave o PIN generado de un <b>Gerente</b> o <b>Administrador</b>:</p>
+          </div>
+        `,
+        input: "password",
+        inputPlaceholder: "Clave o PIN generado...",
+        inputAttributes: {
+          autocomplete: "off",
+          autocapitalize: "off",
+        },
+        showCancelButton: true,
+        ...theme,
+        confirmButtonText: "Autorizar y Recepcionar",
+        cancelButtonText: "Cancelar",
+        reverseButtons: true,
+        inputValidator: (v) => (!v || !v.trim() ? "Debes ingresar la clave o PIN de autorización" : undefined),
+      })
+
+      if (!key) return
+      managerOrAdminKey = key.trim()
+    }
+
+    const { checkInByCedula } = await import("@/app/actions/attendance")
+    const res = await checkInByCedula(targetCode, managerOrAdminKey, Boolean(code))
 
     if (res.success) {
       Swal.fire({
         toast: true,
         position: "top-end",
         showConfirmButton: false,
-        timer: 3000,
+        timer: 3500,
         timerProgressBar: true,
         icon: "success",
-        title: `✅ Entrada: ${res.user?.name} (${res.user?.role})`,
+        title: `✅ Entrada: ${res.user?.name} (${res.user?.role === 'athlete' ? 'Atleta' : 'Empleado'})`,
+        text: res.authorizedBy ? `Autorizado por: ${res.authorizedBy}` : undefined,
         ...theme,
         customClass: {
           popup: "border border-black/10 dark:border-white/10 rounded-xl shadow-xl glass",
@@ -135,17 +161,11 @@ export function ReceptionDashboard() {
       fetchTodayData()
     } else {
       Swal.fire({
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 3500,
-        timerProgressBar: true,
+        title: "No se pudo recepcionar",
+        text: res.error || "Error al procesar la entrada",
         icon: "error",
-        title: res.error,
         ...theme,
-        customClass: {
-          popup: "border border-destructive/30 rounded-xl shadow-xl glass",
-        },
+        confirmButtonColor: themeColor("destructive") || "#ef4444",
       })
     }
   }
@@ -216,34 +236,6 @@ export function ReceptionDashboard() {
     }
   }
 
-  const handleCheckIn = (id: string) => {
-    const routines = dataService.getRoutines()
-    const today = new Date().toISOString().split("T")[0]
-    const activeRoutine = routines.find((r) => r.athleteId === id && r.date === today)
-
-    if (activeRoutine) {
-      dataService.verifyByCoach(activeRoutine.id)
-    }
-
-    setCheckedInIds((prev) => ({ ...prev, [id]: true }))
-    import("sweetalert2").then((Swal) => {
-      Swal.default.fire({
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-        icon: "success",
-        title: "Entrada registrada exitosamente",
-      })
-    })
-    fetchTodayData()
-  }
-
-  const filteredAthletes = athletes.filter(
-    (a) => a.name.toLowerCase().includes(search.toLowerCase()) || a.cedula.includes(search)
-  )
-
   return (
     <div className="space-y-6">
       {/* Encabezado y Accesos Directos */}
@@ -259,7 +251,7 @@ export function ReceptionDashboard() {
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground hover:text-foreground transition shadow-sm"
+            className="p-2.5 rounded-xl border-2 border-primary/40 hover:border-primary text-primary hover:bg-primary/10 transition shadow-sm cursor-pointer"
             title="Refrescar datos en vivo"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -267,7 +259,7 @@ export function ReceptionDashboard() {
 
           <Link
             href="/tienda"
-            className="bg-primary text-primary-foreground px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md hover:bg-primary/90 transition flex items-center gap-2"
+            className="border-2 border-primary text-primary hover:bg-primary/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
           >
             <Store className="h-4 w-4" />
             Punto de Venta
@@ -275,7 +267,7 @@ export function ReceptionDashboard() {
 
           <Link
             href="/asistencia"
-            className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-foreground px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:bg-black/10 dark:hover:bg-white/10 transition flex items-center gap-2"
+            className="border-2 border-primary/50 text-foreground hover:border-primary hover:bg-primary/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
           >
             <ClipboardCheck className="h-4 w-4 text-primary" />
             Asistencia General
@@ -283,7 +275,7 @@ export function ReceptionDashboard() {
 
           <Link
             href="/registro"
-            className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-foreground px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:bg-black/10 dark:hover:bg-white/10 transition flex items-center gap-2"
+            className="border-2 border-emerald-500/50 text-foreground hover:border-emerald-500 hover:bg-emerald-500/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
           >
             <Users className="h-4 w-4 text-emerald-500" />
             Nuevo Atleta
@@ -291,7 +283,7 @@ export function ReceptionDashboard() {
 
           <Link
             href="/membresias"
-            className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-foreground px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:bg-black/10 dark:hover:bg-white/10 transition flex items-center gap-2"
+            className="border-2 border-amber-500/50 text-foreground hover:border-amber-500 hover:bg-amber-500/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
           >
             <CreditCard className="h-4 w-4 text-amber-500" />
             Membresías
@@ -387,44 +379,69 @@ export function ReceptionDashboard() {
         </div>
       </div>
 
-      {/* Reloj Checador Principal (Staff y Atletas) */}
-      <Card className="border-primary/50 shadow-lg shadow-primary/10 overflow-hidden">
-        <CardHeader className="bg-primary/5 border-b border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg font-black flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" /> Reloj Checador (Acceso Rápido)
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Escanea el código QR o escribe la cédula para validar entrada de atletas y empleados.
+      {/* Recepcionar un Atleta o Empleado (Card Cuadrado, Elegante y Compacto) */}
+      <div className="flex justify-center">
+        <Card className="w-full max-w-lg rounded-3xl border-2 border-primary/30 bg-card p-6 sm:p-8 shadow-xl relative overflow-hidden text-center space-y-6">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="space-y-2 relative z-10">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-primary shadow-inner">
+              <QrCode className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+              Recepcionar un Atleta o Empleado
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+              Escanea el código QR personal o ingresa la cédula con la clave autorizada de Gerente / Administrador.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="bg-primary text-white font-bold px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition shadow-sm text-sm"
-          >
-            <Camera className="h-4 w-4" /> Escanear Código QR
-          </button>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <form onSubmit={handleUniversalCheckIn} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Escribe la Cédula para registrar entrada..."
-              value={universalSearch}
-              onChange={(e) => setUniversalSearch(e.target.value)}
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3.5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-center"
-              autoFocus
-            />
+
+          <div className="space-y-4 relative z-10">
+            {/* Botón Principal: Escanear QR (Outline) */}
             <button
-              type="submit"
-              className="bg-primary text-white font-black px-8 py-3.5 rounded-xl shadow hover:bg-primary/90 transition text-sm sm:text-base whitespace-nowrap cursor-pointer"
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="w-full border-2 border-primary text-primary hover:bg-primary/10 rounded-2xl py-3.5 px-4 font-bold flex items-center justify-center gap-2.5 transition shadow-sm group text-sm sm:text-base cursor-pointer"
             >
-              Marcar Entrada
+              <Camera className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+              Escanear Código QR
             </button>
-          </form>
-        </CardContent>
-      </Card>
+
+            <div className="relative flex items-center justify-center py-1">
+              <div className="border-t border-black/10 dark:border-white/10 w-full" />
+              <span className="bg-card px-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                O ingreso por cédula
+              </span>
+              <div className="border-t border-black/10 dark:border-white/10 w-full" />
+            </div>
+
+            {/* Formulario de Entrada por Cédula */}
+            <form onSubmit={handleUniversalCheckIn} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Escribe la cédula para recepcionar..."
+                value={universalSearch}
+                onChange={(e) => setUniversalSearch(e.target.value)}
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl p-3.5 text-center text-base font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+              />
+
+              <button
+                type="submit"
+                className="w-full border-2 border-primary text-primary hover:bg-primary/10 rounded-2xl py-3.5 px-4 font-bold flex items-center justify-center gap-2.5 transition shadow-sm text-sm sm:text-base cursor-pointer"
+              >
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                Recepcionar por Cédula
+              </button>
+            </form>
+
+            <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
+              <span className="text-amber-500 font-bold">🔐</span>
+              <span>El ingreso por cédula solicita la clave o PIN de Gerente / Administrador</span>
+            </p>
+          </div>
+        </Card>
+      </div>
 
       {/* Grid de 2 Columnas: Historial de Asistencias de Hoy vs Ventas y Despacho */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -650,68 +667,6 @@ export function ReceptionDashboard() {
         </div>
       </div>
 
-      {/* Control de Acceso Manual de Atletas */}
-      <Card className="rounded-3xl border border-black/10 dark:border-white/10 shadow-sm">
-        <CardHeader className="pb-3 border-b border-black/5 dark:border-white/5">
-          <CardTitle className="text-base font-black flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-primary" /> Control de Acceso Manual (Directorio)
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Busca rápidamente a un atleta por nombre o cédula para verificar su estatus y permitirle el acceso manual.
-          </p>
-        </CardHeader>
-        <CardContent className="pt-4 space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar por Cédula o Nombre para dar entrada manual..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="space-y-2">
-            {filteredAthletes.slice(0, 6).map((a) => {
-              const isOverdue = new Date(a.membershipEnd) < new Date()
-              return (
-                <div
-                  key={a.id}
-                  className="flex justify-between items-center p-3 border border-black/10 dark:border-white/10 rounded-xl bg-card hover:bg-black/5 dark:hover:bg-white/5 transition"
-                >
-                  <div>
-                    <h4 className="font-bold text-sm text-foreground">
-                      {a.name} <span className="text-xs text-muted-foreground font-mono">(C.I. {a.cedula})</span>
-                    </h4>
-                    <p className={`text-xs ${isOverdue ? "text-destructive font-bold" : "text-muted-foreground"}`}>
-                      Membresía: {new Date(a.membershipEnd).toLocaleDateString()} {isOverdue && "(VENCIDA)"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleCheckIn(a.id)}
-                    disabled={isOverdue || checkedInIds[a.id]}
-                    className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 transition ${
-                      isOverdue
-                        ? "bg-black/10 dark:bg-white/10 text-muted-foreground cursor-not-allowed"
-                        : checkedInIds[a.id]
-                        ? "bg-emerald-500 text-white"
-                        : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                    }`}
-                  >
-                    <ClipboardCheck className="h-4 w-4" />
-                    {isOverdue ? "Vencido" : checkedInIds[a.id] ? "Ingresado" : "Dar Entrada"}
-                  </button>
-                </div>
-              )
-            })}
-            {filteredAthletes.length === 0 && search && (
-              <div className="text-center p-6 text-sm text-muted-foreground">
-                No se encontró ningún atleta con el criterio especificado.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Modal de Escáner QR */}
       {showScanner && (
