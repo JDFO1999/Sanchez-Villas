@@ -162,11 +162,24 @@ export default function EntrenadoresPage() {
                       <p className="text-xs font-mono text-muted-foreground mt-0.5">
                         C.I. {coach.cedula}
                       </p>
-                      {coach.specialties && (
-                        <p className="text-xs text-foreground/80 mt-1 line-clamp-1 italic">
-                          {coach.specialties}
-                        </p>
-                      )}
+                      {(() => {
+                        const raw = coach.specialties
+                        if (!raw) return null
+                        let display = raw
+                        if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+                          try {
+                            const parsed = JSON.parse(raw)
+                            display = parsed.text || parsed.specialties || parsed.specialty || ''
+                          } catch {
+                            display = ''
+                          }
+                        }
+                        return display ? (
+                          <p className="text-xs text-foreground/80 mt-1 line-clamp-1 italic">
+                            {display}
+                          </p>
+                        ) : null
+                      })()}
                     </div>
                   </div>
 

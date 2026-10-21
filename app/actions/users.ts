@@ -98,6 +98,21 @@ export async function createEmployee(data: any, adminPassword?: string) {
 
     const finalPin = data.pin || existingUser?.accessPin || (roleUsesBarcodePin(data.role) ? generateBarcodePin() : null)
 
+    let finalSpecialties = existingUser?.specialties || null
+    if (data.specialties !== undefined) {
+      if (existingUser?.specialties && existingUser.specialties.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(existingUser.specialties)
+          parsed.text = data.specialties || ''
+          finalSpecialties = JSON.stringify(parsed)
+        } catch {
+          finalSpecialties = data.specialties || null
+        }
+      } else {
+        finalSpecialties = data.specialties || null
+      }
+    }
+
     if (existingUser) {
       const updatedUser = await prisma.user.update({
         where: { id: existingUser.id },
@@ -112,7 +127,7 @@ export async function createEmployee(data: any, adminPassword?: string) {
           paymentFrequency: data.paymentFrequency || existingUser.paymentFrequency || 'monthly',
           birthDate: data.birthDate || existingUser.birthDate || null,
           profession: data.profession || existingUser.profession || null,
-          specialties: data.specialties || existingUser.specialties || null,
+          specialties: finalSpecialties,
           nonWorkingDays: data.nonWorkingDays || existingUser.nonWorkingDays || null,
           bankAccount: data.bankAccount || existingUser.bankAccount || null,
           mobilePayment: data.mobilePayment || existingUser.mobilePayment || null,
@@ -265,15 +280,17 @@ export async function getAllEmployees() {
 
     const attachPermissions = (emps: any[]) => emps.map(e => {
       let permissions: string[] = []
+      let cleanSpecialties = e.specialties || ''
       if (e.specialties) {
         try {
-          if (e.specialties.startsWith('{') && e.specialties.includes('"permissions"')) {
+          if (e.specialties.startsWith('{')) {
             const parsed = JSON.parse(e.specialties)
             if (Array.isArray(parsed.permissions)) permissions = parsed.permissions
+            cleanSpecialties = parsed.text || parsed.specialties || parsed.specialty || ''
           }
         } catch {}
       }
-      return { ...e, permissions }
+      return { ...e, permissions, specialties: cleanSpecialties }
     })
 
     // Administrador: ficha completa (incluye PIN para gestionar cajeros), nunca el hash de contraseña.
@@ -287,10 +304,19 @@ export async function getAllEmployees() {
     // Atletas: solo la lista pública de entrenadores (para pedir cambio de entrenador).
     const coaches = employees
       .filter(e => e.role === "coach" || e.role === "employee")
-      .map(e => ({
-        id: e.id, name: e.name, role: e.role, profilePicture: e.profilePicture,
-        specialties: e.specialties, bio: e.bio, socialLinks: e.socialLinks,
-      }))
+      .map(e => {
+        let cleanSpecialties = e.specialties || ''
+        if (e.specialties && e.specialties.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(e.specialties)
+            cleanSpecialties = parsed.text || parsed.specialties || parsed.specialty || ''
+          } catch {}
+        }
+        return {
+          id: e.id, name: e.name, role: e.role, profilePicture: e.profilePicture,
+          specialties: cleanSpecialties, bio: e.bio, socialLinks: e.socialLinks,
+        }
+      })
     return { success: true, employees: coaches }
   } catch (error: any) {
     return { success: false, error: friendlyError(error), employees: [] }
@@ -303,7 +329,17 @@ export async function getPublicCoaches() {
       where: { role: { in: ['coach', 'employee'] } },
       select: { id: true, name: true, specialties: true, profilePicture: true }
     })
-    return { success: true, coaches }
+    const cleaned = coaches.map((c: any) => {
+      let cleanSpecialties = c.specialties || ''
+      if (c.specialties && c.specialties.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(c.specialties)
+          cleanSpecialties = parsed.text || parsed.specialties || parsed.specialty || ''
+        } catch {}
+      }
+      return { ...c, specialties: cleanSpecialties }
+    })
+    return { success: true, coaches: cleaned }
   } catch (error: any) {
     return { success: false, coaches: [] }
   }
@@ -1000,7 +1036,26 @@ export async function getCoachesWithAthletesAction() {
       orderBy: { name: "asc" }
     })
 
-    return { success: true, coaches: stripSecrets(coaches) }
+    const mappedCoaches = coaches.map((c: any) => {
+      let permissions: string[] = []
+      let cleanSpecialties = c.specialties || ''
+      if (c.specialties) {
+        try {
+          if (c.specialties.startsWith('{')) {
+            const parsed = JSON.parse(c.specialties)
+            if (Array.isArray(parsed.permissions)) permissions = parsed.permissions
+            cleanSpecialties = parsed.text || parsed.specialties || parsed.specialty || ''
+          }
+        } catch {}
+      }
+      return {
+        ...c,
+        permissions,
+        specialties: cleanSpecialties
+      }
+    })
+
+    return { success: true, coaches: stripSecrets(mappedCoaches) }
   } catch (error: any) {
     console.error("getCoachesWithAthletesAction error:", error)
     return { success: false, error: friendlyError(error), coaches: [] }
@@ -1019,8 +1074,12 @@ export async function updateEmployeePermissionsAction(userId: string, permission
       try {
         if (target.specialties.startsWith('{')) {
           dataObj = JSON.parse(target.specialties)
+        } else {
+          dataObj = { text: target.specialties }
         }
-      } catch {}
+      } catch {
+        dataObj = { text: target.specialties }
+      }
     }
     dataObj.permissions = permissions
 
@@ -1031,6 +1090,7 @@ export async function updateEmployeePermissionsAction(userId: string, permission
 
     revalidatePath("/empleados")
     revalidatePath("/ajustes")
+    revalidatePath("/entrenadores")
     revalidatePath("/")
     return { success: true }
   } catch (error: any) {
