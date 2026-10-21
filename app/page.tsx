@@ -17,18 +17,35 @@ export default function HomePage() {
     return <GymLandingPage />
   }
 
-  // Si el usuario está autenticado, renderizar su panel de control correspondiente
-  if (user?.role === 'admin' || user?.role === 'gerente' || user?.permissions?.includes('FINANCE_MANAGE') || user?.permissions?.includes('STAFF_MANAGE')) {
-    return <AdminDashboard />
-  }
-  if (user?.role === 'athlete') return <AthleteDashboard />
-  
-  // Recepción / Cajero
-  if (user?.role === 'cajero' || (user?.permissions?.includes('POS_ACCESS') && !user?.permissions?.includes('CRM_MANAGE'))) {
-    return <ReceptionDashboard />
+  // 1. Atleta: visualiza su panel personal de atleta
+  if (user?.role === 'athlete') {
+    return <AthleteDashboard />
   }
 
-  // Por defecto (Entrenador)
-  return <CoachDashboard />
+  // 2. Validación estricta: un Coach NUNCA puede ver finanzas ni el Dashboard de Administrador
+  const isCoach = user?.role === 'coach'
+
+  // 3. El dashboard de Administrador lo ve el Administrador, el Gerente y quien tenga el módulo de Finanzas activo (excepto coach)
+  const hasFinanceActive = Boolean(
+    user?.permissions?.includes('FINANCE_MANAGE') ||
+    user?.permissions?.includes('FINANCE_VIEW')
+  )
+  const canViewAdminDashboard = !isCoach && (
+    user?.role === 'admin' ||
+    user?.role === 'gerente' ||
+    hasFinanceActive
+  )
+
+  if (canViewAdminDashboard) {
+    return <AdminDashboard />
+  }
+
+  // 4. Entrenador Oficial: visualiza exclusivamente el CoachDashboard
+  if (isCoach) {
+    return <CoachDashboard />
+  }
+
+  // 5. Recepción, Cajero y personal de atención: visualizan el ReceptionDashboard
+  return <ReceptionDashboard />
 }
 

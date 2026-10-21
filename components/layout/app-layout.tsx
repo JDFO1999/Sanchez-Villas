@@ -105,7 +105,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (user?.role === 'coach') {
     currentNavItems = [
       { name: "Panel Principal", href: "/", icon: Home },
-      { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
+      { name: "Mi Perfil", href: "/perfil", icon: UserIcon },
       { name: "Mis Atletas", href: "/mis-atletas", icon: Users },
     ]
     if ((user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {

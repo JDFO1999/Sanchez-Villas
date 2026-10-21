@@ -201,7 +201,7 @@ export function BaseFooter({
     <footer 
       className="shrink-0 w-full mt-auto bg-card/50 border-t border-black/20 dark:border-white/10 backdrop-blur-md transition-all duration-300 relative"
       style={{
-        paddingTop: `${pY * 0.25}rem`,
+        paddingTop: '0px',
         paddingBottom: '0.75rem',
         backgroundColor: footerSettings.bgColor ? footerSettings.bgColor : undefined,
         marginTop: mT > 0 ? `${mT * 0.25}rem` : undefined
