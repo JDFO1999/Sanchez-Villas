@@ -7,6 +7,7 @@ import { PageTitle } from "@/components/ui/page-title"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { Loader } from "@/components/ui/loader"
+import { CardGridSkeleton } from "@/components/ui/skeleton"
 import {
   Users,
   Search,
@@ -110,9 +111,7 @@ export default function EntrenadoresPage() {
 
       {/* Grid Principal: Entrenadores */}
       {isLoading ? (
-        <div className="py-20 flex justify-center">
-          <Loader size={60} text="Cargando información de entrenadores..." />
-        </div>
+        <CardGridSkeleton count={6} variant="coach" />
       ) : filteredCoaches.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
           <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />

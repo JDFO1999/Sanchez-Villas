@@ -15,28 +15,13 @@ interface GymLoaderProps {
   progress?: number
 }
 
-const FITNESS_QUOTES = [
-  "Cargando peso a la barra...",
-  "Ajustando las mancuernas...",
-  "Preparando tu próxima serie...",
-  "La disciplina vence a la motivación...",
-  "Sin excusas, cada repetición cuenta...",
-  "Calibrando las máquinas...",
-  "Foco, fuerza y constancia...",
-]
-
 export function GymLoader({
   size = "md",
   text,
-  showQuote = true,
   className = "",
-  progressive = false,
-  progress,
 }: GymLoaderProps) {
   const { settings } = useSettings()
   const { theme, resolvedTheme } = useTheme()
-  const [quoteIndex, setQuoteIndex] = useState(0)
-  const [autoProgress, setAutoProgress] = useState(15)
   const [imgError, setImgError] = useState(false)
 
   const isDark = (resolvedTheme || theme) === "dark"
@@ -48,270 +33,77 @@ export function GymLoader({
       const saved = localStorage.getItem("gympro_settings")
       if (saved) {
         const parsed = JSON.parse(saved)
-        cachedLogo = isDark ? (parsed.logoUrlDark || parsed.logoUrl || "") : (parsed.logoUrl || parsed.logoUrlDark || "")
+        cachedLogo = (isDark && parsed.logoUrlDark) ? parsed.logoUrlDark : (parsed.logoUrl || parsed.logoUrlDark || "")
         cachedName = parsed.appName || ""
       }
     } catch {}
   }
 
-  const rawLogo = isDark 
-    ? (settings.logoUrlDark || settings.logoUrl || cachedLogo) 
+  const rawLogo = (isDark && settings.logoUrlDark)
+    ? settings.logoUrlDark
     : (settings.logoUrl || settings.logoUrlDark || cachedLogo)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [rawLogo])
+
   const logoSrc = !imgError && rawLogo ? rawLogo : ""
   const appName = settings.appName || cachedName || ""
 
-
-  useEffect(() => {
-    if (!showQuote) return
-    const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % FITNESS_QUOTES.length)
-    }, 2400)
-    return () => clearInterval(interval)
-  }, [showQuote])
-
-  useEffect(() => {
-    if (!progressive || progress !== undefined) return
-    setAutoProgress(15)
-    const interval = setInterval(() => {
-      setAutoProgress((prev) => {
-        if (prev >= 92) return prev
-        const remaining = 95 - prev
-        const step = Math.max(1, remaining * 0.12)
-        return Math.min(92, prev + step)
-      })
-    }, 120)
-    return () => clearInterval(interval)
-  }, [progressive, progress])
-
-  const currentProgress = progress !== undefined ? progress : autoProgress
-
-  const dimensions = {
-    sm: { width: 140, height: 48, barH: 4, plateH: 28, plateW: 8, text: "text-xs" },
-    md: { width: 210, height: 70, barH: 6, plateH: 44, plateW: 11, text: "text-sm" },
-    lg: { width: 280, height: 92, barH: 8, plateH: 60, plateW: 16, text: "text-base" },
-  }[size]
-
-  // Dimensiones notablemente aumentadas para un impacto visual imponente
-  const logoH = size === "sm" ? 70 : size === "md" ? 110 : 160
-  const logoMaxW = size === "sm" ? 220 : size === "md" ? 340 : 460
+  const logoH = size === "sm" ? 50 : size === "md" ? 75 : 95
 
   return (
     <div className={`flex flex-col items-center justify-center select-none ${className}`}>
-      {/* Brand Logo or Name prominently displayed */}
-      {logoSrc ? (
-        <div className="mb-8 relative flex flex-col items-center">
-          {/* Glowing Aura detrás del logo */}
-          <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150 animate-logo-glow pointer-events-none" />
-          <img
-            src={logoSrc}
-            alt={appName || "Logo Empresa"}
-            onError={() => setImgError(true)}
-            style={{
-              height: logoH,
-              maxWidth: logoMaxW,
-              objectFit: "contain",
-            }}
-            className="relative z-10 drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] transition-all animate-pulse"
-          />
-          {appName && size !== "sm" && (
-            <span className="font-display font-black text-xl md:text-3xl uppercase tracking-wider text-foreground mt-3 drop-shadow">
-              {appName}
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="mb-8 relative flex flex-col items-center">
-          {/* Glowing Aura detrás del emblema */}
-          <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150 animate-logo-glow pointer-events-none" />
-          <div className="relative z-10 w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-primary/15 border-2 border-primary/50 flex items-center justify-center shadow-2xl shadow-primary/30 drop-shadow animate-pulse">
-            <Dumbbell className="w-10 h-10 md:w-12 md:h-12 text-primary" />
+      <div className="relative flex flex-col items-center">
+        {/* Soft Ambient Brand Glow */}
+        <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-125 animate-pulse pointer-events-none" />
+
+        {logoSrc ? (
+          <div className="relative z-10 flex flex-col items-center mb-4">
+            <img
+              src={logoSrc}
+              alt={appName || "Logo"}
+              onError={() => setImgError(true)}
+              style={{
+                height: logoH,
+                maxWidth: 240,
+                objectFit: "contain",
+              }}
+              className="drop-shadow-lg transition-transform animate-pulse"
+            />
+            {appName && size !== "sm" && (
+              <span className="font-display font-black text-lg md:text-2xl uppercase tracking-wider text-foreground mt-2 drop-shadow">
+                {appName}
+              </span>
+            )}
           </div>
-          {appName && (
-            <span className="font-display font-black text-xl md:text-3xl uppercase tracking-wider text-foreground mt-3 drop-shadow">
-              {appName}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Animated Olympic Barbell */}
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: dimensions.width, height: dimensions.height }}
-      >
-        {/* Ambient Glow */}
-        <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse pointer-events-none" />
-
-        {/* Barbell Assembly Container with Bench Press / Deadlift vertical motion */}
-        <div className="relative w-full flex items-center justify-center animate-gym-lift">
-          {/* Outer Left Plate */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-700 via-zinc-900 to-black border border-primary/50 shadow-lg shadow-black/60 relative"
-            style={{
-              width: dimensions.plateW * 0.75,
-              height: dimensions.plateH * 0.75,
-              marginRight: 2,
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/10 rounded-sm" />
-          </div>
-
-          {/* Medium Left Plate */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-600 via-zinc-800 to-black border border-primary/60 shadow-lg shadow-black/60 relative"
-            style={{
-              width: dimensions.plateW * 0.85,
-              height: dimensions.plateH * 0.88,
-              marginRight: 2,
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/15 rounded-sm" />
-          </div>
-
-          {/* Heavy Inner Left Plate (45LB / 20KG) */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-500 via-zinc-800 to-black border-2 border-primary shadow-xl shadow-primary/25 relative"
-            style={{
-              width: dimensions.plateW,
-              height: dimensions.plateH,
-              marginRight: 4,
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-1 h-3 rounded-full bg-primary/80 animate-ping opacity-75" />
+        ) : (
+          <div className="relative z-10 flex flex-col items-center mb-4">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
+              <Dumbbell className="w-8 h-8 md:w-10 md:h-10 text-primary" />
             </div>
+            {appName && (
+              <span className="font-display font-black text-lg md:text-xl uppercase tracking-wider text-foreground mt-2">
+                {appName}
+              </span>
+            )}
           </div>
+        )}
 
-          {/* Left Collar / Grip Ring */}
-          <div
-            className="rounded-xs bg-amber-400 border border-amber-300 shadow-sm"
-            style={{ width: 4, height: dimensions.plateH * 0.5 }}
-          />
-
-          {/* Steel Knurled Bar */}
-          <div
-            className="flex-1 bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400 dark:from-zinc-500 dark:via-zinc-200 dark:to-zinc-500 shadow-md relative overflow-hidden rounded-full"
-            style={{ height: dimensions.barH, minWidth: 40 }}
-          >
-            {/* Knurling texture highlights */}
-            <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_3px,rgba(0,0,0,0.25)_3px,rgba(0,0,0,0.25)_5px)] opacity-60" />
-            {/* Center ring marker */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-1.5 -translate-x-1/2 bg-primary/80" />
-          </div>
-
-          {/* Right Collar / Grip Ring */}
-          <div
-            className="rounded-xs bg-amber-400 border border-amber-300 shadow-sm"
-            style={{ width: 4, height: dimensions.plateH * 0.5 }}
-          />
-
-          {/* Heavy Inner Right Plate (45LB / 20KG) */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-500 via-zinc-800 to-black border-2 border-primary shadow-xl shadow-primary/25 relative"
-            style={{
-              width: dimensions.plateW,
-              height: dimensions.plateH,
-              marginLeft: 4,
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-1 h-3 rounded-full bg-primary/80 animate-ping opacity-75" />
-            </div>
-          </div>
-
-          {/* Medium Right Plate */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-600 via-zinc-800 to-black border border-primary/60 shadow-lg shadow-black/60 relative"
-            style={{
-              width: dimensions.plateW * 0.85,
-              height: dimensions.plateH * 0.88,
-              marginLeft: 2,
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/15 rounded-sm" />
-          </div>
-
-          {/* Outer Right Plate */}
-          <div
-            className="rounded-sm bg-gradient-to-b from-zinc-700 via-zinc-900 to-black border border-primary/50 shadow-lg shadow-black/60 relative"
-            style={{
-              width: dimensions.plateW * 0.75,
-              height: dimensions.plateH * 0.75,
-              marginLeft: 2,
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/10 rounded-sm" />
-          </div>
+        {/* Minimalist Spinner & Status Text */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="text-xs md:text-sm font-semibold tracking-wide text-muted-foreground">
+            {text || "Cargando..."}
+          </span>
         </div>
       </div>
-
-      {/* Progressive Bar or Gym Rep Cadence Pulse Bar */}
-      {progressive ? (
-        <div className="w-64 sm:w-80 mt-5 flex flex-col items-center gap-2">
-          <div className="w-full h-3 bg-black/25 dark:bg-zinc-800/80 rounded-full overflow-hidden p-0.5 border border-primary/20 backdrop-blur-sm shadow-inner relative">
-            <div
-              className="h-full bg-gradient-to-r from-primary/70 via-primary to-emerald-400 rounded-full transition-[width] duration-200 ease-out shadow-[0_0_14px_rgba(34,197,94,0.6)] relative"
-              style={{ width: `${Math.min(100, Math.max(0, currentProgress))}%` }}
-            >
-              <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white/80 rounded-full blur-[1px]" />
-            </div>
-          </div>
-          <div className="w-full flex justify-between items-center text-xs font-semibold tracking-wider text-muted-foreground px-1">
-            <span className="truncate max-w-[200px]">
-              {text || (showQuote ? FITNESS_QUOTES[quoteIndex] : "Cargando...")}
-            </span>
-            <span className="font-mono text-primary font-bold text-xs">{Math.round(currentProgress)}%</span>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="w-32 h-1 bg-zinc-800 rounded-full mt-4 overflow-hidden relative">
-            <div className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full animate-gym-bar-pulse" />
-          </div>
-          <div className="mt-3.5 text-center px-4 max-w-sm">
-            <p className={`font-semibold tracking-wide text-foreground transition-all duration-300 ${dimensions.text}`}>
-              {text || (showQuote ? FITNESS_QUOTES[quoteIndex] : "Cargando...")}
-            </p>
-          </div>
-        </>
-      )}
-
-      <style jsx global>{`
-        @keyframes gymLift {
-          0%, 100% {
-            transform: translateY(4px) scale(0.98);
-          }
-          50% {
-            transform: translateY(-8px) scale(1.02);
-          }
-        }
-        @keyframes gymBarPulse {
-          0% {
-            transform: translateX(-100%);
-          }
-          50% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        .animate-gym-lift {
-          animation: gymLift 1.8s ease-in-out infinite;
-        }
-        .animate-gym-bar-pulse {
-          animation: gymBarPulse 1.8s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }
 
 export function FullScreenGymLoader({
   text,
-  showQuote = true,
-  progressive = true,
-  progress,
   className = "",
 }: {
   text?: string
@@ -328,20 +120,9 @@ export function FullScreenGymLoader({
 
   const loaderOverlay = (
     <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/90 dark:bg-black/90 backdrop-blur-xl transition-all duration-300 ${className}`}>
-      {progressive && (
-        <div className="fixed top-0 left-0 right-0 h-1 z-[10001] bg-transparent">
-          <div
-            className="h-full bg-gradient-to-r from-primary via-emerald-400 to-primary transition-[width] duration-200 ease-out shadow-[0_0_12px_rgba(34,197,94,0.8)]"
-            style={{ width: `${Math.min(100, Math.max(0, progress !== undefined ? progress : 65))}%` }}
-          />
-        </div>
-      )}
       <GymLoader
         size="lg"
         text={text}
-        showQuote={showQuote}
-        progressive={progressive}
-        progress={progress}
       />
     </div>
   )
@@ -352,4 +133,3 @@ export function FullScreenGymLoader({
 
   return loaderOverlay
 }
-

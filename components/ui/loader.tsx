@@ -18,4 +18,6 @@ export const FullScreenLoader = ({ text = "", progressive = true, progress }: { 
 
 export { GymLoader, FullScreenGymLoader }
 export { ProgressiveRouteLoader } from './progressive-route-loader'
+export { Skeleton, CardGridSkeleton, CoachCardSkeleton, AthleteCardSkeleton } from './skeleton'
+
 

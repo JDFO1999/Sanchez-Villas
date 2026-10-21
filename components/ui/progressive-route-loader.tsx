@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
@@ -144,15 +144,13 @@ export function ProgressiveRouteLoader() {
 
   return (
     <div
-      className={`transition-opacity duration-200 pointer-events-auto ${
+      className={`fixed top-0 left-0 right-0 h-[3px] z-[99999] pointer-events-none transition-opacity duration-300 ${
         isClosing ? "opacity-0" : "opacity-100"
       }`}
     >
-      <FullScreenGymLoader
-        text={targetLabel}
-        progressive={true}
-        progress={progress}
-        showQuote={true}
+      <div
+        className="h-full bg-gradient-to-r from-primary via-amber-400 to-emerald-400 transition-[width] duration-150 ease-out shadow-[0_0_10px_rgba(212,175,55,0.7)]"
+        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
       />
     </div>
   )

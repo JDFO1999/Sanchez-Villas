@@ -6,6 +6,7 @@ import { getCoachAthletes } from "@/app/actions/routines"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Eye, Users } from "lucide-react"
 import { Loader } from "@/components/ui/loader"
+import { CardGridSkeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 
 export default function MisAtletasPage() {
@@ -64,9 +65,7 @@ export default function MisAtletasPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader size={48} text="Cargando tus atletas..." />
-            </div>
+            <CardGridSkeleton count={3} variant="athlete" />
           ) : filteredAthletes.length === 0 ? (
             <p className="text-muted-foreground text-sm">No se encontraron atletas.</p>
           ) : (

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Users, ChevronRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
 import { Loader } from "@/components/ui/loader"
+import { CardGridSkeleton } from "@/components/ui/skeleton"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
 
 export default function AtletasPage() {
@@ -105,9 +106,7 @@ export default function AtletasPage() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center">
-          <Loader size={60} text={isCoach ? "Cargando tus atletas asignados..." : "Cargando directorio de atletas..."} />
-        </div>
+        <CardGridSkeleton count={6} variant="athlete" />
       ) : filteredAthletes.length === 0 ? (
         <div className="text-center py-16 px-4 rounded-2xl glass border border-dashed border-black/15 dark:border-white/15 my-6">
           <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
