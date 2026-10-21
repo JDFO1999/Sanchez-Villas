@@ -73,7 +73,7 @@ async function resolveAssignment(athleteId: string, requestedCoachId?: string) {
   if (!athlete) return { ok: false as const, error: "Atleta no encontrado" }
 
   if (g.user.role === "athlete" && g.user.id !== athlete.id) return { ok: false as const, error: DENIED }
-  if (g.user.role === "coach" && athlete.coachId && athlete.coachId !== g.user.id) return { ok: false as const, error: DENIED }
+  if ((g.user.role === "coach" || g.user.role === "employee") && athlete.coachId && athlete.coachId !== g.user.id) return { ok: false as const, error: DENIED }
 
   // La autoría sale del servidor: el entrenador del atleta, o quien asigna si es entrenador
   const coachId = athlete.coachId || (isTrainer(g.user.role) ? g.user.id : requestedCoachId) || g.user.id

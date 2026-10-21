@@ -116,7 +116,7 @@ export default function AtletaPerfilPage() {
   useEffect(() => {
     if (getAllEmployees) {
       getAllEmployees().then(res => {
-        setAllCoaches(res.filter((e: any) => e.role === 'coach'))
+        setAllCoaches(res.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
       }).catch(console.error)
     } else {
       setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
@@ -614,7 +614,7 @@ export default function AtletaPerfilPage() {
         
         <div className="flex gap-3 flex-wrap">
 
-          {user?.id === athlete.id && (athlete as any).role === 'coach' && (
+          {user?.id === athlete.id && ((athlete as any).role === 'coach' || (athlete as any).role === 'employee') && (
             <button onClick={() => {
               setEditBio((athlete as any).bio || "");
               try {
@@ -628,7 +628,7 @@ export default function AtletaPerfilPage() {
             </button>
           )}
 
-          {(user?.role === 'admin' || user?.role === 'coach') && (
+          {(user?.role === 'admin' || user?.role === 'coach' || user?.role === 'employee') && (
             <button onClick={() => setShowRoutineModal(true)} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition">
               Asignar Rutina
             </button>
@@ -730,7 +730,7 @@ export default function AtletaPerfilPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" /> Medidas Actuales
               </CardTitle>
-              {(user?.role === 'admin' || user?.role === 'coach') && (
+              {(user?.role === 'admin' || user?.role === 'coach' || user?.role === 'employee') && (
                 <button 
                   onClick={() => setShowForm(!showForm)}
                   className="text-sm bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-3 py-1.5 rounded-lg hover:bg-black/10 dark:bg-white/10 transition"

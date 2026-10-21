@@ -77,7 +77,7 @@ export async function createCommunityPostAction({
 
     if (userPerms.includes("COMMUNITY_POST")) {
       isAllowed = true
-    } else if (user.role === "coach") {
+    } else if (user.role === "coach" || user.role === "employee") {
       try {
         const record = await prisma.systemSetting.findUnique({
           where: { id: "default" },
@@ -227,7 +227,7 @@ export async function toggleCommunityReactionAction(
 
 export async function getCommunityChallengesAction() {
   const user = await getAuthUser()
-  const isPrivileged = user?.role === "admin" || user?.role === "coach"
+  const isPrivileged = user?.role === "admin" || user?.role === "coach" || user?.role === "employee"
 
   try {
     const challenges = await prisma.communityChallenge.findMany({

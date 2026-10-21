@@ -460,7 +460,7 @@ export function ReceptionDashboard() {
                   const roleLabel =
                     person?.role === "athlete"
                       ? "Atleta"
-                      : person?.role === "coach"
+                      : person?.role === "coach" || person?.role === "employee"
                       ? "Entrenador"
                       : "Staff / Empleado"
                   const membershipEnd = person?.memberships?.[0]?.endDate

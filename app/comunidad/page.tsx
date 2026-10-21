@@ -88,7 +88,7 @@ export default function ComunidadPage() {
   const [isLoadingHallOfFame, setIsLoadingHallOfFame] = useState(true)
 
   const isAdmin = user?.role === "admin" || user?.role === "gerente"
-  const isCoach = user?.role === "coach"
+  const isCoach = user?.role === "coach" || user?.role === "employee"
   const hasCommunityPerm = Boolean(user?.permissions?.includes("COMMUNITY_POST"))
   const coachAllowed = isCoach && (settings.allowCoachesToPostCommunity ?? true)
   const canPost = isAdmin || hasCommunityPerm || coachAllowed
@@ -343,7 +343,7 @@ export default function ComunidadPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-primary">
                 {user?.role === "admin" || user?.role === "gerente"
                   ? "Administración"
-                  : user?.role === "coach"
+                  : user?.role === "coach" || user?.role === "employee"
                   ? "Entrenador"
                   : "Atleta Oficial"}
               </span>
@@ -527,7 +527,11 @@ export default function ComunidadPage() {
                               <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
                                 {post.author?.name || "Autor"}
                                 <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-black uppercase">
-                                  {post.author?.role === "admin" ? "Admin" : "Coach"}
+                                  {post.author?.role === "admin" || post.author?.role === "gerente"
+                                    ? "Admin"
+                                    : post.author?.role === "coach" || post.author?.role === "employee"
+                                    ? "Coach"
+                                    : "Atleta"}
                                 </span>
                               </h4>
                               <p className="text-xs text-muted-foreground">

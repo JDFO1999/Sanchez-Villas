@@ -23,7 +23,7 @@ export default function HomePage() {
   }
 
   // 2. Validación estricta: un Coach NUNCA puede ver finanzas ni el Dashboard de Administrador
-  const isCoach = user?.role === 'coach'
+  const isCoach = user?.role === 'coach' || user?.role === 'employee'
 
   // 3. El dashboard de Administrador lo ve el Administrador, el Gerente y quien tenga el módulo de Finanzas activo (excepto coach)
   const hasFinanceActive = Boolean(

@@ -286,7 +286,7 @@ export async function getAllEmployees() {
     }
     // Atletas: solo la lista pública de entrenadores (para pedir cambio de entrenador).
     const coaches = employees
-      .filter(e => e.role === "coach")
+      .filter(e => e.role === "coach" || e.role === "employee")
       .map(e => ({
         id: e.id, name: e.name, role: e.role, profilePicture: e.profilePicture,
         specialties: e.specialties, bio: e.bio, socialLinks: e.socialLinks,
@@ -300,7 +300,7 @@ export async function getAllEmployees() {
 export async function getPublicCoaches() {
   try {
     const coaches = await prisma.user.findMany({
-      where: { role: 'coach' },
+      where: { role: { in: ['coach', 'employee'] } },
       select: { id: true, name: true, specialties: true, profilePicture: true }
     })
     return { success: true, coaches }
@@ -475,7 +475,8 @@ export async function getAthletes() {
   if (!g.ok) return { success: false, error: g.error, athletes: [] }
   try {
     const whereClause: any = { role: 'athlete' }
-    if (g.user.role === 'coach') {
+    const isCoach = g.user.role === 'coach' || g.user.role === 'employee'
+    if (isCoach) {
       whereClause.coachId = g.user.id
     }
     const athletes = await prisma.user.findMany({

@@ -24,7 +24,7 @@ export default function AtletasPage() {
         const empRes = await getAllEmployees()
         if (empRes.success) {
           const map: Record<string, string> = {}
-          ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach') map[e.id] = e.name })
+          ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach' || e.role === 'employee') map[e.id] = e.name })
           setCoaches(map)
         }
         const res = await getAthletes()
@@ -51,12 +51,12 @@ export default function AtletasPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado</div>
   }
 
-  const isCoach = user?.role === 'coach'
+  const isCoach = user?.role === 'coach' || user?.role === 'employee'
   const [filterType, setFilterType] = useState('Todas')
 
   const filteredAthletes = athletes.filter(a => {
     // Si el usuario es entrenador, únicamente puede ver sus atletas asignados
-    if (isCoach && a.coachId !== user.id) return false
+    if (isCoach && a.coachId !== user?.id) return false
 
     const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.cedula.includes(searchTerm)
     if (!matchesSearch) return false
@@ -113,9 +113,15 @@ export default function AtletasPage() {
           <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
             <Users className="h-8 w-8 opacity-80" />
           </div>
-          <h3 className="text-xl font-black text-foreground">No se encontraron atletas</h3>
+          <h3 className="text-xl font-black text-foreground">
+            {isCoach ? "No tienes atletas asignados" : "No se encontraron atletas"}
+          </h3>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-md mx-auto">
-            {searchTerm ? `No hay resultados para "${searchTerm}". Prueba verificando la cédula o el nombre.` : "No hay atletas registrados que coincidan con el filtro seleccionado."}
+            {isCoach
+              ? "Actualmente no tienes ningún atleta asignado a tu supervisión. Contacta a un administrador para que te asigne atletas."
+              : searchTerm
+                ? `No hay resultados para "${searchTerm}". Prueba verificando la cédula o el nombre.`
+                : "No hay atletas registrados que coincidan con el filtro seleccionado."}
           </p>
         </div>
       ) : (

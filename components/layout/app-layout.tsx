@@ -82,6 +82,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   )
   const hasPermission = (perm: string) => effectivePermissions.includes(perm as any)
 
+  const getRoleLabel = (role?: string | null) => {
+    if (!role) return ""
+    switch (role.toLowerCase()) {
+      case "admin":
+        return "Administrador"
+      case "gerente":
+        return "Gerente"
+      case "coach":
+      case "employee":
+        return "Entrenador"
+      case "cajero":
+        return "Cajero"
+      case "recepcion":
+        return "Recepción"
+      case "athlete":
+        return "Atleta"
+      default:
+        return role
+    }
+  }
+
   let currentNavItems: Array<{ name: string; href: string; icon: any }> = []
 
   if (user?.role === 'admin') {
@@ -102,11 +123,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       { name: "Mi Perfil", href: `/atletas/${user.id}`, icon: Users },
       { name: "Comunidad", href: "/comunidad", icon: MessageSquare },
     ]
-  } else if (user?.role === 'coach') {
+  } else if (user?.role === 'coach' || user?.role === 'employee') {
     currentNavItems = [
       { name: "Panel Principal", href: "/", icon: Home },
       { name: "Mi Perfil", href: "/perfil", icon: UserIcon },
-      { name: "Mis Atletas", href: "/mis-atletas", icon: Users },
+      { name: "Mis Atletas", href: "/atletas", icon: Users },
     ]
     if ((user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
@@ -316,7 +337,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
-                href={user.role === 'admin' || user.role === 'gerente' || user.role === 'coach' ? '/perfil' : user.role === 'athlete' ? `/atletas/${user.id}` : '#'}
+                href={user.role !== 'athlete' ? '/perfil' : `/atletas/${user.id}`}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
               >
@@ -334,7 +355,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
                 <div className="hidden sm:flex flex-col text-left">
                   <span className="text-xs font-bold leading-tight text-foreground">{user.name}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">{user.role}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">{getRoleLabel(user.role)}</span>
                 </div>
               </Link>
             </div>

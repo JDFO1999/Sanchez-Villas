@@ -38,8 +38,9 @@ export default function PerfilPage() {
   const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([])
   const [isSavingCoach, setIsSavingCoach] = useState(false)
 
-  const isCoach = user?.role === "coach"
+  const isCoach = user?.role === "coach" || user?.role === "employee"
   const isAdmin = user?.role === "admin" || user?.role === "gerente"
+  const isStaff = isAdmin || isCoach || user?.role === "cajero" || user?.role === "recepcion"
 
   // Sincronizar imagen cuando cargue el usuario desde la sesión
   useEffect(() => {
@@ -75,8 +76,8 @@ export default function PerfilPage() {
     loadCoachDetails()
   }, [isCoach])
 
-  // El perfil administrativo y de entrenadores es privado: solo admin, gerente y coach acceden
-  if (!isAdmin && !isCoach) {
+  // El perfil administrativo y de entrenadores es privado: solo personal autorizado accede
+  if (!isStaff) {
     return (
       <div className="w-full max-w-lg mx-auto mt-16 p-8 rounded-3xl border border-destructive/20 bg-card text-center space-y-4 shadow-xl">
         <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
@@ -247,9 +248,13 @@ export default function PerfilPage() {
                   <>
                     <Dumbbell className="w-3.5 h-3.5 text-primary" /> Entrenador Oficial (Coach)
                   </>
-                ) : (
+                ) : isAdmin ? (
                   <>
                     <Shield className="w-3.5 h-3.5" /> Administrador del Sistema
+                  </>
+                ) : (
+                  <>
+                    <UserIcon className="w-3.5 h-3.5" /> Personal ({user?.role})
                   </>
                 )}
               </span>

@@ -32,7 +32,7 @@ export default function MisAtletasPage() {
     a.cedula.includes(searchTerm)
   )
 
-  if (user?.role !== "coach" && user?.role !== "admin") {
+  if (user?.role !== "coach" && user?.role !== "employee" && user?.role !== "admin") {
     return <div className="p-8 font-bold text-destructive text-center">Acceso Denegado</div>
   }
 

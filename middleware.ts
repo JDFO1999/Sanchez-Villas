@@ -71,9 +71,10 @@ export async function middleware(request: NextRequest) {
   if (validPayload) {
     const role = validPayload.role as string;
     
-    // Profile is accessible by admin, gerente, and coach
+    // Profile is accessible by all staff/employees (admin, gerente, coach, employee, cajero, recepcion)
     if (pathname.startsWith("/perfil")) {
-      if (role !== "admin" && role !== "gerente" && role !== "coach") {
+      const allowedRoles = ["admin", "gerente", "coach", "employee", "cajero", "recepcion"];
+      if (!allowedRoles.includes(role)) {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }
