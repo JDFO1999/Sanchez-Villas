@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useToast } from "@/lib/toast-context"
-import { updateProfilePicture, removeProfilePicture } from "@/app/actions/users"
+import { updateProfilePicture } from "@/app/actions/users"
 import {
   User as UserIcon,
   Camera,
@@ -123,26 +123,6 @@ export default function PerfilPage() {
     }
   }
 
-  const handleRemovePhoto = async () => {
-    if (!user?.id) return
-    setIsUploading(true)
-    try {
-      const res = await removeProfilePicture(user.id)
-      if (res.success) {
-        setProfileImage(null)
-        setImageError(false)
-        updateUserProfilePicture("")
-        showToast("Foto de perfil eliminada correctamente.", "success")
-      } else {
-        showToast(res.error || "No se pudo eliminar la imagen.", "error")
-      }
-    } catch (err: any) {
-      showToast(err?.message || "Error al eliminar imagen.", "error")
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
   const handleAddSocial = () => {
     setSocialLinks([...socialLinks, { platform: "Instagram", url: "" }])
   }
@@ -200,9 +180,15 @@ export default function PerfilPage() {
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
-          {/* Avatar con botón de subida */}
+          {/* Avatar con clic directo para cambiar foto */}
           <div className="relative group shrink-0">
-            <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-primary/40 bg-primary/10 shadow-2xl flex items-center justify-center relative">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              title="Haz clic para cambiar tu foto de perfil"
+              className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-primary/40 bg-primary/10 shadow-2xl flex items-center justify-center relative cursor-pointer group-hover:border-primary transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
               {currentDisplayImage ? (
                 <img
                   src={currentDisplayImage as string}
@@ -217,18 +203,18 @@ export default function PerfilPage() {
               )}
 
               {/* Overlay hover para cambiar foto */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
-              >
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
                 <Camera className="w-6 h-6 mb-1 text-primary animate-bounce" />
                 <span className="text-[11px] font-bold tracking-wider uppercase">
                   {isUploading ? "Subiendo..." : "Cambiar Foto"}
                 </span>
-              </button>
-            </div>
+              </div>
+
+              {/* Badge indicativo de cámara */}
+              <div className="absolute bottom-2 right-2 p-1.5 rounded-full bg-primary text-black dark:text-white shadow-md border-2 border-card group-hover:scale-110 transition-transform">
+                <Camera className="w-3.5 h-3.5 text-primary-foreground" />
+              </div>
+            </button>
 
             <input
               type="file"
@@ -266,43 +252,15 @@ export default function PerfilPage() {
             </p>
 
             <p className="text-xs text-muted-foreground">
-              {isCoach
-                ? "Tu foto se sincroniza en la lista de entrenadores, en las asignaciones de atletas y en tus publicaciones del muro."
-                : "Tu foto de perfil se sincroniza en todos los módulos (comunidad, avisos y barra superior). Ningún usuario ajeno tiene acceso a este perfil."}
+              Haz clic directamente sobre tu foto para cambiarla. Al seleccionar una nueva, reemplazará automáticamente la anterior.
             </p>
 
             {imageError && (
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2 text-left">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>La foto guardada previamente presentaba un formato incompatible o dañado. Puedes subir una nueva o restablecer el avatar inicial.</span>
+                <span>La foto guardada previamente presentaba un formato incompatible o dañado. Haz clic sobre la foto para subir una nueva.</span>
               </div>
             )}
-
-            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="rounded-xl gap-2 font-bold"
-              >
-                <Camera className="w-4 h-4 text-primary" />
-                <span>{isUploading ? "Procesando..." : currentDisplayImage ? "Cambiar Foto" : "Subir Foto"}</span>
-              </Button>
-
-              {(currentDisplayImage || imageError) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRemovePhoto}
-                  disabled={isUploading}
-                  className="rounded-xl gap-2 font-bold text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Eliminar Foto</span>
-                </Button>
-              )}
-            </div>
           </div>
         </div>
       </div>
