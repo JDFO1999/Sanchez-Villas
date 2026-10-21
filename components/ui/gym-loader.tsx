@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
-import { Dumbbell } from "lucide-react"
 
 interface GymLoaderProps {
   size?: "sm" | "md" | "lg"
@@ -27,21 +26,26 @@ export function GymLoader({
   const isDark = (resolvedTheme || theme) === "dark"
   
   let cachedLogo = ""
+  let cachedLogoDark = ""
   let cachedName = ""
   if (typeof window !== "undefined") {
     try {
       const saved = localStorage.getItem("gympro_settings")
       if (saved) {
         const parsed = JSON.parse(saved)
-        cachedLogo = (isDark && parsed.logoUrlDark) ? parsed.logoUrlDark : (parsed.logoUrl || parsed.logoUrlDark || "")
+        cachedLogo = parsed.logoUrl || ""
+        cachedLogoDark = parsed.logoUrlDark || ""
         cachedName = parsed.appName || ""
       }
     } catch {}
   }
 
-  const rawLogo = (isDark && settings.logoUrlDark)
-    ? settings.logoUrlDark
-    : (settings.logoUrl || settings.logoUrlDark || cachedLogo)
+  // Resolver logo con prioridad de tema y caché
+  const darkCandidate = settings.logoUrlDark || cachedLogoDark
+  const lightCandidate = settings.logoUrl || cachedLogo
+  const rawLogo = isDark
+    ? (darkCandidate || lightCandidate)
+    : (lightCandidate || darkCandidate)
 
   useEffect(() => {
     setImgError(false)
@@ -50,7 +54,8 @@ export function GymLoader({
   const logoSrc = !imgError && rawLogo ? rawLogo : ""
   const appName = settings.appName || cachedName || ""
 
-  const logoH = size === "sm" ? 50 : size === "md" ? 75 : 95
+  const logoH = size === "sm" ? 44 : size === "md" ? 64 : 85
+  const spinnerSize = size === "sm" ? 28 : size === "md" ? 36 : 44
 
   return (
     <div className={`flex flex-col items-center justify-center select-none ${className}`}>
@@ -59,7 +64,7 @@ export function GymLoader({
         <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-125 animate-pulse pointer-events-none" />
 
         {logoSrc ? (
-          <div className="relative z-10 flex flex-col items-center mb-4">
+          <div className="relative z-10 flex flex-col items-center mb-5">
             <img
               src={logoSrc}
               alt={appName || "Logo"}
@@ -78,24 +83,26 @@ export function GymLoader({
             )}
           </div>
         ) : (
-          <div className="relative z-10 flex flex-col items-center mb-4">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center shadow-lg shadow-primary/20 animate-pulse">
-              <Dumbbell className="w-8 h-8 md:w-10 md:h-10 text-primary" />
-            </div>
-            {appName && (
-              <span className="font-display font-black text-lg md:text-xl uppercase tracking-wider text-foreground mt-2">
+          appName && (
+            <div className="relative z-10 flex flex-col items-center mb-4">
+              <span className="font-display font-black text-xl md:text-2xl uppercase tracking-wider text-foreground drop-shadow">
                 {appName}
               </span>
-            )}
-          </div>
+            </div>
+          )
         )}
 
-        {/* Minimalist Spinner & Status Text */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-          <span className="text-xs md:text-sm font-semibold tracking-wide text-muted-foreground">
-            {text || "Cargando..."}
-          </span>
+        {/* Spinner Redondo Minimalista */}
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div 
+            className="rounded-full border-[3px] border-primary/20 border-t-primary animate-spin"
+            style={{ width: spinnerSize, height: spinnerSize }}
+          />
+          {text && (
+            <span className="text-xs md:text-sm font-semibold tracking-wide text-muted-foreground animate-pulse text-center">
+              {text}
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -281,7 +281,8 @@ export async function createCommunityChallengeAction({
   }
 
   const isAdmin = user.role === "admin" || user.role === "gerente"
-  let isAllowed = isAdmin
+  const isCoach = user.role === "coach" || user.role === "employee"
+  let isAllowed = isAdmin || isCoach
 
   if (!isAllowed) {
     const dbUser = await prisma.user.findUnique({
@@ -305,7 +306,7 @@ export async function createCommunityChallengeAction({
   if (!isAllowed) {
     return {
       success: false,
-      error: "No tienes el permiso de Ajustes para publicar retos del mes.",
+      error: "Solo entrenadores o personal con permiso de retos pueden proponer o publicar retos del mes.",
     }
   }
 

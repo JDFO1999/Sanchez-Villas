@@ -352,11 +352,17 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
   cashierId = g.user.id
   try {
     const transaction = await prisma.$transaction(async (tx) => {
-      const activeSession = await tx.cashSession.findFirst({
+      let activeSession = await tx.cashSession.findFirst({
         where: { cashierId: cashierId, status: 'OPEN' }
       });
 
       if (!activeSession) {
+        activeSession = await tx.cashSession.findFirst({
+          where: { status: 'OPEN' }
+        });
+      }
+
+      if (!activeSession && g.user.role !== 'admin' && g.user.role !== 'gerente') {
         throw new Error('No tienes un turno de caja abierto para registrar esta entrega.');
       }
 
@@ -370,7 +376,7 @@ export async function deliverTransaction(transactionId: string, cashierId: strin
         data: {
           status: 'COMPLETED',
           cashierId: cashierId,
-          cashSessionId: activeSession.id,
+          cashSessionId: activeSession ? activeSession.id : null,
           ...(changeNote ? { reference: combinedRef } : {})
         },
         include: { items: true }

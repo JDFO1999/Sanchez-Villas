@@ -99,36 +99,51 @@ export default function ComunidadPage() {
   const canPost = isAdmin || hasCommunityPerm || coachAllowed
 
   const hasChallengesPerm = Boolean(user?.permissions?.includes("CHALLENGES_MANAGE"))
-  const canCreateChallenge = isAdmin || hasChallengesPerm
+  const canCreateChallenge = isAdmin || hasChallengesPerm || isCoach
 
   // Cargar Posts desde la Base de Datos
   const loadPosts = async () => {
     setIsLoadingPosts(true)
-    const res = await getCommunityPostsAction()
-    if (res.success && res.posts) {
-      setPosts(res.posts)
+    try {
+      const res = await getCommunityPostsAction()
+      if (res && res.success && res.posts) {
+        setPosts(res.posts)
+      }
+    } catch (e) {
+      console.error("Error loading posts:", e)
+    } finally {
+      setIsLoadingPosts(false)
     }
-    setIsLoadingPosts(false)
   }
 
   // Cargar Retos desde la Base de Datos
   const loadChallenges = async () => {
     setIsLoadingChallenges(true)
-    const res = await getCommunityChallengesAction()
-    if (res.success && res.challenges) {
-      setChallenges(res.challenges)
+    try {
+      const res = await getCommunityChallengesAction()
+      if (res && res.success && res.challenges) {
+        setChallenges(res.challenges)
+      }
+    } catch (e) {
+      console.error("Error loading challenges:", e)
+    } finally {
+      setIsLoadingChallenges(false)
     }
-    setIsLoadingChallenges(false)
   }
 
   // Cargar Salón de la Fama desde la Base de Datos
   const loadHallOfFame = async () => {
     setIsLoadingHallOfFame(true)
-    const res = await getHallOfFameAction()
-    if (res.success && res.leaders) {
-      setHallOfFame(res.leaders)
+    try {
+      const res = await getHallOfFameAction()
+      if (res && res.success && res.leaders) {
+        setHallOfFame(res.leaders)
+      }
+    } catch (e) {
+      console.error("Error loading hall of fame:", e)
+    } finally {
+      setIsLoadingHallOfFame(false)
     }
-    setIsLoadingHallOfFame(false)
   }
 
   useEffect(() => {
@@ -623,7 +638,7 @@ export default function ComunidadPage() {
                     <p className="text-xs text-muted-foreground">
                       {isAdmin
                         ? "Como Administrador puedes crear y aprobar retos de los entrenadores."
-                        : "Tienes permiso para proponer retos para que los apruebe el Administrador."}
+                        : "Puedes proponer retos del mes para que sean revisados y aprobados por el Administrador."}
                     </p>
                   </div>
                   <Button onClick={() => setShowChallengeModal(true)} size="sm" className="w-full sm:w-auto shrink-0">

@@ -6,7 +6,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X } from "lucide-react"
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
@@ -537,18 +537,29 @@ export default function MembresíasPage() {
       
       {/* RENOVAR / ACTIVAR PLAN MODAL */}
       {showRenovarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-1">
-              {isWalkInMode
-                ? 'Asignar una Membresía'
-                : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 ? `Activar Plan — ${showRenovarModal.name}` : `Renovar Plan — ${showRenovarModal.name}`)}
-            </h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              {isWalkInMode
-                ? 'Si el cliente aún no se ha registrado en la web, el plan quedará asociado a su Cédula y se enlazará automáticamente cuando se registre en /registro.'
-                : `C.I. ${showRenovarModal.cedula} • Se registrará el cobro en caja y se activará el plan seleccionado.`}
-            </p>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold">
+                  {isWalkInMode
+                    ? 'Asignar una Membresía'
+                    : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 ? `Activar Plan — ${showRenovarModal.name}` : `Renovar Plan — ${showRenovarModal.name}`)}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isWalkInMode
+                    ? 'Si el cliente aún no se ha registrado en la web, el plan quedará asociado a su Cédula y se enlazará automáticamente cuando se registre en /registro.'
+                    : `C.I. ${showRenovarModal.cedula} • Se registrará el cobro en caja y se activará el plan seleccionado.`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRenovarModal(null)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleRenovar} className="space-y-4">
               {isWalkInMode && (
                 <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
@@ -1085,8 +1096,8 @@ export default function MembresíasPage() {
 
       {/* EDIT MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Editar Atleta</h3>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

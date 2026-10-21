@@ -10,7 +10,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   BarChart3, TrendingDown, TrendingUp, DollarSign, 
-  AlertCircle, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle 
+  AlertCircle, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle, X 
 } from "lucide-react"
 import Swal from "sweetalert2"
 
@@ -1764,11 +1764,21 @@ export default function FinanzasPage() {
       )}
 
       {showPayrollModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-4xl w-full p-6 shadow-2xl glass relative my-8">
-            <h3 className="text-xl font-bold mb-4">{payrollForm.id ? 'Configurar Nómina de Empleado' : 'Agregar Empleado a Nómina'}</h3>
-            <form onSubmit={handleSavePayroll} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 md:p-6 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-4xl w-full shadow-2xl relative my-auto max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-black/10 dark:border-white/10 flex items-center justify-between shrink-0 bg-card">
+              <h3 className="text-lg sm:text-xl font-bold">{payrollForm.id ? 'Configurar Nómina de Empleado' : 'Agregar Empleado a Nómina'}</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowPayrollModal(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSavePayroll} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Datos Personales y del Sistema */}
                 <div className="space-y-4">
@@ -1937,67 +1947,79 @@ export default function FinanzasPage() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-6">
-                <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Configuración</button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="p-4 sm:p-5 border-t border-black/10 dark:border-white/10 flex gap-2 justify-end shrink-0 bg-card">
+              <button type="button" onClick={() => setShowPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
+              <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Configuración</button>
+            </div>
+          </form>
         </div>
-      )}
-      {showProcessPayrollModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass relative my-8">
-            <h3 className="text-xl font-bold mb-4">Procesar Nómina</h3>
-            <p className="text-sm text-muted-foreground mb-4">Empleado: <b>{payrollProcessData.name}</b></p>
-            
-            <form onSubmit={submitProcessPayroll} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 bg-black/5 dark:bg-white/5 p-4 rounded-lg">
-                <div>
-                  <label className="text-xs font-bold text-muted-foreground block">Sueldo Base</label>
-                  <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.baseSalary.toFixed(2)}</div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-muted-foreground block">Comisiones (Calculado)</label>
-                  <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.commission.toFixed(2)}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-success mb-1 block">Bonos Extras (+)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.bonus || 0} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-success/30 rounded-lg p-2 text-sm focus:border-success" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-destructive mb-1 block">Adelantos Previos (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.advances || 0} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-destructive mb-1 block">Deducciones Varias (-)</label>
-                  <input type="number" step="0.01" min="0" value={payrollProcessData.deductions || 0} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
-                </div>
-              </div>
-
+      </div>
+    )}
+    {showProcessPayrollModal && (
+      <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+        <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold">Procesar Nómina</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">Empleado: <b className="text-foreground">{payrollProcessData.name}</b></p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowProcessPayrollModal(false)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <form onSubmit={submitProcessPayroll} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 bg-black/5 dark:bg-white/5 p-4 rounded-lg">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas del Recibo</label>
-                <textarea rows={2} value={payrollProcessData.notes || ''} onChange={e => setPayrollProcessData({...payrollProcessData, notes: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" placeholder="Ej: Bono por cumplimiento de metas..."></textarea>
+                <label className="text-xs font-bold text-muted-foreground block">Sueldo Base</label>
+                <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.baseSalary.toFixed(2)}</div>
               </div>
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block">Comisiones (Calculado)</label>
+                <div className="text-lg font-black text-foreground">{settings.storeCurrency} {payrollProcessData.commission.toFixed(2)}</div>
+              </div>
+            </div>
 
-              <div className="bg-primary/10 p-4 rounded-lg flex justify-between items-center mt-4">
-                <span className="font-bold text-primary">Total a Pagar:</span>
-                <span className="text-2xl font-black text-primary">
-                  {settings.storeCurrency} {(payrollProcessData.baseSalary + payrollProcessData.commission + payrollProcessData.bonus - payrollProcessData.deductions - payrollProcessData.advances).toFixed(2)}
-                </span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-success mb-1 block">Bonos Extras (+)</label>
+                <input type="number" step="0.01" min="0" value={payrollProcessData.bonus || 0} onChange={e => setPayrollProcessData({...payrollProcessData, bonus: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-success/30 rounded-lg p-2 text-sm focus:border-success" />
               </div>
+              <div>
+                <label className="text-xs font-medium text-destructive mb-1 block">Adelantos Previos (-)</label>
+                <input type="number" step="0.01" min="0" value={payrollProcessData.advances || 0} onChange={e => setPayrollProcessData({...payrollProcessData, advances: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs font-medium text-destructive mb-1 block">Deducciones Varias (-)</label>
+                <input type="number" step="0.01" min="0" value={payrollProcessData.deductions || 0} onChange={e => setPayrollProcessData({...payrollProcessData, deductions: Number(e.target.value)})} className="w-full bg-black/5 dark:bg-black/40 border border-destructive/30 rounded-lg p-2 text-sm focus:border-destructive" />
+              </div>
+            </div>
 
-              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
-                <button type="button" onClick={() => setShowProcessPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border-2 border-success text-success font-bold hover:bg-success/10">Pagar y Generar Recibo</button>
-              </div>
-            </form>
-          </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Notas del Recibo</label>
+              <textarea rows={2} value={payrollProcessData.notes || ''} onChange={e => setPayrollProcessData({...payrollProcessData, notes: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm" placeholder="Ej: Bono por cumplimiento de metas..."></textarea>
+            </div>
+
+            <div className="bg-primary/10 p-4 rounded-lg flex justify-between items-center mt-4">
+              <span className="font-bold text-primary">Total a Pagar:</span>
+              <span className="text-2xl font-black text-primary">
+                {settings.storeCurrency} {(payrollProcessData.baseSalary + payrollProcessData.commission + payrollProcessData.bonus - payrollProcessData.deductions - payrollProcessData.advances).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+              <button type="button" onClick={() => setShowProcessPayrollModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
+              <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border-2 border-success text-success font-bold hover:bg-success/10">Pagar y Generar Recibo</button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+    )}
 
     </div>
   )

@@ -20,17 +20,64 @@ export default function VentasPage() {
   const [viewImage, setViewImage] = useState<string | null>(null)
   const [showReceipt, setShowReceipt] = useState<Transaction | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      const { getTransactions } = await import('@/app/actions/store')
-      const res = await getTransactions()
-      if (res.success) {
-        setTransactions(res.transactions as any)
-      }
-      setAthletes(athleteService.getAthletes())
+  const loadTransactions = async () => {
+    const { getTransactions } = await import('@/app/actions/store')
+    const res = await getTransactions()
+    if (res.success) {
+      setTransactions(res.transactions as any)
     }
-    load()
+    setAthletes(athleteService.getAthletes())
+  }
+
+  useEffect(() => {
+    loadTransactions()
   }, [])
+
+  const handleDeliver = async (tx: any) => {
+    const Swal = (await import("sweetalert2")).default
+    const confirm = await Swal.fire({
+      title: '¿Completar y Entregar Pedido?',
+      text: `Factura ${tx.id} por ${settings.storeCurrency} ${tx.total.toFixed(2)}. ¿Confirmas la entrega de productos al cliente?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Entregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#10b981',
+    })
+    if (!confirm.isConfirmed) return
+
+    const { deliverTransaction } = await import('@/app/actions/store')
+    const res = await deliverTransaction(tx.id, user?.id || '')
+    if (res.success) {
+      setTransactions(prev => prev.map(t => t.id === tx.id ? { ...t, status: 'COMPLETED', deliveredBy: user?.name || user?.id } : t))
+      showToast("¡Venta finalizada y productos entregados exitosamente!", "success")
+    } else {
+      showToast(res.error || "No se pudo completar la entrega.", "error")
+    }
+  }
+
+  const handleCancel = async (tx: any) => {
+    const Swal = (await import("sweetalert2")).default
+    const confirm = await Swal.fire({
+      title: '¿Anular Factura?',
+      text: `Se cancelará la factura ${tx.id} y se reincorporarán los productos al stock del inventario.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Anular Venta',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ef4444',
+    })
+    if (!confirm.isConfirmed) return
+
+    const { cancelTransaction } = await import('@/app/actions/store')
+    const res = await cancelTransaction(tx.id)
+    if (res.success) {
+      setTransactions(prev => prev.map(t => t.id === tx.id ? { ...t, status: 'CANCELED' } : t))
+      showToast("Factura anulada correctamente.", "success")
+    } else {
+      showToast(res.error || "Error al anular factura.", "error")
+    }
+  }
 
   if (!user || (user.role !== 'admin' && user.role !== 'cajero' && !user.permissions?.includes('SALES_VIEW'))) {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
@@ -41,6 +88,11 @@ export default function VentasPage() {
     if (tx.customer) return `${tx.customer.name} (C.C. ${tx.customer.cedula})`
     return "Desconocido"
   }
+
+  const completedTxs = transactions.filter(t => t.status === 'COMPLETED')
+  const pendingTxs = transactions.filter(t => t.status === 'PENDING_DELIVERY' || t.status === 'PENDING_PICKUP' || (t.status as string) === 'PENDING')
+  const canceledTxs = transactions.filter(t => t.status === 'CANCELED')
+  const totalCompletedIncome = completedTxs.reduce((acc, tx) => acc + (Number(tx.total) || 0), 0)
 
   return (
     <div className="space-y-6 max-w-full mx-auto">
@@ -58,8 +110,11 @@ export default function VentasPage() {
             <div>
               <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Facturas</p>
               <h3 className="text-2xl font-bold">{transactions.length}</h3>
-              <p className="text-xs font-bold text-warning">{transactions.filter(t => t.status === 'PENDING_DELIVERY').length} en espera</p>
-              <p className="text-xs font-bold text-success">{transactions.filter(t => t.status === 'COMPLETED').length} completadas</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                <span className="text-xs font-bold text-amber-500">{pendingTxs.length} en espera</span>
+                <span className="text-xs font-bold text-emerald-500">• {completedTxs.length} completadas</span>
+                <span className="text-xs font-bold text-destructive">• {canceledTxs.length} anuladas</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -70,12 +125,12 @@ export default function VentasPage() {
               <span className="text-xl font-bold leading-none">{settings.storeCurrency}</span>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Ingresos Totales</p>
+              <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Ingresos Completados</p>
               <h3 className="text-2xl font-bold text-white">
-                {settings.storeCurrency} {transactions.reduce((acc, tx) => acc + tx.total, 0).toFixed(2)}
+                {settings.storeCurrency} {totalCompletedIncome.toFixed(2)}
               </h3>
               {settings.storeCurrencySecondary && settings.storeExchangeRate > 0 && (
-                <p className="text-sm text-muted-foreground font-bold">{settings.storeCurrencySecondary} {(transactions.reduce((acc, tx) => acc + tx.total, 0) * settings.storeExchangeRate).toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground font-bold">{settings.storeCurrencySecondary} {(totalCompletedIncome * settings.storeExchangeRate).toFixed(2)}</p>
               )}
             </div>
           </CardContent>
@@ -156,47 +211,43 @@ export default function VentasPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    {tx.status === 'PENDING_DELIVERY' ? (
+                    {tx.status === 'PENDING_DELIVERY' || tx.status === 'PENDING_PICKUP' || (tx.status as string) === 'PENDING' ? (
                       <div className="flex flex-col gap-2 items-start">
-                        <span className="bg-warning/20 text-warning px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
-                        <button 
-                          onClick={() => {
-                            import("sweetalert2").then((Swal) => {
-                              Swal.default.fire({
-                                title: 'Entregar Pedido',
-                                text: 'Ingrese el Código de Retiro del Atleta:',
-                                input: 'text',
-                                inputPlaceholder: 'Ej: AB12',
-                                showCancelButton: true,
-                                confirmButtonText: 'Verificar y Entregar',
-                                cancelButtonText: 'Cancelar',
-                                inputValidator: (value) => {
-                                  if (!value) return 'Debes ingresar un código'
-                                  return null
-                                }
-                              }).then((result) => {
-                                if (result.isConfirmed) {
-                                  const code = result.value
-                                  if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
-                                    const updatedTx = { ...tx, status: 'COMPLETED' as const, deliveredBy: user?.name || user?.id }
-                                    storeService.updateTransaction(updatedTx)
-                                    setTransactions(storeService.getTransactions().reverse())
-                                    showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
-                                  } else {
-                                    showToast("Código incorrecto.", "error")
-                                  }
-                                }
-                              })
-                            })
-                          }}
-                          className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition text-xs px-3 py-1 rounded hover:bg-primary/90 font-bold"
-                        >
-                          Entregar
-                        </button>
+                        <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                          EN ESPERA
+                        </span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          <button 
+                            onClick={() => handleDeliver(tx)}
+                            className="bg-transparent border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition text-xs px-2.5 py-1 rounded-md font-bold"
+                          >
+                            Entregar
+                          </button>
+                          <button 
+                            onClick={() => handleCancel(tx)}
+                            className="bg-transparent border border-destructive/40 text-destructive hover:bg-destructive/10 transition text-xs px-2.5 py-1 rounded-md font-bold"
+                          >
+                            Anular
+                          </button>
+                        </div>
+                      </div>
+                    ) : tx.status === 'CANCELED' ? (
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="bg-destructive/20 text-destructive border border-destructive/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                          ANULADA
+                        </span>
+                      </div>
+                    ) : tx.status === 'PENDING_PAYMENT' ? (
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                          PENDIENTE DE PAGO
+                        </span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-start gap-1">
-                        <span className="bg-success/20 text-success px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                        <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                          COMPLETADO
+                        </span>
                         {tx.deliveredBy && (
                           <span className="text-[10px] text-muted-foreground">Entregado por: {tx.deliveredBy}</span>
                         )}
@@ -270,46 +321,51 @@ export default function VentasPage() {
                 </div>
 
                 <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                  {tx.status === 'PENDING_DELIVERY' ? (
+                  {tx.status === 'PENDING_DELIVERY' || tx.status === 'PENDING_PICKUP' || (tx.status as string) === 'PENDING' ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                          EN ESPERA
+                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleDeliver(tx)}
+                            className="text-xs bg-transparent border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition px-2.5 py-1 rounded-md font-bold"
+                          >
+                            Entregar
+                          </button>
+                          <button 
+                            onClick={() => handleCancel(tx)}
+                            className="text-xs bg-transparent border border-destructive/40 text-destructive hover:bg-destructive/10 transition px-2.5 py-1 rounded-md font-bold"
+                          >
+                            Anular
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : tx.status === 'CANCELED' ? (
                     <div className="flex justify-between items-center">
-                      <span className="bg-warning/20 text-warning px-2 py-1 rounded-full text-[10px] font-bold">POR ENTREGAR</span>
-                      <button 
-                        onClick={() => {
-                          import("sweetalert2").then((Swal) => {
-                            Swal.default.fire({
-                              title: 'Entregar Pedido',
-                              text: 'Ingrese el Código de Retiro del Atleta:',
-                              input: 'text',
-                              inputPlaceholder: 'Ej: AB12',
-                              showCancelButton: true,
-                              confirmButtonText: 'Verificar y Entregar',
-                              cancelButtonText: 'Cancelar',
-                              inputValidator: (value) => {
-                                if (!value) return 'Debes ingresar un código'
-                                return null
-                              }
-                            }).then((result) => {
-                              if (result.isConfirmed) {
-                                const code = result.value
-                                if (code.trim().toUpperCase() === tx.pickupCode?.toUpperCase()) {
-                                  const updatedTx = { ...tx, status: 'COMPLETED' as const, deliveredBy: user?.name || user?.id }
-                                  storeService.updateTransaction(updatedTx)
-                                  setTransactions(storeService.getTransactions().reverse())
-                                  showToast("¡Código correcto! Venta finalizada y productos entregados.", "success")
-                                } else {
-                                  showToast("Código incorrecto.", "error")
-                                }
-                              }
-                            })
-                          })
-                        }}
-                        className="text-xs bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-2 rounded hover:bg-primary/90 font-bold"
-                      >
-                        Entregar
-                      </button>
+                      <span className="bg-destructive/20 text-destructive border border-destructive/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                        ANULADA
+                      </span>
+                    </div>
+                  ) : tx.status === 'PENDING_PAYMENT' ? (
+                    <div className="flex justify-between items-center">
+                      <span className="bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                        PENDIENTE DE PAGO
+                      </span>
                     </div>
                   ) : (
-                    <span className="bg-success/20 text-success px-2 py-1 rounded-full text-[10px] font-bold">COMPLETADO</span>
+                    <div className="flex justify-between items-center">
+                      <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                        COMPLETADO
+                      </span>
+                      {tx.deliveredBy && (
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                          Por: {tx.deliveredBy}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

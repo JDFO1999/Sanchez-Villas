@@ -3,11 +3,19 @@
 import React from 'react'
 import { GymLoader, FullScreenGymLoader } from './gym-loader'
 
-export const Loader = ({ className = "", size = 48, color = "currentColor", text = "" }: any) => {
-  const loaderSize = size <= 32 ? "sm" : size <= 54 ? "md" : "lg"
+export const Loader = ({ className = "", size = 40, text = "" }: any) => {
+  const pixelSize = typeof size === "number" ? size : 40
   return (
-    <div className={`flex flex-col items-center justify-center ${className}`}>
-      <GymLoader size={loaderSize} text={text} showQuote={!text} />
+    <div className={`flex flex-col items-center justify-center gap-3 select-none py-4 ${className}`}>
+      <div 
+        className="rounded-full border-[3px] border-primary/20 border-t-primary animate-spin"
+        style={{ width: pixelSize, height: pixelSize }}
+      />
+      {text && (
+        <span className="text-xs sm:text-sm font-semibold tracking-wide text-muted-foreground animate-pulse text-center">
+          {text}
+        </span>
+      )}
     </div>
   )
 }

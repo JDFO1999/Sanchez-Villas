@@ -30,7 +30,24 @@ export default function PerfilPage() {
   const { showToast } = useToast()
   const { theme, resolvedTheme } = useTheme()
   const isDark = (resolvedTheme || theme) === "dark"
-  const companyLogoSrc = (isDark && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark || "")
+
+  let cachedLogo = ""
+  let cachedLogoDark = ""
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("gympro_settings")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        cachedLogo = parsed.logoUrl || ""
+        cachedLogoDark = parsed.logoUrlDark || ""
+      }
+    } catch {}
+  }
+  const darkCandidate = settings.logoUrlDark || cachedLogoDark
+  const lightCandidate = settings.logoUrl || cachedLogo
+  const companyLogoSrc = isDark
+    ? (darkCandidate || lightCandidate)
+    : (lightCandidate || darkCandidate)
   
   const [profileImage, setProfileImage] = useState<string | null>(user?.profilePicture || null)
   const [imageError, setImageError] = useState(false)
@@ -255,10 +272,6 @@ export default function PerfilPage() {
               <strong className="text-foreground">{user?.cedula}</strong>
             </p>
 
-            <p className="text-xs text-muted-foreground">
-              Haz clic directamente sobre tu foto para cambiarla. Al seleccionar una nueva, reemplazará automáticamente la anterior.
-            </p>
-
             {imageError && (
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2 text-left">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -281,7 +294,7 @@ export default function PerfilPage() {
                   className="w-5 h-5 object-contain"
                 />
               ) : (
-                <Dumbbell className="w-5 h-5" />
+                <Sparkles className="w-5 h-5" />
               )}
             </div>
             <div>
