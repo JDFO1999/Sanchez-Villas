@@ -34,10 +34,12 @@ export async function GET() {
 
         // Caso 2: Ruta local en /uploads o /public
         if (iconSource.startsWith("/")) {
-          const cleanRel = iconSource.replace(/^\/api\/uploads\//, "uploads/").replace(/^\//, "")
+          const cleanRel = iconSource.replace(/^\/api\/uploads\//, "").replace(/^\/uploads\//, "").replace(/^\//, "")
+          const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads")
           const candidatePaths = [
             path.join(process.cwd(), "public", cleanRel),
-            path.join(process.cwd(), cleanRel),
+            path.join(process.cwd(), "public", "uploads", path.basename(cleanRel)),
+            path.join(/*turbopackIgnore: true*/ uploadDir, path.basename(cleanRel)),
           ]
           for (const p of candidatePaths) {
             if (fs.existsSync(p) && fs.statSync(p).isFile()) {
