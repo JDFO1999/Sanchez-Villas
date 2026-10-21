@@ -12,8 +12,10 @@ export const Loader = ({ className = "", size = 48, color = "currentColor", text
   )
 }
 
-export const FullScreenLoader = ({ text = "" }: { text?: string }) => {
-  return <FullScreenGymLoader text={text} />
+export const FullScreenLoader = ({ text = "", progressive = true, progress }: { text?: string; progressive?: boolean; progress?: number }) => {
+  return <FullScreenGymLoader text={text} progressive={progressive} progress={progress} />
 }
 
 export { GymLoader, FullScreenGymLoader }
+export { ProgressiveRouteLoader } from './progressive-route-loader'
+

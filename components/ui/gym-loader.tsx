@@ -10,6 +10,8 @@ interface GymLoaderProps {
   text?: string
   showQuote?: boolean
   className?: string
+  progressive?: boolean
+  progress?: number
 }
 
 const FITNESS_QUOTES = [
@@ -27,10 +29,13 @@ export function GymLoader({
   text,
   showQuote = true,
   className = "",
+  progressive = false,
+  progress,
 }: GymLoaderProps) {
   const { settings } = useSettings()
   const { theme, resolvedTheme } = useTheme()
   const [quoteIndex, setQuoteIndex] = useState(0)
+  const [autoProgress, setAutoProgress] = useState(15)
 
   const isDark = (resolvedTheme || theme) === "dark"
   
@@ -59,6 +64,22 @@ export function GymLoader({
     }, 2400)
     return () => clearInterval(interval)
   }, [showQuote])
+
+  useEffect(() => {
+    if (!progressive || progress !== undefined) return
+    setAutoProgress(15)
+    const interval = setInterval(() => {
+      setAutoProgress((prev) => {
+        if (prev >= 92) return prev
+        const remaining = 95 - prev
+        const step = Math.max(1, remaining * 0.12)
+        return Math.min(92, prev + step)
+      })
+    }, 120)
+    return () => clearInterval(interval)
+  }, [progressive, progress])
+
+  const currentProgress = progress !== undefined ? progress : autoProgress
 
   const dimensions = {
     sm: { width: 140, height: 48, barH: 4, plateH: 28, plateW: 8, text: "text-xs" },
@@ -212,17 +233,36 @@ export function GymLoader({
         </div>
       </div>
 
-      {/* Gym Rep Cadence Pulse Bar */}
-      <div className="w-32 h-1 bg-zinc-800 rounded-full mt-4 overflow-hidden relative">
-        <div className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full animate-gym-bar-pulse" />
-      </div>
-
-      {/* Dynamic Motivational Slogan or Custom Text */}
-      <div className="mt-3.5 text-center px-4 max-w-sm">
-        <p className={`font-semibold tracking-wide text-foreground transition-all duration-300 ${dimensions.text}`}>
-          {text || (showQuote ? FITNESS_QUOTES[quoteIndex] : "Cargando...")}
-        </p>
-      </div>
+      {/* Progressive Bar or Gym Rep Cadence Pulse Bar */}
+      {progressive ? (
+        <div className="w-64 sm:w-80 mt-5 flex flex-col items-center gap-2">
+          <div className="w-full h-3 bg-black/25 dark:bg-zinc-800/80 rounded-full overflow-hidden p-0.5 border border-primary/20 backdrop-blur-sm shadow-inner relative">
+            <div
+              className="h-full bg-gradient-to-r from-primary/70 via-primary to-emerald-400 rounded-full transition-[width] duration-200 ease-out shadow-[0_0_14px_rgba(34,197,94,0.6)] relative"
+              style={{ width: `${Math.min(100, Math.max(0, currentProgress))}%` }}
+            >
+              <div className="absolute right-0 top-0 bottom-0 w-2.5 bg-white/80 rounded-full blur-[1px]" />
+            </div>
+          </div>
+          <div className="w-full flex justify-between items-center text-xs font-semibold tracking-wider text-muted-foreground px-1">
+            <span className="truncate max-w-[200px]">
+              {text || (showQuote ? FITNESS_QUOTES[quoteIndex] : "Cargando...")}
+            </span>
+            <span className="font-mono text-primary font-bold text-xs">{Math.round(currentProgress)}%</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="w-32 h-1 bg-zinc-800 rounded-full mt-4 overflow-hidden relative">
+            <div className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full animate-gym-bar-pulse" />
+          </div>
+          <div className="mt-3.5 text-center px-4 max-w-sm">
+            <p className={`font-semibold tracking-wide text-foreground transition-all duration-300 ${dimensions.text}`}>
+              {text || (showQuote ? FITNESS_QUOTES[quoteIndex] : "Cargando...")}
+            </p>
+          </div>
+        </>
+      )}
 
       <style jsx global>{`
         @keyframes gymLift {
@@ -258,9 +298,15 @@ export function GymLoader({
 export function FullScreenGymLoader({
   text,
   showQuote = true,
+  progressive = true,
+  progress,
+  className = "",
 }: {
   text?: string
   showQuote?: boolean
+  progressive?: boolean
+  progress?: number
+  className?: string
 }) {
   const [mounted, setMounted] = useState(false)
 
@@ -269,8 +315,22 @@ export function FullScreenGymLoader({
   }, [])
 
   const loaderOverlay = (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/75 dark:bg-black/80 backdrop-blur-xl transition-all duration-300">
-      <GymLoader size="lg" text={text} showQuote={showQuote} />
+    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/90 dark:bg-black/90 backdrop-blur-xl transition-all duration-300 ${className}`}>
+      {progressive && (
+        <div className="fixed top-0 left-0 right-0 h-1 z-[10001] bg-transparent">
+          <div
+            className="h-full bg-gradient-to-r from-primary via-emerald-400 to-primary transition-[width] duration-200 ease-out shadow-[0_0_12px_rgba(34,197,94,0.8)]"
+            style={{ width: `${Math.min(100, Math.max(0, progress !== undefined ? progress : 65))}%` }}
+          />
+        </div>
+      )}
+      <GymLoader
+        size="lg"
+        text={text}
+        showQuote={showQuote}
+        progressive={progressive}
+        progress={progress}
+      />
     </div>
   )
 

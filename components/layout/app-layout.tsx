@@ -1,5 +1,5 @@
 "use client"
-import { FullScreenLoader } from "@/components/ui/loader"
+import { FullScreenLoader, ProgressiveRouteLoader } from "@/components/ui/loader"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -233,6 +233,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden print:overflow-visible bg-background">
+      <ProgressiveRouteLoader />
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
