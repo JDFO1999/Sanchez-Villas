@@ -4,9 +4,13 @@ import Link from "next/link"
 import { ArrowLeft, Dumbbell, Home } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { useSettings } from "@/lib/settings-context"
+import { useTheme } from "next-themes"
 
 export default function NotFound() {
   const { settings } = useSettings()
+  const { theme, resolvedTheme } = useTheme()
+  const isDark = (resolvedTheme || theme) === "dark"
+  const logoSrc = (isDark && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark || "")
 
   return (
     <div className="relative flex min-h-[70vh] flex-col items-center justify-center overflow-hidden px-4 py-16 text-center">
@@ -18,9 +22,9 @@ export default function NotFound() {
 
       <div className="relative flex flex-col items-center">
         <div className="mb-2 flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 overflow-hidden shadow-lg shadow-primary/10">
-          {(settings.logoUrl || settings.logoUrlDark) ? (
+          {logoSrc ? (
             <img
-              src={settings.logoUrl || settings.logoUrlDark}
+              src={logoSrc}
               alt={settings.appName || "Logo"}
               className="h-12 w-12 object-contain p-1"
             />

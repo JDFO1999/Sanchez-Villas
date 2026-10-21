@@ -22,11 +22,15 @@ import {
   Save,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
 
 export default function PerfilPage() {
   const { user, updateUserProfilePicture } = useAuth()
   const { settings } = useSettings()
   const { showToast } = useToast()
+  const { theme, resolvedTheme } = useTheme()
+  const isDark = (resolvedTheme || theme) === "dark"
+  const companyLogoSrc = (isDark && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark || "")
   
   const [profileImage, setProfileImage] = useState<string | null>(user?.profilePicture || null)
   const [imageError, setImageError] = useState(false)
@@ -269,8 +273,16 @@ export default function PerfilPage() {
       {isCoach && (
         <form onSubmit={handleSaveCoachData} className="rounded-3xl border border-black/10 dark:border-white/10 bg-card p-6 md:p-8 shadow-xl space-y-6">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-              <Dumbbell className="w-5 h-5" />
+            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+              {companyLogoSrc ? (
+                <img
+                  src={companyLogoSrc}
+                  alt={settings.appName || "Logo"}
+                  className="w-5 h-5 object-contain"
+                />
+              ) : (
+                <Dumbbell className="w-5 h-5" />
+              )}
             </div>
             <div>
               <h3 className="font-extrabold text-base text-foreground">Ficha Profesional y Redes Sociales</h3>

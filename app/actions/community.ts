@@ -272,11 +272,40 @@ export async function createCommunityChallengeAction({
   category: string
   daysLeft: number
 }) {
-  const g = await guard(["admin", "coach"])
-  if (!g.ok) {
+  const user = await getAuthUser()
+  if (!user) {
     return {
       success: false,
-      error: "Solo entrenadores y administradores pueden crear retos.",
+      error: "Debes iniciar sesión para proponer o crear un reto.",
+    }
+  }
+
+  const isAdmin = user.role === "admin" || user.role === "gerente"
+  let isAllowed = isAdmin
+
+  if (!isAllowed) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { specialties: true, role: true }
+    })
+    let userPerms: string[] = []
+    if (dbUser?.specialties && dbUser.specialties.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(dbUser.specialties)
+        if (Array.isArray(parsed.permissions)) {
+          userPerms = parsed.permissions
+        }
+      } catch {}
+    }
+    if (userPerms.includes("CHALLENGES_MANAGE")) {
+      isAllowed = true
+    }
+  }
+
+  if (!isAllowed) {
+    return {
+      success: false,
+      error: "No tienes el permiso de Ajustes para publicar retos del mes.",
     }
   }
 
@@ -284,8 +313,8 @@ export async function createCommunityChallengeAction({
     return { success: false, error: "Título y descripción son requeridos." }
   }
 
-  // Si es admin se aprueba automáticamente; si es coach queda pendiente de aprobación
-  const status = g.user.role === "admin" ? "APPROVED" : "PENDING"
+  // Si es admin se aprueba automáticamente; si es entrenador con permiso queda pendiente de aprobación del administrador
+  const status = isAdmin ? "APPROVED" : "PENDING"
 
   try {
     const challenge = await prisma.communityChallenge.create({
@@ -295,7 +324,7 @@ export async function createCommunityChallengeAction({
         category: category.trim(),
         daysLeft: Math.max(1, Number(daysLeft) || 30),
         status,
-        creatorId: g.user.id,
+        creatorId: user.id,
       },
       include: {
         creator: {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useSettings } from "@/lib/settings-context"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/lib/toast-context"
+import { useTheme } from "next-themes"
 import {
   Trophy,
   Flame,
@@ -87,11 +88,18 @@ export default function ComunidadPage() {
   const [hallOfFame, setHallOfFame] = useState<any[]>([])
   const [isLoadingHallOfFame, setIsLoadingHallOfFame] = useState(true)
 
+  const { theme, resolvedTheme } = useTheme()
+  const isDark = (resolvedTheme || theme) === "dark"
+  const companyLogoSrc = (isDark && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark || "")
+
   const isAdmin = user?.role === "admin" || user?.role === "gerente"
   const isCoach = user?.role === "coach" || user?.role === "employee"
   const hasCommunityPerm = Boolean(user?.permissions?.includes("COMMUNITY_POST"))
   const coachAllowed = isCoach && Boolean(settings.allowCoachesToPostCommunity)
   const canPost = isAdmin || hasCommunityPerm || coachAllowed
+
+  const hasChallengesPerm = Boolean(user?.permissions?.includes("CHALLENGES_MANAGE"))
+  const canCreateChallenge = isAdmin || hasChallengesPerm
 
   // Cargar Posts desde la Base de Datos
   const loadPosts = async () => {
@@ -465,20 +473,15 @@ export default function ComunidadPage() {
                     </div>
                   </form>
                 </div>
-              ) : isCoach ? (
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-center justify-between text-xs text-amber-600 dark:text-amber-400">
-                  <div className="flex items-center gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-amber-500" />
-                    <span>
-                      La publicación en el muro para entrenadores está desactivada actualmente en Ajustes del Sistema.
-                    </span>
-                  </div>
-                </div>
               ) : (
-                /* Mensaje para Atletas: Información de que solo coaches/admin publican */
+                /* Mensaje Informativo: Información sobre publicaciones oficiales */
                 <div className="rounded-2xl border border-border/80 bg-black/5 dark:bg-white/5 p-4 flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-2.5">
-                    <Dumbbell className="w-4 h-4 text-primary" />
+                    {companyLogoSrc ? (
+                      <img src={companyLogoSrc} alt="Logo" className="w-5 h-5 object-contain shrink-0" />
+                    ) : (
+                      <Dumbbell className="w-4 h-4 text-primary shrink-0" />
+                    )}
                     <span>
                       Tablón oficial de la comunidad. Las publicaciones son emitidas por entrenadores y administración. ¡Puedes reaccionar a cada una!
                     </span>
@@ -612,15 +615,15 @@ export default function ComunidadPage() {
 
           {activeTab === "retos" && (
             <div className="space-y-6">
-              {/* Botón para Proponer/Crear Reto: Solo Coaches y Admin */}
-              {canPost && (
+              {/* Botón para Proponer/Crear Reto: Solo Administradores o con permiso CHALLENGES_MANAGE */}
+              {canCreateChallenge && (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-4 rounded-2xl border border-black/10 dark:border-white/10 shadow-sm">
                   <div>
                     <h4 className="font-extrabold text-sm text-foreground">Gestión de Desafíos Fitness</h4>
                     <p className="text-xs text-muted-foreground">
                       {isAdmin
                         ? "Como Administrador puedes crear y aprobar retos de los entrenadores."
-                        : "Como Entrenador puedes proponer retos para que los apruebe el Administrador."}
+                        : "Tienes permiso para proponer retos para que los apruebe el Administrador."}
                     </p>
                   </div>
                   <Button onClick={() => setShowChallengeModal(true)} size="sm" className="w-full sm:w-auto shrink-0">

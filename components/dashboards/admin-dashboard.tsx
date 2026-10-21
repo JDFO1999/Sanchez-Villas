@@ -103,17 +103,36 @@ export function AdminDashboard() {
             { name: "Dom", ventas: 0, costos: 0 },
           ]
           
-          txs.forEach(tx => {
-            const d = new Date(tx.date)
-            let day = d.getDay() - 1
-            if (day === -1) day = 6 // Sunday
-            newData[day].ventas += tx.total
-            
-            tx.items.forEach((item: any) => {
-              const p = prods.find(pr => pr.id === item.productId)
-              if (p) newData[day].costos += (p.cost * item.qty) // Cost from backend is `p.cost`
+          const now = new Date()
+          const currentDayOfWeek = now.getDay()
+          const diffToMonday = (currentDayOfWeek === 0 ? -6 : 1) - currentDayOfWeek
+          const monday = new Date(now)
+          monday.setDate(now.getDate() + diffToMonday)
+          monday.setHours(0, 0, 0, 0)
+          
+          const sunday = new Date(monday)
+          sunday.setDate(monday.getDate() + 6)
+          sunday.setHours(23, 59, 59, 999)
+
+          txs
+            .filter(tx => {
+              if (tx.status !== 'COMPLETED') return false
+              const txDate = new Date(tx.date)
+              return txDate >= monday && txDate <= sunday
             })
-          })
+            .forEach(tx => {
+              const d = new Date(tx.date)
+              let day = d.getDay() - 1
+              if (day === -1) day = 6 // Sunday
+              newData[day].ventas += (Number(tx.total) || 0)
+              
+              if (Array.isArray(tx.items)) {
+                tx.items.forEach((item: any) => {
+                  const p = prods.find(pr => pr.id === item.productId)
+                  if (p) newData[day].costos += ((p.cost || p.costPrice || 0) * (item.qty || 1))
+                })
+              }
+            })
           
           setStoreData(newData)
         }

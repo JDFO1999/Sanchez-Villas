@@ -8,7 +8,7 @@ import { askPassword } from '@/lib/confirm'
 import { showSweetToast } from '@/lib/toast-context'
 
 export type Role = string | null
-export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE' | 'COMMUNITY_POST'
+export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE' | 'COMMUNITY_POST' | 'CHALLENGES_MANAGE'
 
 export const AVAILABLE_PERMISSIONS: { id: Permission; label: string; desc: string }[] = [
   { id: 'POS_ACCESS', label: 'Caja y Punto de Venta (POS)', desc: 'Permite registrar cobros de tienda y membresías' },
@@ -20,6 +20,7 @@ export const AVAILABLE_PERMISSIONS: { id: Permission; label: string; desc: strin
   { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas', desc: 'Permite registrar egresos, gastos y flujo de caja' },
   { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema', desc: 'Permite modificar configuración global y logos' },
   { id: 'COMMUNITY_POST', label: 'Publicar en Comunidad', desc: 'Permite redactar avisos y comunicados en el muro' },
+  { id: 'CHALLENGES_MANAGE', label: 'Publicar Retos del Mes', desc: 'Permite proponer y crear retos mensuales para los atletas' },
 ]
 
 export interface CustomRoleDef {
