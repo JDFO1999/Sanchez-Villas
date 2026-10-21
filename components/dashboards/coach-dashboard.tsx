@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -8,6 +8,7 @@ import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-m
 import { getCoachAthletes, getCoachAssignedRoutines, createRoutine, createDiet } from "@/app/actions/routines"
 import { QRCodeSVG } from "qrcode.react"
 import { athleteService } from "@/lib/data-service"
+import { Loader } from "@/components/ui/loader"
 import Link from "next/link"
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -211,7 +212,9 @@ export function CoachDashboard() {
           {!showTopAthletes ? (
             <p className="text-muted-foreground text-sm italic">Lista de atletas oculta.</p>
           ) : isLoading ? (
-            <p className="text-muted-foreground text-sm">Cargando atletas...</p>
+            <div className="py-8 flex justify-center">
+              <Loader size={40} text="Cargando atletas..." />
+            </div>
           ) : top10Athletes.length === 0 ? (
             <p className="text-muted-foreground text-sm">Aún no tienes atletas asignados.</p>
           ) : (
@@ -259,7 +262,9 @@ export function CoachDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-muted-foreground text-sm">Cargando...</p>
+              <div className="py-8 flex justify-center">
+                <Loader size={36} text="Cargando rutinas..." />
+              </div>
             ) : routines.length === 0 ? (
               <p className="text-muted-foreground text-sm">No has asignado rutinas recientemente.</p>
             ) : (
@@ -306,7 +311,9 @@ export function CoachDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-muted-foreground text-sm">Cargando...</p>
+              <div className="py-8 flex justify-center">
+                <Loader size={36} text="Cargando dietas..." />
+              </div>
             ) : diets.length === 0 ? (
               <p className="text-muted-foreground text-sm">No has asignado dietas recientemente.</p>
             ) : (

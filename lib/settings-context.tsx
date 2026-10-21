@@ -85,6 +85,7 @@ export interface AppSettings {
   footerSocialLinks: { id: string, name: string, url: string, iconUrl?: string, width: number, height: number }[]
   footerPartners: { id: string, imageUrl: string, width: number, height: number, link?: string, tier?: number }[]
   trainingPhilosophy?: string
+  allowCoachesToPostCommunity?: boolean
   gymSchedule?: {
     weekdays: string
     saturdays: string
@@ -234,6 +235,7 @@ export const defaultSettings: AppSettings = {
   ],
   footerPartners: [],
   trainingPhilosophy: 'No cuentes los días, haz que los días cuenten. Tu único límite es la mente que te dice que pares una repetición antes.',
+  allowCoachesToPostCommunity: true,
   gymSchedule: {
     weekdays: '6:00 AM - 10:00 PM',
     saturdays: '7:00 AM - 6:00 PM',

@@ -1,10 +1,11 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { getCoachAthletes } from "@/app/actions/routines"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Eye, Users } from "lucide-react"
+import { Loader } from "@/components/ui/loader"
 import Link from "next/link"
 
 export default function MisAtletasPage() {
@@ -63,7 +64,9 @@ export default function MisAtletasPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground text-sm">Cargando...</p>
+            <div className="py-12 flex justify-center">
+              <Loader size={48} text="Cargando tus atletas..." />
+            </div>
           ) : filteredAthletes.length === 0 ? (
             <p className="text-muted-foreground text-sm">No se encontraron atletas.</p>
           ) : (

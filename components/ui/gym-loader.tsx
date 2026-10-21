@@ -33,9 +33,24 @@ export function GymLoader({
   const [quoteIndex, setQuoteIndex] = useState(0)
 
   const isDark = (resolvedTheme || theme) === "dark"
+  
+  let cachedLogo = ""
+  let cachedName = ""
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("gympro_settings")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        cachedLogo = isDark ? (parsed.logoUrlDark || parsed.logoUrl || "") : (parsed.logoUrl || parsed.logoUrlDark || "")
+        cachedName = parsed.appName || ""
+      }
+    } catch {}
+  }
+
   const logoSrc = isDark 
-    ? (settings.logoUrlDark || settings.logoUrl) 
-    : (settings.logoUrl || settings.logoUrlDark)
+    ? (settings.logoUrlDark || settings.logoUrl || cachedLogo) 
+    : (settings.logoUrl || settings.logoUrlDark || cachedLogo)
+  const appName = settings.appName || cachedName || ""
 
   useEffect(() => {
     if (!showQuote) return

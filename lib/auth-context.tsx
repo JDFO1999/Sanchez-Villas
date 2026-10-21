@@ -8,7 +8,7 @@ import { askPassword } from '@/lib/confirm'
 import { showSweetToast } from '@/lib/toast-context'
 
 export type Role = string | null
-export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE'
+export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE' | 'COMMUNITY_POST'
 
 export interface CustomRoleDef {
   id: string

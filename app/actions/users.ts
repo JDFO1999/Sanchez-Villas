@@ -474,8 +474,12 @@ export async function getAthletes() {
   const g = await guard(ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error, athletes: [] }
   try {
+    const whereClause: any = { role: 'athlete' }
+    if (g.user.role === 'coach') {
+      whereClause.coachId = g.user.id
+    }
     const athletes = await prisma.user.findMany({
-      where: { role: 'athlete' },
+      where: whereClause,
       include: {
         memberships: {
           orderBy: { endDate: 'desc' },
@@ -905,6 +909,31 @@ export async function updateCoachProfile(id: string, data: { bio?: string, socia
       data: safe
     })
     return { success: true }
+  } catch (error: any) {
+    return { success: false, error: friendlyError(error) }
+  }
+}
+
+export async function getMyProfileDetailsAction() {
+  const me = await getAuthUser()
+  if (!me) return { success: false, error: "No autorizado" }
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: me.id },
+      select: {
+        id: true,
+        name: true,
+        cedula: true,
+        role: true,
+        profilePicture: true,
+        bio: true,
+        socialLinks: true,
+        specialties: true,
+        phone: true,
+        email: true,
+      }
+    })
+    return { success: true, user }
   } catch (error: any) {
     return { success: false, error: friendlyError(error) }
   }

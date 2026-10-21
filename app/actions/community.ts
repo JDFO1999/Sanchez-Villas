@@ -48,12 +48,60 @@ export async function createCommunityPostAction({
   tag?: string
   imageUrl?: string
 }) {
-  // Solo administradores y entrenadores pueden publicar
-  const g = await guard(["admin", "coach"])
-  if (!g.ok) {
+  const user = await getAuthUser()
+  if (!user) {
     return {
       success: false,
-      error: "Solo administradores y entrenadores pueden publicar en el muro.",
+      error: "Debes iniciar sesión para publicar en el muro.",
+    }
+  }
+
+  const isAdmin = user.role === "admin" || user.role === "gerente"
+  let isAllowed = isAdmin
+
+  if (!isAllowed) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { specialties: true, role: true }
+    })
+    
+    let userPerms: string[] = []
+    if (dbUser?.specialties && dbUser.specialties.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(dbUser.specialties)
+        if (Array.isArray(parsed.permissions)) {
+          userPerms = parsed.permissions
+        }
+      } catch {}
+    }
+
+    if (userPerms.includes("COMMUNITY_POST")) {
+      isAllowed = true
+    } else if (user.role === "coach") {
+      try {
+        const record = await prisma.systemSetting.findUnique({
+          where: { id: "default" },
+        })
+        let allowCoaches = true
+        if (record?.data) {
+          const parsed = JSON.parse(record.data)
+          if (parsed.allowCoachesToPostCommunity !== undefined) {
+            allowCoaches = Boolean(parsed.allowCoachesToPostCommunity)
+          }
+        }
+        if (allowCoaches) {
+          isAllowed = true
+        }
+      } catch {
+        isAllowed = true
+      }
+    }
+  }
+
+  if (!isAllowed) {
+    return {
+      success: false,
+      error: "No tienes autorización para publicar en la comunidad. Contacta al administrador.",
     }
   }
 
@@ -64,7 +112,7 @@ export async function createCommunityPostAction({
   try {
     const newPost = await prisma.communityPost.create({
       data: {
-        authorId: g.user.id,
+        authorId: user.id,
         title: title.trim(),
         content: content.trim(),
         tag: tag.trim() || "Aviso",

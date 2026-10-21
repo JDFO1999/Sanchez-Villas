@@ -28,9 +28,9 @@ export default function AtletaPerfilPage() {
   const [photoError, setPhotoError] = useState(false)
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
 
-  // Solo el propio atleta puede modificar su foto de perfil
+  // Solo el propio usuario puede modificar su foto de perfil
   const canChangePhoto = Boolean(
-    user?.role === 'athlete' && user.id === athlete?.id
+    user && user.id === athlete?.id
   )
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

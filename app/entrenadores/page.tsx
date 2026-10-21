@@ -6,6 +6,7 @@ import { getCoachesWithAthletesAction } from "@/app/actions/users"
 import { PageTitle } from "@/components/ui/page-title"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { Loader } from "@/components/ui/loader"
 import {
   Users,
   Search,
@@ -109,9 +110,8 @@ export default function EntrenadoresPage() {
 
       {/* Grid Principal: Entrenadores */}
       {isLoading ? (
-        <div className="py-20 text-center text-muted-foreground text-sm flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span>Cargando información de entrenadores...</span>
+        <div className="py-20 flex justify-center">
+          <Loader size={60} text="Cargando información de entrenadores..." />
         </div>
       ) : filteredCoaches.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">

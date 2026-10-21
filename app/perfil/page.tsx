@@ -17,6 +17,9 @@ import {
   Sparkles,
   Trash2,
   AlertTriangle,
+  Dumbbell,
+  Plus,
+  Save,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -30,6 +33,14 @@ export default function PerfilPage() {
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Estados para Entrenadores
+  const [coachBio, setCoachBio] = useState("")
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([])
+  const [isSavingCoach, setIsSavingCoach] = useState(false)
+
+  const isCoach = user?.role === "coach"
+  const isAdmin = user?.role === "admin" || user?.role === "gerente"
+
   // Sincronizar imagen cuando cargue el usuario desde la sesión
   useEffect(() => {
     if (user?.profilePicture) {
@@ -40,8 +51,32 @@ export default function PerfilPage() {
     }
   }, [user?.profilePicture])
 
-  // El perfil administrativo es privado: solo admin y gerente acceden
-  if (user?.role !== "admin" && user?.role !== "gerente") {
+  // Cargar detalles específicos del perfil del entrenador
+  useEffect(() => {
+    async function loadCoachDetails() {
+      if (!isCoach) return
+      try {
+        const { getMyProfileDetailsAction } = await import("@/app/actions/users")
+        const res = await getMyProfileDetailsAction()
+        if (res.success && res.user) {
+          if (res.user.bio) setCoachBio(res.user.bio)
+          if (res.user.socialLinks) {
+            try {
+              const parsed = JSON.parse(res.user.socialLinks)
+              if (Array.isArray(parsed)) setSocialLinks(parsed)
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.error("Error al cargar datos del entrenador:", err)
+      }
+    }
+
+    loadCoachDetails()
+  }, [isCoach])
+
+  // El perfil administrativo y de entrenadores es privado: solo admin, gerente y coach acceden
+  if (!isAdmin && !isCoach) {
     return (
       <div className="w-full max-w-lg mx-auto mt-16 p-8 rounded-3xl border border-destructive/20 bg-card text-center space-y-4 shadow-xl">
         <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
@@ -49,7 +84,7 @@ export default function PerfilPage() {
         </div>
         <h2 className="text-xl font-black text-foreground">Acceso Denegado</h2>
         <p className="text-sm text-muted-foreground">
-          Este módulo de perfil es exclusivo del personal administrativo. Ningún otro usuario puede visualizarlo.
+          Este módulo de perfil es exclusivo del personal autorizado (Administradores y Entrenadores).
         </p>
       </div>
     )
@@ -107,15 +142,55 @@ export default function PerfilPage() {
     }
   }
 
+  const handleAddSocial = () => {
+    setSocialLinks([...socialLinks, { platform: "Instagram", url: "" }])
+  }
+
+  const handleRemoveSocial = (idx: number) => {
+    setSocialLinks(socialLinks.filter((_, i) => i !== idx))
+  }
+
+  const handleUpdateSocial = (idx: number, field: "platform" | "url", val: string) => {
+    const updated = [...socialLinks]
+    updated[idx] = { ...updated[idx], [field]: val }
+    setSocialLinks(updated)
+  }
+
+  const handleSaveCoachData = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id) return
+    setIsSavingCoach(true)
+    try {
+      const { updateCoachProfile } = await import("@/app/actions/users")
+      const res = await updateCoachProfile(user.id, {
+        bio: coachBio.trim(),
+        socialLinks: JSON.stringify(socialLinks),
+      })
+      if (res.success) {
+        showToast("Información de entrenador actualizada con éxito.", "success")
+      } else {
+        showToast(res.error || "Error al actualizar información.", "error")
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error al guardar información del entrenador.", "error")
+    } finally {
+      setIsSavingCoach(false)
+    }
+  }
+
   const currentDisplayImage = !imageError && (profileImage || user?.profilePicture)
 
   return (
     <div className="w-full max-w-full space-y-8 pb-16">
       {/* Encabezado */}
       <div>
-        <h1 className="page-title">Perfil del Administrador</h1>
+        <h1 className="page-title">
+          {isCoach ? "Perfil del Entrenador" : "Perfil del Administrador"}
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Gestiona tu foto oficial de administrador. Los demás usuarios únicamente podrán ver tu foto en las publicaciones y avisos.
+          {isCoach
+            ? "Gestiona tu fotografía oficial de entrenador, biografía profesional y redes sociales de contacto para tus atletas."
+            : "Gestiona tu foto oficial de administrador. Los demás usuarios únicamente podrán ver tu foto en las publicaciones y avisos."}
         </p>
       </div>
 
@@ -130,13 +205,13 @@ export default function PerfilPage() {
               {currentDisplayImage ? (
                 <img
                   src={currentDisplayImage as string}
-                  alt={user?.name || "Perfil Administrador"}
+                  alt={user?.name || "Perfil"}
                   onError={() => setImageError(true)}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
                 <div className="text-4xl font-extrabold text-primary font-display">
-                  {user?.name?.slice(0, 2).toUpperCase() || "AD"}
+                  {user?.name?.slice(0, 2).toUpperCase() || (isCoach ? "CO" : "AD")}
                 </div>
               )}
 
@@ -168,7 +243,15 @@ export default function PerfilPage() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <h2 className="text-2xl font-black text-foreground">{user?.name}</h2>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-primary/15 text-primary border border-primary/30 w-fit mx-auto sm:mx-0">
-                <Shield className="w-3.5 h-3.5" /> Administrador del Sistema
+                {isCoach ? (
+                  <>
+                    <Dumbbell className="w-3.5 h-3.5 text-primary" /> Entrenador Oficial (Coach)
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-3.5 h-3.5" /> Administrador del Sistema
+                  </>
+                )}
               </span>
             </div>
 
@@ -178,7 +261,9 @@ export default function PerfilPage() {
             </p>
 
             <p className="text-xs text-muted-foreground">
-              Tu foto de perfil se sincroniza en todos los módulos (comunidad, avisos y barra superior). Ningún usuario ajeno tiene acceso a este perfil ni a tus datos privados.
+              {isCoach
+                ? "Tu foto se sincroniza en la lista de entrenadores, en las asignaciones de atletas y en tus publicaciones del muro."
+                : "Tu foto de perfil se sincroniza en todos los módulos (comunidad, avisos y barra superior). Ningún usuario ajeno tiene acceso a este perfil."}
             </p>
 
             {imageError && (
@@ -217,6 +302,106 @@ export default function PerfilPage() {
         </div>
       </div>
 
+      {/* Sección exclusiva para Entrenadores: Biografía y Redes Sociales */}
+      {isCoach && (
+        <form onSubmit={handleSaveCoachData} className="rounded-3xl border border-black/10 dark:border-white/10 bg-card p-6 md:p-8 shadow-xl space-y-6">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+              <Dumbbell className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-foreground">Ficha Profesional y Redes Sociales</h3>
+              <p className="text-xs text-muted-foreground">
+                Información que verán tus atletas asignados en su panel y al consultar tus rutinas
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                Biografía / Enfoque de Entrenamiento
+              </label>
+              <textarea
+                rows={4}
+                value={coachBio}
+                onChange={(e) => setCoachBio(e.target.value)}
+                placeholder="Ejemplo: Especialista en hipertrofia y acondicionamiento funcional con más de 5 años de experiencia..."
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+                  Redes Sociales y Canales de Contacto
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSocial}
+                  className="rounded-xl text-xs gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5 text-primary" /> Añadir Red Social
+                </Button>
+              </div>
+
+              {socialLinks.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic bg-black/5 dark:bg-white/5 p-4 rounded-xl text-center">
+                  Aún no has agregado redes sociales. Añade tus perfiles (Instagram, TikTok, WhatsApp) para que tus atletas puedan contactarte.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {socialLinks.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select
+                        value={link.platform}
+                        onChange={(e) => handleUpdateSocial(idx, "platform", e.target.value)}
+                        className="w-36 bg-card border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <option value="Instagram">Instagram</option>
+                        <option value="TikTok">TikTok</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="YouTube">YouTube</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="X">X (Twitter)</option>
+                        <option value="Web">Sitio Web</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        value={link.url}
+                        onChange={(e) => handleUpdateSocial(idx, "url", e.target.value)}
+                        placeholder="Enlace o nombre de usuario (ej. @tuusuario)..."
+                        className="flex-1 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveSocial(idx)}
+                        className="p-2 h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10 border-destructive/30"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 flex justify-end">
+              <Button type="submit" disabled={isSavingCoach} className="rounded-xl gap-2 font-bold">
+                <Save className="w-4 h-4" />
+                <span>{isSavingCoach ? "Guardando..." : "Guardar Perfil de Entrenador"}</span>
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+
       {/* Tarjeta de Privacidad y Visibilidad */}
       <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-card p-6 shadow-md space-y-4">
         <div className="flex items-center gap-2.5">
@@ -235,7 +420,7 @@ export default function PerfilPage() {
               <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Perfil 100% Protegido
             </span>
             <p className="text-[11px] leading-relaxed">
-              Nadie puede acceder a esta ruta ni consultar tu ficha. Cualquier intento de visualización externa queda bloqueado por seguridad.
+              Nadie ajeno a tu cuenta puede acceder a esta ruta ni modificar tus configuraciones personales.
             </p>
           </div>
 
@@ -244,7 +429,9 @@ export default function PerfilPage() {
               <Sparkles className="w-4 h-4 text-amber-500" /> Visibilidad de Foto
             </span>
             <p className="text-[11px] leading-relaxed">
-              Lo único que pueden ver los demás usuarios es tu fotografía en los comunicados oficiales del muro de comunidad y como autor de retos.
+              {isCoach
+                ? "Tus atletas asignados podrán ver tu foto oficial, biografía y enlaces a redes sociales para coordinar entrenamientos."
+                : "Lo único que pueden ver los demás usuarios es tu fotografía en los comunicados oficiales del muro de comunidad y como autor de retos."}
             </p>
           </div>
         </div>

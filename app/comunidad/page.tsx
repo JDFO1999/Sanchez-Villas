@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { Loader } from "@/components/ui/loader"
 import {
   getCommunityPostsAction,
   createCommunityPostAction,
@@ -86,9 +87,11 @@ export default function ComunidadPage() {
   const [hallOfFame, setHallOfFame] = useState<any[]>([])
   const [isLoadingHallOfFame, setIsLoadingHallOfFame] = useState(true)
 
-  const canPost = user?.role === "admin" || user?.role === "gerente" || user?.role === "coach"
   const isAdmin = user?.role === "admin" || user?.role === "gerente"
   const isCoach = user?.role === "coach"
+  const hasCommunityPerm = Boolean(user?.permissions?.includes("COMMUNITY_POST"))
+  const coachAllowed = isCoach && (settings.allowCoachesToPostCommunity ?? true)
+  const canPost = isAdmin || hasCommunityPerm || coachAllowed
 
   // Cargar Posts desde la Base de Datos
   const loadPosts = async () => {
@@ -462,6 +465,15 @@ export default function ComunidadPage() {
                     </div>
                   </form>
                 </div>
+              ) : isCoach ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-center justify-between text-xs text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="w-4 h-4 text-amber-500" />
+                    <span>
+                      La publicación en el muro para entrenadores está desactivada actualmente en Ajustes del Sistema.
+                    </span>
+                  </div>
+                </div>
               ) : (
                 /* Mensaje para Atletas: Información de que solo coaches/admin publican */
                 <div className="rounded-2xl border border-border/80 bg-black/5 dark:bg-white/5 p-4 flex items-center justify-between text-xs text-muted-foreground">
@@ -476,8 +488,8 @@ export default function ComunidadPage() {
 
               {/* Lista de Publicaciones desde Base de Datos */}
               {isLoadingPosts ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">
-                  Cargando publicaciones del muro...
+                <div className="py-12 flex justify-center items-center">
+                  <Loader size={48} text="Cargando publicaciones del muro..." />
                 </div>
               ) : posts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
@@ -616,8 +628,8 @@ export default function ComunidadPage() {
 
               {/* Lista de Retos */}
               {isLoadingChallenges ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">
-                  Cargando retos de la comunidad...
+                <div className="py-12 flex justify-center items-center">
+                  <Loader size={48} text="Cargando retos de la comunidad..." />
                 </div>
               ) : challenges.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
@@ -737,8 +749,8 @@ export default function ComunidadPage() {
               </div>
 
               {isLoadingHallOfFame ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">
-                  Cargando récords y méritos de atletas...
+                <div className="py-12 flex justify-center items-center">
+                  <Loader size={48} text="Cargando récords y méritos de atletas..." />
                 </div>
               ) : hallOfFame.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground space-y-2">

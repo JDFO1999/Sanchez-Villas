@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/app-layout"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dumbbell, CheckCircle2, Clock, CalendarDays, Activity, ChevronRight, Apple } from "lucide-react"
+import { Loader } from "@/components/ui/loader"
 import { getAthleteData, markRoutineCompleted, toggleExerciseCompleted } from "@/app/actions/routines"
 
 export default function RutinaPage() {
@@ -97,7 +98,9 @@ export default function RutinaPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">Cargando tus planes...</p>
+          <div className="py-16 flex justify-center">
+            <Loader size={48} text="Cargando tus planes de entrenamiento..." />
+          </div>
         ) : activeTab === "ROUTINAS" ? (
           routines.length === 0 ? (
             <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent p-8 text-center">

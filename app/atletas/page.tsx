@@ -6,6 +6,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Users, ChevronRight, CalendarCheck } from "lucide-react"
 import Link from "next/link"
+import { Loader } from "@/components/ui/loader"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
 
 export default function AtletasPage() {
@@ -50,9 +51,13 @@ export default function AtletasPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado</div>
   }
 
+  const isCoach = user?.role === 'coach'
   const [filterType, setFilterType] = useState('Todas')
 
   const filteredAthletes = athletes.filter(a => {
+    // Si el usuario es entrenador, únicamente puede ver sus atletas asignados
+    if (isCoach && a.coachId !== user.id) return false
+
     const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.cedula.includes(searchTerm)
     if (!matchesSearch) return false
 
@@ -70,9 +75,9 @@ export default function AtletasPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Directorio de Atletas</h1>
+          <h1 className="page-title">{isCoach ? "Mis Atletas Asignados" : "Directorio de Atletas"}</h1>
           <p className="text-muted-foreground mt-1">
-            Gestión y seguimiento de tus clientes.
+            {isCoach ? "Gestión y seguimiento de los clientes bajo tu supervisión." : "Gestión y seguimiento de tus clientes."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -100,31 +105,8 @@ export default function AtletasPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="glass rounded-xl p-6 border border-black/10 dark:border-white/10 space-y-4 animate-pulse">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-black/10 dark:bg-white/10 shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4" />
-                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/2" />
-                </div>
-              </div>
-              <div className="pt-4 border-t border-black/5 dark:border-white/5 space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/4" />
-                    <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/5" />
-                  </div>
-                  <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full w-full" />
-                </div>
-                <div className="flex justify-between items-center pt-1">
-                  <div className="h-3 bg-black/10 dark:bg-white/10 rounded w-1/3" />
-                  <div className="h-5 bg-black/10 dark:bg-white/10 rounded-full w-20" />
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="py-20 flex justify-center">
+          <Loader size={60} text={isCoach ? "Cargando tus atletas asignados..." : "Cargando directorio de atletas..."} />
         </div>
       ) : filteredAthletes.length === 0 ? (
         <div className="text-center py-16 px-4 rounded-2xl glass border border-dashed border-black/15 dark:border-white/15 my-6">

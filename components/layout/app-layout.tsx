@@ -316,7 +316,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
-                href={user.role === 'admin' || user.role === 'gerente' ? '/perfil' : user.role === 'athlete' || user.role === 'coach' ? `/atletas/${user.id}` : '#'}
+                href={user.role === 'admin' || user.role === 'gerente' || user.role === 'coach' ? '/perfil' : user.role === 'athlete' ? `/atletas/${user.id}` : '#'}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
               >

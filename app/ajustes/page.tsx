@@ -80,6 +80,7 @@ export default function AjustesPage() {
   })
   
   const [coachCustomPricing, setCoachCustomPricing] = useState(settings.coachCustomPricing ?? false)
+  const [allowCoachesToPostCommunity, setAllowCoachesToPostCommunity] = useState(settings.allowCoachesToPostCommunity ?? true)
   const [gymCommissionPercentage, setGymCommissionPercentage] = useState(settings.gymCommissionPercentage ?? 30)
   const [biometricFields, setBiometricFields] = useState<string[]>(settings.biometricFields || ['Pecho', 'Cintura', 'Cadera'])
   const [gymSchedule, setGymSchedule] = useState(settings.gymSchedule || {
@@ -129,6 +130,7 @@ export default function AjustesPage() {
       if (settings.storePaymentInstructions) setStorePaymentInstructions(settings.storePaymentInstructions)
       if (settings.storePaymentQRs) setStorePaymentQRs(settings.storePaymentQRs)
       if (settings.coachCustomPricing !== undefined) setCoachCustomPricing(settings.coachCustomPricing)
+      if (settings.allowCoachesToPostCommunity !== undefined) setAllowCoachesToPostCommunity(settings.allowCoachesToPostCommunity)
       if (settings.gymCommissionPercentage !== undefined) setGymCommissionPercentage(settings.gymCommissionPercentage)
       if (settings.biometricFields) setBiometricFields(settings.biometricFields)
       if (settings.footerMission !== undefined) setFooterMission(settings.footerMission)
@@ -214,6 +216,7 @@ export default function AjustesPage() {
         storePaymentQRs,
         storeTicketWidth: storeTicketWidth as any,
         coachCustomPricing,
+        allowCoachesToPostCommunity,
         gymCommissionPercentage,
         biometricFields,
         footerMission,
@@ -787,6 +790,21 @@ export default function AjustesPage() {
                           ? "Del precio que el entrenador defina, el gimnasio retendrá este porcentaje como ganancia."
                           : "Del precio asignado por el gimnasio para el entrenador, el gimnasio retendrá este porcentaje como ganancia y el resto es para el entrenador."
                         }
+                      </p>
+                    </div>
+
+                    <div className="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10 md:col-span-2">
+                      <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={allowCoachesToPostCommunity}
+                          onChange={(e) => setAllowCoachesToPostCommunity(e.target.checked)}
+                          className="accent-primary h-4 w-4"
+                        />
+                        <span className="font-bold text-sm">Permitir a los Entrenadores Publicar en Comunidad</span>
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Si está activo, los entrenadores pueden redactar avisos, consejos y comunicados oficiales en el muro de la Comunidad. Puedes revocar o conceder este permiso de forma individual por empleado en la pestaña de Roles y Permisos.
                       </p>
                     </div>
                   </div>
@@ -2641,7 +2659,8 @@ export default function AjustesPage() {
                     { id: 'FINANCE_VIEW', label: 'Ver Finanzas' },
                     { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas' },
                     { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema' },
-                    { id: 'STAFF_MANAGE', label: 'Nómina y Personal' }
+                    { id: 'STAFF_MANAGE', label: 'Nómina y Personal' },
+                    { id: 'COMMUNITY_POST', label: 'Publicar en Comunidad' }
                   ].map(perm => (
                     <label key={perm.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-1 rounded">
                       <input 
@@ -2713,6 +2732,7 @@ export default function AjustesPage() {
                         { id: 'FINANCE_VIEW', label: 'Ver Finanzas' },
                         { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas' },
                         { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema' },
+                        { id: 'COMMUNITY_POST', label: 'Publicar en Comunidad' },
                       ].map(perm => {
                         const hasPerm = emp.permissions?.includes(perm.id as any)
                         return (
