@@ -53,7 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
-  const { user, isLoading, logout } = useAuth()
+  const { user, isLoading, logout, isLoggingOut } = useAuth()
   const { settings } = useSettings()
   const router = useRouter()
   const [navImgError, setNavImgError] = useState(false)
@@ -68,7 +68,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router])
 
-  if (isLoading) return <FullScreenLoader text="Iniciando..." />
+  if (isLoading) return <FullScreenLoader text="Iniciando..." progressive={true} />
 
   if (pathname === '/login' || pathname === '/registro' || pathname === '/inicio' || (pathname === '/' && !user)) {
     return <>{children}</>
@@ -234,6 +234,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden print:overflow-visible bg-background">
       <ProgressiveRouteLoader />
+      {isLoggingOut && <FullScreenLoader text="Cerrando sesión..." progressive={true} />}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"

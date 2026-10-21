@@ -235,7 +235,7 @@ export const defaultSettings: AppSettings = {
   ],
   footerPartners: [],
   trainingPhilosophy: 'No cuentes los días, haz que los días cuenten. Tu único límite es la mente que te dice que pares una repetición antes.',
-  allowCoachesToPostCommunity: true,
+  allowCoachesToPostCommunity: false,
   gymSchedule: {
     weekdays: '6:00 AM - 10:00 PM',
     saturdays: '7:00 AM - 6:00 PM',

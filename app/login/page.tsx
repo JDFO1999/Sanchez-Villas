@@ -210,7 +210,7 @@ export default function LoginPage() {
 
       </div>
 
-      {isLoading && <FullScreenLoader text="Iniciando sesión..." />}
+      {isLoading && <FullScreenLoader text="Iniciando sesión..." progressive={true} />}
     </div>
   )
 }

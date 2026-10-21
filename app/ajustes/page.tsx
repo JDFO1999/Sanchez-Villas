@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth, User as UserType } from "@/lib/auth-context"
+import { useAuth, User as UserType, AVAILABLE_PERMISSIONS } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { BaseFooter } from "@/components/layout/footer"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard } from "lucide-react"
+import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/lib/toast-context"
+import { useToast, showSweetToast } from "@/lib/toast-context"
 
 export default function AjustesPage() {
   const { user, getAllEmployees, updateEmployeePermissions } = useAuth()
@@ -20,6 +20,9 @@ export default function AjustesPage() {
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
   const [empSearch, setEmpSearch] = useState("")
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null)
+  const [editingPermsEmployee, setEditingPermsEmployee] = useState<any | null>(null)
+  const [tempPermissions, setTempPermissions] = useState<string[]>([])
+  const [isSavingEmpPerms, setIsSavingEmpPerms] = useState(false)
   
   // Custom Roles State
   const [roles, setRoles] = useState<any[]>(settings.customRoles || [])
@@ -80,7 +83,7 @@ export default function AjustesPage() {
   })
   
   const [coachCustomPricing, setCoachCustomPricing] = useState(settings.coachCustomPricing ?? false)
-  const [allowCoachesToPostCommunity, setAllowCoachesToPostCommunity] = useState(settings.allowCoachesToPostCommunity ?? true)
+  const [allowCoachesToPostCommunity, setAllowCoachesToPostCommunity] = useState(settings.allowCoachesToPostCommunity ?? false)
   const [gymCommissionPercentage, setGymCommissionPercentage] = useState(settings.gymCommissionPercentage ?? 30)
   const [biometricFields, setBiometricFields] = useState<string[]>(settings.biometricFields || ['Pecho', 'Cintura', 'Cadera'])
   const [gymSchedule, setGymSchedule] = useState(settings.gymSchedule || {
@@ -2688,13 +2691,21 @@ export default function AjustesPage() {
         </div>
       )}
 
-      {/* MODAL DE EMPLEADOS (Legacy Permisos) */}
+      {/* MODAL DE EMPLEADOS (Buscar y gestionar permisos) */}
       {showEmployeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-lg w-full p-6 shadow-2xl glass flex flex-col max-h-[85vh]">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold flex items-center gap-2"><User className="h-5 w-5 text-primary"/> Buscar Empleado</h3>
-              <button onClick={() => { setShowEmployeeModal(false); setSelectedEmpId(null); setEmpSearch(""); }} className="text-muted-foreground hover:text-white">&times;</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center mb-4 border-b border-black/10 dark:border-white/10 pb-3">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <User className="h-5 w-5 text-primary"/> Buscar Empleado para Permisos
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => { setShowEmployeeModal(false); setEmpSearch(""); }} 
+                className="text-muted-foreground hover:text-foreground text-2xl leading-none p-1"
+              >
+                &times;
+              </button>
             </div>
             
             <input 
@@ -2702,67 +2713,169 @@ export default function AjustesPage() {
               placeholder="Buscar por nombre o cédula..." 
               value={empSearch}
               onChange={(e) => setEmpSearch(e.target.value)}
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-primary mb-4" 
+              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary mb-4" 
             />
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch)).map(emp => (
-                <div key={emp.id} className="p-4 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg hover:border-primary/50 transition">
-                  <div className="flex justify-between items-center cursor-pointer" onClick={() => setSelectedEmpId(selectedEmpId === emp.id ? null : emp.id)}>
-                    <div>
-                      <h4 className="font-bold">{emp.name}</h4>
-                      <p className="text-xs text-muted-foreground">{emp.role?.toUpperCase() || 'EMPLEADO'} - C.C. {emp.cedula}</p>
+                <div key={emp.id} className="p-4 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl hover:border-primary/50 transition">
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm truncate">{emp.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">{emp.role?.toUpperCase() || 'EMPLEADO'} • C.C. {emp.cedula}</p>
+                      <p className="text-[11px] text-primary/80 font-medium mt-1">
+                        {emp.permissions?.length || 0} permisos individuales activos
+                      </p>
                     </div>
-                    {emp.role === 'admin' && (
-                      <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded font-bold uppercase">Acceso Total</span>
-                    )}
-                    {emp.role !== 'admin' && (
-                      <button className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3 py-1 rounded transition">Editar Permisos</button>
+                    {emp.role === 'admin' ? (
+                      <span className="text-[10px] bg-primary/20 text-primary px-2.5 py-1 rounded-full font-bold uppercase shrink-0">
+                        Acceso Total
+                      </span>
+                    ) : (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setEditingPermsEmployee(emp)
+                          setTempPermissions(Array.isArray(emp.permissions) ? [...emp.permissions] : [])
+                        }}
+                        className="bg-transparent border border-primary text-primary hover:bg-primary/10 text-xs px-3.5 py-1.5 rounded-lg transition font-bold shrink-0"
+                      >
+                        Editar Permisos
+                      </button>
                     )}
                   </div>
-                  
-                  {emp.role !== 'admin' && selectedEmpId === emp.id && (
-                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 flex flex-wrap gap-4">
-                      {[
-                        { id: 'POS_ACCESS', label: 'Caja (POS)' },
-                        { id: 'INVENTORY_MANAGE', label: 'Inventario' },
-                        { id: 'SALES_VIEW', label: 'Reportes Ventas' },
-                        { id: 'CRM_MANAGE', label: 'CRM Membresías' },
-                        { id: 'STAFF_MANAGE', label: 'Personal y Entrenadores' },
-                        { id: 'FINANCE_VIEW', label: 'Ver Finanzas' },
-                        { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas' },
-                        { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema' },
-                        { id: 'COMMUNITY_POST', label: 'Publicar en Comunidad' },
-                      ].map(perm => {
-                        const hasPerm = emp.permissions?.includes(perm.id as any)
-                        return (
-                          <label key={perm.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                            <input 
-                              type="checkbox" 
-                              checked={hasPerm}
-                              onChange={(e) => {
-                                const newPerms = e.target.checked 
-                                  ? [...(emp.permissions || []), perm.id]
-                                  : (emp.permissions || []).filter(p => p !== perm.id)
-                                updateEmployeePermissions(emp.id, newPerms as any)
-                                getAllEmployees().then(setEmployees) // Refresh UI
-                              }}
-                              className="accent-primary h-4 w-4"
-                            />
-                            {perm.label}
-                          </label>
-                        )
-                      })}
-                    </div>
-                  )}
                 </div>
               ))}
               
               {employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch)).length === 0 && (
-                <div className="text-center text-sm text-muted-foreground p-4">No se encontraron empleados.</div>
+                <div className="text-center text-sm text-muted-foreground p-6">No se encontraron empleados coincidentes.</div>
               )}
             </div>
             
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DEDICADO DE EDICIÓN DE PERMISOS */}
+      {editingPermsEmployee && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-xl w-full p-6 shadow-2xl glass flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-start border-b border-black/10 dark:border-white/10 pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                  <Shield className="h-5 w-5 text-primary" /> Permisos de Acceso
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Configurando permisos para <strong className="text-foreground">{editingPermsEmployee.name}</strong> ({editingPermsEmployee.role?.toUpperCase() || 'EMPLEADO'} • C.I. {editingPermsEmployee.cedula})
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditingPermsEmployee(null)} 
+                className="text-muted-foreground hover:text-foreground text-2xl leading-none p-1"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between mb-3 px-1">
+              <span className="text-xs font-semibold text-muted-foreground">
+                <span className="text-primary font-bold">{tempPermissions.length}</span> de {AVAILABLE_PERMISSIONS.length} permisos habilitados
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTempPermissions(AVAILABLE_PERMISSIONS.map(p => p.id))}
+                  className="text-xs text-primary hover:underline font-bold"
+                >
+                  Marcar todos
+                </button>
+                <span className="text-muted-foreground text-xs">•</span>
+                <button
+                  type="button"
+                  onClick={() => setTempPermissions([])}
+                  className="text-xs text-destructive hover:underline font-bold"
+                >
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 my-1">
+              {AVAILABLE_PERMISSIONS.map(perm => {
+                const isChecked = tempPermissions.includes(perm.id)
+                return (
+                  <label
+                    key={perm.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer select-none ${
+                      isChecked 
+                        ? "bg-primary/10 border-primary/50 text-foreground" 
+                        : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-muted-foreground hover:border-black/20 dark:hover:border-white/20"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setTempPermissions(prev => [...prev, perm.id])
+                        } else {
+                          setTempPermissions(prev => prev.filter(p => p !== perm.id))
+                        }
+                      }}
+                      className="accent-primary h-4 w-4 mt-0.5 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-xs font-bold block ${isChecked ? "text-primary" : "text-foreground"}`}>
+                        {perm.label}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground block leading-snug">
+                        {perm.desc}
+                      </span>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10 mt-3">
+              <button
+                type="button"
+                onClick={() => setEditingPermsEmployee(null)}
+                className="bg-transparent border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 px-4 py-2 rounded-xl text-xs font-bold transition text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingEmpPerms}
+                onClick={async () => {
+                  setIsSavingEmpPerms(true)
+                  try {
+                    const { updateEmployeePermissionsAction } = await import('@/app/actions/users')
+                    const res = await updateEmployeePermissionsAction(editingPermsEmployee.id, tempPermissions)
+                    if (res && res.success) {
+                      showSweetToast(`Permisos de ${editingPermsEmployee.name} actualizados exitosamente`, 'success')
+                      setEmployees(prev => prev.map(e => e.id === editingPermsEmployee.id ? { ...e, permissions: tempPermissions as any } : e))
+                      setEditingPermsEmployee(null)
+                      if (getAllEmployees) {
+                        const updated = await getAllEmployees()
+                        setEmployees(updated)
+                      }
+                    } else {
+                      showSweetToast(res?.error || 'Error al guardar permisos', 'error')
+                    }
+                  } catch (err: any) {
+                    showSweetToast(err.message || 'Error al procesar la actualización', 'error')
+                  } finally {
+                    setIsSavingEmpPerms(false)
+                  }
+                }}
+                className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2"
+              >
+                {isSavingEmpPerms ? "Guardando..." : "Guardar Permisos"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -90,7 +90,7 @@ export default function ComunidadPage() {
   const isAdmin = user?.role === "admin" || user?.role === "gerente"
   const isCoach = user?.role === "coach" || user?.role === "employee"
   const hasCommunityPerm = Boolean(user?.permissions?.includes("COMMUNITY_POST"))
-  const coachAllowed = isCoach && (settings.allowCoachesToPostCommunity ?? true)
+  const coachAllowed = isCoach && Boolean(settings.allowCoachesToPostCommunity)
   const canPost = isAdmin || hasCommunityPerm || coachAllowed
 
   // Cargar Posts desde la Base de Datos

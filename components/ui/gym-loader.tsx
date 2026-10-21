@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
+import { Dumbbell } from "lucide-react"
 
 interface GymLoaderProps {
   size?: "sm" | "md" | "lg"
@@ -36,6 +37,7 @@ export function GymLoader({
   const { theme, resolvedTheme } = useTheme()
   const [quoteIndex, setQuoteIndex] = useState(0)
   const [autoProgress, setAutoProgress] = useState(15)
+  const [imgError, setImgError] = useState(false)
 
   const isDark = (resolvedTheme || theme) === "dark"
   
@@ -52,10 +54,12 @@ export function GymLoader({
     } catch {}
   }
 
-  const logoSrc = isDark 
+  const rawLogo = isDark 
     ? (settings.logoUrlDark || settings.logoUrl || cachedLogo) 
     : (settings.logoUrl || settings.logoUrlDark || cachedLogo)
+  const logoSrc = !imgError && rawLogo ? rawLogo : ""
   const appName = settings.appName || cachedName || ""
+
 
   useEffect(() => {
     if (!showQuote) return
@@ -100,7 +104,8 @@ export function GymLoader({
           <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150 animate-logo-glow pointer-events-none" />
           <img
             src={logoSrc}
-            alt={settings.appName || "Logo Empresa"}
+            alt={appName || "Logo Empresa"}
+            onError={() => setImgError(true)}
             style={{
               height: logoH,
               maxWidth: logoMaxW,
@@ -108,19 +113,26 @@ export function GymLoader({
             }}
             className="relative z-10 drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)] transition-all animate-pulse"
           />
-          {settings?.appName && size !== "sm" && (
+          {appName && size !== "sm" && (
             <span className="font-display font-black text-xl md:text-3xl uppercase tracking-wider text-foreground mt-3 drop-shadow">
-              {settings.appName}
+              {appName}
             </span>
           )}
         </div>
-      ) : settings?.appName ? (
-        <div className="mb-6 flex flex-col items-center">
-          <div className="px-6 py-3 rounded-2xl bg-primary/15 border-2 border-primary/40 text-primary font-black uppercase tracking-widest text-xl md:text-3xl shadow-xl">
-            {settings.appName}
+      ) : (
+        <div className="mb-8 relative flex flex-col items-center">
+          {/* Glowing Aura detrás del emblema */}
+          <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full scale-150 animate-logo-glow pointer-events-none" />
+          <div className="relative z-10 w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-primary/15 border-2 border-primary/50 flex items-center justify-center shadow-2xl shadow-primary/30 drop-shadow animate-pulse">
+            <Dumbbell className="w-10 h-10 md:w-12 md:h-12 text-primary" />
           </div>
+          {appName && (
+            <span className="font-display font-black text-xl md:text-3xl uppercase tracking-wider text-foreground mt-3 drop-shadow">
+              {appName}
+            </span>
+          )}
         </div>
-      ) : null}
+      )}
 
       {/* Animated Olympic Barbell */}
       <div

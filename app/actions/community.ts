@@ -82,7 +82,7 @@ export async function createCommunityPostAction({
         const record = await prisma.systemSetting.findUnique({
           where: { id: "default" },
         })
-        let allowCoaches = true
+        let allowCoaches = false
         if (record?.data) {
           const parsed = JSON.parse(record.data)
           if (parsed.allowCoachesToPostCommunity !== undefined) {
@@ -93,7 +93,7 @@ export async function createCommunityPostAction({
           isAllowed = true
         }
       } catch {
-        isAllowed = true
+        isAllowed = false
       }
     }
   }

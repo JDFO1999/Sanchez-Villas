@@ -10,6 +10,18 @@ import { showSweetToast } from '@/lib/toast-context'
 export type Role = string | null
 export type Permission = 'POS_ACCESS' | 'INVENTORY_MANAGE' | 'SALES_VIEW' | 'CRM_MANAGE' | 'FINANCE_VIEW' | 'FINANCE_MANAGE' | 'SETTINGS_MANAGE' | 'STAFF_MANAGE' | 'COMMUNITY_POST'
 
+export const AVAILABLE_PERMISSIONS: { id: Permission; label: string; desc: string }[] = [
+  { id: 'POS_ACCESS', label: 'Caja y Punto de Venta (POS)', desc: 'Permite registrar cobros de tienda y membresías' },
+  { id: 'INVENTORY_MANAGE', label: 'Inventario de Tienda', desc: 'Permite crear, modificar productos y ajustar existencias' },
+  { id: 'SALES_VIEW', label: 'Historial y Reportes de Ventas', desc: 'Permite consultar transacciones y arqueos de caja' },
+  { id: 'CRM_MANAGE', label: 'Gestión de Atletas (CRM)', desc: 'Permite consultar y administrar directorio de atletas' },
+  { id: 'STAFF_MANAGE', label: 'Personal y Entrenadores', desc: 'Permite gestionar nómina, empleados y entrenadores' },
+  { id: 'FINANCE_VIEW', label: 'Ver Finanzas', desc: 'Acceso de lectura a balances y métricas contables' },
+  { id: 'FINANCE_MANAGE', label: 'Administrar Finanzas', desc: 'Permite registrar egresos, gastos y flujo de caja' },
+  { id: 'SETTINGS_MANAGE', label: 'Ajustes del Sistema', desc: 'Permite modificar configuración global y logos' },
+  { id: 'COMMUNITY_POST', label: 'Publicar en Comunidad', desc: 'Permite redactar avisos y comunicados en el muro' },
+]
+
 export interface CustomRoleDef {
   id: string
   name: string
@@ -59,6 +71,7 @@ interface AuthContextType {
   updateUserProfilePicture: (newPicture: string) => void
   
   isLoading: boolean
+  isLoggingOut: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -66,6 +79,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   
   useEffect(() => {
@@ -95,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
+    setIsLoggingOut(true)
     try {
       // Borra la cookie httpOnly "session" en el servidor
       await logoutAction()
@@ -197,7 +212,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateUserProfilePicture: (pic: string) => {
         setUser(prev => prev ? { ...prev, profilePicture: pic } : null)
       },
-      isLoading 
+      isLoading,
+      isLoggingOut
     }}>
       {children}
     </AuthContext.Provider>
