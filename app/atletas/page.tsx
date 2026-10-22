@@ -4,48 +4,129 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Users, ChevronRight, CalendarCheck } from "lucide-react"
+import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon } from "lucide-react"
 import Link from "next/link"
 import { Loader } from "@/components/ui/loader"
 import { CardGridSkeleton } from "@/components/ui/skeleton"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
+import { showSweetToast } from "@/lib/toast-context"
 
 export default function AtletasPage() {
   const { user } = useAuth()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [coaches, setCoaches] = useState<Record<string, string>>({})
+  const [coachList, setCoachList] = useState<{ id: string; name: string }[]>([])
   const [selectedAthleteForAttendance, setSelectedAthleteForAttendance] = useState<AttendanceModalAthlete | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
 
+  // Estados para Modal de Edición de Atleta
+  const [editingAthlete, setEditingAthlete] = useState<AthleteProfile | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editCedula, setEditCedula] = useState("")
+  const [editPhone, setEditPhone] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+  const [editAddress, setEditAddress] = useState("")
+  const [editGender, setEditGender] = useState("M")
+  const [editCoachId, setEditCoachId] = useState("")
+  const [editPassword, setEditPassword] = useState("")
+  const [editConfirmPassword, setEditConfirmPassword] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+
+  const canEdit = user?.role === 'admin' || user?.role === 'gerente'
+
+  const loadAthletes = async () => {
+    try {
+      const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
+      const empRes = await getAllEmployees()
+      if (empRes.success) {
+        const map: Record<string, string> = {}
+        const list: { id: string; name: string }[] = []
+        ;(empRes.employees as any[]).forEach((e: any) => { 
+          if (e.role === 'coach' || e.role === 'employee') {
+            map[e.id] = e.name
+            list.push({ id: e.id, name: e.name })
+          }
+        })
+        setCoaches(map)
+        setCoachList(list)
+      }
+      const res = await getAthletes()
+      if (res.success) {
+        setAthletes(res.athletes.map((a: any) => ({
+          ...a,
+          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+          membershipStart: a.memberships?.[0]?.startDate || null,
+          planName: a.memberships?.[0]?.planName || null,
+          attendances: a.attendances || [],
+        })))
+      }
+    } catch (err) {
+      console.error("Error cargando atletas:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    async function load() {
-      try {
-        const { getAthletes, getAllEmployees } = await import('@/app/actions/users')
-        const empRes = await getAllEmployees()
-        if (empRes.success) {
-          const map: Record<string, string> = {}
-          ;(empRes.employees as any[]).forEach((e: any) => { if (e.role === 'coach' || e.role === 'employee') map[e.id] = e.name })
-          setCoaches(map)
-        }
-        const res = await getAthletes()
-        if (res.success) {
-          setAthletes(res.athletes.map((a: any) => ({
-            ...a,
-            membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-            membershipStart: a.memberships?.[0]?.startDate || null,
-            planName: a.memberships?.[0]?.planName || null,
-            attendances: a.attendances || [],
-          })))
-        }
-      } catch (err) {
-        console.error("Error cargando atletas:", err)
-      } finally {
-        setLoading(false)
+    loadAthletes()
+  }, [])
+
+  const handleOpenEdit = (a: AthleteProfile) => {
+    setEditingAthlete(a)
+    setEditName(a.name || "")
+    setEditCedula(a.cedula || "")
+    setEditPhone(a.phone || "")
+    setEditEmail((a as any).email || "")
+    setEditAddress(a.address || "")
+    setEditGender(a.gender || "M")
+    setEditCoachId(a.coachId || "")
+    setEditPassword("")
+    setEditConfirmPassword("")
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingAthlete) return
+
+    if (editPassword) {
+      if (editPassword.length < 6) {
+        showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
+        return
+      }
+      if (editPassword !== editConfirmPassword) {
+        showSweetToast("Las contraseñas no coinciden.", "warning")
+        return
       }
     }
-    load()
-  }, [])
+
+    setIsSaving(true)
+    try {
+      const { updateAthlete } = await import('@/app/actions/users')
+      const res = await updateAthlete(editingAthlete.id, {
+        name: editName,
+        cedula: editCedula,
+        phone: editPhone,
+        email: editEmail,
+        address: editAddress,
+        gender: editGender,
+        coachId: editCoachId || null,
+        ...(editPassword ? { password: editPassword } : {})
+      })
+
+      if (res.success) {
+        showSweetToast("Datos del atleta actualizados correctamente.", "success")
+        setEditingAthlete(null)
+        await loadAthletes()
+      } else {
+        showSweetToast(res.error || "No se pudo actualizar los datos.", "error")
+      }
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al actualizar.", "error")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // Solo Admin y Empleado pueden ver esto
   if (user?.role === 'athlete') {
@@ -223,8 +304,8 @@ export default function AtletasPage() {
                     </div>
                   </div>
 
-                  {/* Botón para ver Asistencias y Plan */}
-                  <div className="mt-4 pt-3 border-t border-black/10 dark:border-white/10">
+                  {/* Botón para ver Asistencias y Plan / Editar */}
+                  <div className="mt-4 pt-3 border-t border-black/10 dark:border-white/10 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() =>
@@ -233,11 +314,23 @@ export default function AtletasPage() {
                           coachName: atleta.coachId ? coaches[atleta.coachId] : undefined,
                         })
                       }
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 font-bold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 font-bold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                     >
                       <CalendarCheck className="w-4 h-4 text-primary" />
-                      <span>Ver Asistencias ({atleta.attendances?.length || 0})</span>
+                      <span>Asistencias ({atleta.attendances?.length || 0})</span>
                     </button>
+
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(atleta)}
+                        title="Editar datos y contraseña"
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/15 text-foreground hover:text-primary border border-black/10 dark:border-white/10 font-bold text-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -252,6 +345,200 @@ export default function AtletasPage() {
         onClose={() => setSelectedAthleteForAttendance(null)}
         athlete={selectedAthleteForAttendance}
       />
+
+      {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
+      {editingAthlete && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <Edit className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-foreground leading-tight">Editar Atleta</h3>
+                  <p className="text-xs text-muted-foreground">{editingAthlete.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAthlete(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleSaveEdit} className="space-y-4 overflow-y-auto pr-1">
+              {/* Sección Datos Personales */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
+                    <input
+                      required
+                      type="text"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Cédula *</label>
+                    <input
+                      required
+                      type="text"
+                      value={editCedula}
+                      onChange={e => setEditCedula(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Teléfono</label>
+                    <input
+                      type="text"
+                      placeholder="0414-0000000"
+                      value={editPhone}
+                      onChange={e => setEditPhone(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      placeholder="atleta@gym.com"
+                      value={editEmail}
+                      onChange={e => setEditEmail(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Género</label>
+                    <select
+                      value={editGender}
+                      onChange={e => setEditGender(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    >
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Entrenador (Coach)</label>
+                    <select
+                      value={editCoachId}
+                      onChange={e => setEditCoachId(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Sin entrenador asignado</option>
+                      {coachList.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                  <input
+                    type="text"
+                    placeholder="Sector / Calle / Residencia"
+                    value={editAddress}
+                    onChange={e => setEditAddress(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Sección Credenciales / Contraseña */}
+              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Restablecer Contraseña (Opcional)
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Deja estos campos en blanco si no deseas modificar la clave actual del atleta.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Nueva Contraseña</label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <label className="text-xs font-semibold mb-1 block">Confirmar Contraseña</label>
+                    <input
+                      type="password"
+                      placeholder="Repetir contraseña"
+                      disabled={!editPassword}
+                      value={editConfirmPassword}
+                      onChange={e => setEditConfirmPassword(e.target.value)}
+                      className={`w-full bg-black/5 dark:bg-black/40 border rounded-lg p-2.5 text-sm focus:outline-none transition-all ${
+                        editConfirmPassword
+                          ? editPassword === editConfirmPassword
+                            ? 'border-emerald-500 focus:border-emerald-500'
+                            : 'border-rose-500 focus:border-rose-500'
+                          : 'border-black/10 dark:border-white/10 focus:border-primary'
+                      }`}
+                    />
+                    {editPassword && editConfirmPassword && editPassword === editConfirmPassword && (
+                      <Check className="absolute right-3 top-8 h-4 w-4 text-emerald-500" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingAthlete(null)}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving || (!!editPassword && editPassword !== editConfirmPassword)}
+                  className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Cambios</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

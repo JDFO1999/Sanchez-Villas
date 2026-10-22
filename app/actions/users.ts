@@ -571,17 +571,58 @@ export async function updateAthlete(id: string, data: any) {
   if (!g.ok) return { success: false, error: g.error }
   try {
     const staff = isStaff(g.user.role)
+    const isAdminOrGerente = g.user.role === 'admin' || g.user.role === 'gerente'
+
+    const targetUser = await prisma.user.findUnique({ where: { id } })
+    if (!targetUser) return { success: false, error: "Atleta no encontrado." }
+
+    // Validación de contraseña si se proporciona
+    let newHashedPassword: string | undefined = undefined
+    const plainPwd = data.clave || data.password
+    if (plainPwd) {
+      if (!isAdminOrGerente && g.user.id !== id) {
+        return { success: false, error: "Solo los administradores pueden cambiar la contraseña de otro usuario." }
+      }
+      if (String(plainPwd).length < MIN_PASSWORD) {
+        return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
+      }
+      newHashedPassword = await bcrypt.hash(String(plainPwd), 10)
+    }
+
+    // Validación de cédula si se cambia por staff
+    let cleanCedula: string | undefined = undefined
+    if (data.cedula && staff) {
+      cleanCedula = data.cedula.replace(/\D/g, "").trim()
+      if (cleanCedula && cleanCedula !== targetUser.cedula) {
+        const existingWithCedula = await prisma.user.findFirst({
+          where: {
+            id: { not: id },
+            OR: [
+              { cedula: cleanCedula },
+              { cedula: `V-${cleanCedula}` },
+              { cedula: `E-${cleanCedula}` }
+            ]
+          }
+        })
+        if (existingWithCedula) {
+          return { success: false, error: "Ya existe otro usuario registrado con esta cédula." }
+        }
+      }
+    }
 
     // Un atleta editando su propio perfil solo puede cambiar datos de contacto,
-    // nunca su entrenador ni su membresía.
+    // nunca su entrenador, cédula ni su membresía.
     const user = await prisma.user.update({
       where: { id },
       data: {
-        name: data.name,
-        gender: data.gender,
-        phone: data.phone || null,
-        address: data.address || null,
-        ...(staff ? { coachId: data.coachId || null } : {}),
+        name: data.name !== undefined ? data.name : targetUser.name,
+        gender: data.gender !== undefined ? data.gender : targetUser.gender,
+        phone: data.phone !== undefined ? (data.phone || null) : targetUser.phone,
+        address: data.address !== undefined ? (data.address || null) : targetUser.address,
+        email: data.email !== undefined ? (data.email || null) : targetUser.email,
+        ...(cleanCedula ? { cedula: cleanCedula } : {}),
+        ...(newHashedPassword ? { password: newHashedPassword } : {}),
+        ...(staff && data.coachId !== undefined ? { coachId: data.coachId || null } : {}),
       }
     });
 
