@@ -195,3 +195,93 @@ export async function getTodayAttendanceAndSalesAction() {
   }
 }
 
+export async function getAttendanceReportAction(dateStr?: string) {
+  const g = await guardAttendance()
+  if (!g.ok) return { success: false, error: g.error }
+
+  try {
+    let startOfDay: Date
+    let endOfDay: Date
+
+    if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split("-").map(Number)
+      startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+      endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+    } else {
+      startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      endOfDay = new Date()
+      endOfDay.setHours(23, 59, 59, 999)
+    }
+
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      orderBy: { date: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            cedula: true,
+            role: true,
+            profilePicture: true,
+            specialties: true,
+            profession: true,
+            phone: true,
+            memberships: {
+              orderBy: { endDate: "desc" },
+              take: 1,
+              select: {
+                endDate: true,
+                planName: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    const parsed = JSON.parse(JSON.stringify(attendances))
+    const now = new Date()
+
+    const athleteAttendances = parsed.filter((a: any) => a.user?.role === "athlete")
+    const employeeAttendances = parsed.filter((a: any) => a.user?.role !== "athlete")
+
+    let activeMembershipsCount = 0
+    let expiredMembershipsCount = 0
+
+    athleteAttendances.forEach((a: any) => {
+      const end = a.user?.memberships?.[0]?.endDate
+      if (end && new Date(end) >= now) {
+        activeMembershipsCount++
+      } else {
+        expiredMembershipsCount++
+      }
+    })
+
+    return {
+      success: true,
+      attendances: parsed,
+      athleteAttendances,
+      employeeAttendances,
+      stats: {
+        total: parsed.length,
+        athletes: athleteAttendances.length,
+        employees: employeeAttendances.length,
+        activeMemberships: activeMembershipsCount,
+        expiredMemberships: expiredMembershipsCount,
+      },
+    }
+  } catch (error: any) {
+    console.error("Error generating attendance report:", error)
+    return { success: false, error: error?.message || "Error al generar reporte de asistencia" }
+  }
+}
+
+

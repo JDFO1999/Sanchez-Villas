@@ -141,22 +141,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     ]
 
     // Atletas (CRM)
-    if (user?.role === 'employee' || hasPermission('CRM_MANAGE')) {
+    if (user?.role === 'employee' || user?.role === 'recepcion' || user?.role === 'gerente' || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Atletas", href: "/atletas", icon: Users })
     }
 
     // Membresías
-    if (user?.role === 'cajero' || hasPermission('POS_ACCESS') || hasPermission('CRM_MANAGE')) {
+    if (user?.role === 'cajero' || user?.role === 'recepcion' || user?.role === 'gerente' || hasPermission('POS_ACCESS') || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Membresías", href: "/membresias", icon: CreditCard })
     }
 
     // Tienda / POS
-    if (user?.role === 'cajero' || hasPermission('POS_ACCESS') || hasPermission('INVENTORY_MANAGE')) {
+    if (user?.role === 'cajero' || user?.role === 'recepcion' || user?.role === 'gerente' || hasPermission('POS_ACCESS') || hasPermission('INVENTORY_MANAGE')) {
       currentNavItems.push({ name: "Tienda (POS)", href: "/tienda", icon: Store })
     }
 
     // Asistencia
-    if (user?.role === 'cajero' || user?.role === 'recepcion' || (user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
+    if (user?.role === 'cajero' || user?.role === 'recepcion' || user?.role === 'gerente' || (user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
     }
 

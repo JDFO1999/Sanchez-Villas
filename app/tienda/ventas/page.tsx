@@ -79,7 +79,16 @@ export default function VentasPage() {
     }
   }
 
-  if (!user || (user.role !== 'admin' && user.role !== 'cajero' && !user.permissions?.includes('SALES_VIEW'))) {
+  const isAuthorized = user && (
+    user.role === 'admin' ||
+    user.role === 'gerente' ||
+    user.role === 'cajero' ||
+    user.role === 'recepcion' ||
+    user.permissions?.includes('SALES_VIEW') ||
+    user.permissions?.includes('POS_ACCESS')
+  )
+
+  if (!isAuthorized) {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 

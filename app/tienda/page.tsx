@@ -496,8 +496,18 @@ export default function TiendaPOSPage() {
     }
   }
 
-  if (!user || (user.role !== 'admin' && !user.permissions?.includes('POS_ACCESS') && user.role !== 'athlete')) {
-    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado a la Tienda.</div>
+  const isAuthorizedStaff = user && (
+    user.role === 'admin' ||
+    user.role === 'gerente' ||
+    user.role === 'cajero' ||
+    user.role === 'recepcion' ||
+    user.role === 'athlete' ||
+    user.permissions?.includes('POS_ACCESS') ||
+    user.permissions?.includes('INVENTORY_MANAGE')
+  )
+
+  if (!isAuthorizedStaff) {
+    return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado a la Tienda. Solo personal autorizado.</div>
   }
 
   const renderPlanSelectorModal = () => {

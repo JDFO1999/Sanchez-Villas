@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -18,6 +18,8 @@ import {
   CreditCard,
   RefreshCw,
   ShoppingBag,
+  Cake,
+  Sparkles,
 } from "lucide-react"
 import Link from "next/link"
 import { QRScanner } from "@/components/qr-scanner"
@@ -42,6 +44,7 @@ export function ReceptionDashboard() {
   })
   const [isLoadingTodayData, setIsLoadingTodayData] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [athletes, setAthletes] = useState<any[]>([])
 
   // Cargar pedidos pendientes de tienda
   const fetchPendingOrders = () => {
@@ -52,7 +55,7 @@ export function ReceptionDashboard() {
     })
   }
 
-  // Cargar asistencias y ventas del día
+  // Cargar asistencias, ventas del día y directorio de atletas
   const fetchTodayData = async () => {
     try {
       const { getTodayAttendanceAndSalesAction } = await import("@/app/actions/attendance")
@@ -66,6 +69,12 @@ export function ReceptionDashboard() {
           totalSalesCount: res.totalSalesCount || 0,
         })
       }
+
+      const { getAthletes } = await import("@/app/actions/users")
+      const athRes = await getAthletes()
+      if (athRes.success) {
+        setAthletes(athRes.athletes || [])
+      }
     } catch (e) {
       console.error("Error al cargar asistencias y ventas de hoy:", e)
     } finally {
@@ -73,6 +82,30 @@ export function ReceptionDashboard() {
       setIsRefreshing(false)
     }
   }
+
+  // Cumpleañeros de hoy (mes y día coinciden)
+  const todayBirthdays = useMemo(() => {
+    const today = new Date()
+    const m = today.getMonth() + 1
+    const d = today.getDate()
+    return athletes.filter((a) => {
+      if (!a.birthDate) return false
+      const parts = a.birthDate.split("-").map(Number)
+      if (parts.length < 3) return false
+      return parts[1] === m && parts[2] === d
+    })
+  }, [athletes])
+
+  // Membresías próximas a vencer (en 3 días o menos)
+  const expiringMemberships = useMemo(() => {
+    const now = new Date()
+    return athletes.filter((a) => {
+      const end = a.memberships?.[0]?.endDate
+      if (!end) return false
+      const diffDays = Math.ceil((new Date(end).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return diffDays >= 0 && diffDays <= 3
+    })
+  }, [athletes])
 
   const handleManualRefresh = () => {
     setIsRefreshing(true)
@@ -286,10 +319,38 @@ export function ReceptionDashboard() {
             className="border-2 border-amber-500/50 text-foreground hover:border-amber-500 hover:bg-amber-500/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
           >
             <CreditCard className="h-4 w-4 text-amber-500" />
-            Membresías
+            <span>Membresías</span>
+            {expiringMemberships.length > 0 && (
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-amber-500 text-black">
+                {expiringMemberships.length} por vencer
+              </span>
+            )}
           </Link>
         </div>
       </div>
+
+      {/* Banner de Cumpleañeros del Día (si hay) */}
+      {todayBirthdays.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+              <Cake className="w-6 h-6 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm text-foreground flex items-center gap-1.5">
+                <span>¡Cumpleañeros de Hoy!</span>
+                <Sparkles className="w-4 h-4 text-amber-500" />
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {todayBirthdays.map((b: any) => `${b.name} (C.I. ${b.cedula})`).join(", ")}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 whitespace-nowrap">
+            ¡Felicítalos en recepción! 🎂
+          </span>
+        </div>
+      )}
 
       {/* Tarjetas Resumen de Operaciones del Día */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

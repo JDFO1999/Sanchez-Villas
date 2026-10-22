@@ -128,7 +128,16 @@ export default function MembresíasPage() {
     load()
   }, [])
 
-  if (!user || (user.role !== 'admin' && !user.permissions?.includes('CRM_MANAGE') && !user.permissions?.includes('POS_ACCESS'))) {
+  const isAuthorized = user && (
+    user.role === 'admin' ||
+    user.role === 'gerente' ||
+    user.role === 'cajero' ||
+    user.role === 'recepcion' ||
+    user.permissions?.includes('CRM_MANAGE') ||
+    user.permissions?.includes('POS_ACCESS')
+  )
+
+  if (!isAuthorized) {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal autorizado.</div>
   }
 
