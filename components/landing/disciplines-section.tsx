@@ -62,7 +62,7 @@ export function DisciplinesSection() {
   }
 
   return (
-    <section id="disciplinas" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    <section id="disciplinas" className="pt-20 pb-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
       
       {/* SECTION HEADER */}
       <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -133,7 +133,7 @@ export function DisciplinesSection() {
 
       {/* COACHING / MOTIVATIONAL BANNER */}
       {settings.trainingPhilosophy && (
-        <div className="mt-16 p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-card via-primary/5 to-card border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-card via-primary/5 to-card border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center text-primary shrink-0 border border-primary/30 overflow-hidden p-2">
               {logoSrc ? (

@@ -171,8 +171,8 @@ export function HeroCarousel() {
             <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* BOTTOM DOTS INDICATORS */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+          {/* BOTTOM DOTS INDICATORS (OCULTOS EN MÓVIL) */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 hidden sm:flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
             {slides.map((_, dotIdx) => (
               <button
                 key={dotIdx}

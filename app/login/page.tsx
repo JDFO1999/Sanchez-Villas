@@ -56,10 +56,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative p-4 overflow-hidden bg-zinc-50 dark:bg-black transition-colors duration-500">
+    <div className="min-h-screen flex flex-col items-center justify-center relative p-4 overflow-hidden bg-background transition-colors duration-500">
       {/* Abstract Background for Login */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-zinc-50 to-zinc-50 dark:from-primary/20 dark:via-black dark:to-black opacity-80 dark:opacity-60 transition-colors duration-500" />
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background opacity-80" />
       </div>
 
       {/* Theme Toggle Top Right */}
@@ -98,7 +98,7 @@ export default function LoginPage() {
         )}
       </Dialog>
 
-      <div className={`z-10 w-full max-w-md bg-white/70 dark:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center shadow-2xl transition-all duration-300 ${isLoading ? "blur-md opacity-25 scale-[0.98] pointer-events-none select-none" : ""}`}>
+      <div className={`z-10 w-full max-w-md bg-card/85 backdrop-blur-xl border border-black/10 dark:border-white/10 p-8 rounded-3xl flex flex-col items-center shadow-2xl transition-all duration-300 ${isLoading ? "blur-md opacity-25 scale-[0.98] pointer-events-none select-none" : ""}`}>
         {settings.logoSettings?.showInLogin && (
           (settings.logoUrl || settings.logoUrlDark) ? (
             <img 

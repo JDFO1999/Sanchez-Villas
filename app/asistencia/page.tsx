@@ -311,7 +311,7 @@ export default function AsistenciaPage() {
             className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-black text-xs sm:text-sm shadow-md hover:opacity-90 transition flex items-center gap-2 cursor-pointer"
           >
             <Camera className="w-4 h-4" />
-            <span>Reloj Checador / Entrada</span>
+            <span>Check/Entrada</span>
           </button>
         </div>
       </div>

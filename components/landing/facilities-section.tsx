@@ -50,7 +50,7 @@ export function FacilitiesSection() {
   ]
 
   return (
-    <section id="instalaciones" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
+    <section id="instalaciones" className="pt-6 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         
         {/* TEXT CONTENT */}

@@ -92,9 +92,9 @@ export default function RegistroPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative p-4 overflow-hidden bg-zinc-50 dark:bg-black transition-colors duration-500">
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-zinc-50 to-zinc-50 dark:from-primary/20 dark:via-black dark:to-black opacity-80 dark:opacity-60 transition-colors duration-500" />
+    <div className="min-h-screen flex flex-col items-center justify-center relative p-4 overflow-hidden bg-background transition-colors duration-500">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background opacity-80" />
       </div>
 
       {/* Theme Toggle Top Right */}
@@ -105,29 +105,42 @@ export default function RegistroPage() {
         {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
       </button>
 
-      <div className="z-10 w-full max-w-lg bg-white/70 dark:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center relative mt-8 shadow-2xl">
-        <div className="w-full mb-2">
-          <Link href="/login" className="inline-flex items-center text-base font-semibold text-muted-foreground hover:text-primary transition">
-            <ArrowLeft className="h-5 w-5 mr-1.5" /> Volver
+      <div className="z-10 w-full max-w-lg bg-card/85 backdrop-blur-xl border border-black/10 dark:border-white/10 p-8 rounded-3xl flex flex-col items-center relative my-8 shadow-2xl">
+        <div className="w-full mb-3 flex items-center justify-between">
+          <Link href="/login" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition">
+            <ArrowLeft className="h-4 w-4 mr-1.5" /> Volver al Inicio de Sesión
           </Link>
         </div>
 
         {settings.logoSettings?.showInLogin && (
-          logoSrc ? (
-            <img src={logoSrc} alt="Logo" style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin, objectFit: settings.logoSettings.objectFit || 'contain' }} className={`mb-0 ${settings.logoSettings.fadeEffect ? 'opacity-80' : ''}`} />
-          ) : (
-            <div 
-              style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} 
-              className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center mb-0 text-primary font-black text-4xl shadow-inner select-none"
-            >
-              {(settings.appName || 'M').charAt(0).toUpperCase()}
-            </div>
-          )
+          <div className="mb-4 flex items-center justify-center">
+            {logoSrc ? (
+              <img 
+                src={logoSrc} 
+                alt="Logo" 
+                style={{ 
+                  width: settings.logoSettings.widthLogin || 70, 
+                  height: settings.logoSettings.heightLogin || 70, 
+                  objectFit: settings.logoSettings.objectFit || 'contain',
+                  maskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
+                  WebkitMaskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
+                }} 
+                className="transition-all" 
+              />
+            ) : (
+              <div 
+                style={{ width: settings.logoSettings.widthLogin || 70, height: settings.logoSettings.heightLogin || 70 }} 
+                className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center text-primary font-black text-3xl shadow-inner select-none"
+              >
+                {(settings.appName || 'M').charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
         )}
-        <h1 className="text-2xl font-bold mb-0 -mt-4 text-center leading-tight z-10">
+        <h1 className="text-2xl font-black mb-1 text-center leading-tight tracking-tight text-foreground">
           Únete a {settings.logoSettings?.showNameInLogin ? settings.appName : 'nuestra comunidad'}
         </h1>
-        <p className="text-muted-foreground mb-6 mt-0 text-center text-sm z-10">
+        <p className="text-muted-foreground mb-6 text-center text-xs leading-relaxed max-w-sm">
           Crea tu cuenta de atleta (si ya pagaste tu plan en recepción con tu cédula, se enlazará automáticamente)
         </p>
 
@@ -141,40 +154,40 @@ export default function RegistroPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Nombre y Apellido</label>
-              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. Pedro Pérez" required />
+              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="Ej. Pedro Pérez" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Cédula (Solo números)</label>
-              <input type="text" value={cedula} onChange={e => setCedula(e.target.value.replace(/\D/g, ""))} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm font-mono focus:border-primary" placeholder="12345678" required />
+              <input type="text" value={cedula} onChange={e => setCedula(e.target.value.replace(/\D/g, ""))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm font-mono focus:outline-none focus:border-primary transition-colors" placeholder="12345678" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Teléfono / WhatsApp</label>
-              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Ej. 0414-1234567" required />
+              <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="Ej. 0414-1234567" required />
             </div>
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Correo Electrónico</label>
-              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="tu@correo.com" required />
+              <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="tu@correo.com" required />
             </div>
           </div>
           
           <div className="grid grid-cols-1 gap-4">
             <div className="col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Dirección</label>
-              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="Tu dirección" required />
+              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="Tu dirección" required />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">Contraseña</label>
-              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary" placeholder="••••••••" required />
+              <input type="password" value={clave} onChange={e => setClave(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" placeholder="••••••••" required />
             </div>
             <div className="relative">
               <label className="text-xs font-medium text-foreground mb-1 block">Confirmar Contraseña</label>
-              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-black/5 dark:bg-white/5 border rounded-lg p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-success/50 focus:border-success' : 'border-destructive/50 focus:border-destructive') : 'border-black/10 dark:border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
+              <input type="password" value={confirmClave} onChange={e => setConfirmClave(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded-xl p-3 text-sm focus:outline-none transition-all ${confirmClave ? (claveMatch ? 'border-success/50 focus:border-success' : 'border-destructive/50 focus:border-destructive') : 'border-black/10 dark:border-white/10 focus:border-primary'}`} placeholder="••••••••" required />
               {claveMatch && <Check className="absolute right-3 top-9 h-4 w-4 text-success" />}
               {confirmClave && !claveMatch && <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>}
             </div>
@@ -184,7 +197,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Género</label>
               <div className="relative">
-                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8">
+                <select value={genero} onChange={e => setGenero(e.target.value as 'M'|'F')} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8">
                   <option value="M">Masculino</option>
                   <option value="F">Femenino</option>
                 </select>
@@ -196,7 +209,7 @@ export default function RegistroPage() {
             <div className="col-span-2 md:col-span-1">
               <label className="text-xs font-medium text-foreground mb-1 block">Entrenador (Opcional)</label>
               <div className="relative">
-                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-white dark:bg-[#1A1A1A] border border-black/10 dark:border-white/10 text-foreground rounded-lg p-3 text-sm focus:border-primary appearance-none pr-8 cursor-pointer">
+                <select value={entrenador} onChange={e => setEntrenador(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer">
                   <option value="">-- Sin entrenador --</option>
                   {coaches.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -209,7 +222,7 @@ export default function RegistroPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full bg-primary text-primary-foreground font-black py-3.5 rounded-xl transition hover:opacity-90 active:scale-[0.99] flex items-center justify-center disabled:opacity-50 shadow-md">
             {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>
         </form>
