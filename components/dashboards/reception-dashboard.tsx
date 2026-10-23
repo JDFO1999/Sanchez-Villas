@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Users,
@@ -29,11 +30,71 @@ import Swal from "sweetalert2"
 
 export function ReceptionDashboard() {
   const { user } = useAuth()
+  const { settings } = useSettings()
   const [pendingOrders, setPendingOrders] = useState<any[]>([])
   const [showScanner, setShowScanner] = useState(false)
   const [cashSession, setCashSession] = useState<any>(null)
   const [isLoadingSession, setIsLoadingSession] = useState(true)
   const [universalSearch, setUniversalSearch] = useState("")
+
+  // Alerta de nueva tasa de cambio para Recepción (obligación de avisar a atletas)
+  const [ackAlertId, setAckAlertId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("last_ack_bcv_rate_alert_id")
+      if (saved) setAckAlertId(saved)
+    }
+  }, [])
+
+  const rateAlert = settings?.bcvRateAlert
+  const hasUnreadRateAlert = Boolean(rateAlert?.id && rateAlert.id !== ackAlertId)
+
+  // Disparar modal de alerta a recepción cuando se detecte un nuevo cambio de tasa
+  useEffect(() => {
+    if (hasUnreadRateAlert && rateAlert) {
+      const usdFormatted = Number(rateAlert.rates?.usd || 0).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+      const eurFormatted = Number(rateAlert.rates?.eur || 0).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+      const copFormatted = Number(rateAlert.rates?.cop || 0).toLocaleString("es-CO")
+
+      Swal.fire({
+        icon: "warning",
+        title: "⚠️ ¡ATENCIÓN RECEPCIÓN Y CAJA!",
+        html: `
+          <div class="text-left space-y-3 text-sm">
+            <p class="font-bold text-amber-600 dark:text-amber-400">
+              Se ha detectado una nueva tasa de cambio oficial actualizada por la administración.
+            </p>
+            <div class="p-3.5 bg-black/5 dark:bg-white/5 border border-amber-500/30 rounded-xl space-y-2 font-mono text-xs">
+              <div class="flex justify-between items-center">
+                <span>🇺🇸 <b>Dólar BCV:</b></span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400">Bs. ${usdFormatted}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>🇪🇺 <b>Euro BCV:</b></span>
+                <span class="font-bold text-blue-600 dark:text-blue-400">Bs. ${eurFormatted}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>🇨🇴 <b>Peso Colombiano:</b></span>
+                <span class="font-bold text-amber-600 dark:text-amber-400">${copFormatted} COP / $</span>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-bold">
+              📢 OBLIGACIÓN EN CAJA: Debes avisar verbalmente a todos los atletas y clientes los nuevos montos en Bolívares y Pesos antes de cobrar.
+            </div>
+          </div>
+        `,
+        confirmButtonText: "✓ Entendido, me comprometo a avisar a los atletas",
+        confirmButtonColor: "#f59e0b",
+        allowOutsideClick: false,
+      }).then(() => {
+        if (rateAlert?.id) {
+          localStorage.setItem("last_ack_bcv_rate_alert_id", rateAlert.id)
+          setAckAlertId(rateAlert.id)
+        }
+      })
+    }
+  }, [hasUnreadRateAlert, rateAlert])
 
   // Estados para Historial en Vivo de Asistencias y Ventas
   const [todayAttendances, setTodayAttendances] = useState<any[]>([])
@@ -331,6 +392,63 @@ export function ReceptionDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Banner Alerta de Nueva Tasa Oficial para Recepción (Avisar a Atletas) */}
+      {hasUnreadRateAlert && rateAlert && (
+        <div className="bg-gradient-to-r from-red-500/15 via-amber-500/15 to-red-500/15 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-5 shadow-lg animate-in fade-in">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-500 shrink-0 mt-0.5">
+                <AlertCircle className="w-6 h-6 animate-bounce text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-destructive text-white text-[10px] font-black uppercase tracking-wider">
+                    Aviso Obligatorio en Recepción
+                  </span>
+                  <h4 className="font-black text-sm sm:text-base text-foreground">
+                    ¡Nueva Tasa Oficial Detectada! Recuerda avisar a los atletas
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-foreground/90 font-medium">
+                  La administración ha actualizado las tasas de cambio del sistema. Por favor <b>informa a los atletas y clientes en caja</b> los nuevos montos antes de registrar cobros.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs">
+                  <span className="px-2.5 py-1 rounded-lg bg-card border border-black/10 dark:border-white/10 font-bold">
+                    🇺🇸 USD: Bs. {Number(rateAlert.rates?.usd || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-card border border-black/10 dark:border-white/10 font-bold">
+                    🇪🇺 EUR: Bs. {Number(rateAlert.rates?.eur || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-card border border-black/10 dark:border-white/10 font-bold">
+                    🇨🇴 COP: {Number(rateAlert.rates?.cop || 0).toLocaleString('es-CO')} COP / $
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (rateAlert?.id) {
+                  localStorage.setItem("last_ack_bcv_rate_alert_id", rateAlert.id)
+                  setAckAlertId(rateAlert.id)
+                  Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Confirmado: Avisarás a los atletas",
+                    showConfirmButton: false,
+                    timer: 2500,
+                  })
+                }
+              }}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-black font-extrabold text-xs shadow-md transition-all cursor-pointer whitespace-nowrap self-stretch md:self-auto text-center"
+            >
+              ✓ Entendido / Avisaré a los Atletas
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Banner de Cumpleañeros del Día (si hay) */}
       {todayBirthdays.length > 0 && (

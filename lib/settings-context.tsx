@@ -55,6 +55,30 @@ export interface AppSettings {
   storeCurrency: string
   storeCurrencySecondary: string
   storeExchangeRate: number
+  storeExchangeRateEur?: number
+  storeExchangeRateCop?: number
+  bcvRates?: {
+    usd: number
+    eur: number
+    cop: number
+    copToBs?: number
+    lastSync?: string
+    updatedAt?: string
+    updatedBy?: string
+    updatedByRole?: string
+  }
+  bcvRateAlert?: {
+    id: string
+    updatedAt: string
+    updatedBy?: string
+    updatedByRole?: string
+    rates: {
+      usd: number
+      eur: number
+      cop: number
+      copToBs?: number
+    }
+  }
   storeTaxRate: number
   storeReceiptMessage: string
   storeNextInvoice: number
@@ -201,7 +225,15 @@ export const defaultSettings: AppSettings = {
   },
   storeCurrency: 'USD',
   storeCurrencySecondary: 'BsS',
-  storeExchangeRate: 40.0,
+  storeExchangeRate: 886.23,
+  storeExchangeRateEur: 993.09,
+  storeExchangeRateCop: 3185.01,
+  bcvRates: {
+    usd: 886.23,
+    eur: 993.09,
+    cop: 3185.01,
+    copToBs: 278.25
+  },
   storeTaxRate: 19,
   storeReceiptMessage: '¡Gracias por su compra!',
   storeNextInvoice: 1,
