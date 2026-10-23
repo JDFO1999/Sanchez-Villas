@@ -6,7 +6,7 @@ import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { FullScreenLoader } from "@/components/ui/loader"
-import { Dumbbell, Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff, Shield } from "lucide-react"
+import { Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff, Shield } from "lucide-react"
 import Link from "next/link"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -114,8 +114,11 @@ export default function LoginPage() {
               className="mb-0 transition-all" 
             />
           ) : (
-            <div style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-0">
-              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.widthLogin / 2, height: settings.logoSettings.heightLogin / 2 }} />
+            <div 
+              style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} 
+              className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center mb-0 text-primary font-black text-4xl shadow-inner select-none"
+            >
+              {(settings.appName || 'M').charAt(0).toUpperCase()}
             </div>
           )
         )}

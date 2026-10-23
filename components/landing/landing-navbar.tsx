@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useSettings } from "@/lib/settings-context"
 import { useAuth } from "@/lib/auth-context"
-import { Dumbbell, Sun, Moon, LogIn, LayoutDashboard, Menu, X } from "lucide-react"
+import { Sun, Moon, LogIn, LayoutDashboard, Menu, X } from "lucide-react"
 
 export function LandingNavbar() {
   const { theme, setTheme } = useTheme()
@@ -72,8 +72,8 @@ export function LandingNavbar() {
                 className="transition-transform duration-300 group-hover:scale-105 shrink-0 drop-shadow-md"
               />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/30 group-hover:scale-105 transition-transform">
-                <Dumbbell className="h-5 w-5" />
+              <div className="w-10 h-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-black text-lg group-hover:scale-105 transition-transform shadow-inner select-none">
+                {(settings.appName || 'M').charAt(0).toUpperCase()}
               </div>
             )}
 

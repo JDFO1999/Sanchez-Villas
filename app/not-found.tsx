@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, Dumbbell, Home } from "lucide-react"
+import { ArrowLeft, Home } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
@@ -29,7 +29,9 @@ export default function NotFound() {
               className="h-12 w-12 object-contain p-1"
             />
           ) : (
-            <Dumbbell className="h-10 w-10 -rotate-45 text-primary" aria-hidden="true" />
+            <div className="flex h-12 w-12 items-center justify-center text-primary font-black text-2xl select-none">
+              {(settings.appName || 'M').charAt(0).toUpperCase()}
+            </div>
           )}
         </div>
 

@@ -215,14 +215,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             className="transition-transform group-hover:scale-105 shrink-0"
           />
         ) : (
-          <Dumbbell 
-            className="text-primary transition-transform group-hover:scale-110 shrink-0"
+          <div 
+            className="rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center font-black text-primary transition-transform group-hover:scale-105 shrink-0 shadow-sm"
             style={{ 
-              width: Math.max(24, (settings.logoSettings?.widthNavbar || 40) * 0.75), 
-              height: Math.max(24, (settings.logoSettings?.heightNavbar || 40) * 0.75),
+              width: settings.logoSettings?.widthNavbar || 40, 
+              height: settings.logoSettings?.heightNavbar || 40,
+              fontSize: Math.max(14, (settings.logoSettings?.heightNavbar || 40) * 0.45),
               padding: settings.logoSettings?.paddingNavbar ? `${settings.logoSettings.paddingNavbar}px` : undefined
             }} 
-          />
+          >
+            {(settings.appName || 'M').charAt(0).toUpperCase()}
+          </div>
         )
       )}
       {settings.logoSettings?.showNameInNavbar && settings.appName && (

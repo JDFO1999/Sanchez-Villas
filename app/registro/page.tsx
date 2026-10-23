@@ -4,10 +4,10 @@ import { Loader } from "@/components/ui/loader"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { Check, Dumbbell, ArrowLeft, Sun, Moon } from "lucide-react"
-import Link from "next/link"
 import { useSettings } from "@/lib/settings-context"
+import { useRouter } from "next/navigation"
+import { Check, ArrowLeft, Sun, Moon } from "lucide-react"
+import Link from "next/link"
 import { useTheme } from "next-themes"
 import { getPublicCoaches } from "@/app/actions/users"
 
@@ -116,8 +116,11 @@ export default function RegistroPage() {
           logoSrc ? (
             <img src={logoSrc} alt="Logo" style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin, objectFit: settings.logoSettings.objectFit || 'contain' }} className={`mb-0 ${settings.logoSettings.fadeEffect ? 'opacity-80' : ''}`} />
           ) : (
-            <div style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} className="bg-primary/20 rounded-full flex items-center justify-center mb-0">
-              <Dumbbell className="text-primary" style={{ width: settings.logoSettings.widthLogin / 2, height: settings.logoSettings.heightLogin / 2 }} />
+            <div 
+              style={{ width: settings.logoSettings.widthLogin, height: settings.logoSettings.heightLogin }} 
+              className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center mb-0 text-primary font-black text-4xl shadow-inner select-none"
+            >
+              {(settings.appName || 'M').charAt(0).toUpperCase()}
             </div>
           )
         )}

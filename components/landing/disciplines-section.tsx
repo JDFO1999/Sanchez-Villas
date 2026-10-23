@@ -3,7 +3,7 @@
 import React from "react"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
-import { Dumbbell, Flame, Zap, Activity, Clock, ShieldCheck } from "lucide-react"
+import { Flame, Zap, Activity, Clock, ShieldCheck } from "lucide-react"
 
 export function DisciplinesSection() {
   const { settings } = useSettings()
@@ -143,7 +143,9 @@ export function DisciplinesSection() {
                   className="w-full h-full object-contain transition-all duration-300"
                 />
               ) : (
-                <Dumbbell className="w-7 h-7" />
+                <div className="w-full h-full rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-xl">
+                  {(settings.appName || 'M').charAt(0).toUpperCase()}
+                </div>
               )}
             </div>
             <div>

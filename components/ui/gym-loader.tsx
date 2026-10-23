@@ -30,12 +30,20 @@ export function GymLoader({
   let cachedName = ""
   if (typeof window !== "undefined") {
     try {
-      const saved = localStorage.getItem("gympro_settings")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        cachedLogo = parsed.logoUrl || ""
-        cachedLogoDark = parsed.logoUrlDark || ""
-        cachedName = parsed.appName || ""
+      const winSettings = (window as any).__INITIAL_SETTINGS__
+      if (winSettings) {
+        cachedLogo = winSettings.logoUrl || ""
+        cachedLogoDark = winSettings.logoUrlDark || ""
+        cachedName = winSettings.appName || ""
+      }
+      if (!cachedLogo && !cachedLogoDark) {
+        const saved = localStorage.getItem("gympro_settings")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          cachedLogo = parsed.logoUrl || ""
+          cachedLogoDark = parsed.logoUrlDark || ""
+          cachedName = parsed.appName || ""
+        }
       }
     } catch {}
   }

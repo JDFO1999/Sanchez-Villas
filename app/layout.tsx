@@ -56,14 +56,41 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let initialSettings: any = null;
+  try {
+    const res = await getSystemSettingsAction();
+    if (res?.success && res.settings) {
+      initialSettings = res.settings;
+    }
+  } catch (err) {
+    console.error("Error fetching initial settings in RootLayout:", err);
+  }
+
+  const primaryLogo = initialSettings?.logoUrl || initialSettings?.logoUrlDark;
+  const darkLogo = initialSettings?.logoUrlDark;
+  const firstSlideImg = initialSettings?.landingSettings?.heroSlides?.[0]?.type === 'image'
+    ? initialSettings?.landingSettings?.heroSlides?.[0]?.url
+    : undefined;
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/* Preload prioritario de logos e imágenes críticas antes de renderizar la página */}
+        {primaryLogo && (
+          <link rel="preload" as="image" href={primaryLogo} {...({ fetchPriority: "high" } as any)} />
+        )}
+        {darkLogo && darkLogo !== primaryLogo && (
+          <link rel="preload" as="image" href={darkLogo} {...({ fetchPriority: "high" } as any)} />
+        )}
+        {firstSlideImg && (
+          <link rel="preload" as="image" href={firstSlideImg} {...({ fetchPriority: "high" } as any)} />
+        )}
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -75,9 +102,21 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="MaximumFitAPP" />
         <meta name="theme-color" content="#eab308" />
+
+        {/* Script síncrono para inicializar configuración antes de la hidratación */}
+        <script
+          id="gympro-instant-settings"
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                window.__INITIAL_SETTINGS__ = ${JSON.stringify(initialSettings || null)};
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
       <body>
-        <SettingsProvider>
+        <SettingsProvider initialSettings={initialSettings}>
           <ToastProvider>
             <FontWrapper>
               <ThemeProvider

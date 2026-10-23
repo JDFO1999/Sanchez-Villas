@@ -477,9 +477,58 @@ function hexToHSL(hex: string) {
   return `${h} ${s}% ${l}%`;
 }
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings)
-  const [isLoading, setIsLoading] = useState(true)
+  const sanitizeSettings = (parsed: any): AppSettings => {
+    if (parsed.footerSocialLinks && !Array.isArray(parsed.footerSocialLinks)) {
+      parsed.footerSocialLinks = defaultSettings.footerSocialLinks;
+    }
+    if (parsed.footerPartners && !Array.isArray(parsed.footerPartners)) {
+      parsed.footerPartners = [];
+    } else if (Array.isArray(parsed.footerPartners)) {
+      parsed.footerPartners = parsed.footerPartners.map((p: any) => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
+    }
+    return {
+      ...defaultSettings,
+      ...parsed,
+      logoSettings: {
+        ...defaultSettings.logoSettings,
+        ...(parsed.logoSettings || {})
+      },
+      footerLogoSettings: {
+        ...defaultSettings.footerLogoSettings,
+        ...(parsed.footerLogoSettings || {})
+      }
+    };
+  }
+
+export function SettingsProvider({
+  children,
+  initialSettings: serverInitialSettings,
+}: {
+  children: React.ReactNode
+  initialSettings?: AppSettings | null
+}) {
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    if (serverInitialSettings && (serverInitialSettings.appName || serverInitialSettings.logoUrl || serverInitialSettings.logoUrlDark)) {
+      return sanitizeSettings(serverInitialSettings)
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const winSettings = (window as any).__INITIAL_SETTINGS__
+        if (winSettings && (winSettings.appName || winSettings.logoUrl || winSettings.logoUrlDark)) {
+          return sanitizeSettings(winSettings)
+        }
+        const saved = localStorage.getItem('gympro_settings')
+        if (saved) {
+          return sanitizeSettings(JSON.parse(saved))
+        }
+      } catch {}
+    }
+    return defaultSettings
+  })
+
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(serverInitialSettings && (serverInitialSettings.appName || serverInitialSettings.logoUrl || serverInitialSettings.logoUrlDark))
+  })
 
   const applyDomUpdates = (currSettings: AppSettings) => {
     if (typeof document !== 'undefined') {
@@ -509,44 +558,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const sanitizeSettings = (parsed: any): AppSettings => {
-    if (parsed.footerSocialLinks && !Array.isArray(parsed.footerSocialLinks)) {
-      parsed.footerSocialLinks = defaultSettings.footerSocialLinks;
-    }
-    if (parsed.footerPartners && !Array.isArray(parsed.footerPartners)) {
-      parsed.footerPartners = [];
-    } else if (Array.isArray(parsed.footerPartners)) {
-      parsed.footerPartners = parsed.footerPartners.map((p: any) => typeof p === "string" ? { id: Math.random().toString(), imageUrl: p, width: 100, height: 40 } : p);
-    }
-    return {
-      ...defaultSettings,
-      ...parsed,
-      logoSettings: {
-        ...defaultSettings.logoSettings,
-        ...(parsed.logoSettings || {})
-      },
-      footerLogoSettings: {
-        ...defaultSettings.footerLogoSettings,
-        ...(parsed.footerLogoSettings || {})
-      }
-    };
-  }
-
   useEffect(() => {
-    let initialSettings = defaultSettings
+    let activeSettings = settings
 
-    // 1. Cargar inmediatamente desde localStorage para evitar parpadeos
+    // 1. Cargar inmediatamente desde localStorage para evitar parpadeos si no venían del servidor
     const saved = localStorage.getItem('gympro_settings')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        initialSettings = sanitizeSettings(parsed)
-        setSettings(initialSettings)
-        applyDomUpdates(initialSettings)
+        if (!serverInitialSettings) {
+          activeSettings = sanitizeSettings(parsed)
+          setSettings(activeSettings)
+        }
       } catch (e) {
         console.error("Error reading localStorage settings:", e)
       }
     }
+
+    applyDomUpdates(activeSettings)
 
     // 2. Sincronizar desde la base de datos MySQL
     getSystemSettingsAction().then(res => {
@@ -554,11 +583,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const dbSettings = sanitizeSettings(res.settings)
         setSettings(dbSettings)
         applyDomUpdates(dbSettings)
-        localStorage.setItem('gympro_settings', JSON.stringify(dbSettings))
-      } else if (saved) {
+        try {
+          localStorage.setItem('gympro_settings', JSON.stringify(dbSettings))
+        } catch (_) {}
+      } else if (saved && !res.settings) {
         // Respaldar settings existentes en DB
         try {
-          saveSystemSettingsAction(initialSettings).catch(() => {})
+          saveSystemSettingsAction(activeSettings).catch(() => {})
         } catch (_) {}
       }
     }).catch(err => {
