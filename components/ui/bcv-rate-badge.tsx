@@ -30,10 +30,16 @@ export function BcvRateBadge({
   const eurRate = Number(settings.bcvRates?.eur || settings.storeExchangeRateEur) || 993.09
   const copRate = Number(settings.bcvRates?.cop || settings.storeExchangeRateCop) || 3185.01
 
-  const formatRate = (val: number, decimals = 2) => {
-    return val > 0
-      ? val.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: decimals })
-      : "0.00"
+  const formatRate = (val: number, maxDecimals = 2, minDecimals = 0) => {
+    const num = Number(val)
+    if (!num || isNaN(num) || num <= 0) return "0.00"
+    const maxD = Math.max(0, maxDecimals)
+    const minD = Math.min(minDecimals, maxD)
+    try {
+      return num.toLocaleString('es-VE', { minimumFractionDigits: minD, maximumFractionDigits: maxD })
+    } catch {
+      return num.toFixed(maxD)
+    }
   }
 
   const handleSync = async (e: React.MouseEvent) => {
@@ -102,9 +108,9 @@ export function BcvRateBadge({
       >
         <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
         <span className="font-mono font-bold tracking-tight">
-          BCV: Bs. {formatRate(usdRate, 4)}
+          BCV: Bs. {formatRate(usdRate, 4, 2)}
         </span>
-        <span className="text-[10px] text-muted-foreground">| € {formatRate(eurRate)}</span>
+        <span className="text-[10px] text-muted-foreground">| € {formatRate(eurRate, 2, 2)} | COP {formatRate(copRate, 0, 0)}</span>
         {canRefresh && (
           <button
             type="button"
@@ -176,13 +182,18 @@ export function BcvRateBadge({
         </div>
         <span className="font-mono font-black text-xs sm:text-sm text-foreground tracking-tight">
           {activeCurrency === 'usd' && (
-            <>1 USD = <span className="text-emerald-600 dark:text-emerald-400">Bs. {formatRate(usdRate, 4)}</span></>
+            <>1 USD = <span className="text-emerald-600 dark:text-emerald-400">Bs. {formatRate(usdRate, 4, 2)}</span></>
           )}
           {activeCurrency === 'eur' && (
-            <>1 EUR = <span className="text-blue-600 dark:text-blue-400">Bs. {formatRate(eurRate, 4)}</span></>
+            <>1 EUR = <span className="text-blue-600 dark:text-blue-400">Bs. {formatRate(eurRate, 4, 2)}</span></>
           )}
           {activeCurrency === 'cop' && (
-            <>1 USD = <span className="text-amber-600 dark:text-amber-400">{formatRate(copRate, 0)} COP</span></>
+            <>
+              1 USD = <span className="text-amber-600 dark:text-amber-400">{formatRate(copRate, 0, 0)} COP</span>
+              <span className="text-[10px] text-muted-foreground ml-1.5 font-normal hidden sm:inline">
+                (1.000 COP ≈ Bs. {formatRate((usdRate / (copRate || 3185)) * 1000, 2, 2)})
+              </span>
+            </>
           )}
         </span>
       </div>
