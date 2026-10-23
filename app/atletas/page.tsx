@@ -239,30 +239,30 @@ export default function AtletasPage() {
             return (
               <Card
                 key={atleta.id}
-                className="glass transition-all duration-300 group hover:border-primary/60 hover:shadow-[0_0_25px_rgba(255,255,255,0.12)] flex flex-col justify-between"
+                className="glass card-hover-elevate rounded-2xl border-black/10 dark:border-white/10 flex flex-col justify-between"
               >
-                <CardContent className="p-6 flex-1 flex flex-col justify-between">
+                <CardContent className="p-5 flex-1 flex flex-col justify-between">
                   <div>
                     <Link href={`/atletas/${atleta.id}`} className="block">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3.5">
                           {atleta.profilePicture ? (
-                            <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border border-primary/30" />
+                            <img src={atleta.profilePicture} alt={atleta.name} className="h-12 w-12 rounded-full object-cover border-2 border-primary/40 shadow-sm" />
                           ) : (
-                            <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-500/20 to-primary/40 border border-primary/30 flex items-center justify-center text-primary font-black text-base shadow-sm">
                               {atleta.name.charAt(0)}
                             </div>
                           )}
                           <div>
-                            <h3 className="font-bold text-foreground group-hover:text-primary transition">{atleta.name}</h3>
-                            <p className="text-xs text-muted-foreground">C.C. {atleta.cedula}</p>
+                            <h3 className="font-bold text-foreground group-hover:text-primary transition leading-tight">{atleta.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">C.I. {atleta.cedula}</p>
                           </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
                       </div>
                     </Link>
                     
-                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 space-y-3">
+                    <div className="mt-4 pt-3.5 border-t border-black/10 dark:border-white/10 space-y-3">
                       {hasValidMemb && diffDays > 0 && (() => {
                         const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
                         const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))

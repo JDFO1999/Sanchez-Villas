@@ -1329,36 +1329,41 @@ export default function TiendaPOSPage() {
                   <Card 
                     key={p.id} 
                     onClick={() => !isOutOfStock && addToCart(p)}
-                    className={`group cursor-pointer bg-card/80 border-black/5 dark:border-white/5 overflow-hidden rounded-xl transition-all duration-300 ${isOutOfStock ? 'opacity-50 grayscale' : 'hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-card z-0 hover:z-10'}`}
+                    className={`group cursor-pointer bg-card/90 border border-black/10 dark:border-white/10 overflow-hidden rounded-2xl transition-all duration-300 card-hover-elevate ${isOutOfStock ? 'opacity-50 grayscale' : 'z-0 hover:z-10'}`}
                   >
-                    <div className="h-28 w-full relative flex items-center justify-center p-3 bg-muted dark:bg-white/[0.02] group-hover:bg-muted dark:group-hover:bg-white/[0.04] transition-colors">
+                    <div className="h-32 w-full relative flex items-center justify-center p-3 bg-muted/50 dark:bg-white/[0.02] group-hover:bg-muted dark:group-hover:bg-white/[0.04] transition-colors">
                       {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform" />
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform duration-300" />
                       ) : (
-                        <ShoppingCart className="h-12 w-12 text-foreground" />
+                        <ShoppingCart className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
                       )}
                       
                       {isOutOfStock && (
-                        <div className="absolute inset-0 bg-red-900/40 flex items-center justify-center backdrop-blur-[2px] z-10">
-                          <span className="font-black text-destructive rotate-[-15deg] border-2 border-destructive px-2 py-1 rounded-lg text-sm tracking-widest">AGOTADO</span>
+                        <div className="absolute inset-0 bg-red-950/60 flex items-center justify-center backdrop-blur-[2px] z-10">
+                          <span className="font-black text-rose-500 rotate-[-12deg] border-2 border-rose-500 px-2.5 py-1 rounded-lg text-xs tracking-widest shadow-lg">AGOTADO</span>
                         </div>
                       )}
-                      {/* Price Tag Floating */}
-                      <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-md border border-black/10 dark:border-white/10 text-primary font-bold text-xs shadow-xl z-20">
-                        {settings.storeCurrency} {p.sellPrice.toFixed(2)}
+
+                      {/* Etiqueta Flotante de Precio con efecto Glass */}
+                      <div className="absolute bottom-2 right-2 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 text-right shadow-xl z-20">
+                        <div className="text-primary font-black text-xs">
+                          {settings.storeCurrency} {p.sellPrice.toFixed(2)}
+                        </div>
                         {settings.storeCurrencySecondary && settings.storeExchangeRate > 0 && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                          <div className="text-[10px] text-white/80 font-bold mt-0.5">
                             {settings.storeCurrencySecondary} {(p.sellPrice * settings.storeExchangeRate).toFixed(2)}
                           </div>
                         )}
                       </div>
                     </div>
-                    <CardContent className="p-3">
+                    <CardContent className="p-3.5">
                       <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1 truncate">{p.category}</div>
-                      <h3 className="font-bold text-xs leading-tight line-clamp-2 min-h-[2rem] group-hover:text-primary transition-colors" title={p.name}>{p.name}</h3>
+                      <h3 className="font-bold text-xs leading-snug line-clamp-2 min-h-[2.25rem] group-hover:text-primary transition-colors text-foreground" title={p.name}>{p.name}</h3>
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                        <span className="text-[10px] text-muted-foreground">Disponibles:</span>
-                        <span className={`text-xs font-black ${p.currentStock <= p.minStockAlert ? 'text-warning' : 'text-success'}`}>{p.currentStock}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">Stock:</span>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.currentStock <= p.minStockAlert ? 'badge-soft-warning' : 'badge-soft-success'}`}>
+                          {p.currentStock} {p.currentStock === 1 ? 'ud' : 'uds'}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>

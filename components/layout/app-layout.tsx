@@ -284,17 +284,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     key={item.name}
                     href={item.href}
                     aria-current={isActive ? "page" : undefined}
-                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isActive
-                        ? "bg-primary/10 text-primary font-bold before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-primary/15 text-primary font-bold shadow-sm shadow-primary/10 border border-primary/25 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1.5 before:rounded-r-full before:bg-primary"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground hover:translate-x-0.5"
                     }`}
-                    title={isSidebarCollapsed ? item.name : undefined}
                   >
-                    <item.icon className="h-5 w-5 shrink-0" />
+                    <item.icon className={`h-5 w-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-primary' : ''}`} />
                     <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "sr-only" : "opacity-100 w-auto"}`}>
                       {item.name}
                     </span>
+
+                    {/* Tooltip flotante enriquecido cuando la barra está colapsada */}
+                    {isSidebarCollapsed && (
+                      <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-card/95 text-foreground text-xs font-semibold rounded-lg shadow-xl border border-border whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 backdrop-blur-md">
+                        {item.name}
+                      </span>
+                    )}
                   </Link>
                 )
               })}

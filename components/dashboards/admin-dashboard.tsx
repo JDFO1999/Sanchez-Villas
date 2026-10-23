@@ -351,71 +351,78 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="glass">
+      {/* KPI C      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">
               Atletas Activos
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+              <Users className="h-5 w-5" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dynamicStats.activeAthletes}</div>
-            <p className="text-xs text-success flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" />
-              Actualizado hoy
+            <div className="text-3xl font-black text-foreground tracking-tight">{dynamicStats.activeAthletes}</div>
+            <p className="text-xs text-emerald-500 flex items-center font-medium mt-1.5">
+              <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
+              Actualizado en tiempo real
             </p>
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-semibold text-muted-foreground">
               Asistencia Hoy
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+              <TrendingUp className="h-5 w-5" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dynamicStats.checkinsToday}</div>
-            <p className="text-xs text-primary capitalize flex items-center mt-1">
+            <div className="text-3xl font-black text-foreground tracking-tight">{dynamicStats.checkinsToday}</div>
+            <p className="text-xs text-primary capitalize flex items-center font-medium mt-1.5">
               {hoy}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Ingresos Mensuales
+            <CardTitle className="text-sm font-semibold text-muted-foreground">
+              Ingresos del Mes
             </CardTitle>
-            <Banknote className="h-4 w-4 text-muted-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <Banknote className="h-5 w-5" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${dynamicStats.monthlyRevenue.toFixed(2)}</div>
-            <p className="text-xs text-success flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" />
-              Tienda (Completados)
+            <div className="text-3xl font-black text-foreground tracking-tight">${dynamicStats.monthlyRevenue.toFixed(2)}</div>
+            <p className="text-xs text-emerald-500 flex items-center font-medium mt-1.5">
+              <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
+              Ventas y Membresías
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-destructive/50 glass">
+        <Card className="glass card-hover-elevate border-rose-500/30 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-destructive">
+            <CardTitle className="text-sm font-semibold text-rose-500">
               Riesgo de Abandono (Top 3)
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+              <AlertCircle className="h-5 w-5" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mt-1">
               {dynamicStats.riskAthletes.length > 0 ? dynamicStats.riskAthletes.map((atleta: any, i: number) => (
                 <div key={i} className="flex justify-between items-center text-xs">
-                  <span className="font-medium text-foreground">{atleta.nombre} <span className="text-muted-foreground">({atleta.antiguedad})</span></span>
-                  <span className="text-destructive font-bold">{atleta.dias}d ausente</span>
+                  <span className="font-semibold text-foreground truncate max-w-[130px]">{atleta.nombre}</span>
+                  <span className="badge-soft-danger px-2 py-0.5 rounded-full font-bold">{atleta.dias}d ausente</span>
                 </div>
               )) : (
-                <div className="text-xs text-muted-foreground">No hay atletas en riesgo.</div>
+                <div className="text-xs text-muted-foreground py-1">No hay atletas en riesgo.</div>
               )}
             </div>
           </CardContent>
@@ -424,39 +431,45 @@ export function AdminDashboard() {
 
       {/* Charts Section 1: Finanzas & Asistencia */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass">
+        <Card className="glass border-black/10 dark:border-white/10 rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle>Flujo de Caja (Gimnasio)</CardTitle>
+            <CardTitle className="text-base font-bold flex items-center justify-between">
+              <span>Flujo de Caja (Gimnasio)</span>
+              <span className="text-xs text-muted-foreground font-normal">Semanal</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dynamicStats.revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.65}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.02}/>
                   </linearGradient>
                   <linearGradient id="colorEgresos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.65}/>
+                    <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0.02}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  contentStyle={{ backgroundColor: 'rgba(17, 23, 36, 0.9)', backdropFilter: 'blur(12px)', borderColor: 'rgba(255, 255, 255, 0.15)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#ffffff' }}
+                  itemStyle={{ color: '#ffffff', fontWeight: 600 }}
                 />
-                <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorIngresos)" />
-                <Area type="monotone" dataKey="egresos" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorEgresos)" />
+                <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" strokeWidth={2.5} fillOpacity={1} fill="url(#colorIngresos)" />
+                <Area type="monotone" dataKey="egresos" stroke="hsl(var(--destructive))" strokeWidth={2} fillOpacity={1} fill="url(#colorEgresos)" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="glass">
+        <Card className="glass border-black/10 dark:border-white/10 rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle>Asistencia Semanal</CardTitle>
+            <CardTitle className="text-base font-bold flex items-center justify-between">
+              <span>Asistencia Semanal</span>
+              <span className="text-xs text-muted-foreground font-normal">Check-ins</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
