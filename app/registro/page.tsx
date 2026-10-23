@@ -222,7 +222,11 @@ export default function RegistroPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading || (!!confirmClave && !claveMatch)} className="w-full bg-primary text-primary-foreground font-black py-3.5 rounded-xl transition hover:opacity-90 active:scale-[0.99] flex items-center justify-center disabled:opacity-50 shadow-md">
+          <button 
+            type="submit" 
+            disabled={isLoading || (!!confirmClave && !claveMatch)} 
+            className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>
         </form>

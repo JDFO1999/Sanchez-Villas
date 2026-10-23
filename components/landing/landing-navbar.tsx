@@ -90,13 +90,13 @@ export function LandingNavbar() {
           </Link>
         </div>
 
-        {/* CENTER: DESKTOP NAV LINKS */}
-        <nav className="hidden md:flex items-center justify-center flex-1 gap-6 lg:gap-8">
+        {/* CENTER: DESKTOP NAV LINKS (SIN SCROLL / COMPACTO ELEGANTE) */}
+        <nav className="hidden md:flex items-center justify-center flex-1 gap-3 lg:gap-5 xl:gap-7">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
-              className="text-sm font-bold text-neutral-900 dark:text-neutral-200 hover:text-primary dark:hover:text-primary transition-colors tracking-wide relative py-1 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all after:duration-300 whitespace-nowrap"
+              className="text-xs lg:text-[13px] font-bold text-neutral-900 dark:text-neutral-200 hover:text-primary dark:hover:text-primary transition-colors tracking-tight relative py-1 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary hover:after:w-full after:transition-all after:duration-300 whitespace-nowrap"
             >
               {link.name}
             </a>
