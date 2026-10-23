@@ -10,7 +10,7 @@ import { storeService, Product, TransactionItem, Transaction } from "@/lib/store
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon, CreditCard } from "lucide-react"
+import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2, User, ReceiptText, UserPlus, Eye, Camera, ImageIcon, CreditCard, ScanBarcode, Volume2, VolumeX } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 import Swal from "sweetalert2"
@@ -269,14 +269,140 @@ export default function TiendaPOSPage() {
     })
   }
 
-  // Barcode scanner listener
+  // Pistola de Código de Barras USB (Continuous Hands-Free Scan Mode)
+  const [scannerGunMode, setScannerGunMode] = useState<boolean>(true)
+  const [soundFeedback, setSoundFeedback] = useState<boolean>(true)
+  const barcodeBufferRef = useRef<string>("")
+  const lastKeyTimeRef = useRef<number>(0)
+
+  // Cargar preferencia de modo pistola
+  useEffect(() => {
+    try {
+      const savedGun = localStorage.getItem("pos_scanner_gun_mode")
+      if (savedGun !== null) setScannerGunMode(savedGun === "true")
+      const savedSound = localStorage.getItem("pos_scanner_sound")
+      if (savedSound !== null) setSoundFeedback(savedSound === "true")
+    } catch {}
+  }, [])
+
+  const toggleScannerGunMode = () => {
+    setScannerGunMode(prev => {
+      const next = !prev
+      try { localStorage.setItem("pos_scanner_gun_mode", String(next)) } catch {}
+      showToast(next ? "Pistola USB activada (escaneo continuo)" : "Pistola USB desactivada", "info")
+      return next
+    })
+  }
+
+  const toggleSoundFeedback = () => {
+    setSoundFeedback(prev => {
+      const next = !prev
+      try { localStorage.setItem("pos_scanner_sound", String(next)) } catch {}
+      return next
+    })
+  }
+
+  // Reproducir tono de confirmación usando Web Audio API sin dependencias externas
+  const playScanBeep = (isSuccess: boolean = true) => {
+    if (!soundFeedback) return
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      if (isSuccess) {
+        osc.type = "sine"
+        osc.frequency.setValueAtTime(1760, ctx.currentTime) // A6
+        gain.gain.setValueAtTime(0.15, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
+        osc.start(ctx.currentTime)
+        osc.stop(ctx.currentTime + 0.12)
+      } else {
+        osc.type = "sawtooth"
+        osc.frequency.setValueAtTime(320, ctx.currentTime)
+        gain.gain.setValueAtTime(0.2, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25)
+        osc.start(ctx.currentTime)
+        osc.stop(ctx.currentTime + 0.25)
+      }
+    } catch {}
+  }
+
+  // Listener global de teclado para pistolas lectoras USB
+  useEffect(() => {
+    if (!scannerGunMode) return
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      const isInput = activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement || activeEl?.getAttribute('contenteditable') === 'true'
+
+      // Si el usuario está escribiendo en inputs que no son de barcode/búsqueda libre, no interceptar
+      if (isInput && activeEl !== barcodeInputRef.current) {
+        return
+      }
+
+      const now = performance.now()
+      const timeDiff = now - lastKeyTimeRef.current
+      lastKeyTimeRef.current = now
+
+      // Las pistolas USB envían caracteres con < 60-80ms de intervalo
+      if (e.key === "Enter") {
+        const scannedCode = barcodeBufferRef.current.trim()
+        barcodeBufferRef.current = ""
+
+        if (scannedCode.length >= 3) {
+          e.preventDefault()
+          e.stopPropagation()
+
+          const matched = products.find(p => p.barcode && p.barcode.trim().toLowerCase() === scannedCode.toLowerCase())
+          if (matched) {
+            if (matched.currentStock <= 0) {
+              playScanBeep(false)
+              showToast(`"${matched.name}" está agotado.`, "warning")
+            } else {
+              playScanBeep(true)
+              addToCart(matched)
+              showToast(`Añadido: ${matched.name}`, "success")
+            }
+          } else {
+            playScanBeep(false)
+            showToast(`Código de barras "${scannedCode}" no encontrado`, "warning")
+          }
+        }
+        return
+      }
+
+      // Reiniciar búfer si hubo una pausa larga (escritura manual humana)
+      if (timeDiff > 120 && barcodeBufferRef.current.length > 0) {
+        barcodeBufferRef.current = ""
+      }
+
+      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        barcodeBufferRef.current += e.key
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeyDown, true)
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown, true)
+    }
+  }, [scannerGunMode, products, soundFeedback])
+
+  // Barcode scanner listener manual desde el input
   const handleBarcodeSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (!search) return
     const matched = products.find(p => p.barcode === search)
     if (matched) {
+      playScanBeep(true)
       addToCart(matched)
       setSearch("") // clear for next scan
+    } else {
+      playScanBeep(false)
     }
   }
 
@@ -1156,12 +1282,42 @@ export default function TiendaPOSPage() {
               <input 
                 ref={barcodeInputRef}
                 type="text" 
-                placeholder="Escanea Codigo de barras o busca por nombre..." 
+                placeholder={scannerGunMode ? "Pistola USB activa: escanea directamente sin hacer clic aquí..." : "Escanea código de barras o busca por nombre..."} 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                className={`w-full bg-black/5 dark:bg-black/40 border rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none transition-colors ${scannerGunMode ? 'border-primary/50 ring-1 ring-primary/20' : 'border-black/10 dark:border-white/10 focus:border-primary'}`}
               />
             </form>
+
+            {/* Controles de Escaneo Continuo USB & Sonido */}
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={toggleScannerGunMode}
+                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition border ${
+                  scannerGunMode
+                    ? 'bg-primary text-black border-primary shadow-sm shadow-primary/20'
+                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/10 dark:hover:bg-white/10'
+                }`}
+                title="Modo Pistola USB: captura continua sin necesidad de seleccionar el campo de búsqueda"
+              >
+                <ScanBarcode className="w-4 h-4" />
+                <span>Pistola USB: {scannerGunMode ? 'ON' : 'OFF'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleSoundFeedback}
+                className={`p-2.5 rounded-xl text-xs font-bold transition border ${
+                  soundFeedback
+                    ? 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-foreground hover:bg-black/10 dark:hover:bg-white/10'
+                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-muted-foreground opacity-50'
+                }`}
+                title={soundFeedback ? "Beep de escaneo activado" : "Beep de escaneo silenciado"}
+              >
+                {soundFeedback ? <Volume2 className="w-4 h-4 text-primary" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Cuadrícula de Productos */}

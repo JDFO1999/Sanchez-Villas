@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon } from "lucide-react"
+import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
@@ -41,7 +41,43 @@ export default function AtletaPerfilPage() {
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
   const [isSavingAthlete, setIsSavingAthlete] = useState(false)
 
+  // WhatsApp 1-Click State
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
+  const [whatsAppText, setWhatsAppText] = useState("")
+
   const canEditAthlete = user?.role === 'admin' || user?.role === 'gerente'
+  const canSendWhatsApp = user && (user.role === 'admin' || user.role === 'gerente' || user.role === 'cajero' || user.role === 'recepcion' || user.role === 'coach')
+
+  const applyWhatsAppTemplate = (type: 'receipt' | 'expiry' | 'welcome') => {
+    if (!athlete) return
+    const firstName = athlete.name.split(' ')[0]
+    const gymName = settings?.appName || "Maximum Evolution Fit"
+    const endDate = athlete.membershipEnd && athlete.membershipEnd !== "1970-01-01T00:00:00.000Z"
+      ? new Date(athlete.membershipEnd).toLocaleDateString()
+      : "Vigente"
+    const planName = (athlete as any).membershipType || (athlete as any).planName || "Membresía Activa"
+
+    if (type === 'receipt') {
+      setWhatsAppText(`🏋️ *Comprobante de Membresía / Pago* 📄\n\n¡Hola ${firstName}! Confirmamos el registro y activación de tu membresía (*${planName}*) en *${gymName}*.\n\n📅 Válido hasta: *${endDate}*\n💳 C.I./ID: *${athlete.cedula}*\n\n¡Gracias por entrenar con nosotros! Dale con toda.`);
+    } else if (type === 'expiry') {
+      setWhatsAppText(`⏰ *Recordatorio de Membresía - ${gymName}* 🏋️‍♂️\n\n¡Hola ${firstName}! Te recordamos de forma amistosa que tu membresía (*${planName}*) está próxima a vencer este *${endDate}*.\n\nPuedes renovarla cómodamente en recepción o a través de nuestros canales de pago para que no pares tu progreso. ¡Te esperamos!`);
+    } else if (type === 'welcome') {
+      setWhatsAppText(`🎉 *¡Bienvenido(a) a ${gymName}!* 🚀\n\n¡Hola ${firstName}! Estamos muy felices de tenerte con nosotros. Tu ficha ha sido creada exitosamente.\n\n🎫 *Pase Digital:* Puedes identificarte en recepción con tu C.I. *${athlete.cedula}* o con tu código QR personal desde tu portal web.\n\n¡A darlo todo en cada entrenamiento! 💪🔥`);
+    }
+  }
+
+  const handleSendWhatsApp = () => {
+    if (!athlete) return
+    if (!athlete.phone) {
+      showSweetToast("El atleta no tiene un número de teléfono registrado.", "warning")
+      return
+    }
+    const cleanPhone = athlete.phone.replace(/\D/g, '')
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsAppText)}`
+    window.open(url, '_blank')
+    setShowWhatsAppModal(false)
+    setWhatsAppText("")
+  }
 
   // Solo el propio usuario puede modificar su foto de perfil
   const canChangePhoto = Boolean(
@@ -696,6 +732,20 @@ export default function AtletaPerfilPage() {
             </button>
           )}
 
+          {canSendWhatsApp && (
+            <button
+              onClick={() => {
+                applyWhatsAppTemplate('receipt')
+                setShowWhatsAppModal(true)
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition"
+              title="Enviar mensaje rápido por WhatsApp"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp (1 Clic)</span>
+            </button>
+          )}
+
           {user?.id === athlete.id && ((athlete as any).role === 'coach' || (athlete as any).role === 'employee') && (
             <button onClick={() => {
               setEditBio((athlete as any).bio || "");
@@ -1260,6 +1310,91 @@ export default function AtletaPerfilPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL WHATSAPP 1-CLIC */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass">
+            <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Mensaje Rápido por WhatsApp</h3>
+                  <p className="text-xs text-muted-foreground">Destinatario: {athlete.name} ({athlete.phone || 'Sin número'})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowWhatsAppModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground">Plantillas predefinidas (1 Clic):</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyWhatsAppTemplate('receipt')}
+                  className="text-xs p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold transition text-left flex flex-col gap-1"
+                >
+                  <span>📄 Comprobante</span>
+                  <span className="text-[10px] font-normal opacity-80">Pago y membresía</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyWhatsAppTemplate('expiry')}
+                  className="text-xs p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold transition text-left flex flex-col gap-1"
+                >
+                  <span>⏰ Vencimiento</span>
+                  <span className="text-[10px] font-normal opacity-80">Aviso amistoso</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyWhatsAppTemplate('welcome')}
+                  className="text-xs p-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold transition text-left flex flex-col gap-1"
+                >
+                  <span>🎫 Bienvenida</span>
+                  <span className="text-[10px] font-normal opacity-80">Pase digital</span>
+                </button>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold block mb-1">Mensaje personalizado a enviar:</label>
+                <textarea
+                  rows={5}
+                  value={whatsAppText}
+                  onChange={(e) => setWhatsAppText(e.target.value)}
+                  placeholder="Selecciona una plantilla arriba o escribe tu mensaje aquí..."
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2.5 justify-end pt-2 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendWhatsApp}
+                  disabled={!whatsAppText.trim()}
+                  className="px-5 py-2 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition disabled:opacity-50 flex items-center gap-2 shadow-md shadow-emerald-500/20"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Abrir en WhatsApp</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -102,9 +102,22 @@ export default function MembresíasPage() {
   const [messageText, setMessageText] = useState("")
 
   const [customMessages, setCustomMessages] = useState([
-    { title: "Inasistencia", text: "¡Hola {nombre}! Hemos notado que llevas días sin venir al gimnasio. ¿Todo bien? Te esperamos." },
-    { title: "Felicitación", text: "¡Felicidades por tu constancia esta semana {nombre}! Sigue así." },
-    { title: "Recordatorio", text: "¡Hola {nombre}, te recordamos que tu membresía está próxima a vencer. ¡Renueva pronto para no perder el ritmo!" }
+    { 
+      title: "🧾 Comprobante de Membresía", 
+      text: "¡Hola {nombre}! Confirmamos el pago y activación de tu membresía ({plan}) en {gym}. Tu acceso se encuentra activo hasta el {vencimiento}. ¡A entrenar con todo!" 
+    },
+    { 
+      title: "⏰ Aviso de Vencimiento", 
+      text: "¡Hola {nombre}! Te recordamos de forma amistosa que tu membresía en {gym} está próxima a vencer el {vencimiento}. Renueva a tiempo en recepción para no perder tu acceso ni tu ritmo de entrenamiento." 
+    },
+    { 
+      title: "🎫 Bienvenida y Pase Digital", 
+      text: "¡Bienvenido(a) a {gym}, {nombre}! Ya estás activo en nuestro sistema. Puedes acceder a las instalaciones presentando tu C.I. {cedula} o tu código QR digital. ¡Mucho éxito en tus metas!" 
+    },
+    { 
+      title: "💪 Inasistencia / Motivación", 
+      text: "¡Hola {nombre}! Hemos notado que llevas días sin venir a entrenar a {gym}. ¿Todo bien? Tu rutina te espera, ¡no pierdas la constancia!" 
+    }
   ])
   const [showCreateMessageModal, setShowCreateMessageModal] = useState(false)
   const [newMessageTitle, setNewMessageTitle] = useState("")
@@ -1200,32 +1213,46 @@ export default function MembresíasPage() {
               {customMessages.map((msg, i) => (
                 <button 
                   key={i} 
-                  onClick={() => setMessageText(msg.text.replace('{nombre}', showMessageModal.name.split(' ')[0]))} 
-                  className="text-xs bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2 py-1 rounded hover:bg-black/10 dark:bg-white/10 transition"
+                  type="button"
+                  onClick={() => {
+                    const endDate = showMessageModal.membershipEnd && showMessageModal.membershipEnd !== "1970-01-01T00:00:00.000Z"
+                      ? new Date(showMessageModal.membershipEnd).toLocaleDateString()
+                      : "Sin fecha registrada"
+                    const formatted = msg.text
+                      .replace(/{nombre}/g, showMessageModal.name.split(' ')[0])
+                      .replace(/{cedula}/g, showMessageModal.cedula || "")
+                      .replace(/{plan}/g, (showMessageModal as any).membershipType || (showMessageModal as any).planName || "Membresía")
+                      .replace(/{vencimiento}/g, endDate)
+                      .replace(/{gym}/g, settings.appName || "Maximum Evolution Fit")
+                    setMessageText(formatted)
+                  }} 
+                  className="text-xs bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 px-2.5 py-1.5 rounded-lg hover:bg-black/10 dark:bg-white/10 transition font-medium text-left"
                 >
                   {msg.title}
                 </button>
               ))}
               <button 
+                type="button"
                 onClick={() => setShowCreateMessageModal(true)}
-                className="text-xs bg-green-500 text-white border border-success px-2 py-1 rounded hover:bg-green-600 font-bold transition flex items-center gap-1"
+                className="text-xs bg-emerald-500 text-white border border-emerald-600 px-2.5 py-1.5 rounded-lg hover:bg-emerald-600 font-bold transition flex items-center gap-1 shrink-0"
               >
-                + Nuevo
+                + Nueva Plantilla
               </button>
             </div>
 
-            <form onSubmit={(() => {})} className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="space-y-4">
               <textarea 
                 required
                 rows={4} 
                 value={messageText}
                 onChange={e => setMessageText(e.target.value)}
-                placeholder="Escribe tu mensaje..."
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-3 text-sm focus:outline-none focus:border-primary"
+                placeholder="Escribe tu mensaje o selecciona una plantilla arriba..."
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-primary"
               />
               <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={()=>setShowMessageModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition flex items-center gap-2">
+                <button type="button" onClick={()=>setShowMessageModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded-xl transition">Cancelar</button>
+                <button type="submit" className="px-5 py-2 text-sm bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition flex items-center gap-2 shadow-md">
+                  <MessageSquare className="w-4 h-4" />
                   Abrir WhatsApp
                 </button>
               </div>

@@ -6,9 +6,10 @@ import { useSettings } from "@/lib/settings-context"
 import { BaseFooter } from "@/components/layout/footer"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard, Shield, Building2, Coins, Receipt, RefreshCw } from "lucide-react"
+import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard, Shield, Building2, Coins, Receipt, RefreshCw, Database, Download, ShieldCheck, FileJson, Lock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast, showSweetToast } from "@/lib/toast-context"
+import Swal from "sweetalert2"
 
 export default function AjustesPage() {
   const { user, getAllEmployees, updateEmployeePermissions } = useAuth()
@@ -28,6 +29,86 @@ export default function AjustesPage() {
   const [roles, setRoles] = useState<any[]>(settings.customRoles || [])
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [roleForm, setRoleForm] = useState({ id: '', name: '', permissions: [] as string[] })
+
+  // Super Admin Check (C.I. 26710825 o rol admin principal)
+  const isSuperAdmin = user?.cedula === "26710825" || (user?.role === "admin" && (user as any)?.isSuperAdmin)
+  const [isGeneratingBackup, setIsGeneratingBackup] = useState(false)
+
+  const handleDownloadBackup = async () => {
+    const { value: password } = await Swal.fire({
+      title: "Autorización de Super Admin",
+      html: `
+        <div class="text-sm text-muted-foreground text-left space-y-2 mb-2">
+          <p>Para generar y descargar el respaldo completo de la base de datos (atletas, transacciones, membresías y configuraciones), confirma tu contraseña de <b>Super Administrador</b>:</p>
+        </div>
+      `,
+      input: "password",
+      inputPlaceholder: "Tu contraseña actual...",
+      showCancelButton: true,
+      confirmButtonText: "Generar y Descargar Respaldo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#f59e0b",
+      reverseButtons: true,
+      inputValidator: (v) => (!v || !v.trim() ? "Debes ingresar tu contraseña para autorizar la descarga" : undefined),
+    })
+
+    if (!password) return
+
+    setIsGeneratingBackup(true)
+    try {
+      const { exportDatabaseBackupAction } = await import("@/app/actions/backup")
+      const res = await exportDatabaseBackupAction(password.trim())
+      if (res.success && res.backupData) {
+        // Disparar descarga directa del archivo JSON
+        const blob = new Blob([res.backupData], { type: "application/json;charset=utf-8" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = res.filename || "backup_gym.json"
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        const s = res.stats || {}
+        Swal.fire({
+          icon: "success",
+          title: "¡Respaldo Descargado con Éxito!",
+          html: `
+            <div class="text-left text-xs space-y-2 font-mono p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10">
+              <p><b>Archivo generado:</b> ${res.filename}</p>
+              <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/50 text-[11px]">
+                <span>👥 Usuarios: <b>${s.usuarios || 0}</b></span>
+                <span>🏋️ Atletas: <b>${s.atletas || 0}</b></span>
+                <span>🎫 Membresías: <b>${s.membresias || 0}</b></span>
+                <span>📦 Productos: <b>${s.productos || 0}</b></span>
+                <span>💳 Ventas: <b>${s.transacciones || 0}</b></span>
+                <span>📝 Asistencias: <b>${s.asistencias || 0}</b></span>
+              </div>
+            </div>
+          `,
+          confirmButtonText: "Aceptar",
+          confirmButtonColor: "#f59e0b",
+        })
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Acceso Denegado o Error",
+          text: res.error || "No se pudo generar la copia de seguridad.",
+          confirmButtonColor: "#ef4444",
+        })
+      }
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Error inesperado",
+        text: err?.message || "Ocurrió un error al procesar el respaldo.",
+        confirmButtonColor: "#ef4444",
+      })
+    } finally {
+      setIsGeneratingBackup(false)
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -2829,6 +2910,70 @@ export default function AjustesPage() {
               </button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* COPIA DE SEGURIDAD Y RESPALDO (EXCLUSIVO SUPER ADMINISTRADOR) */}
+      <Card className="glass mt-8 border-amber-500/30 overflow-hidden relative">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/5 dark:border-white/5 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/30">
+              <Database className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                Copia de Seguridad y Respaldo del Sistema
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                  Super Admin
+                </span>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Exporta y descarga un volcado íntegro de la base de datos (atletas, transacciones, membresías, asistencias y ajustes) en formato JSON.
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {isSuperAdmin ? (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+              <div className="space-y-1.5 max-w-xl">
+                <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>Acceso Autorizado: C.I. {user?.cedula || "26710825"} (Super Administrador)</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Por estrictas políticas de privacidad y protección de datos, solo el Super Administrador principal puede generar y descargar esta copia. Se te solicitará confirmar tu contraseña antes de iniciar la exportación.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDownloadBackup}
+                disabled={isGeneratingBackup}
+                className="shrink-0 bg-amber-500 hover:bg-amber-600 active:scale-95 text-black font-extrabold px-5 py-3 rounded-xl transition-all shadow-lg flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isGeneratingBackup ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Generando Respaldo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Descargar Respaldo Completo (.JSON)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center gap-3 text-muted-foreground">
+              <Lock className="w-5 h-5 text-amber-500 shrink-0" />
+              <p className="text-xs leading-relaxed">
+                Esta sección está reservada exclusivamente para el <b>Super Administrador principal</b> (C.I. 26710825). Tu cuenta actual de administrador no tiene privilegios para extraer la base de datos completa.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
