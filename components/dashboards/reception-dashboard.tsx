@@ -333,27 +333,32 @@ export function ReceptionDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado y Accesos Directos */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="page-title">Panel de Recepción & Caja</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Control de asistencia, ventas en tiempo real, registro de atletas y gestión de turno.
-          </p>
-        </div>
+      {/* Encabezado Principal */}
+      <div>
+        <h1 className="page-title">Panel de Recepción & Caja</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Control de asistencia, ventas en tiempo real, registro de atletas y gestión de turno.
+        </p>
+      </div>
 
+      {/* Barra de Acciones y Tasas de Cambio (Debajo del Título) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 shadow-sm">
+        {/* Lado Izquierdo: Tasas de Cambio Multi-Moneda y Refrescar */}
         <div className="flex flex-wrap items-center gap-2">
           <BcvRateBadge />
 
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="p-2.5 rounded-xl border-2 border-primary/40 hover:border-primary text-primary hover:bg-primary/10 transition shadow-sm cursor-pointer"
+            className="p-2 rounded-xl border border-primary/30 hover:border-primary text-primary hover:bg-primary/10 transition shadow-sm cursor-pointer"
             title="Refrescar datos en vivo"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
           </button>
+        </div>
 
+        {/* Lado Derecho: Accesos a Módulos Operativos */}
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/tienda"
             className="border-2 border-primary text-primary hover:bg-primary/10 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-2"
