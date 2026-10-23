@@ -274,7 +274,7 @@ export async function getAllEmployees() {
   try {
     const employees = await prisma.user.findMany({
       where: {
-        role: { not: 'athlete' }
+        role: { notIn: ['athlete', 'deleted'] }
       }
     });
 

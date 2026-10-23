@@ -8,6 +8,7 @@ import { Loader } from "@/components/ui/loader"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 import { 
   Area, 
   AreaChart, 
@@ -342,9 +343,12 @@ export function AdminDashboard() {
             Resumen integral de finanzas, tienda y retención de atletas.
           </p>
         </div>
-        <Button variant="outline" onClick={() => setShowReportModal(true)}>
-          <Download className="h-4 w-4" /> Exportar Reporte
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <BcvRateBadge />
+          <Button variant="outline" onClick={() => setShowReportModal(true)}>
+            <Download className="h-4 w-4" /> Exportar Reporte
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}

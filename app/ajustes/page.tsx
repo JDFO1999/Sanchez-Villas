@@ -708,13 +708,36 @@ export default function AjustesPage() {
                         )}
                       </div>
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-medium block">Tasa de Cambio</label>
-                      <p className="text-xs text-muted-foreground mb-1">
+                    <div className="md:col-span-2 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-sm font-medium block">Tasa de Cambio ({storeCurrency} a {storeCurrencySecondary})</label>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              showSweetToast("Consultando Banco Central de Venezuela...", "info")
+                              const { fetchBcvRateAction } = await import("@/app/actions/bcv")
+                              const res = await fetchBcvRateAction()
+                              if (res.success && res.rate) {
+                                setStoreExchangeRate(res.rate)
+                                showSweetToast(`Tasa BCV obtenida: Bs. ${res.rate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}. Recuerda presionar 'Guardar Cambios'.`, "success")
+                              } else {
+                                showSweetToast(res.error || "No se pudo consultar el BCV.", "error")
+                              }
+                            } catch (e: any) {
+                              showSweetToast(e?.message || "Error al obtener tasa BCV.", "error")
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition self-start sm:self-auto cursor-pointer"
+                        >
+                          <span>🏦</span> Obtener Tasa Oficial BCV Hoy
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
                         Para calcular la moneda secundaria, el sistema <strong>multiplica</strong> el precio base por este valor.<br/>
-                        Ejemplo: Si tu Moneda Base es USD y la Secundaria es BsS, pon <strong>40.5</strong> (1 USD = 40.5 BsS).
+                        Ejemplo: Si tu Moneda Base es USD y la Secundaria es Bs., pon <strong>886.23</strong> (1 USD = 886.23 Bs.).
                       </p>
-                      <input type="number" step="0.01" value={storeExchangeRate} onChange={(e) => setStoreExchangeRate(Number(e.target.value))} placeholder="Ej. 40.5" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary mt-1" />
+                      <input type="number" step="0.0001" value={storeExchangeRate} onChange={(e) => setStoreExchangeRate(Number(e.target.value))} placeholder="Ej. 886.2271" className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary" />
                     </div>
                   </div>
                 </div>
@@ -2717,7 +2740,7 @@ export default function AjustesPage() {
             />
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch)).map(emp => (
+              {employees.filter(e => e.role !== 'deleted' && (e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch))).map(emp => (
                 <div key={emp.id} className="p-4 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl hover:border-primary/50 transition">
                   <div className="flex justify-between items-center gap-3">
                     <div className="flex-1 min-w-0">
@@ -2747,7 +2770,7 @@ export default function AjustesPage() {
                 </div>
               ))}
               
-              {employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch)).length === 0 && (
+              {employees.filter(e => e.role !== 'deleted' && (e.name.toLowerCase().includes(empSearch.toLowerCase()) || e.cedula?.includes(empSearch))).length === 0 && (
                 <div className="text-center text-sm text-muted-foreground p-6">No se encontraron empleados coincidentes.</div>
               )}
             </div>

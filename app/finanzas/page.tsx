@@ -13,6 +13,7 @@ import {
   AlertCircle, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle, X 
 } from "lucide-react"
 import Swal from "sweetalert2"
+import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
 function escapeHtml(value: unknown): string {
@@ -883,12 +884,15 @@ export default function FinanzasPage() {
           <h1 className="page-title mb-2">Finanzas</h1>
           <p className="text-muted-foreground">Control total de ingresos, gastos, nómina y morosidad.</p>
         </div>
-        <button 
-          onClick={() => handleDownloadReport('Todas las secciones')}
-          className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" /> Reporte General (PDF)
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <BcvRateBadge />
+          <button 
+            onClick={() => handleDownloadReport('Todas las secciones')}
+            className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 px-4 py-2 rounded-lg font-bold transition flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" /> Reporte General (PDF)
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

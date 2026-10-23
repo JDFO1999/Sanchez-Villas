@@ -73,6 +73,20 @@ export default function MembresíasPage() {
   const [renovarChangeRef, setRenovarChangeRef] = useState<string>("")
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
 
+  // Métodos de pago activos según la configuración en Ajustes
+  const hasPagoMovil = Boolean(settings.storePaymentInstructions?.pagoMovil?.trim() || settings.storePaymentInstructions?.pagoMovil2?.trim() || settings.storePaymentQRs?.pagoMovil || settings.storePaymentQRs?.pagoMovil2)
+  const hasTransferencia = Boolean(settings.storePaymentInstructions?.transferencia?.trim() || settings.storePaymentInstructions?.transferencia2?.trim() || settings.storePaymentQRs?.transferencia || settings.storePaymentQRs?.transferencia2)
+  const hasBinance = Boolean(settings.storePaymentInstructions?.binance?.trim() || settings.storePaymentQRs?.binance)
+
+  const availableMembershipPaymentMethods: { value: PaymentMethodType; label: string }[] = [
+    { value: 'Efectivo', label: 'Efectivo' },
+    { value: 'Tarjeta', label: 'Punto de Venta (Tarjeta)' },
+    ...(hasPagoMovil ? [{ value: 'Pago Móvil' as PaymentMethodType, label: 'Pago Móvil' }] : []),
+    ...(hasTransferencia ? [{ value: 'Transferencia' as PaymentMethodType, label: 'Transferencia' }] : []),
+    ...(hasBinance ? [{ value: 'Binance' as PaymentMethodType, label: 'Binance' }] : []),
+    { value: 'Crédito/Fiado', label: 'Crédito/Fiado' },
+  ]
+
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState<AthleteProfile | null>(null)
   const [editName, setEditName] = useState("")
@@ -813,14 +827,11 @@ export default function MembresíasPage() {
                                         return c
                                       })
                                     }}
-                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary font-medium"
                                   >
-                                    <option value="Efectivo">Efectivo</option>
-                                    <option value="Tarjeta">Punto de Venta (Tarjeta)</option>
-                                    <option value="Pago Móvil">Pago Móvil</option>
-                                    <option value="Transferencia">Transferencia</option>
-                                    <option value="Binance">Binance</option>
-                                    <option value="Crédito/Fiado">Crédito/Fiado</option>
+                                    {availableMembershipPaymentMethods.map(m => (
+                                      <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
                                   </select>
                                 </div>
 

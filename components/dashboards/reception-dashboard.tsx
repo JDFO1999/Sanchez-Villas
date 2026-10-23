@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { QRScanner } from "@/components/qr-scanner"
+import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 import { Loader } from "@/components/ui/loader"
 import Swal from "sweetalert2"
 
@@ -281,6 +282,8 @@ export function ReceptionDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <BcvRateBadge />
+
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing}

@@ -14,6 +14,7 @@ import { Search, ShoppingCart, Package, Check, Plus, Minus, Trash2, CheckCircle2
 import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 import Swal from "sweetalert2"
+import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 
 export default function TiendaPOSPage() {
   const router = useRouter();
@@ -137,6 +138,28 @@ export default function TiendaPOSPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
+
+  // Métodos de pago habilitados según la configuración en Ajustes
+  // Si una forma digital (Pago Móvil, Transferencia, Binance) no tiene datos bancarios ni QR configurado, se oculta
+  const hasPagoMovil = Boolean(settings.storePaymentInstructions?.pagoMovil?.trim() || settings.storePaymentInstructions?.pagoMovil2?.trim() || settings.storePaymentQRs?.pagoMovil || settings.storePaymentQRs?.pagoMovil2)
+  const hasTransferencia = Boolean(settings.storePaymentInstructions?.transferencia?.trim() || settings.storePaymentInstructions?.transferencia2?.trim() || settings.storePaymentQRs?.transferencia || settings.storePaymentQRs?.transferencia2)
+  const hasBinance = Boolean(settings.storePaymentInstructions?.binance?.trim() || settings.storePaymentQRs?.binance)
+
+  const athleteAvailablePaymentMethods: { value: PaymentMethodType; label: string }[] = [
+    { value: 'Efectivo', label: 'Efectivo (en gimnasio)' },
+    ...(hasPagoMovil ? [{ value: 'Pago Móvil' as PaymentMethodType, label: 'Pago Móvil' }] : []),
+    ...(hasTransferencia ? [{ value: 'Transferencia' as PaymentMethodType, label: 'Transferencia Bancaria' }] : []),
+    ...(hasBinance ? [{ value: 'Binance' as PaymentMethodType, label: 'Binance Pay' }] : []),
+  ]
+
+  const posAvailablePaymentMethods: { value: PaymentMethodType; label: string }[] = [
+    { value: 'Efectivo', label: 'Efectivo' },
+    { value: 'Tarjeta', label: 'Tarjeta / Punto' },
+    ...(hasPagoMovil ? [{ value: 'Pago Móvil' as PaymentMethodType, label: 'Pago Móvil' }] : []),
+    ...(hasTransferencia ? [{ value: 'Transferencia' as PaymentMethodType, label: 'Transferencia' }] : []),
+    ...(hasBinance ? [{ value: 'Binance' as PaymentMethodType, label: 'Binance' }] : []),
+    { value: 'Crédito/Fiado', label: 'Crédito / Fiado' },
+  ]
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -643,7 +666,8 @@ export default function TiendaPOSPage() {
             <h1 className="page-title">Catálogo {settings.appName}</h1>
             <p className="text-muted-foreground mt-1">Reserva tus productos o paga tu plan mensual desde aquí.</p>
           </div>
-          <div className="relative flex flex-wrap gap-2">
+          <div className="relative flex flex-wrap items-center gap-2">
+            <BcvRateBadge />
             <button 
               onClick={() => setShowPlanModal(true)}
               className="bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition shadow-sm"
@@ -834,13 +858,11 @@ export default function TiendaPOSPage() {
                                     return c
                                   })
                                 }}
-                                className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs focus:border-primary"
+                                className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-1.5 text-xs focus:border-primary font-medium"
                               >
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Pago Móvil">Pago Móvil</option>
-                                <option value="Transferencia">Transferencia</option>
-                                <option value="Binance">Binance</option>
-                                <option value="Tarjeta">Tarjeta / Punto</option>
+                                {athleteAvailablePaymentMethods.map(m => (
+                                  <option key={m.value} value={m.value}>{m.label}</option>
+                                ))}
                               </select>
                             </div>
 
@@ -1383,12 +1405,9 @@ export default function TiendaPOSPage() {
                             }}
                             className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary font-medium"
                           >
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta">Tarjeta / Punto</option>
-                            <option value="Pago Móvil">Pago Móvil</option>
-                            <option value="Transferencia">Transferencia</option>
-                            <option value="Binance">Binance</option>
-                            {user?.role !== 'athlete' && <option value="Crédito/Fiado">Crédito / Fiado</option>}
+                            {posAvailablePaymentMethods.map(m => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
                           </select>
                         </div>
 
