@@ -6,7 +6,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon, Bell, Send } from "lucide-react"
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
@@ -129,6 +129,26 @@ export default function MembresíasPage() {
   const [newMessageText, setNewMessageText] = useState("")
   const [allCoaches, setAllCoaches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [cronSummary, setCronSummary] = useState<any>(null)
+  const [isRunningAlerts, setIsRunningAlerts] = useState(false)
+
+  const handleRunCronAlerts = async () => {
+    setIsRunningAlerts(true)
+    try {
+      const { runDailyNotificationChecks } = await import('@/app/actions/notifications')
+      const res = await runDailyNotificationChecks()
+      if (res.success && res.summary) {
+        setCronSummary(res.summary)
+        showSweetToast(`Alertas procesadas: ${res.summary.emailsSentCount} correos enviados.`, "success")
+      } else {
+        showSweetToast(res.error || "Error al procesar alertas", "error")
+      }
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al ejecutar alertas", "error")
+    } finally {
+      setIsRunningAlerts(false)
+    }
+  }
 
   const refreshAthletes = async () => {
     try {
@@ -1472,6 +1492,105 @@ export default function MembresíasPage() {
         </div>
       )}
 
+      {/* CRON ALERTS SUMMARY & WHATSAPP QUEUE MODAL */}
+      {cronSummary && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-foreground leading-tight">Resultados del Cron de Alertas</h3>
+                  <p className="text-xs text-muted-foreground">Notificaciones automáticas procesadas para hoy</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCronSummary(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resumen Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+              <div className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Correos Enviados</p>
+                <p className="text-xl font-black text-emerald-500">{cronSummary.emailsSentCount}</p>
+              </div>
+              <div className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Vencen en 3 Días</p>
+                <p className="text-xl font-black text-amber-500">{cronSummary.expiring3DaysCount}</p>
+              </div>
+              <div className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Vencen Hoy</p>
+                <p className="text-xl font-black text-rose-500">{cronSummary.expiredTodayCount}</p>
+              </div>
+              <div className="bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-center">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">+7d Ausentes</p>
+                <p className="text-xl font-black text-blue-500">{cronSummary.inactive7DaysCount}</p>
+              </div>
+            </div>
+
+            {/* Cola de WhatsApp */}
+            <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5 text-emerald-500" /> Cola de Mensajes para WhatsApp ({cronSummary.whatsappQueue?.length || 0})
+                </span>
+                <span className="text-[10px] text-muted-foreground">Envío directo con 1 clic</span>
+              </div>
+
+              {(!cronSummary.whatsappQueue || cronSummary.whatsappQueue.length === 0) ? (
+                <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-black/10 dark:border-white/10 rounded-xl">
+                  No hay alertas pendientes para enviar hoy. Todos los atletas están al día.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {cronSummary.whatsappQueue.map((item: any) => (
+                    <div key={item.id} className="p-3 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-foreground truncate">{item.name}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                            item.type === 'EXPIRED_TODAY' ? 'bg-rose-500/15 text-rose-500' : item.type === 'EXPIRING_3_DAYS' ? 'bg-amber-500/15 text-amber-500' : 'bg-blue-500/15 text-blue-500'
+                          }`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{item.phone}</p>
+                      </div>
+                      <a
+                        href={`https://wa.me/${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(item.message)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-sm"
+                      >
+                        <Send className="h-3 w-3" /> Enviar
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-black/10 dark:border-white/10 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setCronSummary(null)}
+                className="px-4 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold transition"
+              >
+                Cerrar Resumen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Membresías y Gestión de Planes</h1>
@@ -1481,6 +1600,15 @@ export default function MembresíasPage() {
         </div>
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+          <button
+            type="button"
+            onClick={handleRunCronAlerts}
+            disabled={isRunningAlerts}
+            className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-foreground font-bold text-xs px-3.5 py-2.5 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <Bell className={`h-4 w-4 text-amber-500 ${isRunningAlerts ? 'animate-spin' : ''}`} />
+            {isRunningAlerts ? "Ejecutando..." : "Ejecutar Alertas Diarias"}
+          </button>
           <button
             type="button"
             onClick={openWalkInPlanModal}

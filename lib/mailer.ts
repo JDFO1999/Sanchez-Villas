@@ -178,3 +178,200 @@ export async function sendReceiptEmail(to: string, clientName: string, amount: n
   }
 }
 
+/**
+ * Enviar aviso preventivo 3 días antes del corte de membresía.
+ */
+export async function sendMembershipExpiringSoonEmail(
+  to: string, 
+  clientName: string, 
+  daysLeft: number, 
+  planName: string, 
+  expiryDateStr: string
+) {
+  try {
+    const transporter = getTransporter();
+    const appUrl = process.env.APP_URL || "https://www.maximumevolutionfit.com";
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 25px 10px; background-color: #0c0d0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f3f4f6;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background: #131417; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; overflow: hidden;">
+    <tr>
+      <td style="padding: 30px 25px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: inline-block; padding: 8px 16px; background: rgba(234, 179, 8, 0.15); border: 1px solid #eab308; border-radius: 12px; margin-bottom: 10px;">
+          <span style="font-size: 16px; font-weight: 900; letter-spacing: 2px; color: #eab308;">MAXIMUM EVOLUTION FIT</span>
+        </div>
+        <h2 style="margin: 5px 0 0; color: #ffffff; font-size: 20px;">Tu membresía vence en ${daysLeft} días</h2>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #e5e7eb; margin: 0 0 15px;">Hola <strong>${clientName}</strong>,</p>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 20px;">
+          Te recordamos de forma amistosa que tu plan <strong>${planName}</strong> está próximo a vencer el <strong>${expiryDateStr}</strong>.
+        </p>
+        <div style="background: rgba(234, 179, 8, 0.08); border-left: 4px solid #eab308; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 13px; color: #eab308; font-weight: 600;">
+            ⚡ ¡Renueva a tiempo para no interrumpir tu ritmo ni perder tu acceso al gimnasio!
+          </p>
+        </div>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6;">
+          Puedes renovar directamente en la recepción del gimnasio o desde tu portal de atleta.
+        </p>
+        <div style="text-align: center; margin: 30px 0 20px;">
+          <a href="${appUrl}/login" style="display: inline-block; padding: 12px 28px; background: #eab308; color: #000000; font-weight: 800; border-radius: 12px; text-decoration: none; font-size: 14px;">
+            VER MI ESTADO DE CUENTA
+          </a>
+        </div>
+        <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 25px;">
+          Maximum Evolution Fit • Pasión y Disciplina
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const info = await transporter.sendMail({
+      from: DEFAULT_FROM,
+      to,
+      subject: `⏰ Aviso: Tu membresía en Maximum Evolution Fit vence en ${daysLeft} días`,
+      html: htmlContent,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending expiring email:", error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Enviar alerta de corte el día exacto de vencimiento con datos de pago.
+ */
+export async function sendMembershipExpiredEmail(
+  to: string, 
+  clientName: string, 
+  planName: string, 
+  paymentInstructions?: { pagoMovil?: string; binance?: string }
+) {
+  try {
+    const transporter = getTransporter();
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 25px 10px; background-color: #0c0d0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f3f4f6;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background: #131417; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 20px; overflow: hidden;">
+    <tr>
+      <td style="padding: 30px 25px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: inline-block; padding: 8px 16px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 12px; margin-bottom: 10px;">
+          <span style="font-size: 16px; font-weight: 900; letter-spacing: 2px; color: #ef4444;">ALERTA DE CORTE</span>
+        </div>
+        <h2 style="margin: 5px 0 0; color: #ffffff; font-size: 20px;">Tu membresía vence el día de hoy</h2>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #e5e7eb; margin: 0 0 15px;">Hola <strong>${clientName}</strong>,</p>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 20px;">
+          Te informamos que tu plan <strong>${planName}</strong> ha llegado a su fecha de corte hoy. Tu acceso digital por torniquete se suspenderá al finalizar la jornada.
+        </p>
+
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 18px; border-radius: 12px; margin: 20px 0;">
+          <h4 style="margin: 0 0 10px; font-size: 13px; color: #eab308; text-transform: uppercase; font-weight: 800;">
+            💳 Métodos de Pago Disponibles:
+          </h4>
+          <p style="margin: 0 0 8px; font-size: 13px; color: #d1d5db;">
+            <strong>Pago Móvil:</strong> ${paymentInstructions?.pagoMovil || "Consulta datos en recepción o en la app"}
+          </p>
+          <p style="margin: 0; font-size: 13px; color: #d1d5db;">
+            <strong>Binance Pay:</strong> ${paymentInstructions?.binance || "Pay ID disponible en recepción"}
+          </p>
+        </div>
+
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6;">
+          Una vez realizado tu pago, puedes presentar tu comprobante en recepción para reactivar tu acceso de inmediato. ¡Te esperamos para seguir entrenando juntos!
+        </p>
+        <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 30px;">
+          Maximum Evolution Fit • Pasión y Disciplina
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const info = await transporter.sendMail({
+      from: DEFAULT_FROM,
+      to,
+      subject: `⚠️ Alerta de Corte: Tu membresía en Maximum Evolution Fit vence hoy`,
+      html: htmlContent,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending expired email:", error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Enviar mensaje motivacional de retención a atletas con 7+ días sin asistir.
+ */
+export async function sendInactivityReminderEmail(to: string, clientName: string, daysInactive: number) {
+  try {
+    const transporter = getTransporter();
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 25px 10px; background-color: #0c0d0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f3f4f6;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; margin: 0 auto; background: #131417; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; overflow: hidden;">
+    <tr>
+      <td style="padding: 30px 25px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: inline-block; padding: 8px 16px; background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; border-radius: 12px; margin-bottom: 10px;">
+          <span style="font-size: 16px; font-weight: 900; letter-spacing: 2px; color: #3b82f6;">¡TE EXTRAÑAMOS EN EL GYM!</span>
+        </div>
+        <h2 style="margin: 5px 0 0; color: #ffffff; font-size: 20px;">Llevas ${daysInactive} días sin venir a entrenar</h2>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #e5e7eb; margin: 0 0 15px;">¡Hola <strong>${clientName}</strong>! 👋</p>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 20px;">
+          Hemos notado que llevas <strong>${daysInactive} días continuos</strong> sin registrar asistencia en <strong>Maximum Evolution Fit</strong>.
+        </p>
+        <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 13px; color: #93c5fd; font-weight: 600;">
+            💪 "La motivación es lo que te hace empezar. El hábito es lo que te mantiene en el camino."
+          </p>
+        </div>
+        <p style="font-size: 14px; color: #9ca3af; line-height: 1.6;">
+          Tu rutina y tus metas te están esperando. Si necesitas ayuda con tus ejercicios o una reevaluación con tu entrenador, acércate a recepción. ¡Estamos aquí para impulsarte!
+        </p>
+        <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 30px;">
+          Maximum Evolution Fit • Tu comunidad fitness
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const info = await transporter.sendMail({
+      from: DEFAULT_FROM,
+      to,
+      subject: `💪 ¡Hola ${clientName}, te extrañamos en Maximum Evolution Fit!`,
+      html: htmlContent,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending inactivity reminder email:", error);
+    return { success: false, error };
+  }
+}
+
+

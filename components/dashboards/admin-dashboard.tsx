@@ -1,6 +1,6 @@
 "use client"
 
-import { Users, TrendingUp, Banknote, AlertCircle, ArrowUpRight, ShoppingCart, Download, FileText, FileSpreadsheet, Calendar, CheckCircle2, X, CalendarDays } from "lucide-react"
+import { Users, TrendingUp, Banknote, AlertCircle, ArrowUpRight, ShoppingCart, Download, FileText, FileSpreadsheet, Calendar, CheckCircle2, X, CalendarDays, Activity, UserMinus, DollarSign, Flame, Clock } from "lucide-react"
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
 import { useSettings } from "@/lib/settings-context"
@@ -42,6 +42,10 @@ export function AdminDashboard() {
     activeAthletes: 0,
     checkinsToday: 0,
     monthlyRevenue: 0,
+    churnRate: 0,
+    arpu: 0,
+    mrr: 0,
+    peakHoursData: [] as any[],
     riskAthletes: [] as any[],
     exitoAtletas: [] as any[],
     membresiasPorVencer: [] as any[],
@@ -425,6 +429,128 @@ export function AdminDashboard() {
                 <div className="text-xs text-muted-foreground py-1">No hay atletas en riesgo.</div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* SECCIÓN BUSINESS INTELLIGENCE (Exclusivo Administradores y Gerentes) */}
+      <div className="space-y-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/10 dark:border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center font-bold">
+              <Activity className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">Business Intelligence & Métricas Clave (Fitness KPI)</h2>
+              <p className="text-xs text-muted-foreground">Analítica de retención, rentabilidad por atleta y horas pico de afluencia.</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0 self-start sm:self-auto">
+            Solo Admin / Gerencia
+          </span>
+        </div>
+
+        {/* Tarjetas de BI */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Churn Rate */}
+          <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Tasa de Deserción (Churn Rate)
+              </CardTitle>
+              <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                <UserMinus className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2">
+                <div className="text-3xl font-black tracking-tight text-foreground">
+                  {dynamicStats.churnRate ?? 0}%
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                  (dynamicStats.churnRate || 0) <= 5 
+                    ? 'bg-emerald-500/15 text-emerald-500' 
+                    : (dynamicStats.churnRate || 0) <= 10 
+                    ? 'bg-amber-500/15 text-amber-500' 
+                    : 'bg-rose-500/15 text-rose-500'
+                }`}>
+                  {(dynamicStats.churnRate || 0) <= 5 ? 'Excelente Retención' : (dynamicStats.churnRate || 0) <= 10 ? 'Controlado' : 'Alerta de Fuga'}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Atletas vencidos en los últimos 30 días sin renovar membresía.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: ARPU */}
+          <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Ingreso Promedio x Atleta (ARPU)
+              </CardTitle>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                <DollarSign className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black tracking-tight text-foreground">
+                ${dynamicStats.arpu ?? 0}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Gasto promedio mensual por atleta activo (Membresías + Tienda).
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Card 3: MRR Proyectado */}
+          <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Ingresos Recurrentes (MRR Estimado)
+              </CardTitle>
+              <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                <Flame className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black tracking-tight text-primary">
+                ${(dynamicStats.mrr || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Facturación mensual recurrente proyectada con la base activa actual.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráfico de Horas Pico de Sala */}
+        <Card className="glass border-black/10 dark:border-white/10 rounded-2xl shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Mapa de Horas Pico de Asistencia (Últimos 30 días)
+              </span>
+              <span className="text-xs text-muted-foreground font-normal">
+                Franja horaria (06:00 a 22:00)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dynamicStats.peakHoursData || []} margin={{ top: 10, right: 20, left: -15, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  cursor={{ fill: 'hsl(var(--secondary))', opacity: 0.5 }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))', borderRadius: '8px', fontSize: '12px' }}
+                  formatter={(val: any) => [`${val} accesos`, 'Afluencia']}
+                />
+                <Bar dataKey="checkins" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Accesos" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>

@@ -14,9 +14,23 @@ export async function checkInByCedula(code: string, adminKey?: string, isQr: boo
       return { success: false, error: "Debes ingresar una cédula o escanear un código." }
     }
 
+    let targetLookup = cleanCode
+    let effectiveIsQr = isQr
+
+    // Verificación de QR Dinámico Anti-Captura (DYNQR)
+    if (cleanCode.startsWith("DYNQR:")) {
+      const { verifyDynamicQrToken } = await import("@/lib/qr-token")
+      const qrCheck = verifyDynamicQrToken(cleanCode)
+      if (!qrCheck.valid) {
+        return { success: false, error: qrCheck.error || "Código QR inválido o expirado." }
+      }
+      targetLookup = qrCheck.userId || qrCheck.cedula || cleanCode
+      effectiveIsQr = true
+    }
+
     // Si NO es por escáner QR directo, el registro manual por cédula exige autorización de Gerente o Administrador
     let authorizedManagerName: string | null = null
-    if (!isQr) {
+    if (!effectiveIsQr) {
       if (!adminKey || !adminKey.trim()) {
         return {
           success: false,
@@ -73,8 +87,8 @@ export async function checkInByCedula(code: string, adminKey?: string, isQr: boo
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { cedula: cleanCode },
-          { id: cleanCode }
+          { cedula: targetLookup },
+          { id: targetLookup }
         ]
       }
     });
@@ -283,5 +297,20 @@ export async function getAttendanceReportAction(dateStr?: string) {
     return { success: false, error: error?.message || "Error al generar reporte de asistencia" }
   }
 }
+
+/**
+ * Genera un token QR dinámico firmado criptográficamente para el carnet del atleta.
+ * Rota cada 60 segundos con protección anti-captura.
+ */
+export async function getAthleteDynamicQrToken(athleteId: string, cedula: string) {
+  try {
+    const { generateDynamicQrToken } = await import("@/lib/qr-token")
+    const token = generateDynamicQrToken(athleteId, cedula)
+    return { success: true, token }
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Error al generar código QR dinámico." }
+  }
+}
+
 
 

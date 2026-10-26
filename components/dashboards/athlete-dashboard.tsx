@@ -30,6 +30,8 @@ export function AthleteDashboard() {
   const itemsPerPage = 3
 
   const [showQRModal, setShowQRModal] = useState(false)
+  const [dynamicQrToken, setDynamicQrToken] = useState<string>("")
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(60)
   const [coachName, setCoachName] = useState('Sin Asignar')
   const [liveRoutines, setLiveRoutines] = useState<any[]>([])
   const [liveDiets, setLiveDiets] = useState<any[]>([])
@@ -37,6 +39,38 @@ export function AthleteDashboard() {
   const [streak, setStreak] = useState(0);
   const [memberships, setMemberships] = useState<any[]>([]);
   const [biometrics, setBiometrics] = useState<any[]>([])
+
+  useEffect(() => {
+    let timer: any
+    let countdown: any
+
+    if (showQRModal && user) {
+      const fetchToken = async () => {
+        try {
+          const { getAthleteDynamicQrToken } = await import('@/app/actions/attendance')
+          const res = await getAthleteDynamicQrToken(user.id, user.cedula)
+          if (res.success && res.token) {
+            setDynamicQrToken(res.token)
+            setQrSecondsLeft(60)
+          }
+        } catch {
+          setDynamicQrToken(user.cedula)
+        }
+      }
+
+      fetchToken()
+      timer = setInterval(fetchToken, 60000)
+
+      countdown = setInterval(() => {
+        setQrSecondsLeft(prev => (prev > 1 ? prev - 1 : 60))
+      }, 1000)
+    }
+
+    return () => {
+      if (timer) clearInterval(timer)
+      if (countdown) clearInterval(countdown)
+    }
+  }, [showQRModal, user])
 
   const handleCancelTx = async (tx: Transaction) => {
     const result = await Swal.fire({
@@ -602,10 +636,41 @@ export function AthleteDashboard() {
               </span>
             </div>
 
-            {/* QR Scanner Container */}
-            <div className="flex flex-col items-center bg-white p-5 rounded-2xl shadow-xl mb-5">
-              <QRCodeSVG value={user?.cedula || ''} size={190} level="H" />
-              <p className="text-xs font-mono text-zinc-600 mt-3 font-bold tracking-wider">MUESTRA ESTE QR EN ENTRADA</p>
+            {/* Dynamic Anti-Capture QR Container */}
+            <div className="flex flex-col items-center bg-white p-5 rounded-2xl shadow-xl mb-4 relative">
+              <div className="w-full flex items-center justify-between text-[11px] font-bold text-zinc-700 mb-2 pb-1.5 border-b border-zinc-200">
+                <span className="flex items-center gap-1.5 text-emerald-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Código Dinámico en Vivo</span>
+                </span>
+                <span className="font-mono text-zinc-600 font-bold bg-zinc-100 px-2 py-0.5 rounded-md">
+                  {qrSecondsLeft}s
+                </span>
+              </div>
+
+              <div className="p-2 border-2 border-dashed border-zinc-300 rounded-xl bg-white shadow-inner">
+                <QRCodeSVG 
+                  value={dynamicQrToken || user?.cedula || ''} 
+                  size={210} 
+                  level="H" 
+                  includeMargin={true}
+                />
+              </div>
+
+              {/* Barra de progreso regresiva */}
+              <div className="w-full h-1.5 bg-zinc-200 rounded-full overflow-hidden mt-3.5">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000 ease-linear rounded-full"
+                  style={{ width: `${Math.max(0, Math.min(100, (qrSecondsLeft / 60) * 100))}%` }}
+                />
+              </div>
+
+              <p className="text-[11px] font-bold text-zinc-800 mt-2 text-center tracking-tight">
+                🔒 Protección Anti-Captura • Se regenera en vivo
+              </p>
+              <p className="text-[10px] text-zinc-500 text-center leading-tight mt-0.5 max-w-[230px]">
+                Las capturas de pantalla o fotos expiran a los 60s y son rechazadas por el torniquete.
+              </p>
             </div>
 
             {/* Athlete Info details */}

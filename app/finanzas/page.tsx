@@ -279,20 +279,6 @@ export default function FinanzasPage() {
       return
     }
 
-    const extraData = {
-      birthDate: payrollForm.birthDate,
-      profession: payrollForm.profession,
-      specialties: payrollForm.specialties,
-      nonWorkingDays: payrollForm.nonWorkingDays,
-      avatar: payrollForm.avatar,
-      commissionType: payrollForm.commissionType,
-      bankAccount: payrollForm.bankAccount,
-      bankName: payrollForm.bankName,
-      mobilePayment: payrollForm.mobilePayment,
-      mobilePaymentBank: payrollForm.mobilePaymentBank
-    }
-    localStorage.setItem(`emp_extra_${payrollForm.cedula}`, JSON.stringify(extraData))
-
     if (payrollForm.id) {
       const ok = await updateEmployee(payrollForm.id, payrollForm)
       if ((ok as any) === false) return
@@ -1662,23 +1648,25 @@ export default function FinanzasPage() {
                           <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
                         </td>
                         <td className="p-4 text-xs">
-                          {(() => {
-                            const extraStr = localStorage.getItem(`emp_extra_${emp.cedula}`)
-                            const extra = extraStr ? JSON.parse(extraStr) : {}
-                            return (
-                              <div className="space-y-1">
-                                {extra.bankAccount ? <div className="text-muted-foreground"><span className="font-bold">Cta:</span> {extra.bankAccount ? `${extra.bankName ? `${extra.bankName} - ` : ''}${extra.bankAccount}` : ''}</div> : null}
-                                {extra.mobilePayment ? <div className="text-muted-foreground"><span className="font-bold">Pago Móvil:</span> {extra.mobilePaymentBank ? `${extra.mobilePaymentBank} - ` : ''}{extra.mobilePayment}</div> : null}
-                                {!extra.bankAccount && !extra.mobilePayment && <span className="text-destructive/70">Sin datos registrados</span>}
+                          <div className="space-y-1">
+                            {emp.bankAccount ? (
+                              <div className="text-muted-foreground">
+                                <span className="font-bold">Cta:</span> {emp.bankName ? `${emp.bankName} - ` : ''}{emp.bankAccount}
                               </div>
-                            )
-                          })()}
+                            ) : null}
+                            {emp.mobilePayment ? (
+                              <div className="text-muted-foreground">
+                                <span className="font-bold">Pago Móvil:</span> {emp.mobilePaymentBank ? `${emp.mobilePaymentBank} - ` : ''}{emp.mobilePayment}
+                              </div>
+                            ) : null}
+                            {!emp.bankAccount && !emp.mobilePayment && (
+                              <span className="text-destructive/70">Sin datos registrados</span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 text-right flex justify-end gap-2">
                           <button onClick={() => {
-                            const extraStr = localStorage.getItem(`emp_extra_${emp.cedula}`)
-                            const extra = extraStr ? JSON.parse(extraStr) : {}
-                            setPayrollForm({ ...emp, clave: '', confirmClave: '', ...extra })
+                            setPayrollForm({ ...emp, clave: '', confirmClave: '' })
                             setShowPayrollModal(true)
                           }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                             Configurar

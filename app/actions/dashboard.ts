@@ -118,7 +118,49 @@ export async function getDashboardStats() {
       })
       .slice(0, 3)
 
-    // Chart Data (Mock implementation for now, using random data connected to real scale)
+    // 1. Asistencias de los últimos 30 días para Mapa de Calor de Horas Pico (6:00 a 22:00)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const recentAttendances = await prisma.attendance.findMany({
+      where: { date: { gte: thirtyDaysAgo } },
+      select: { date: true }
+    })
+
+    const hoursMap: { [key: number]: number } = {}
+    for (let h = 6; h <= 22; h++) hoursMap[h] = 0
+
+    recentAttendances.forEach(att => {
+      const h = new Date(att.date).getHours()
+      if (h >= 6 && h <= 22) {
+        hoursMap[h] = (hoursMap[h] || 0) + 1
+      }
+    })
+
+    const peakHoursData = Object.keys(hoursMap).map(h => ({
+      hour: `${h.padStart(2, '0')}:00`,
+      checkins: hoursMap[Number(h)]
+    }))
+
+    // 2. Churn Rate (Tasa de Deserción):
+    // Atletas cuya membresía venció en los últimos 30 días y no han renovado
+    const expiredLast30Days = allAthletes.filter(a => {
+      const lastMemb = a.memberships[0]
+      if (!lastMemb) return false
+      const endDate = new Date(lastMemb.endDate)
+      const isExpired = endDate < today
+      const expiredRecently = (today.getTime() - endDate.getTime()) <= 30 * 24 * 60 * 60 * 1000
+      return isExpired && expiredRecently
+    }).length
+
+    const totalEligible = activeAthletesCount + expiredLast30Days
+    const churnRate = totalEligible > 0 ? parseFloat(((expiredLast30Days / totalEligible) * 100).toFixed(1)) : 0.0
+
+    // 3. ARPU (Average Revenue Per User)
+    const arpu = activeAthletesCount > 0 ? parseFloat((monthlyRevenue / activeAthletesCount).toFixed(2)) : 0.0
+
+    // 4. MRR (Monthly Recurring Revenue Estimado)
+    const mrr = activeAthletesCount * (arpu > 0 ? arpu : 25)
+
+    // Chart Data (Mock implementation for historical months, using real scale)
     const revenueData = [
       { name: "Ene", ingresos: monthlyRevenue * 0.8, egresos: monthlyRevenue * 0.5 },
       { name: "Feb", ingresos: monthlyRevenue * 0.9, egresos: monthlyRevenue * 0.4 },
@@ -145,6 +187,10 @@ export async function getDashboardStats() {
         activeAthletes: activeAthletesCount,
         checkinsToday: attendancesToday,
         monthlyRevenue,
+        churnRate,
+        arpu,
+        mrr,
+        peakHoursData,
         riskAthletes,
         exitoAtletas,
         membresiasPorVencer,
