@@ -6,7 +6,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon, Bell, Send } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon, Bell, Send, Mail } from "lucide-react"
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
@@ -147,6 +147,61 @@ export default function MembresíasPage() {
       showSweetToast(err?.message || "Error al ejecutar alertas", "error")
     } finally {
       setIsRunningAlerts(false)
+    }
+  }
+
+  const handleTestSmtp = async () => {
+    const { value: targetEmail } = await Swal.fire({
+      title: 'Diagnóstico de Correo (Gmail / SMTP)',
+      text: 'Ingresa un correo electrónico para verificar la conexión y recibir un correo de prueba corporativo:',
+      input: 'email',
+      inputPlaceholder: 'tu-correo@ejemplo.com',
+      inputValue: user?.email || '',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar Correo de Prueba',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#f59e0b',
+      background: '#0e1017',
+      color: '#ffffff'
+    })
+
+    if (targetEmail) {
+      Swal.fire({
+        title: 'Verificando Servidor...',
+        text: 'Conectando con el servidor SMTP (Gmail / Resend) y despachando plantilla corporativa...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        },
+        background: '#0e1017',
+        color: '#ffffff'
+      })
+
+      try {
+        const { testSmtpConnectionAction } = await import('@/app/actions/notifications')
+        const res = await testSmtpConnectionAction(targetEmail)
+        if (res.success) {
+          Swal.fire({
+            title: '¡Conexión Exitosa!',
+            text: res.message || `Correo corporativo de prueba enviado con éxito a ${targetEmail}.`,
+            icon: 'success',
+            confirmButtonColor: '#f59e0b',
+            background: '#0e1017',
+            color: '#ffffff'
+          })
+        } else {
+          Swal.fire({
+            title: 'Error de Configuración SMTP',
+            text: res.error || 'No se pudo conectar al servidor de correo. Si usas Gmail, verifica que estés usando una Contraseña de Aplicación de 16 caracteres.',
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            background: '#0e1017',
+            color: '#ffffff'
+          })
+        }
+      } catch (err: any) {
+        Swal.fire('Error', err?.message || 'Error al ejecutar prueba de correo.', 'error')
+      }
     }
   }
 
@@ -1578,11 +1633,18 @@ export default function MembresíasPage() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-black/10 dark:border-white/10 flex justify-end">
+            <div className="pt-4 border-t border-black/10 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleTestSmtp}
+                className="px-3 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-muted-foreground hover:text-foreground rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+              >
+                <Mail className="h-3.5 w-3.5 text-amber-500" /> Probar Servidor (Gmail / SMTP)
+              </button>
               <button
                 type="button"
                 onClick={() => setCronSummary(null)}
-                className="px-4 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold transition"
+                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-bold transition"
               >
                 Cerrar Resumen
               </button>

@@ -250,15 +250,20 @@ export async function getUserById(id: string) {
 }
 
 export async function getSessionData() {
-  const me = await getAuthUser();
-  if (!me) return { success: false };
+  try {
+    const me = await getAuthUser();
+    if (!me) return { success: false };
 
-  const user = await prisma.user.findUnique({
-    where: { id: me.id }
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: me.id }
+    });
 
-  if (!user) return { success: false };
-  return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
+    if (!user) return { success: false };
+    return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
+  } catch (error) {
+    console.error("getSessionData error:", error);
+    return { success: false };
+  }
 }
 
 export async function logoutAction() {

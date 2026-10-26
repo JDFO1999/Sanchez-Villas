@@ -78,8 +78,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, isAuthOrPublicPage, router])
 
-  if (isLoading) return <FullScreenLoader text="Iniciando..." progressive={true} />
-
+  // Páginas públicas (login, registro, landing promocional, recuperación de contraseña):
+  // Se renderizan de inmediato sin bloquear al visitante con una pantalla de 'Iniciando...'
   if (
     pathname === '/login' ||
     pathname === '/registro' ||
@@ -90,6 +90,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ) {
     return <>{children}</>
   }
+
+  // En rutas privadas o cuando el usuario está logueado en '/', mostrar cargador mientras finaliza
+  if (isLoading) return <FullScreenLoader text="Iniciando..." progressive={true} />
 
   const customRole = settings?.customRoles?.find(
     (r: any) => r.id === user?.role || r.name?.toLowerCase() === user?.role?.toLowerCase()

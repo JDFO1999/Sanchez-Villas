@@ -5,7 +5,8 @@ import { guard, ROLES } from "@/lib/authz"
 import { 
   sendMembershipExpiringSoonEmail, 
   sendMembershipExpiredEmail, 
-  sendInactivityReminderEmail 
+  sendInactivityReminderEmail,
+  testSmtpConnection
 } from "@/lib/mailer"
 
 export interface WhatsAppNotificationQueueItem {
@@ -183,4 +184,14 @@ export async function runDailyNotificationChecks(skipAuth: boolean = false): Pro
     console.error("Error in runDailyNotificationChecks:", error)
     return { success: false, error: error?.message || "Error al procesar notificaciones." }
   }
+}
+
+/**
+ * Acción de servidor para diagnosticar la conexión SMTP (Gmail / Resend) y enviar un correo de prueba.
+ */
+export async function testSmtpConnectionAction(targetEmail?: string) {
+  const g = await guard(ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error }
+
+  return await testSmtpConnection(targetEmail)
 }

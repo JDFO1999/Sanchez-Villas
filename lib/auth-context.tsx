@@ -84,19 +84,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   
   useEffect(() => {
+    let isMounted = true;
     async function loadSession() {
-      const { getSessionData } = await import('@/app/actions/auth')
-      const sessionRes = await getSessionData()
-      
-      if (sessionRes.success && sessionRes.user) {
-        setUser(sessionRes.user as any)
-      } else {
-        // Sin cookie de sesión válida no hay usuario. Se limpia cualquier id viejo guardado en el navegador.
-        localStorage.removeItem('gympro_session_id')
+      try {
+        const { getSessionData } = await import('@/app/actions/auth')
+        const sessionRes = await getSessionData()
+        
+        if (!isMounted) return;
+        if (sessionRes && sessionRes.success && sessionRes.user) {
+          setUser(sessionRes.user as any)
+        } else {
+          // Sin cookie de sesión válida no hay usuario. Se limpia cualquier id viejo guardado en el navegador.
+          localStorage.removeItem('gympro_session_id')
+        }
+      } catch (err) {
+        console.error("Error al cargar sesión:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-      setIsLoading(false)
     }
-    loadSession()
+    loadSession();
+
+    // Respaldo de seguridad: bajo ninguna circunstancia la app debe quedarse en 'Iniciando...' más de 3.5 segundos
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [])
 
   const loginFn = async (cedula: string, clave: string) => {
