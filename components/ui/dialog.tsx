@@ -73,7 +73,7 @@ export function Dialog({ open, onClose, title, description, hideTitle, persisten
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-150"
       onMouseDown={e => { if (e.target === e.currentTarget && !persistent) onClose() }}
     >
       <div
@@ -84,7 +84,7 @@ export function Dialog({ open, onClose, title, description, hideTitle, persisten
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
         className={cn(
-          "relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl outline-none animate-in zoom-in-95 duration-150",
+          "relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card dark:bg-[#0e1017] p-6 text-card-foreground shadow-2xl outline-none animate-in zoom-in-95 duration-150",
           className
         )}
       >

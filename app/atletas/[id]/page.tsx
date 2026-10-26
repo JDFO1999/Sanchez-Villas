@@ -53,7 +53,7 @@ export default function AtletaPerfilPage() {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [whatsAppText, setWhatsAppText] = useState("")
 
-  const canEditAthlete = user?.role === 'admin' || user?.role === 'gerente'
+  const canEditAthlete = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
   const canSendWhatsApp = user && (user.role === 'admin' || user.role === 'gerente' || user.role === 'cajero' || user.role === 'recepcion' || user.role === 'coach')
 
   const applyWhatsAppTemplate = (type: 'receipt' | 'expiry' | 'welcome') => {
@@ -1224,8 +1224,8 @@ export default function AtletaPerfilPage() {
 
       {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
       {showEditAthleteModal && athlete && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/85 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -1463,8 +1463,8 @@ export default function AtletaPerfilPage() {
 
       {/* MODAL EDITAR MEMBRESÍA Y ENTRENADOR */}
       {showEditMembershipModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl glass my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-card dark:bg-[#0e1017] border border-black/10 dark:border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl my-8">
             <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
@@ -1569,8 +1569,8 @@ export default function AtletaPerfilPage() {
 
       {/* MODAL WHATSAPP 1-CLIC */}
       {showWhatsAppModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+          <div className="bg-card dark:bg-[#0e1017] border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
