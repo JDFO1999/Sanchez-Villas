@@ -41,6 +41,14 @@ export default function AtletaPerfilPage() {
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
   const [isSavingAthlete, setIsSavingAthlete] = useState(false)
 
+  // Estados para Modal de Edición Directa de Membresía y Coach (Admin/Gerente)
+  const [showEditMembershipModal, setShowEditMembershipModal] = useState(false)
+  const [editMembStart, setEditMembStart] = useState("")
+  const [editMembEnd, setEditMembEnd] = useState("")
+  const [editMembPlan, setEditMembPlan] = useState("")
+  const [editMembCoach, setEditMembCoach] = useState("")
+  const [isSavingMembership, setIsSavingMembership] = useState(false)
+
   // WhatsApp 1-Click State
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false)
   const [whatsAppText, setWhatsAppText] = useState("")
@@ -193,6 +201,54 @@ export default function AtletaPerfilPage() {
     loadAthleteData()
   }, [id])
 
+  const handleOpenEditMembership = () => {
+    if (!athlete) return
+    const sDate = athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970
+      ? new Date(athlete.membershipStart).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
+    const eDate = athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970
+      ? new Date(athlete.membershipEnd).toISOString().split('T')[0]
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    setEditMembStart(sDate)
+    setEditMembEnd(eDate)
+    setEditMembPlan((athlete as any).membershipType || (athlete as any).planName || "Plan Estándar")
+    setEditMembCoach(athlete.coachId || "")
+    setShowEditMembershipModal(true)
+  }
+
+  const handleSaveMembership = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!athlete) return
+    if (!editMembEnd) {
+      showSweetToast("Por favor ingresa la fecha de corte / vencimiento.", "warning")
+      return
+    }
+
+    setIsSavingMembership(true)
+    try {
+      const { updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
+      const res = await updateAthleteMembershipAndCoach(athlete.id, {
+        startDate: editMembStart,
+        endDate: editMembEnd,
+        planName: editMembPlan || "Plan Estándar",
+        coachId: editMembCoach || null
+      })
+
+      if (res.success) {
+        showSweetToast("Membresía y entrenador actualizados exitosamente.", "success")
+        setShowEditMembershipModal(false)
+        await loadAthleteData()
+      } else {
+        showSweetToast(res.error || "No se pudo actualizar la membresía.", "error")
+      }
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al actualizar la membresía.", "error")
+    } finally {
+      setIsSavingMembership(false)
+    }
+  }
+
   const handleOpenEditAthlete = () => {
     if (!athlete) return
     setEditName(athlete.name || "")
@@ -204,6 +260,18 @@ export default function AtletaPerfilPage() {
     setEditCoachId(athlete.coachId || "")
     setEditPassword("")
     setEditConfirmPassword("")
+
+    const sDate = athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970
+      ? new Date(athlete.membershipStart).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
+    const eDate = athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970
+      ? new Date(athlete.membershipEnd).toISOString().split('T')[0]
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    setEditMembStart(sDate)
+    setEditMembEnd(eDate)
+    setEditMembPlan((athlete as any).membershipType || (athlete as any).planName || "Plan Estándar")
+    setEditMembCoach(athlete.coachId || "")
     setShowEditAthleteModal(true)
   }
 
@@ -224,7 +292,9 @@ export default function AtletaPerfilPage() {
 
     setIsSavingAthlete(true)
     try {
-      const { updateAthlete } = await import('@/app/actions/users')
+      const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
+      
+      // 1. Guardar datos personales y credenciales
       const res = await updateAthlete(athlete.id, {
         name: editName,
         cedula: editCedula,
@@ -236,13 +306,28 @@ export default function AtletaPerfilPage() {
         ...(editPassword ? { password: editPassword } : {})
       })
 
-      if (res.success) {
-        showSweetToast("Datos del atleta actualizados correctamente.", "success")
-        setShowEditAthleteModal(false)
-        await loadAthleteData()
-      } else {
+      if (!res.success) {
         showSweetToast(res.error || "No se pudo actualizar los datos.", "error")
+        setIsSavingAthlete(false)
+        return
       }
+
+      // 2. Si es Admin o Gerente y se especificó fecha de corte, actualizar membresía y coach
+      if (canEditAthlete && editMembEnd) {
+        const membRes = await updateAthleteMembershipAndCoach(athlete.id, {
+          startDate: editMembStart,
+          endDate: editMembEnd,
+          planName: editMembPlan || "Plan Estándar",
+          coachId: editCoachId || null
+        })
+        if (!membRes.success) {
+          showSweetToast(membRes.error || "Advertencia: No se pudo actualizar la membresía.", "warning")
+        }
+      }
+
+      showSweetToast("Datos y membresía actualizados correctamente.", "success")
+      setShowEditAthleteModal(false)
+      await loadAthleteData()
     } catch (err: any) {
       showSweetToast(err?.message || "Error al actualizar.", "error")
     } finally {
@@ -787,10 +872,21 @@ export default function AtletaPerfilPage() {
         {/* Columna Izquierda: Membresía y Asistencia */}
         <div className="space-y-6">
           <Card className="glass border-primary/20">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" /> Membresía
               </CardTitle>
+              {canEditAthlete && (
+                <button
+                  type="button"
+                  onClick={handleOpenEditMembership}
+                  className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Editar fecha de compra, corte y entrenador asignado"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Editar Membresía</span>
+                </button>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -811,12 +907,18 @@ export default function AtletaPerfilPage() {
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
-                  <p className="text-xs text-muted-foreground">Inicio</p>
+                  <p className="text-xs text-muted-foreground">Inicio (Compra)</p>
                   <p className="font-medium text-sm">{athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970 ? new Date(athlete.membershipStart).toLocaleDateString() : 'Sin registro'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Vencimiento</p>
+                  <p className="text-xs text-muted-foreground">Vencimiento (Corte)</p>
                   <p className="font-medium text-sm">{endDate ? endDate.toLocaleDateString() : 'Sin Plan Activo'}</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-black/10 dark:border-white/10 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Plan Asignado</p>
+                  <p className="font-bold text-sm text-foreground">{(athlete as any).membershipType || (athlete as any).planName || 'Plan Estándar'}</p>
                 </div>
               </div>
             </CardContent>
@@ -1284,6 +1386,51 @@ export default function AtletaPerfilPage() {
                 </div>
               </div>
 
+              {/* Sección Membresía & Corte / Entrenador (Solo Admin / Gerente) */}
+              {canEditAthlete && (
+                <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte (Histórico)
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Modifica directamente la fecha de compra, fecha de corte (vencimiento) y plan del atleta.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                      <input
+                        type="date"
+                        value={editMembStart}
+                        onChange={e => setEditMembStart(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
+                      <input
+                        type="date"
+                        value={editMembEnd}
+                        onChange={e => setEditMembEnd(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Plan Mensual, Plan Estándar..."
+                      value={editMembPlan}
+                      onChange={e => setEditMembPlan(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Botones de acción */}
               <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
                 <button
@@ -1306,6 +1453,112 @@ export default function AtletaPerfilPage() {
                     </>
                   ) : (
                     <span>Guardar Cambios</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR MEMBRESÍA Y ENTRENADOR */}
+      {showEditMembershipModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl glass my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Editar Membresía & Entrenador</h3>
+                  <p className="text-xs text-muted-foreground">{athlete.name} (C.I. {athlete.cedula})</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowEditMembershipModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMembership} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                  <input
+                    type="date"
+                    required
+                    value={editMembStart}
+                    onChange={e => setEditMembStart(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
+                  <input
+                    type="date"
+                    required
+                    value={editMembEnd}
+                    onChange={e => setEditMembEnd(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Plan Mensual, Plan Estándar..."
+                  value={editMembPlan}
+                  onChange={e => setEditMembPlan(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Entrenador Asignado (Ya pagó)</label>
+                <select
+                  value={editMembCoach}
+                  onChange={e => setEditMembCoach(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                >
+                  <option value="">-- Sin entrenador asignado --</option>
+                  {allCoaches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Asigna al entrenador directamente sin requerir nuevo pago en caja.
+                </p>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowEditMembershipModal(false)}
+                  disabled={isSavingMembership}
+                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingMembership}
+                  className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSavingMembership ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Membresía</span>
                   )}
                 </button>
               </div>

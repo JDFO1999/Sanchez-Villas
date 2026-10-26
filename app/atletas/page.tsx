@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon } from "lucide-react"
+import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon, UserPlus, Calendar } from "lucide-react"
 import Link from "next/link"
 import { Loader } from "@/components/ui/loader"
 import { CardGridSkeleton } from "@/components/ui/skeleton"
@@ -20,6 +20,19 @@ export default function AtletasPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
 
+  // Estados para Modal de Registro de Nuevo Atleta
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [regName, setRegName] = useState("")
+  const [regCedula, setRegCedula] = useState("")
+  const [regPhone, setRegPhone] = useState("")
+  const [regEmail, setRegEmail] = useState("")
+  const [regAddress, setRegAddress] = useState("")
+  const [regPassword, setRegPassword] = useState("")
+  const [regConfirmPassword, setRegConfirmPassword] = useState("")
+  const [regGender, setRegGender] = useState<'M' | 'F'>('M')
+  const [regCoachId, setRegCoachId] = useState("")
+  const [isRegistering, setIsRegistering] = useState(false)
+
   // Estados para Modal de Edición de Atleta
   const [editingAthlete, setEditingAthlete] = useState<AthleteProfile | null>(null)
   const [editName, setEditName] = useState("")
@@ -31,9 +44,14 @@ export default function AtletasPage() {
   const [editCoachId, setEditCoachId] = useState("")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
+  // Membresía editable (Fechas de inicio/compra y corte/vencimiento, y plan)
+  const [editStartDate, setEditStartDate] = useState("")
+  const [editEndDate, setEditEndDate] = useState("")
+  const [editPlanName, setEditPlanName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
   const canEdit = user?.role === 'admin' || user?.role === 'gerente'
+  const canRegister = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
 
   const loadAthletes = async () => {
     try {
@@ -72,6 +90,63 @@ export default function AtletasPage() {
     loadAthletes()
   }, [])
 
+  const resetRegisterForm = () => {
+    setRegName("")
+    setRegCedula("")
+    setRegPhone("")
+    setRegEmail("")
+    setRegAddress("")
+    setRegPassword("")
+    setRegConfirmPassword("")
+    setRegGender('M')
+    setRegCoachId("")
+  }
+
+  const handleRegisterAthlete = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (regPassword !== regConfirmPassword) {
+      showSweetToast("Las contraseñas no coinciden.", "warning")
+      return
+    }
+    const cleanCedula = regCedula.replace(/\D/g, "").trim()
+    if (!cleanCedula) {
+      showSweetToast("Ingresa un número de cédula válido.", "warning")
+      return
+    }
+    if (regPassword.length < 6) {
+      showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
+      return
+    }
+
+    setIsRegistering(true)
+    try {
+      const { createAthlete } = await import('@/app/actions/users')
+      const res = await createAthlete({
+        name: regName,
+        cedula: cleanCedula,
+        phone: regPhone,
+        email: regEmail,
+        address: regAddress,
+        password: regPassword,
+        gender: regGender,
+        coachId: regCoachId || undefined
+      })
+
+      if (res.success) {
+        showSweetToast("Atleta registrado exitosamente.", "success")
+        setShowRegisterModal(false)
+        resetRegisterForm()
+        await loadAthletes()
+      } else {
+        showSweetToast(res.error || "No se pudo registrar el atleta.", "error")
+      }
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al registrar atleta.", "error")
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
   const handleOpenEdit = (a: AthleteProfile) => {
     setEditingAthlete(a)
     setEditName(a.name || "")
@@ -83,6 +158,18 @@ export default function AtletasPage() {
     setEditCoachId(a.coachId || "")
     setEditPassword("")
     setEditConfirmPassword("")
+
+    // Fechas de membresía (formato YYYY-MM-DD para input date)
+    const sDate = a.membershipStart && new Date(a.membershipStart).getFullYear() > 1970 
+      ? new Date(a.membershipStart).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
+    const eDate = a.membershipEnd && new Date(a.membershipEnd).getFullYear() > 1970
+      ? new Date(a.membershipEnd).toISOString().split('T')[0]
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    
+    setEditStartDate(sDate)
+    setEditEndDate(eDate)
+    setEditPlanName((a as any).planName || "Plan Estándar")
   }
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -102,7 +189,9 @@ export default function AtletasPage() {
 
     setIsSaving(true)
     try {
-      const { updateAthlete } = await import('@/app/actions/users')
+      const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
+      
+      // 1. Guardar datos personales y credenciales
       const res = await updateAthlete(editingAthlete.id, {
         name: editName,
         cedula: editCedula,
@@ -114,13 +203,28 @@ export default function AtletasPage() {
         ...(editPassword ? { password: editPassword } : {})
       })
 
-      if (res.success) {
-        showSweetToast("Datos del atleta actualizados correctamente.", "success")
-        setEditingAthlete(null)
-        await loadAthletes()
-      } else {
+      if (!res.success) {
         showSweetToast(res.error || "No se pudo actualizar los datos.", "error")
+        setIsSaving(false)
+        return
       }
+
+      // 2. Si es Admin o Gerente y se especificó fecha de corte, actualizar membresía y coach directo
+      if (canEdit && editEndDate) {
+        const membRes = await updateAthleteMembershipAndCoach(editingAthlete.id, {
+          startDate: editStartDate,
+          endDate: editEndDate,
+          planName: editPlanName || "Plan Estándar",
+          coachId: editCoachId || null
+        })
+        if (!membRes.success) {
+          showSweetToast(membRes.error || "Advertencia: No se pudo actualizar la membresía.", "warning")
+        }
+      }
+
+      showSweetToast("Atleta y membresía actualizados correctamente.", "success")
+      setEditingAthlete(null)
+      await loadAthletes()
     } catch (err: any) {
       showSweetToast(err?.message || "Error al actualizar.", "error")
     } finally {
@@ -162,7 +266,19 @@ export default function AtletasPage() {
             {isCoach ? "Gestión y seguimiento de los clientes bajo tu supervisión." : "Gestión y seguimiento de tus clientes."}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {canRegister && (
+            <button
+              onClick={() => {
+                resetRegisterForm()
+                setShowRegisterModal(true)
+              }}
+              className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-[0.98] font-bold px-3.5 py-2 rounded-xl flex items-center gap-2 transition text-sm shadow-sm"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Registrar Atleta</span>
+            </button>
+          )}
           <select 
             value={filterType} 
             onChange={e => setFilterType(e.target.value)}
@@ -510,6 +626,51 @@ export default function AtletasPage() {
                 </div>
               </div>
 
+              {/* Sección Membresía & Corte / Entrenador (Solo Admin / Gerente) */}
+              {canEdit && (
+                <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte (Histórico)
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Modifica directamente la fecha de compra, fecha de corte (vencimiento) y plan del atleta sin pasar por caja.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                      <input
+                        type="date"
+                        value={editStartDate}
+                        onChange={e => setEditStartDate(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
+                      <input
+                        type="date"
+                        value={editEndDate}
+                        onChange={e => setEditEndDate(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Nombre del Plan / Membresía</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Plan Mensual, Plan Estándar..."
+                      value={editPlanName}
+                      onChange={e => setEditPlanName(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Botones de acción */}
               <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
                 <button
@@ -532,6 +693,186 @@ export default function AtletasPage() {
                     </>
                   ) : (
                     <span>Guardar Cambios</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REGISTRAR NUEVO ATLETA */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl glass my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <UserPlus className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Registrar Nuevo Atleta</h3>
+                  <p className="text-xs text-muted-foreground">Ingresa los datos para crear la cuenta del atleta.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowRegisterModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterAthlete} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Nombre y Apellido *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Pedro Pérez"
+                    value={regName}
+                    onChange={e => setRegName(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Cédula (Solo números) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="12345678"
+                    value={regCedula}
+                    onChange={e => setRegCedula(e.target.value.replace(/\D/g, ""))}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Teléfono / WhatsApp *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="0414-1234567"
+                    value={regPhone}
+                    onChange={e => setRegPhone(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Correo Electrónico *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="tu@correo.com"
+                    value={regEmail}
+                    onChange={e => setRegEmail(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Dirección de Habitación *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Sector / Calle / Residencia"
+                  value={regAddress}
+                  onChange={e => setRegAddress(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Contraseña *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mínimo 6 caracteres"
+                    value={regPassword}
+                    onChange={e => setRegPassword(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="relative">
+                  <label className="text-xs font-semibold mb-1 block">Confirmar Contraseña *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Repetir contraseña"
+                    value={regConfirmPassword}
+                    onChange={e => setRegConfirmPassword(e.target.value)}
+                    className={`w-full bg-black/5 dark:bg-black/40 border rounded-lg p-2.5 text-sm focus:outline-none transition-all ${
+                      regConfirmPassword
+                        ? regPassword === regConfirmPassword
+                          ? 'border-emerald-500 focus:border-emerald-500'
+                          : 'border-rose-500 focus:border-rose-500'
+                        : 'border-black/10 dark:border-white/10 focus:border-primary'
+                    }`}
+                  />
+                  {regPassword && regConfirmPassword && regPassword === regConfirmPassword && (
+                    <Check className="absolute right-3 top-8 h-4 w-4 text-emerald-500" />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Género</label>
+                  <select
+                    value={regGender}
+                    onChange={e => setRegGender(e.target.value as 'M' | 'F')}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Entrenador Asignado (Opcional)</label>
+                  <select
+                    value={regCoachId}
+                    onChange={e => setRegCoachId(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  >
+                    <option value="">-- Sin entrenador --</option>
+                    {coachList.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(false)}
+                  disabled={isRegistering}
+                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRegistering || (!!regConfirmPassword && regPassword !== regConfirmPassword)}
+                  className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isRegistering ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>Registrando...</span>
+                    </>
+                  ) : (
+                    <span>Registrar Atleta</span>
                   )}
                 </button>
               </div>

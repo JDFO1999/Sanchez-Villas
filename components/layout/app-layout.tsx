@@ -373,33 +373,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0 flex flex-col">
+        <main className="flex-1 overflow-y-auto flex flex-col">
           <div className="flex-1 p-4 lg:p-8">
             {children}
           </div>
           <Footer />
         </main>
-
-        <nav className="print:hidden lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-card flex items-center overflow-x-auto overflow-y-hidden snap-x z-40 pb-safe no-scrollbar">
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-          {currentNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                className={`relative flex flex-col items-center justify-center flex-1 min-w-[62px] sm:min-w-[72px] h-full gap-0.5 snap-center focus-visible:outline-none focus-visible:bg-muted ${
-                  isActive ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {isActive && <span className="absolute top-0 h-0.5 w-6 rounded-full bg-primary" aria-hidden="true" />}
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className="text-[10px] sm:text-xs font-semibold whitespace-nowrap">{item.name}</span>
-              </Link>
-            )
-          })}
-        </nav>
       </div>
     </div>
   )

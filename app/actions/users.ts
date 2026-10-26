@@ -649,6 +649,99 @@ export async function updateAthlete(id: string, data: any) {
   }
 }
 
+/**
+ * Permite a administradores y gerentes editar directamente la membresía (fechas de inicio y corte, plan)
+ * y asignar entrenador a un atleta existente desde el módulo de atletas.
+ */
+export async function updateAthleteMembershipAndCoach(
+  athleteId: string,
+  data: {
+    startDate?: string | Date | null
+    endDate?: string | Date | null
+    planName?: string | null
+    coachId?: string | null
+  }
+) {
+  const g = await guard(ROLES.ADMIN)
+  if (!g.ok) return { success: false, error: g.error }
+  try {
+    const athlete = await prisma.user.findUnique({
+      where: { id: athleteId },
+      include: {
+        memberships: { orderBy: { endDate: 'desc' }, take: 1 }
+      }
+    })
+    if (!athlete) return { success: false, error: "Atleta no encontrado." }
+
+    // Validación y resolución de entrenador
+    let coachIdToSet: string | null = athlete.coachId
+    if (data.coachId !== undefined) {
+      if (data.coachId && String(data.coachId).trim()) {
+        const coach = await prisma.user.findFirst({
+          where: { id: String(data.coachId), role: { in: ['coach', 'employee'] } }
+        })
+        coachIdToSet = coach ? coach.id : null
+      } else {
+        coachIdToSet = null
+      }
+    }
+
+    // Actualizar entrenador en el usuario
+    await prisma.user.update({
+      where: { id: athleteId },
+      data: { coachId: coachIdToSet }
+    })
+
+    // Actualizar o crear membresía si se proporcionan fechas
+    if (data.endDate) {
+      const eDate = new Date(data.endDate)
+      const sDate = data.startDate ? new Date(data.startDate) : new Date()
+      const pName = data.planName?.trim() || "Plan Estándar"
+      const status = eDate.getTime() > Date.now() ? "ACTIVE" : "EXPIRED"
+
+      const latestMembership = athlete.memberships?.[0]
+      if (latestMembership) {
+        await prisma.membership.update({
+          where: { id: latestMembership.id },
+          data: {
+            startDate: sDate,
+            endDate: eDate,
+            planName: pName,
+            status
+          }
+        })
+      } else {
+        await prisma.membership.create({
+          data: {
+            athleteId,
+            startDate: sDate,
+            endDate: eDate,
+            planName: pName,
+            status
+          }
+        })
+      }
+    }
+
+    await audit("athlete.membership_direct_edit", g.user, {
+      athleteId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      planName: data.planName,
+      coachId: coachIdToSet
+    })
+
+    revalidatePath(`/atletas/${athleteId}`)
+    revalidatePath("/atletas")
+    revalidatePath("/membresias")
+    revalidatePath("/finanzas")
+
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: friendlyError(error) }
+  }
+}
+
 export async function addBiometric(athleteId: string, data: any) {
   const g = await guardSelfOr(athleteId, ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
