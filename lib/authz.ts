@@ -39,8 +39,8 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     select: { id: true, role: true, name: true, cedula: true, canManageAttendance: true, password: true },
   })
   if (!user || user.role === "deleted") return null
-  // Sesión revocada: la contraseña cambió después de emitir el token (o es un token anterior a esta medida)
-  if (session.pv !== passwordFingerprint(user.password)) return null
+  // Sesión revocada: la contraseña cambió después de emitir el token
+  if (session.pv && session.pv !== passwordFingerprint(user.password)) return null
   const { password: _omit, ...safe } = user
   return safe
 }

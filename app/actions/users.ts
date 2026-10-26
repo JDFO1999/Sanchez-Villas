@@ -610,6 +610,19 @@ export async function updateAthlete(id: string, data: any) {
       }
     }
 
+    // Resolución segura de coachId si fue proporcionado por staff
+    let validCoachId: string | null | undefined = undefined
+    if (staff && data.coachId !== undefined) {
+      if (data.coachId && String(data.coachId).trim()) {
+        const coach = await prisma.user.findFirst({
+          where: { id: String(data.coachId).trim(), role: { notIn: ['athlete', 'deleted'] } }
+        })
+        validCoachId = coach ? coach.id : null
+      } else {
+        validCoachId = null
+      }
+    }
+
     // Un atleta editando su propio perfil solo puede cambiar datos de contacto,
     // nunca su entrenador, cédula ni su membresía.
     const user = await prisma.user.update({
@@ -622,7 +635,7 @@ export async function updateAthlete(id: string, data: any) {
         email: data.email !== undefined ? (data.email || null) : targetUser.email,
         ...(cleanCedula ? { cedula: cleanCedula } : {}),
         ...(newHashedPassword ? { password: newHashedPassword } : {}),
-        ...(staff && data.coachId !== undefined ? { coachId: data.coachId || null } : {}),
+        ...(validCoachId !== undefined ? { coachId: validCoachId } : {}),
       }
     });
 
@@ -650,8 +663,8 @@ export async function updateAthlete(id: string, data: any) {
 }
 
 /**
- * Permite a administradores y gerentes editar directamente la membresía (fechas de inicio y corte, plan)
- * y asignar entrenador a un atleta existente desde el módulo de atletas.
+ * Permite a administradores, gerentes y personal autorizado editar directamente la membresía
+ * (fechas de inicio y corte, plan) y asignar entrenador a un atleta existente desde el módulo de atletas.
  */
 export async function updateAthleteMembershipAndCoach(
   athleteId: string,
@@ -662,7 +675,7 @@ export async function updateAthleteMembershipAndCoach(
     coachId?: string | null
   }
 ) {
-  const g = await guard(ROLES.ADMIN)
+  const g = await guard(ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
   try {
     const athlete = await prisma.user.findUnique({
@@ -673,12 +686,12 @@ export async function updateAthleteMembershipAndCoach(
     })
     if (!athlete) return { success: false, error: "Atleta no encontrado." }
 
-    // Validación y resolución de entrenador
+    // Validación y resolución segura de entrenador
     let coachIdToSet: string | null = athlete.coachId
     if (data.coachId !== undefined) {
       if (data.coachId && String(data.coachId).trim()) {
         const coach = await prisma.user.findFirst({
-          where: { id: String(data.coachId), role: { in: ['coach', 'employee'] } }
+          where: { id: String(data.coachId).trim(), role: { notIn: ['athlete', 'deleted'] } }
         })
         coachIdToSet = coach ? coach.id : null
       } else {
@@ -694,8 +707,32 @@ export async function updateAthleteMembershipAndCoach(
 
     // Actualizar o crear membresía si se proporcionan fechas
     if (data.endDate) {
-      const eDate = new Date(data.endDate)
-      const sDate = data.startDate ? new Date(data.startDate) : new Date()
+      const rawEnd = String(data.endDate).trim()
+      let eDate: Date | null = null
+      if (rawEnd.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) {
+        const [y, m, d] = rawEnd.split('-').map(Number)
+        eDate = new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
+      } else {
+        const parsed = new Date(rawEnd)
+        if (!isNaN(parsed.getTime())) eDate = parsed
+      }
+
+      if (!eDate || isNaN(eDate.getTime())) {
+        return { success: false, error: "La fecha de corte / vencimiento ingresada no es válida." }
+      }
+
+      let sDate = new Date()
+      if (data.startDate) {
+        const rawStart = String(data.startDate).trim()
+        if (rawStart.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(rawStart)) {
+          const [y, m, d] = rawStart.split('-').map(Number)
+          sDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+        } else {
+          const parsed = new Date(rawStart)
+          if (!isNaN(parsed.getTime())) sDate = parsed
+        }
+      }
+
       const pName = data.planName?.trim() || "Plan Estándar"
       const status = eDate.getTime() > Date.now() ? "ACTIVE" : "EXPIRED"
 
@@ -738,7 +775,8 @@ export async function updateAthleteMembershipAndCoach(
 
     return { success: true }
   } catch (error: any) {
-    return { success: false, error: friendlyError(error) }
+    console.error("Error updating athlete membership and coach:", error)
+    return { success: false, error: error?.message || friendlyError(error) }
   }
 }
 

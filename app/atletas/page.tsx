@@ -61,7 +61,7 @@ export default function AtletasPage() {
         const map: Record<string, string> = {}
         const list: { id: string; name: string }[] = []
         ;(empRes.employees as any[]).forEach((e: any) => { 
-          if (e.role === 'coach' || e.role === 'employee') {
+          if (e.role !== 'athlete' && e.role !== 'deleted') {
             map[e.id] = e.name
             list.push({ id: e.id, name: e.name })
           }
@@ -218,7 +218,9 @@ export default function AtletasPage() {
           coachId: editCoachId || null
         })
         if (!membRes.success) {
-          showSweetToast(membRes.error || "Advertencia: No se pudo actualizar la membresía.", "warning")
+          showSweetToast(membRes.error || "No se pudo actualizar la membresía.", "error")
+          setIsSaving(false)
+          return
         }
       }
 

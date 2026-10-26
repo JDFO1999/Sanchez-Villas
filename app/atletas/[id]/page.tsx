@@ -175,10 +175,10 @@ export default function AtletaPerfilPage() {
   useEffect(() => {
     if (getAllEmployees) {
       getAllEmployees().then(res => {
-        setAllCoaches(res.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
+        if (Array.isArray(res)) {
+          setAllCoaches(res.filter((e: any) => e.role !== 'athlete' && e.role !== 'deleted'))
+        }
       }).catch(console.error)
-    } else {
-      setAllCoaches([{ id: '2', name: 'Carlos (Staff Principal)' }])
     }
   }, [getAllEmployees])
 
@@ -190,6 +190,7 @@ export default function AtletaPerfilPage() {
       setAthlete({
         ...res.athlete,
         membershipEnd: res.athlete.memberships?.[0]?.endDate || new Date(0).toISOString(),
+        membershipStart: res.athlete.memberships?.[0]?.startDate || null,
         membershipType: res.athlete.memberships?.[0]?.planName || "Plan Estándar",
         biometrics: res.athlete.biometrics || [],
         attendances: res.athlete.attendances || []
