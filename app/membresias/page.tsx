@@ -6,7 +6,7 @@ import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon } from "lucide-react"
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
@@ -94,8 +94,13 @@ export default function MembresíasPage() {
   const [editPhone, setEditPhone] = useState("")
   const [editAddress, setEditAddress] = useState("")
   const [editRole, setEditRole] = useState("athlete")
+  const [editCoachId, setEditCoachId] = useState("")
+  const [editStartDate, setEditStartDate] = useState("")
+  const [editEndDate, setEditEndDate] = useState("")
+  const [editPlanName, setEditPlanName] = useState("")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // Message Modal State
   const [showMessageModal, setShowMessageModal] = useState<AthleteProfile | null>(null)
@@ -125,34 +130,38 @@ export default function MembresíasPage() {
   const [allCoaches, setAllCoaches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
-        const athRes = await getAthletes()
-        if (athRes.success) {
-          setAthletes(
-            athRes.athletes
-              .filter((a: any) => !a.role || a.role === 'athlete')
-              .map((a: any) => ({
-                ...a,
-                membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-                membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
-              }))
-          )
-        }
-        
-        const empRes = await getAllEmployees()
-        if (empRes.success) {
-          setAllCoaches(empRes.employees.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
-        }
-      } catch (err) {
-        console.error("Error cargando membresías:", err)
-      } finally {
-        setLoading(false)
+  const refreshAthletes = async () => {
+    try {
+      const { getAllEmployees, getAthletes } = await import('@/app/actions/users')
+      const athRes = await getAthletes()
+      if (athRes.success) {
+        setAthletes(
+          athRes.athletes
+            .filter((a: any) => !a.role || a.role === 'athlete')
+            .map((a: any) => ({
+              ...a,
+              membershipStart: a.memberships?.[0]?.startDate || null,
+              membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
+              planName: a.memberships?.[0]?.planName || a.membershipType || 'Plan Estándar',
+              membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual',
+              coachId: a.coachId || null
+            }))
+        )
       }
+      
+      const empRes = await getAllEmployees()
+      if (empRes.success) {
+        setAllCoaches(empRes.employees.filter((e: any) => e.role !== 'athlete' && e.role !== 'deleted'))
+      }
+    } catch (err) {
+      console.error("Error cargando membresías:", err)
+    } finally {
+      setLoading(false)
     }
-    load()
+  }
+
+  useEffect(() => {
+    refreshAthletes()
   }, [])
 
   const isAuthorized = user && (
@@ -191,8 +200,20 @@ export default function MembresíasPage() {
     setEditPhone(a.phone || "")
     setEditAddress(a.address || "")
     setEditRole("athlete")
+    setEditCoachId(a.coachId || "")
     setEditPassword("")
     setEditConfirmPassword("")
+
+    const sDate = a.membershipStart && new Date(a.membershipStart).getFullYear() > 1970 
+      ? new Date(a.membershipStart).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0]
+    const eDate = a.membershipEnd && new Date(a.membershipEnd).getFullYear() > 1970
+      ? new Date(a.membershipEnd).toISOString().split('T')[0]
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    
+    setEditStartDate(sDate)
+    setEditEndDate(eDate)
+    setEditPlanName((a as any).planName || (a as any).membershipType || "Plan Estándar")
     setShowEditModal(a)
   }
 
@@ -201,41 +222,51 @@ export default function MembresíasPage() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showEditModal) return
-    if (editPassword && editPassword !== editConfirmPassword) {
-      showSweetToast("Las contraseñas no coinciden.", "warning")
-      return
-    }
-
-    if (user?.role === 'admin' && editRole !== 'athlete' && updateEmployee) {
-      const ok = await updateEmployee(showEditModal.id, {
-        name: editName,
-        cedula: editCedula,
-        phone: editPhone,
-        role: editRole,
-        ...(editPassword ? { clave: editPassword } : {})
-      } as any)
-      if ((ok as any) === false) return
-      const { getAthletes } = await import('@/app/actions/users')
-      const athRes = await getAthletes()
-      if (athRes.success) {
-        setAthletes(athRes.athletes.map((a: any) => ({
-          ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
-        })))
+    if (editPassword) {
+      if (editPassword.length < 6) {
+        showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
+        return
       }
-      setShowEditModal(null)
-      showSweetToast("Usuario promovido a rol de sistema exitosamente.", "success")
-      return
+      if (editPassword !== editConfirmPassword) {
+        showSweetToast("Las contraseñas no coinciden.", "warning")
+        return
+      }
     }
 
-    const { updateAthlete, getAthletes } = await import('@/app/actions/users')
-    const res = await updateAthlete(showEditModal.id, {
-      name: editName,
-      phone: editPhone,
-      address: editAddress
-    })
+    setIsSavingEdit(true)
+    try {
+      if (user?.role === 'admin' && editRole !== 'athlete' && updateEmployee) {
+        const ok = await updateEmployee(showEditModal.id, {
+          name: editName,
+          cedula: editCedula,
+          phone: editPhone,
+          role: editRole,
+          ...(editPassword ? { clave: editPassword } : {})
+        } as any)
+        if ((ok as any) === false) {
+          setIsSavingEdit(false)
+          return
+        }
+        await refreshAthletes()
+        setShowEditModal(null)
+        showSweetToast("Usuario promovido a rol de sistema exitosamente.", "success")
+        return
+      }
 
-    if (res.success) {
+      const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
+      const res = await updateAthlete(showEditModal.id, {
+        name: editName,
+        phone: editPhone,
+        address: editAddress,
+        coachId: editCoachId || null,
+        ...(editPassword ? { password: editPassword } : {})
+      })
+
+      if (!res.success) {
+        showSweetToast(res.error || "Error al actualizar datos.", "error")
+        return
+      }
+
       if (editPassword && updateEmployee && user?.role === 'admin') {
         await updateEmployee(showEditModal.id, {
           name: editName,
@@ -244,17 +275,28 @@ export default function MembresíasPage() {
           clave: editPassword
         } as any)
       }
-      const athRes = await getAthletes()
-      if (athRes.success) {
-        setAthletes(athRes.athletes.map((a: any) => ({
-          ...a,
-          membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString()
-        })))
+
+      // Actualizar fecha de inicio, corte, plan y entrenador
+      if (editEndDate) {
+        const membRes = await updateAthleteMembershipAndCoach(showEditModal.id, {
+          startDate: editStartDate,
+          endDate: editEndDate,
+          planName: editPlanName || "Plan Estándar",
+          coachId: editCoachId || null
+        })
+        if (!membRes.success) {
+          showSweetToast(membRes.error || "Advertencia: No se pudo actualizar la membresía.", "error")
+          return
+        }
       }
+
+      await refreshAthletes()
       setShowEditModal(null)
-      showSweetToast("Datos actualizados correctamente.", "success")
-    } else {
-      showSweetToast(res.error || "Error al actualizar datos.", "error")
+      showSweetToast("Datos y membresía actualizados correctamente.", "success")
+    } catch (err: any) {
+      showSweetToast(err?.message || "Error al actualizar.", "error")
+    } finally {
+      setIsSavingEdit(false)
     }
   }
 
@@ -538,14 +580,7 @@ export default function MembresíasPage() {
       })
     }
     
-    const athRes = await getAthletes()
-    if (athRes.success) {
-      setAthletes(athRes.athletes.map((a: any) => ({
-        ...a,
-        membershipEnd: a.memberships?.[0]?.endDate || new Date(0).toISOString(),
-        membershipType: a.memberships?.[0]?.planName || a.membershipType || 'Mensual'
-      })))
-    }
+    await refreshAthletes()
     setShowRenovarModal(null)
     
     // Toast Notification
@@ -573,8 +608,8 @@ export default function MembresíasPage() {
       
       {/* RENOVAR / ACTIVAR PLAN MODAL */}
       {showRenovarModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <h3 className="text-lg sm:text-xl font-bold">
@@ -1129,39 +1164,147 @@ export default function MembresíasPage() {
 
       {/* EDIT MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Editar Atleta</h3>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Nombre Completo</label>
-                  <input required type="text" value={editName} onChange={e=>setEditName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <Edit className="h-5 w-5" />
                 </div>
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Cedula</label>
-                  <input required type="text" value={editCedula} onChange={e=>setEditCedula(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                <div>
+                  <h3 className="text-lg font-black text-foreground leading-tight">Editar Atleta y Membresía</h3>
+                  <p className="text-xs text-muted-foreground">{showEditModal.name} • C.I. {showEditModal.cedula}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleSaveEdit} className="space-y-4 overflow-y-auto pr-1">
+              {/* Sección Datos Personales */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
+                    <input
+                      required
+                      type="text"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Cédula *</label>
+                    <input
+                      required
+                      type="text"
+                      value={editCedula}
+                      onChange={e => setEditCedula(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Teléfono</label>
+                    <input
+                      type="text"
+                      placeholder="0414-0000000"
+                      value={editPhone}
+                      onChange={e => setEditPhone(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Entrenador (Coach Asignado)</label>
+                    <select
+                      value={editCoachId}
+                      onChange={e => setEditCoachId(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    >
+                      <option value="">Sin entrenador asignado</option>
+                      {allCoaches.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.role === 'coach' ? 'Entrenador' : c.role})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                  <input
+                    type="text"
+                    placeholder="Sector / Calle / Residencia"
+                    value={editAddress}
+                    onChange={e => setEditAddress(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Telefono</label>
-                  <input required type="text" value={editPhone} onChange={e=>setEditPhone(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+              {/* Sección Membresía & Corte / Fechas */}
+              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte (Histórico)
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Modifica directamente la fecha de compra/inicio, fecha de corte (vencimiento) y plan del atleta sin pasar por caja.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                    <input
+                      type="date"
+                      value={editStartDate}
+                      onChange={e => setEditStartDate(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
+                    <input
+                      type="date"
+                      value={editEndDate}
+                      onChange={e => setEditEndDate(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs font-medium mb-1 block">Direccion</label>
-                  <input required type="text" value={editAddress} onChange={e=>setEditAddress(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+
+                <div>
+                  <label className="text-xs font-semibold mb-1 block">Nombre del Plan / Membresía</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Plan Mensual, Plan Estándar..."
+                    value={editPlanName}
+                    onChange={e => setEditPlanName(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
                 </div>
               </div>
 
               {user?.role === 'admin' && (
-                <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
+                <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-2">
                   <label className="text-xs font-bold text-primary block">Rol en el Sistema (Ascender Usuario)</label>
                   <select
                     value={editRole}
                     onChange={e => setEditRole(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary font-medium"
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary font-medium"
                   >
                     <option value="athlete">Atleta (Cliente)</option>
                     <option value="employee">Entrenador (Coach)</option>
@@ -1177,25 +1320,64 @@ export default function MembresíasPage() {
                 </div>
               )}
 
-              <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-muted-foreground mb-2">Cambiar Contraseña (Opcional)</p>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Cambiar Contraseña (Opcional)
+                </span>
+                <p className="text-[11px] text-muted-foreground">
+                  Deja estos campos en blanco si no deseas modificar la clave actual del atleta.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium mb-1 block">Nueva Contraseña</label>
-                    <input type="password" placeholder="Dejar en blanco" value={editPassword} onChange={e=>setEditPassword(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
+                    <label className="text-xs font-semibold mb-1 block">Nueva Contraseña</label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
                   </div>
                   <div className="relative">
-                    <label className="text-xs font-medium mb-1 block">Confirmar Contraseña</label>
-                    <input type="password" value={editConfirmPassword} onChange={e=>setEditConfirmPassword(e.target.value)} className={`w-full bg-black/5 dark:bg-black/40 border rounded p-2 text-sm focus:outline-none transition-all ${editConfirmPassword ? (passwordMatch ? 'border-success/50' : 'border-destructive/50') : 'border-black/10 dark:border-white/10'}`} placeholder="Repetir contraseña" disabled={!editPassword} required={!!editPassword} />
-                    {passwordMatch && editPassword && <Check className="absolute right-3 top-7 h-4 w-4 text-success" />}
-                    {editConfirmPassword && !passwordMatch && editPassword && <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>}
+                    <label className="text-xs font-semibold mb-1 block">Confirmar Contraseña</label>
+                    <input
+                      type="password"
+                      value={editConfirmPassword}
+                      onChange={e => setEditConfirmPassword(e.target.value)}
+                      className={`w-full bg-black/5 dark:bg-black/40 border rounded-lg p-2.5 text-sm focus:outline-none transition-all ${
+                        editConfirmPassword
+                          ? passwordMatch
+                            ? 'border-emerald-500 focus:border-emerald-500'
+                            : 'border-rose-500 focus:border-rose-500'
+                          : 'border-black/10 dark:border-white/10 focus:border-primary'
+                      }`}
+                      placeholder="Repetir contraseña"
+                      disabled={!editPassword}
+                      required={!!editPassword}
+                    />
+                    {passwordMatch && editPassword && <Check className="absolute right-3 top-8 h-4 w-4 text-emerald-500" />}
+                    {editConfirmPassword && !passwordMatch && editPassword && (
+                      <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>
+                    )}
                   </div>
                 </div>
               </div>
               
-              <div className="flex gap-3 justify-end pt-4">
-                <button type="button" onClick={()=>setShowEditModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" disabled={!!editPassword && !passwordMatch} className="px-4 py-2 text-sm border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold rounded hover:bg-primary/90 transition disabled:opacity-50">Guardar Cambios</button>
+              <div className="flex gap-3 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(null)}
+                  className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit || (!!editPassword && !passwordMatch)}
+                  className="px-5 py-2 text-sm bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition disabled:opacity-50 shadow-md"
+                >
+                  {isSavingEdit ? "Guardando..." : "Guardar Cambios"}
+                </button>
               </div>
             </form>
           </div>
@@ -1204,10 +1386,10 @@ export default function MembresíasPage() {
 
       {/* MESSAGE MODAL */}
       {showMessageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
-            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin numeroo registrado'}</p>
+            <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
             
             <div className="flex flex-wrap gap-2 mb-4 max-h-32 overflow-y-auto">
               {customMessages.map((msg, i) => (
@@ -1263,8 +1445,8 @@ export default function MembresíasPage() {
 
       {/* CREATE MESSAGE MODAL */}
       {showCreateMessageModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold mb-4">Crear Plantilla de Mensaje</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
