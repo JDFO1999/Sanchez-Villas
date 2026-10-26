@@ -14,7 +14,11 @@ if [ -n "$DATABASE_URL" ]; then
 
   echo "==> [Coolify Entrypoint] Configuración de base de datos verificada."
   echo "==> [Coolify Entrypoint] Sincronizando tablas y esquema de base de datos..."
-  npx prisma db push --skip-generate || echo "==> [Coolify Entrypoint] Aviso: prisma db push finalizó o ya estaba al día."
+  if [ -f "./node_modules/prisma/build/index.js" ]; then
+    node ./node_modules/prisma/build/index.js db push --skip-generate || echo "==> [Coolify Entrypoint] Aviso: db push finalizó o ya estaba al día."
+  else
+    npx prisma db push --skip-generate || echo "==> [Coolify Entrypoint] Aviso: prisma db push finalizó o ya estaba al día."
+  fi
 else
   echo "==> [Coolify Entrypoint] DATABASE_URL no está configurada."
 fi

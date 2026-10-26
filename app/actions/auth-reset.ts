@@ -14,6 +14,26 @@ function maskEmail(email: string): string {
   return `${local.charAt(0)}***${local.charAt(local.length - 1)}@${domain}`
 }
 
+async function ensurePasswordResetTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS \`PasswordResetToken\` (
+        \`id\` VARCHAR(191) NOT NULL,
+        \`token\` VARCHAR(191) NOT NULL,
+        \`userId\` VARCHAR(191) NOT NULL,
+        \`expiresAt\` DATETIME(3) NOT NULL,
+        \`used\` BOOLEAN NOT NULL DEFAULT false,
+        \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`PasswordResetToken_token_key\` (\`token\`),
+        KEY \`PasswordResetToken_userId_idx\` (\`userId\`)
+      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    `)
+  } catch (err: any) {
+    console.warn("[auth-reset] Aviso al verificar tabla PasswordResetToken:", err?.message || err)
+  }
+}
+
 /**
  * Solicita el restablecimiento de contraseña.
  * Busca al usuario por cédula o correo, genera un token criptográfico de 64 caracteres,
@@ -25,6 +45,8 @@ export async function requestPasswordReset(identifier: string) {
     if (!raw) {
       return { success: false, error: "Ingresa tu número de cédula o correo electrónico." }
     }
+
+    await ensurePasswordResetTable()
 
     const cleanCedula = raw.replace(/\D/g, "")
 
@@ -69,7 +91,7 @@ export async function requestPasswordReset(identifier: string) {
       }
     })
 
-    // Generar token criptogrÃ¡ficamente seguro
+    // Generar token criptográficamente seguro
     const token = crypto.randomBytes(32).toString("hex")
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora de validez
 
@@ -104,7 +126,9 @@ export async function requestPasswordReset(identifier: string) {
     console.error("Error in requestPasswordReset:", error)
     return {
       success: false,
-      error: "Ocurrió un error inesperado al procesar la solicitud. Intenta nuevamente."
+      error: error?.message
+        ? `Error al procesar la solicitud: ${error.message}`
+        : "Ocurrió un error inesperado al procesar la solicitud. Intenta nuevamente."
     }
   }
 }
@@ -117,6 +141,8 @@ export async function verifyPasswordResetToken(token: string) {
     if (!token || typeof token !== "string") {
       return { valid: false, error: "El enlace de recuperación es inválido." }
     }
+
+    await ensurePasswordResetTable()
 
     const tokenRecord = await prisma.passwordResetToken.findUnique({
       where: { token },
