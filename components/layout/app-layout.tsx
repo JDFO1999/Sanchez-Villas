@@ -62,15 +62,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setNavImgError(false)
   }, [user?.profilePicture])
 
+  const isAuthOrPublicPage = 
+    pathname === '/' ||
+    pathname === '/inicio' ||
+    pathname === '/login' ||
+    pathname === '/registro' ||
+    pathname === '/recuperar-password' ||
+    pathname === '/olvide-password' ||
+    pathname.startsWith('/recuperar-password') ||
+    pathname.startsWith('/olvide-password')
+
   useEffect(() => {
-    if (!isLoading && !user && pathname !== '/' && pathname !== '/inicio' && pathname !== '/login' && pathname !== '/registro') {
+    if (!isLoading && !user && !isAuthOrPublicPage) {
       router.push('/login')
     }
-  }, [user, isLoading, pathname, router])
+  }, [user, isLoading, isAuthOrPublicPage, router])
 
   if (isLoading) return <FullScreenLoader text="Iniciando..." progressive={true} />
 
-  if (pathname === '/login' || pathname === '/registro' || pathname === '/inicio' || (pathname === '/' && !user)) {
+  if (
+    pathname === '/login' ||
+    pathname === '/registro' ||
+    pathname === '/inicio' ||
+    pathname.startsWith('/recuperar-password') ||
+    pathname.startsWith('/olvide-password') ||
+    (pathname === '/' && !user)
+  ) {
     return <>{children}</>
   }
 
