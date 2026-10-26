@@ -36,11 +36,20 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    const success = await login(cedula, clave)
-    if (success) {
-      router.push("/")
-    } else {
-      setError("Cédula o contraseña incorrectos")
+    try {
+      const res = await login(cedula, clave)
+      if (res === true || (typeof res === 'object' && res.success)) {
+        // Redirección completa para asegurar sincronización de cookies httpOnly
+        window.location.href = "/"
+      } else {
+        const errorMsg = (typeof res === 'object' && res.error)
+          ? res.error
+          : "Cédula o contraseña incorrectos"
+        setError(errorMsg)
+        setIsLoading(false)
+      }
+    } catch (err: any) {
+      setError(err?.message || "Error al conectar con el servidor.")
       setIsLoading(false)
     }
   }
@@ -168,7 +177,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div>
-            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula de Identidad</label>
+            <label htmlFor="cedula" className="text-sm font-medium text-foreground mb-1.5 block">Cédula o Correo Electrónico</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
                 <UserIcon className="h-5 w-5" />
@@ -178,10 +187,9 @@ export default function LoginPage() {
                 value={cedula}
                 id="cedula"
                 autoComplete="username"
-                inputMode="numeric"
-                onChange={(e) => setCedula(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setCedula(e.target.value)}
                 className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono"
-                placeholder="Cédula de identidad"
+                placeholder="Cédula (ej. 12345678) o correo"
                 required
               />
             </div>

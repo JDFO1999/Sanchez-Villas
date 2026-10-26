@@ -126,12 +126,16 @@ export function omitFields<T extends Record<string, any>>(obj: T, fields: readon
 
 export { SECRET_KEYS }
 
-/** IP del cliente tras el proxy (Coolify/Traefik): se usa la última entrada de X-Forwarded-For (la añade el proxy). */
+/** IP del cliente tras el proxy (Coolify/Traefik/Cloudflare): se toma la primera IP de X-Forwarded-For o X-Real-IP. */
 export function clientIpFrom(headers: Headers): string {
+  const cf = headers.get("cf-connecting-ip")
+  if (cf) return cf.trim()
+  const realIp = headers.get("x-real-ip")
+  if (realIp) return realIp.trim()
   const xff = headers.get("x-forwarded-for")
   if (xff) {
     const parts = xff.split(",").map(s => s.trim()).filter(Boolean)
-    if (parts.length) return parts[parts.length - 1]
+    if (parts.length) return parts[0]
   }
-  return headers.get("x-real-ip") || "unknown"
+  return "unknown"
 }

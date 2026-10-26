@@ -54,10 +54,25 @@ export async function createSession(user: Partial<User>) {
   const session = await encrypt(sessionData);
 
   const cookieStore = await cookies();
+  
+  let isSecure = false;
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const proto = h.get("x-forwarded-proto") || h.get("x-forwarded-protocol");
+    if (proto) {
+      isSecure = proto.toLowerCase().includes("https");
+    } else {
+      isSecure = process.env.NODE_ENV === "production" && Boolean(process.env.APP_URL?.startsWith("https"));
+    }
+  } catch {
+    isSecure = process.env.NODE_ENV === "production";
+  }
+
   cookieStore.set("session", session, {
     expires,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
   });

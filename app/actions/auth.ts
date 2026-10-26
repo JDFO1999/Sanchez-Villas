@@ -31,33 +31,55 @@ function extractUserPermissions(user: any): string[] {
   return [];
 }
 
-export async function loginAction(cedula: string, clave: string) {
+export async function loginAction(identifier: string, clave: string) {
   try {
-    if (typeof cedula !== "string" || typeof clave !== "string" || !cedula || !clave || cedula.length > 40 || clave.length > 200) {
+    if (typeof identifier !== "string" || typeof clave !== "string" || !identifier.trim() || !clave) {
       return { success: false, error: "Usuario o contraseña inválida" };
     }
 
-    // Límite por cédula (5 / 5 min) y por IP (20 / 5 min) para frenar fuerza bruta y relleno de credenciales
+    const rawId = identifier.trim();
+    const digitsOnly = rawId.replace(/\D/g, "");
+
+    // Límite por usuario (10 / 5 min) e IP (50 / 5 min)
     const ip = await clientIp();
-    const byUser = checkRateLimit(`login:${cedula}`, 5, WINDOW_MS);
-    const byIp = checkRateLimit(`login-ip:${ip}`, 20, WINDOW_MS);
+    const cleanKey = digitsOnly || rawId.toLowerCase();
+    const byUser = checkRateLimit(`login:${cleanKey}`, 10, WINDOW_MS);
+    const byIp = (ip && ip !== "unknown" && ip !== "127.0.0.1")
+      ? checkRateLimit(`login-ip:${ip}`, 50, WINDOW_MS)
+      : { allowed: true, remaining: 50, resetInSeconds: 0 };
+
     if (!byUser.allowed || !byIp.allowed) {
       const wait = Math.max(byUser.allowed ? 0 : byUser.resetInSeconds, byIp.allowed ? 0 : byIp.resetInSeconds);
-      await audit("login.blocked", null, { cedula });
+      await audit("login.blocked", null, { identifier: rawId });
       return {
         success: false,
         error: `Demasiados intentos fallidos. Por seguridad, intente en ${wait} segundos.`
       };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { cedula }
+    // Variaciones posibles de cédula o correo
+    const candidates = Array.from(new Set([
+      rawId,
+      digitsOnly,
+      digitsOnly ? `V-${digitsOnly}` : "",
+      digitsOnly ? `V${digitsOnly}` : "",
+      digitsOnly ? `E-${digitsOnly}` : "",
+      digitsOnly ? `E${digitsOnly}` : "",
+    ])).filter(Boolean);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { cedula: { in: candidates } },
+          { email: rawId.toLowerCase() }
+        ]
+      }
     });
 
     if (!user || user.role === "deleted") {
       await bcrypt.compare(clave, DUMMY_HASH).catch(() => false);
-      await audit("login.failed", null, { cedula, reason: "usuario_inexistente" });
-      return { success: false, error: "Usuario o contraseña inválida" };
+      await audit("login.failed", null, { identifier: rawId, reason: "usuario_inexistente" });
+      return { success: false, error: "Cédula o contraseña incorrectos" };
     }
 
     let isMatch = false;
@@ -80,19 +102,19 @@ export async function loginAction(cedula: string, clave: string) {
     }
 
     if (!isMatch) {
-      await audit("login.failed", { id: user.id, role: user.role }, { cedula, reason: "clave_incorrecta" });
-      return { success: false, error: "Usuario o contraseña inválida" };
+      await audit("login.failed", { id: user.id, role: user.role }, { identifier: rawId, reason: "clave_incorrecta" });
+      return { success: false, error: "Cédula o contraseña incorrectos" };
     }
 
     // Reset rate limiter on successful authentication
-    resetRateLimit(`login:${cedula}`);
+    resetRateLimit(`login:${cleanKey}`);
 
     await createSession(user);
     await audit("login.success", { id: user.id, role: user.role });
     return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
   } catch (error: any) {
-    console.error("loginAction:", error);
-    return { success: false, error: "No se pudo iniciar sesión. Intente de nuevo." };
+    console.error("loginAction error:", error);
+    return { success: false, error: "No se pudo iniciar sesión. Verifique su conexión e intente de nuevo." };
   }
 }
 

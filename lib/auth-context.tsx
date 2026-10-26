@@ -57,7 +57,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (cedula: string, clave: string) => Promise<boolean>
+  login: (cedula: string, clave: string) => Promise<any>
   logout: () => Promise<void>
   registerAthlete: (cedula: string, clave: string, profile: any) => Promise<User | false>
   adminUpdateAthleteCredentials: (oldCedula: string, newCedula: string, newName: string, newClave: string) => Promise<boolean>
@@ -121,13 +121,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const loginFn = async (cedula: string, clave: string) => {
-    const res = await loginAction(cedula, clave)
-    if (res.success && ((res as any).user || (res as any).athlete)) {
-      setUser(((res as any).user || (res as any).athlete) as unknown as User)
-      localStorage.setItem('gympro_session_id', ((res as any).user || (res as any).athlete).id)
-      return true
+    try {
+      const res = await loginAction(cedula, clave)
+      if (res.success && ((res as any).user || (res as any).athlete)) {
+        const authUser = ((res as any).user || (res as any).athlete) as unknown as User
+        setUser(authUser)
+        localStorage.setItem('gympro_session_id', authUser.id)
+        return true
+      }
+      return { success: false, error: res.error || "Cédula o contraseña incorrectos" }
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Error al conectar con el servidor" }
     }
-    return false
   }
 
   const logout = async () => {
