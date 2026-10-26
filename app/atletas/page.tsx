@@ -466,8 +466,8 @@ export default function AtletasPage() {
 
       {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
       {editingAthlete && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/85 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -705,27 +705,28 @@ export default function AtletasPage() {
 
       {/* MODAL: REGISTRAR NUEVO ATLETA */}
       {showRegisterModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card dark:bg-[#0e1017] border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl my-8">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold">
                   <UserPlus className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Registrar Nuevo Atleta</h3>
+                  <h3 className="text-lg font-black text-foreground leading-tight">Registrar Nuevo Atleta</h3>
                   <p className="text-xs text-muted-foreground">Ingresa los datos para crear la cuenta del atleta.</p>
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setShowRegisterModal(false)}
-                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRegisterAthlete} className="space-y-4">
+            <form onSubmit={handleRegisterAthlete} className="space-y-4 overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold mb-1 block">Nombre y Apellido *</label>
