@@ -80,18 +80,31 @@ export async function loginAction(identifier: string, clave: string) {
 
     // 1. Auto-aprovisionamiento si el Super Administrador aún no existe en una base de datos nueva
     if (!user && isSuperAdminIdentifier) {
-      const secureHash = await bcrypt.hash(clave, 10);
-      user = await prisma.user.create({
-        data: {
-          cedula: "26710825",
-          name: "Super Administrador",
-          role: "admin",
-          email: "noreply@maximumevolutionfit.com",
-          password: secureHash,
-          canManageAttendance: true,
-        }
-      });
-      console.log("==> [Auth] Super Administrador (26710825) auto-aprovisionado exitosamente en base de datos.");
+      try {
+        const secureHash = await bcrypt.hash(clave, 10);
+        user = await prisma.user.create({
+          data: {
+            cedula: "26710825",
+            name: "Super Administrador",
+            role: "admin",
+            email: "noreply@maximumevolutionfit.com",
+            password: secureHash,
+            canManageAttendance: true,
+          }
+        });
+        console.log("==> [Auth] Super Administrador (26710825) auto-aprovisionado exitosamente en base de datos.");
+      } catch (createErr: any) {
+        console.error("Aviso al auto-aprovisionar Super Admin:", createErr);
+        user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { cedula: "26710825" },
+              { cedula: "V-26710825" },
+              { cedula: "26710826" }
+            ]
+          }
+        });
+      }
     }
 
     if (!user || user.role === "deleted") {
@@ -152,7 +165,8 @@ export async function loginAction(identifier: string, clave: string) {
     return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
   } catch (error: any) {
     console.error("loginAction error:", error);
-    return { success: false, error: "No se pudo iniciar sesión. Verifique su conexión e intente de nuevo." };
+    const detail = error?.message ? `: ${error.message}` : "";
+    return { success: false, error: `No se pudo iniciar sesión${detail}. Verifique su conexión e intente de nuevo.` };
   }
 }
 
