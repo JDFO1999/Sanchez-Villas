@@ -27,6 +27,9 @@ export default function LoginPage() {
 
   const [recoveryInput, setRecoveryInput] = useState("")
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1)
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false)
+  const [recoveryError, setRecoveryError] = useState("")
+  const [recoveryMaskedEmail, setRecoveryMaskedEmail] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,15 +47,30 @@ export default function LoginPage() {
 
   const handleOpenRecovery = () => {
     setRecoveryInput(cedula) // Prefill with cedula if they already typed it
+    setRecoveryError("")
     setRecoveryStep(1)
     setShowRecoveryModal(true)
   }
 
-  const handleSendRecovery = (e: React.FormEvent) => {
+  const handleSendRecovery = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!recoveryInput) return
-    // Here we would call the API to send the email
-    setRecoveryStep(2)
+    if (!recoveryInput.trim()) return
+    setIsSendingRecovery(true)
+    setRecoveryError("")
+    try {
+      const { requestPasswordReset } = await import("@/app/actions/auth-reset")
+      const res = await requestPasswordReset(recoveryInput)
+      if (res.success) {
+        setRecoveryMaskedEmail(res.maskedEmail || "")
+        setRecoveryStep(2)
+      } else {
+        setRecoveryError(res.error || "No se pudo procesar la solicitud.")
+      }
+    } catch (err: any) {
+      setRecoveryError(err?.message || "Error al conectar con el servidor.")
+    } finally {
+      setIsSendingRecovery(false)
+    }
   }
 
   return (
@@ -74,27 +92,40 @@ export default function LoginPage() {
       <Dialog
         open={showRecoveryModal}
         onClose={() => setShowRecoveryModal(false)}
-        title={recoveryStep === 1 ? "Recuperar contraseña" : "Correo enviado"}
+        title={recoveryStep === 1 ? "Recuperar contraseña" : "¡Correo de recuperación enviado!"}
         description={recoveryStep === 1
-          ? "Ingresa tu cédula o correo electrónico y te enviaremos instrucciones para restablecer tu clave."
-          : `Hemos enviado las instrucciones a la cuenta asociada a ${recoveryInput}. Revisa tu bandeja de entrada.`}
+          ? "Ingresa tu cédula o correo electrónico y te enviaremos un enlace seguro para restablecer tu clave."
+          : `Hemos enviado el enlace de un solo uso al correo ${recoveryMaskedEmail || "asociado a tu cuenta"}. Revisa tu bandeja de entrada o spam (válido por 60 min).`}
       >
         {recoveryStep === 1 ? (
           <form onSubmit={handleSendRecovery} className="w-full space-y-4">
-            <label htmlFor="recovery" className="sr-only">Cédula o correo electrónico</label>
-            <input
-              id="recovery"
-              type="text"
-              value={recoveryInput}
-              onChange={(e) => setRecoveryInput(e.target.value)}
-              placeholder="Ej. 12345678 o correo@ejemplo.com"
-              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
-              required
-            />
-            <Button type="submit" className="w-full">Enviar instrucciones</Button>
+            {recoveryError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/40 text-destructive text-xs rounded-xl font-medium">
+                {recoveryError}
+              </div>
+            )}
+            <div>
+              <label htmlFor="recovery" className="text-xs font-semibold text-muted-foreground mb-1 block">Cédula o Correo Electrónico</label>
+              <input
+                id="recovery"
+                type="text"
+                value={recoveryInput}
+                onChange={(e) => setRecoveryInput(e.target.value)}
+                placeholder="Ej. 12345678 o correo@ejemplo.com"
+                className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isSendingRecovery} className="w-full">
+              {isSendingRecovery ? "Enviando enlace..." : "Enviar enlace de recuperación"}
+            </Button>
           </form>
         ) : (
-          <Button variant="outline" className="w-full" onClick={() => setShowRecoveryModal(false)}>Cerrar</Button>
+          <div className="space-y-3">
+            <Button variant="outline" className="w-full" onClick={() => setShowRecoveryModal(false)}>
+              Entendido, volver
+            </Button>
+          </div>
         )}
       </Dialog>
 

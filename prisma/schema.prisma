@@ -36,6 +36,7 @@ model User {
   payrollReceipts  PayrollReceipt[]
   cashSessions     CashSession[]
   coachRequests    CoachRequest[]  @relation("AthleteCoachRequests")
+  passwordResetTokens PasswordResetToken[]
 
   coachedAthletes  User[]          @relation("CoachToAthlete")
   coach            User?           @relation("CoachToAthlete", fields: [coachId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -304,4 +305,17 @@ model CommunityChallengeParticipant {
   joinedAt    DateTime           @default(now())
 
   @@unique([challengeId, userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
