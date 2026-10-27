@@ -99,19 +99,19 @@ export async function getDashboardStats() {
       })
       .slice(0, 3)
 
-    // Membresías Nuevas: Atletas con membresía activa reciente, ordenados por fecha de inicio/creación
+    // Membresías Nuevas: Atletas cuya membresía esté activa o vigente, ordenados por la fecha más reciente
     const membresiasNuevas = allAthletes
       .filter(a => {
-        if (!a.memberships[0]) return false
-        const start = new Date(a.memberships[0].startDate)
-        const days = Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-        // Permitir un margen flexible de -1 a 30 días para evitar desfases de zona horaria UTC
-        return days >= -1 && days <= 30
+        const memb = a.memberships[0]
+        if (!memb) return false
+        // Membresía activa o cuya fecha de fin no haya expirado
+        const endDate = new Date(memb.endDate)
+        return memb.status === 'ACTIVE' || endDate >= today
       })
       .sort((a, b) => {
-        const timeA = new Date(a.memberships[0].startDate).getTime()
-        const timeB = new Date(b.memberships[0].startDate).getTime()
-        return timeB - timeA
+        const dateA = new Date(a.memberships[0].createdAt || a.memberships[0].startDate).getTime()
+        const dateB = new Date(b.memberships[0].createdAt || b.memberships[0].startDate).getTime()
+        return dateB - dateA
       })
       .map(a => {
         const start = new Date(a.memberships[0].startDate)
