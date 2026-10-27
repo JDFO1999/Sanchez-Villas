@@ -14,12 +14,12 @@ export function PlansSection() {
     plans: [
       {
         id: '1',
-        name: 'Plan Básico Mensual',
+        name: 'PLAN CORPORATIVO',
         price: '$25',
         billingPeriod: '/mes',
-        description: 'Ideal para quienes inician su disciplina física con acceso libre al área de pesas.',
-        highlight: false,
-        badge: '',
+        description: 'Plan corporativo especial para empresas, grupos y convenios aliados.',
+        highlight: true,
+        badge: 'DESTACADO',
         features: [
           'Acceso a zona de pesas y musculación',
           'Vestuarios y duchas con agua caliente',
@@ -31,56 +31,53 @@ export function PlansSection() {
       },
       {
         id: '2',
-        name: 'Plan Pro Fitness',
-        price: '$35',
+        name: 'PLAN MAXIMUM BASICO',
+        price: '$25',
         billingPeriod: '/mes',
-        description: 'El plan favorito: musculación completa más acceso libre a clases grupales y spinning.',
-        highlight: true,
-        badge: 'MÁS POPULAR',
+        description: 'Ideal para quienes inician su disciplina física con acceso libre al área de musculación.',
+        highlight: false,
+        badge: '',
         features: [
-          'Todo lo del Plan Básico',
-          'Acceso ilimitado a Spinning y Cross Training',
+          'Acceso a zona de pesas y musculación',
+          'Acceso ilimitado a área cardiovascular',
           'Rutina personalizada digital en la app',
-          'Casillero personal asignado en vestuario',
-          'Descuento del 10% en tienda y suplementos'
+          'Horario libre de lunes a sábado'
         ],
-        ctaText: 'Elegir Plan Pro',
+        ctaText: 'Elegir Plan',
         ctaLink: '#contacto'
       },
       {
         id: '3',
-        name: 'Plan Elite Personalizado',
-        price: '$50',
+        name: 'PLAN SOLO PARA ELLAS',
+        price: '$25',
         billingPeriod: '/mes',
-        description: 'Entrenamiento de alto nivel con asesoría de coach dedicado y seguimiento biométrico semanal.',
-        highlight: false,
-        badge: 'RECOMENDADO',
+        description: 'Entrenamiento enfocado en tonificación, glúteos, cardio y bienestar integral femenino.',
+        highlight: true,
+        badge: 'DESTACADO',
         features: [
-          'Todo lo del Plan Pro Fitness',
-          'Asesoría técnica y corrección con Coach',
+          'Acceso completo a todas las áreas',
+          'Asesoría técnica y rutinas especializadas',
           'Monitoreo biométrico y de composición corporal',
-          'Plan nutricional sugerido y ajuste de cargas',
-          'Acceso VIP a todas las áreas y disciplinas'
+          'Ambiente motivador y seguro'
         ],
-        ctaText: 'Unirme a Elite',
+        ctaText: 'Elegir Plan',
         ctaLink: '#contacto'
       },
       {
         id: '4',
-        name: 'Pase Anual Black Evolution',
-        price: '$300',
-        billingPeriod: '/año',
-        description: 'Compromiso total a largo plazo con el mayor ahorro: entrena todo el año sin preocupaciones.',
+        name: 'PLAN ADULTO MAYOR',
+        price: '$25',
+        billingPeriod: '/mes',
+        description: 'Programa enfocado en salud articular, movilidad, fuerza funcional y vitalidad.',
         highlight: false,
-        badge: 'MEJOR VALOR',
+        badge: '',
         features: [
-          'Acceso total 365 días a todas las disciplinas',
-          'Congelación de membresía por viaje hasta 30 días',
-          '2 Pases de invitado al mes gratis',
-          'Camiseta oficial del gimnasio de regalo',
-          'Prioridad en eventos y retos de comunidad'
+          'Entrenamiento adaptado y seguro',
+          'Acompañamiento en movilidad y fortalecimiento',
+          'Seguimiento de salud y progreso físico',
+          'Acceso completo en horario cómodo'
         ],
-        ctaText: 'Obtener Pase Anual',
+        ctaText: 'Elegir Plan',
         ctaLink: '#contacto'
       }
     ]

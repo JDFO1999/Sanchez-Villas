@@ -57,10 +57,10 @@ export default function AtletaPerfilPage() {
   const canSendWhatsApp = user && (user.role === 'admin' || user.role === 'gerente' || user.role === 'cajero' || user.role === 'recepcion' || user.role === 'coach')
 
   const defaultLandingPlans = [
-    { name: "Plan Básico Mensual", price: "$25", billingPeriod: "/mes" },
-    { name: "Plan Pro Fitness", price: "$35", billingPeriod: "/mes" },
-    { name: "Plan Elite Personalizado", price: "$50", billingPeriod: "/mes" },
-    { name: "Pase Anual Black Evolution", price: "$300", billingPeriod: "/año" },
+    { name: "PLAN CORPORATIVO", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN MAXIMUM BASICO", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN SOLO PARA ELLAS", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN ADULTO MAYOR", price: "$25", billingPeriod: "/mes" },
   ]
   const rawLandingPlans = settings?.landingSettings?.plansSettings?.plans?.length
     ? settings.landingSettings.plansSettings.plans
@@ -76,10 +76,7 @@ export default function AtletaPerfilPage() {
   })
   const availablePlans = [
     { name: "Plan Estándar", price: baseMonthlyPrice, period: "/mes" },
-    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar"),
-    ...(promotionalPlans.some((p: any) => p.name.toLowerCase() === "mensualidad básica")
-      ? []
-      : [{ name: "Mensualidad Básica", price: baseMonthlyPrice, period: "/mes" }])
+    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar")
   ]
 
   const applyWhatsAppTemplate = (type: 'receipt' | 'expiry' | 'welcome') => {

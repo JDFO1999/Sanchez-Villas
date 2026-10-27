@@ -26,12 +26,12 @@ export default function MembresíasPage() {
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
 
-  // Planes promocionales de la página de inicio (con respaldo a los 4 planes promocionales por defecto)
+  // Planes promocionales de la página de inicio (con respaldo a las 4 tarjetas promocionales del gimnasio)
   const defaultLandingPlans = [
-    { name: "Plan Básico Mensual", price: "$25", billingPeriod: "/mes", highlight: false },
-    { name: "Plan Pro Fitness", price: "$35", billingPeriod: "/mes", highlight: true },
-    { name: "Plan Elite Personalizado", price: "$50", billingPeriod: "/mes", highlight: false },
-    { name: "Pase Anual Black Evolution", price: "$300", billingPeriod: "/año", highlight: false },
+    { name: "PLAN CORPORATIVO", price: "$25", billingPeriod: "/mes", highlight: true },
+    { name: "PLAN MAXIMUM BASICO", price: "$25", billingPeriod: "/mes", highlight: false },
+    { name: "PLAN SOLO PARA ELLAS", price: "$25", billingPeriod: "/mes", highlight: true },
+    { name: "PLAN ADULTO MAYOR", price: "$25", billingPeriod: "/mes", highlight: false },
   ]
   const rawLandingPlans = settings.landingSettings?.plansSettings?.plans?.length
     ? settings.landingSettings.plansSettings.plans
@@ -59,17 +59,7 @@ export default function MembresíasPage() {
       features: ["Acceso general a sala de musculación"],
       popular: false
     },
-    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar"),
-    ...(promotionalPlans.some((p: any) => p.name.toLowerCase() === "mensualidad básica")
-      ? []
-      : [{
-          name: "Mensualidad Básica",
-          price: baseMonthlyPrice,
-          period: "/mes",
-          description: "Acceso general mensual al gimnasio",
-          features: ["Acceso general a sala de musculación"],
-          popular: false
-        }])
+    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar")
   ]
 
   // Renovar / Activar Modal State
