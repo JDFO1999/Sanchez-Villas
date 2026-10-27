@@ -99,14 +99,19 @@ export async function getDashboardStats() {
       })
       .slice(0, 3)
 
-    // Membresías Nuevas: Atletas cuya membresía esté activa o vigente, ordenados por la fecha más reciente
+    // Membresías Nuevas: Atletas con membresía activa o vigente registradas en el mes actual
     const membresiasNuevas = allAthletes
       .filter(a => {
         const memb = a.memberships[0]
         if (!memb) return false
-        // Membresía activa o cuya fecha de fin no haya expirado
         const endDate = new Date(memb.endDate)
-        return memb.status === 'ACTIVE' || endDate >= today
+        const isVigente = memb.status === 'ACTIVE' || endDate >= today
+        if (!isVigente) return false
+
+        // Fecha de inicio o creación en el mes actual (con margen flexible de 1 día por zona horaria UTC)
+        const refDate = new Date(memb.createdAt || memb.startDate)
+        const startOfCycle = new Date(firstDayOfMonth.getTime() - 24 * 60 * 60 * 1000)
+        return refDate >= startOfCycle
       })
       .sort((a, b) => {
         const dateA = new Date(a.memberships[0].createdAt || a.memberships[0].startDate).getTime()
