@@ -119,16 +119,23 @@ export function PlansSection() {
               }`}
             >
               {/* HIGHLIGHT OR CUSTOM BADGE */}
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md ${
-                    isHighlighted 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-foreground text-background'
-                  }`}>
-                    <Sparkles className="w-3 h-3" />
-                    {plan.badge}
-                  </span>
+              {(plan.isPromo || plan.badge) && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                  {plan.isPromo ? (
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border border-amber-300/40 animate-pulse">
+                      <Sparkles className="w-3 h-3 text-amber-200 fill-amber-200" />
+                      {plan.badge?.trim() ? plan.badge : "EN PROMOCIÓN"}
+                    </span>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md ${
+                      isHighlighted 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-foreground text-background'
+                    }`}>
+                      <Sparkles className="w-3 h-3" />
+                      {plan.badge}
+                    </span>
+                  )}
                 </div>
               )}
 

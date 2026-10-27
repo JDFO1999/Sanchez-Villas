@@ -155,6 +155,7 @@ export interface AppSettings {
         description?: string
         highlight?: boolean
         badge?: string
+        isPromo?: boolean
         features: string[]
         ctaText?: string
         ctaLink?: string

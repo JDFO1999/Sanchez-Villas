@@ -21,6 +21,7 @@ import {
   Sun,
   Settings,
   ScanLine,
+  Tag,
   User as UserIcon
 } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -134,6 +135,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // Administrador: acceso total e irrestricto por defecto
     currentNavItems = [
       ...navItems,
+      { name: "Planes / Promos", href: "/planes", icon: Tag },
       { name: "Entrenadores", href: "/entrenadores", icon: Dumbbell },
       { name: "Asistencia", href: "/asistencia", icon: ScanLine },
       { name: "Empleados", href: "/empleados", icon: Users },
@@ -179,6 +181,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // Membresías
     if (user?.role === 'cajero' || user?.role === 'recepcion' || user?.role === 'gerente' || hasPermission('POS_ACCESS') || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Membresías", href: "/membresias", icon: CreditCard })
+    }
+
+    // Planes y Promociones (Gerente o permisos de gestión comercial/ajustes)
+    if (user?.role === 'gerente' || hasPermission('SETTINGS_MANAGE') || hasPermission('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Planes / Promos", href: "/planes", icon: Tag })
     }
 
     // Tienda / POS
