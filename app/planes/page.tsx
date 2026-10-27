@@ -266,8 +266,8 @@ export default function PlanesPromocionesPage() {
             <label className="text-xs font-bold text-foreground block mb-1.5">
               Precio Mensual Base ({settings.storeCurrency})
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs font-black text-emerald-500">
+            <div className="relative flex items-center">
+              <span className="absolute left-3 text-xs font-black text-emerald-500 pointer-events-none select-none">
                 {settings.storeCurrency}
               </span>
               <input
@@ -276,7 +276,7 @@ export default function PlanesPromocionesPage() {
                 step="0.5"
                 value={standardPrice}
                 onChange={e => setStandardPrice(parseFloat(e.target.value) || 0)}
-                className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-xl py-2.5 pl-8 pr-3 text-sm font-black text-emerald-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-xl py-2.5 pl-14 pr-3 text-sm font-black text-emerald-500 focus:border-emerald-500 focus:outline-none"
                 placeholder="25"
               />
             </div>

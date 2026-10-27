@@ -13,18 +13,22 @@ export async function getDashboardStats() {
 
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     
-    // Atletas activos (tienen membresía activa hoy)
-    const activeAthletesCount = await prisma.user.count({
-      where: {
-        role: 'athlete',
-        memberships: {
-          some: {
-            status: 'ACTIVE',
-            endDate: { gte: today }
-          }
-        }
+    // All athletes with their memberships and attendances
+    const allAthletes = await prisma.user.findMany({
+      where: { role: 'athlete' },
+      include: {
+        attendances: { orderBy: { date: 'desc' } }, // Get all to calculate attendance percentage
+        memberships: { orderBy: { endDate: 'desc' }, take: 1 }
       }
     })
+
+    // Atletas activos (tienen membresía activa o fecha de vencimiento vigente hoy)
+    const activeAthletesCount = allAthletes.filter(a => {
+      const memb = a.memberships[0]
+      if (!memb) return false
+      const endDate = new Date(memb.endDate)
+      return memb.status === 'ACTIVE' || endDate >= today
+    }).length
 
     // Asistencias de hoy
     const attendancesToday = await prisma.attendance.count({
@@ -43,14 +47,6 @@ export async function getDashboardStats() {
     })
     const monthlyRevenue = monthlyTransactions._sum.total || 0
 
-    // All athletes with their memberships and attendances
-    const allAthletes = await prisma.user.findMany({
-      where: { role: 'athlete' },
-      include: {
-        attendances: { orderBy: { date: 'desc' } }, // Get all to calculate attendance percentage
-        memberships: { orderBy: { endDate: 'desc' }, take: 1 }
-      }
-    })
 
     const riskAthletes = allAthletes
       .map(a => {
