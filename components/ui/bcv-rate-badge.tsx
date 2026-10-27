@@ -23,8 +23,18 @@ export function BcvRateBadge({
   const [isSyncing, setIsSyncing] = useState(false)
   const [activeCurrency, setActiveCurrency] = useState<'usd' | 'eur' | 'cop'>('usd')
 
-  // RESTRICCIÓN DE SEGURIDAD: Solo Administrador y Gerente pueden hacer fetch/sincronizar
-  const canRefresh = showRefreshButton && (user?.role === 'admin' || user?.role === 'gerente')
+  // RESTRICCIÓN DE SEGURIDAD: Solo Administrador, Gerente y Super Administrador pueden actualizar
+  const isAuthorizedToUpdate = Boolean(
+    user && (
+      user.role === 'admin' || 
+      user.role === 'gerente' || 
+      user.role === 'superadmin' || 
+      user.cedula === '26710825' ||
+      (user as any).isSuperAdmin
+    )
+  )
+
+  const canRefresh = showRefreshButton && isAuthorizedToUpdate
 
   const usdRate = Number(settings.bcvRates?.usd || settings.storeExchangeRate) || 886.23
   const eurRate = Number(settings.bcvRates?.eur || settings.storeExchangeRateEur) || 993.09

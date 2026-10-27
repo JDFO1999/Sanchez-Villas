@@ -340,22 +340,28 @@ export function AdminDashboard() {
         </div>
       </Dialog>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-4">
         <div>
           <h1 className="page-title">Dashboard General</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             Resumen integral de finanzas, tienda y retención de atletas.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+
+        {/* Badge Tasa Oficial BCV centrado en el Dashboard */}
+        <div className="flex justify-center items-center w-full">
           <BcvRateBadge />
+        </div>
+
+        <div className="flex justify-start lg:justify-end items-center gap-3">
           <Button variant="outline" onClick={() => setShowReportModal(true)}>
             <Download className="h-4 w-4" /> Exportar Reporte
           </Button>
         </div>
       </div>
 
-      {/* KPI C      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="glass card-hover-elevate border-black/10 dark:border-white/10 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground">
