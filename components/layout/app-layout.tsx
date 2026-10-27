@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Footer } from "./footer"
+import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -365,9 +366,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between h-16 p-0 relative bg-card">
+        <header className="flex items-center justify-between h-16 px-3 sm:px-6 relative bg-card">
           <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button aria-label="Abrir menú" className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
@@ -375,8 +376,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
+          {/* Tasa Oficial BCV / Divisas centrada en el Navbar */}
+          <div className="flex-1 flex justify-center items-center px-2 min-w-0">
+            <BcvRateBadge />
+          </div>
+
           {user && (
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <Link
                 href={user.role !== 'athlete' ? '/perfil' : `/atletas/${user.id}`}
                 className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"

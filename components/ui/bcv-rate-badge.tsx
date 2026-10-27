@@ -138,7 +138,7 @@ export function BcvRateBadge({
 
   return (
     <div
-      className={`inline-flex flex-wrap sm:flex-nowrap items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-card/80 border border-emerald-500/30 shadow-sm backdrop-blur-md transition-all hover:border-emerald-500/50 ${className}`}
+      className={`inline-flex flex-nowrap items-center gap-1.5 sm:gap-2.5 px-2.5 py-1 sm:px-3.5 sm:py-1 rounded-full bg-card/80 border border-emerald-500/30 shadow-sm backdrop-blur-md transition-all hover:border-emerald-500/50 shrink-0 ${className}`}
     >
       {/* Botones selectores rápidos de moneda */}
       <div className="flex items-center gap-1 p-0.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">

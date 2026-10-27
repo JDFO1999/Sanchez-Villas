@@ -8,7 +8,6 @@ import { Loader } from "@/components/ui/loader"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 import { 
   Area, 
   AreaChart, 
@@ -340,7 +339,7 @@ export function AdminDashboard() {
         </div>
       </Dialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Dashboard General</h1>
           <p className="text-muted-foreground mt-1 text-sm">
@@ -348,12 +347,7 @@ export function AdminDashboard() {
           </p>
         </div>
 
-        {/* Badge Tasa Oficial BCV centrado en el Dashboard */}
-        <div className="flex justify-center items-center w-full">
-          <BcvRateBadge />
-        </div>
-
-        <div className="flex justify-start lg:justify-end items-center gap-3">
+        <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => setShowReportModal(true)}>
             <Download className="h-4 w-4" /> Exportar Reporte
           </Button>
