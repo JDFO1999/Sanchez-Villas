@@ -56,6 +56,32 @@ export default function AtletaPerfilPage() {
   const canEditAthlete = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
   const canSendWhatsApp = user && (user.role === 'admin' || user.role === 'gerente' || user.role === 'cajero' || user.role === 'recepcion' || user.role === 'coach')
 
+  const defaultLandingPlans = [
+    { name: "Plan Básico Mensual", price: "$25", billingPeriod: "/mes" },
+    { name: "Plan Pro Fitness", price: "$35", billingPeriod: "/mes" },
+    { name: "Plan Elite Personalizado", price: "$50", billingPeriod: "/mes" },
+    { name: "Pase Anual Black Evolution", price: "$300", billingPeriod: "/año" },
+  ]
+  const rawLandingPlans = settings?.landingSettings?.plansSettings?.plans?.length
+    ? settings.landingSettings.plansSettings.plans
+    : defaultLandingPlans
+  const baseMonthlyPrice = settings?.monthlyFee || 25
+  const promotionalPlans = rawLandingPlans.map((p: any) => {
+    const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
+    return {
+      name: String(p.name || "Plan Promocional").trim(),
+      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : baseMonthlyPrice,
+      period: p.billingPeriod || p.period || "/mes",
+    }
+  })
+  const availablePlans = [
+    { name: "Plan Estándar", price: baseMonthlyPrice, period: "/mes" },
+    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar"),
+    ...(promotionalPlans.some((p: any) => p.name.toLowerCase() === "mensualidad básica")
+      ? []
+      : [{ name: "Mensualidad Básica", price: baseMonthlyPrice, period: "/mes" }])
+  ]
+
   const applyWhatsAppTemplate = (type: 'receipt' | 'expiry' | 'welcome') => {
     if (!athlete) return
     const firstName = athlete.name.split(' ')[0]
@@ -1421,13 +1447,20 @@ export default function AtletaPerfilPage() {
 
                   <div>
                     <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Plan Mensual, Plan Estándar..."
+                    <select
                       value={editMembPlan}
                       onChange={e => setEditMembPlan(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                      className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
+                    >
+                      {availablePlans.map((plan) => (
+                        <option key={plan.name} value={plan.name}>
+                          {plan.name} — {settings?.storeCurrency || "$"}{plan.price} {plan.period}
+                        </option>
+                      ))}
+                      {editMembPlan && !availablePlans.some(p => p.name === editMembPlan) && (
+                        <option value={editMembPlan}>{editMembPlan}</option>
+                      )}
+                    </select>
                   </div>
                 </div>
               )}
@@ -1511,14 +1544,21 @@ export default function AtletaPerfilPage() {
 
               <div>
                 <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
-                <input
-                  type="text"
+                <select
                   required
-                  placeholder="Ej. Plan Mensual, Plan Estándar..."
                   value={editMembPlan}
                   onChange={e => setEditMembPlan(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                />
+                  className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
+                >
+                  {availablePlans.map((plan) => (
+                    <option key={plan.name} value={plan.name}>
+                      {plan.name} — {settings?.storeCurrency || "$"}{plan.price} {plan.period}
+                    </option>
+                  ))}
+                  {editMembPlan && !availablePlans.some(p => p.name === editMembPlan) && (
+                    <option value={editMembPlan}>{editMembPlan}</option>
+                  )}
+                </select>
               </div>
 
               <div>

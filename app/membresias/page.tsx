@@ -26,29 +26,50 @@ export default function MembresíasPage() {
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
 
-  // Helper to get available promotional plans + Mensualidad Básica
-  const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || []).map((p: any) => {
+  // Planes promocionales de la página de inicio (con respaldo a los 4 planes promocionales por defecto)
+  const defaultLandingPlans = [
+    { name: "Plan Básico Mensual", price: "$25", billingPeriod: "/mes", highlight: false },
+    { name: "Plan Pro Fitness", price: "$35", billingPeriod: "/mes", highlight: true },
+    { name: "Plan Elite Personalizado", price: "$50", billingPeriod: "/mes", highlight: false },
+    { name: "Pase Anual Black Evolution", price: "$300", billingPeriod: "/año", highlight: false },
+  ]
+  const rawLandingPlans = settings.landingSettings?.plansSettings?.plans?.length
+    ? settings.landingSettings.plansSettings.plans
+    : defaultLandingPlans
+
+  const baseMonthlyPrice = settings.monthlyFee || 25
+  const promotionalPlans = rawLandingPlans.map((p: any) => {
     const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
     return {
       name: String(p.name || "Plan Promocional").trim(),
-      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : (settings.monthlyFee || 25),
-      period: p.period || "/mes",
+      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : baseMonthlyPrice,
+      period: p.billingPeriod || p.period || "/mes",
       description: p.description || "",
       features: Array.isArray(p.features) ? p.features : [],
-      popular: Boolean(p.popular)
+      popular: Boolean(p.highlight || p.popular)
     }
   })
-  const baseMonthlyPrice = settings.monthlyFee || 25
+
   const availablePlans = [
-    ...promotionalPlans,
     {
-      name: "Mensualidad Básica",
+      name: "Plan Estándar",
       price: baseMonthlyPrice,
       period: "/mes",
-      description: "Acceso general mensual al gimnasio",
+      description: "Plan estándar mensual del gimnasio",
       features: ["Acceso general a sala de musculación"],
       popular: false
-    }
+    },
+    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar"),
+    ...(promotionalPlans.some((p: any) => p.name.toLowerCase() === "mensualidad básica")
+      ? []
+      : [{
+          name: "Mensualidad Básica",
+          price: baseMonthlyPrice,
+          period: "/mes",
+          description: "Acceso general mensual al gimnasio",
+          features: ["Acceso general a sala de musculación"],
+          popular: false
+        }])
   ]
 
   // Renovar / Activar Modal State
@@ -1362,14 +1383,47 @@ export default function MembresíasPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Nombre del Plan / Membresía</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. Plan Mensual, Plan Estándar..."
+                  <label className="text-xs font-semibold mb-1.5 block">Seleccionar Plan / Membresía</label>
+                  <select
                     value={editPlanName}
                     onChange={e => setEditPlanName(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                  />
+                    className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
+                  >
+                    {availablePlans.map((plan) => (
+                      <option key={plan.name} value={plan.name}>
+                        {plan.name} — {settings.storeCurrency}{plan.price} {plan.period}
+                      </option>
+                    ))}
+                    {editPlanName && !availablePlans.some(p => p.name === editPlanName) && (
+                      <option value={editPlanName}>{editPlanName}</option>
+                    )}
+                  </select>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    {availablePlans.map((plan) => {
+                      const isSelected = editPlanName === plan.name
+                      return (
+                        <button
+                          key={plan.name}
+                          type="button"
+                          onClick={() => setEditPlanName(plan.name)}
+                          className={`text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+                            isSelected
+                              ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                              : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <span className="font-bold text-xs block truncate">{plan.name}</span>
+                            <span className="text-[11px] font-black text-primary">
+                              {settings.storeCurrency}{plan.price} <span className="text-[10px] font-normal text-muted-foreground">{plan.period}</span>
+                            </span>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
 
