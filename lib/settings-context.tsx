@@ -186,7 +186,7 @@ export const defaultSettings: AppSettings = {
   appName: '',
   logoUrl: '',
   logoUrlDark: '',
-  faviconUrl: '',
+  faviconUrl: '/uploads/maximum-favicon.png',
   primaryColor: '#D4AF37',
   secondaryColor: '#1A1A1A',
   borderColor: '#333333',

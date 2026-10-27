@@ -28,7 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
         statusBarStyle: "black-translucent",
         title: "MaximumFitAPP",
       },
-      manifest: "/manifest.webmanifest",
       icons: {
         icon: [{ url: iconUrl }],
         shortcut: [{ url: iconUrl }],
@@ -45,7 +44,6 @@ export async function generateMetadata(): Promise<Metadata> {
         statusBarStyle: "black-translucent",
         title: "MaximumFitAPP",
       },
-      manifest: "/manifest.webmanifest",
       icons: {
         icon: "/api/favicon",
         shortcut: "/api/favicon",
@@ -77,17 +75,20 @@ export default async function RootLayout({
     ? initialSettings?.landingSettings?.heroSlides?.[0]?.url
     : undefined;
 
+  // Solo precargar URLs externas o relativas, NUNCA Data URIs base64
+  const canPreload = (url?: string) => url && typeof url === "string" && !url.startsWith("data:") && (url.startsWith("/") || url.startsWith("http"));
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* Preload prioritario de logos e imágenes críticas antes de renderizar la página */}
-        {primaryLogo && (
+        {canPreload(primaryLogo) && (
           <link rel="preload" as="image" href={primaryLogo} {...({ fetchPriority: "high" } as any)} />
         )}
-        {darkLogo && darkLogo !== primaryLogo && (
+        {canPreload(darkLogo) && darkLogo !== primaryLogo && (
           <link rel="preload" as="image" href={darkLogo} {...({ fetchPriority: "high" } as any)} />
         )}
-        {firstSlideImg && (
+        {canPreload(firstSlideImg) && (
           <link rel="preload" as="image" href={firstSlideImg} {...({ fetchPriority: "high" } as any)} />
         )}
 
@@ -103,13 +104,13 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content="MaximumFitAPP" />
         <meta name="theme-color" content="#eab308" />
 
-        {/* Script síncrono para inicializar configuración antes de la hidratación */}
+        {/* Script síncrono para inicializar configuración antes de la hidratación (sanitizado contra XSS y HTML breaks) */}
         <script
           id="gympro-instant-settings"
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                window.__INITIAL_SETTINGS__ = ${JSON.stringify(initialSettings || null)};
+                window.__INITIAL_SETTINGS__ = ${JSON.stringify(initialSettings || null).replace(/</g, '\\u003c')};
               } catch (e) {}
             `,
           }}

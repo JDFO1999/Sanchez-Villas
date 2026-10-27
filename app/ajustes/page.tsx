@@ -135,7 +135,7 @@ export default function AjustesPage() {
   const [fontFamily, setFontFamily] = useState(settings.fontFamily)
   const [logoUrl, setLogoUrl] = useState(settings.logoUrl || "")
   const [logoUrlDark, setLogoUrlDark] = useState(settings.logoUrlDark || "")
-  const [faviconUrl, setFaviconUrl] = useState(settings.faviconUrl || "")
+  const [faviconUrl, setFaviconUrl] = useState(settings.faviconUrl || "/uploads/maximum-favicon.png")
   const [isGlass, setIsGlass] = useState(settings.isGlass)
   const [logoSettings, setLogoSettings] = useState(settings.logoSettings)
   
@@ -371,7 +371,42 @@ export default function AjustesPage() {
     }
   }
 
-  const handleFaviconUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onloadend = () => setFaviconUrl(r.result as string); r.readAsDataURL(f); } }
+  const handleFaviconUpload = (e: any) => {
+    const f = e.target.files?.[0]
+    if (f) {
+      const r = new FileReader()
+      r.onloadend = () => {
+        const raw = r.result as string
+        if (typeof window !== "undefined") {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement("canvas")
+            const size = 128
+            canvas.width = size
+            canvas.height = size
+            const ctx = canvas.getContext("2d")
+            if (ctx) {
+              ctx.clearRect(0, 0, size, size)
+              const scale = Math.min(size / img.width, size / img.height)
+              const w = img.width * scale
+              const h = img.height * scale
+              const x = (size - w) / 2
+              const y = (size - h) / 2
+              ctx.drawImage(img, x, y, w, h)
+              setFaviconUrl(canvas.toDataURL("image/png"))
+            } else {
+              setFaviconUrl(raw)
+            }
+          }
+          img.onerror = () => setFaviconUrl(raw)
+          img.src = raw
+        } else {
+          setFaviconUrl(raw)
+        }
+      }
+      r.readAsDataURL(f)
+    }
+  }
   const handleLogoDarkUpload = (e: any) => { const f = e.target.files?.[0]; if(f) { const r = new FileReader(); r.onloadend = () => setLogoUrlDark(r.result as string); r.readAsDataURL(f); } }
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
