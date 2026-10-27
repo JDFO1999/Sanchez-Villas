@@ -433,7 +433,7 @@ export function AdminDashboard() {
         </Card>
       </div>
 
-      {/* SECCIÓN BUSINESS INTELLIGENCE (Exclusivo Administradores y Gerentes) */}
+      {/* SECCIÓN ANALÍTICA (Exclusivo Administradores y Gerentes) */}
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/10 dark:border-white/10 pb-3">
           <div className="flex items-center gap-2.5">
@@ -441,8 +441,8 @@ export function AdminDashboard() {
               <Activity className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">Business Intelligence & Métricas Clave (Fitness KPI)</h2>
-              <p className="text-xs text-muted-foreground">Analítica de retención, rentabilidad por atleta y horas pico de afluencia.</p>
+              <h2 className="text-base font-bold text-foreground">Analítica de retención, rentabilidad por atleta y horas pico de afluencia</h2>
+              <p className="text-xs text-muted-foreground">Métricas clave de gestión y rendimiento en tiempo real.</p>
             </div>
           </div>
           <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0 self-start sm:self-auto">
