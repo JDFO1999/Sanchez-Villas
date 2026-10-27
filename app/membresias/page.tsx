@@ -112,6 +112,10 @@ export default function MembresíasPage() {
   const [editPlanName, setEditPlanName] = useState("")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
+  const [editRegisterPayment, setEditRegisterPayment] = useState(false)
+  const [editPaymentMethod, setEditPaymentMethod] = useState<PaymentMethodType>("Efectivo")
+  const [editPaymentRef, setEditPaymentRef] = useState("")
+  const [editPaymentAmount, setEditPaymentAmount] = useState<string>("")
   const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // Message Modal State
@@ -298,9 +302,15 @@ export default function MembresíasPage() {
       ? new Date(a.membershipEnd).toISOString().split('T')[0]
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     
+    const pName = (a as any).planName || (a as any).membershipType || "Plan Estándar"
     setEditStartDate(sDate)
     setEditEndDate(eDate)
-    setEditPlanName((a as any).planName || (a as any).membershipType || "Plan Estándar")
+    setEditPlanName(pName)
+    setEditRegisterPayment(false)
+    setEditPaymentMethod("Efectivo")
+    setEditPaymentRef("")
+    const matchedPlan = availablePlans.find(p => p.name.toLowerCase() === pName.toLowerCase()) || availablePlans[0]
+    setEditPaymentAmount(matchedPlan ? matchedPlan.price.toString() : "30")
     setShowEditModal(a)
   }
 
@@ -377,9 +387,41 @@ export default function MembresíasPage() {
         }
       }
 
+      // Si se indicó registrar el pago en Caja / Flujo de Caja
+      if (editRegisterPayment) {
+        const payAmount = parseFloat(editPaymentAmount) || 0
+        if (payAmount > 0) {
+          const { createTransaction } = await import('@/app/actions/store')
+          const pName = editPlanName || "Plan Estándar"
+          const txRes = await createTransaction({
+            cashierId: user?.id,
+            customerId: showEditModal.id,
+            items: [
+              {
+                productId: `PLAN:${pName}`,
+                name: `${pName} (Ajuste administrativo)`,
+                price: payAmount,
+                qty: 1,
+                subtotal: payAmount
+              }
+            ],
+            subtotal: payAmount,
+            tax: 0,
+            total: payAmount,
+            creditAmount: 0,
+            paymentMethod: editPaymentMethod,
+            reference: editPaymentRef ? `Ref: ${editPaymentRef.trim()} (Asiento desde edición)` : 'Asiento directo desde edición de membresía'
+          })
+
+          if (!txRes.success) {
+            showSweetToast("Membresía actualizada, pero ocurrió un aviso con el registro en caja: " + (txRes.error || ""), "warning")
+          }
+        }
+      }
+
       await refreshAthletes()
       setShowEditModal(null)
-      showSweetToast("Datos y membresía actualizados correctamente.", "success")
+      showSweetToast(editRegisterPayment ? "Datos, membresía y cobro en caja registrados con éxito." : "Datos y membresía actualizados correctamente.", "success")
     } catch (err: any) {
       showSweetToast(err?.message || "Error al actualizar.", "error")
     } finally {
@@ -1417,7 +1459,10 @@ export default function MembresíasPage() {
                         <button
                           key={plan.name}
                           type="button"
-                          onClick={() => setEditPlanName(plan.name)}
+                          onClick={() => {
+                            setEditPlanName(plan.name)
+                            setEditPaymentAmount(plan.price.toString())
+                          }}
                           className={`text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
                             isSelected
                               ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
@@ -1435,6 +1480,61 @@ export default function MembresíasPage() {
                       )
                     })}
                   </div>
+                </div>
+
+                {/* Opción para asentar en Caja / Flujo de Caja */}
+                <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editRegisterPayment}
+                      onChange={e => setEditRegisterPayment(e.target.checked)}
+                      className="w-4 h-4 text-primary rounded focus:ring-primary accent-primary"
+                    />
+                    <div className="text-xs">
+                      <span className="font-bold text-foreground block">¿Registrar este cobro en Caja y Flujo Financiero?</span>
+                      <span className="text-muted-foreground">Crea el asiento contable para que sume a los ingresos del gimnasio y métricas.</span>
+                    </div>
+                  </label>
+
+                  {editRegisterPayment && (
+                    <div className="pt-2 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 animate-in fade-in duration-200">
+                      <div>
+                        <label className="text-[11px] font-bold block mb-1">Monto ({settings.storeCurrency})</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editPaymentAmount}
+                          onChange={e => setEditPaymentAmount(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                          placeholder="Monto"
+                          required={editRegisterPayment}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold block mb-1">Método de Pago</label>
+                        <select
+                          value={editPaymentMethod}
+                          onChange={e => setEditPaymentMethod(e.target.value as PaymentMethodType)}
+                          className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                        >
+                          {availableMembershipPaymentMethods.map(m => (
+                            <option key={m.value} value={m.value}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold block mb-1">Referencia / Comprobante</label>
+                        <input
+                          type="text"
+                          value={editPaymentRef}
+                          onChange={e => setEditPaymentRef(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                          placeholder="Ej: 849204 / Efectivo"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

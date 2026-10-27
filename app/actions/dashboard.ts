@@ -99,24 +99,31 @@ export async function getDashboardStats() {
       })
       .slice(0, 3)
 
+    // Membresías Nuevas: Atletas con membresía activa reciente, ordenados por fecha de inicio/creación
     const membresiasNuevas = allAthletes
       .filter(a => {
-        if (!a.memberships[0]) return false;
+        if (!a.memberships[0]) return false
         const start = new Date(a.memberships[0].startDate)
-        const days = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-        return days >= 0 && days <= 7;
+        const days = Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+        // Permitir un margen flexible de -1 a 30 días para evitar desfases de zona horaria UTC
+        return days >= -1 && days <= 30
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.memberships[0].startDate).getTime()
+        const timeB = new Date(b.memberships[0].startDate).getTime()
+        return timeB - timeA
       })
       .map(a => {
         const start = new Date(a.memberships[0].startDate)
-        const days = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+        const days = Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
         return {
           nombre: a.name,
           profilePicture: a.profilePicture,
           plan: a.memberships[0]?.planName || 'Plan Estándar',
-          hace: days === 0 ? "Hoy" : `${days} días`
+          hace: days <= 0 ? "Hoy" : days === 1 ? "Ayer" : `${days} días`
         }
       })
-      .slice(0, 3)
+      .slice(0, 5)
 
     // 1. Asistencias de los últimos 30 días para Mapa de Calor de Horas Pico (6:00 a 22:00)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -160,16 +167,55 @@ export async function getDashboardStats() {
     // 4. MRR (Monthly Recurring Revenue Estimado)
     const mrr = activeAthletesCount * (arpu > 0 ? arpu : 25)
 
-    // Chart Data (Mock implementation for historical months, using real scale)
-    const revenueData = [
-      { name: "Ene", ingresos: monthlyRevenue * 0.8, egresos: monthlyRevenue * 0.5 },
-      { name: "Feb", ingresos: monthlyRevenue * 0.9, egresos: monthlyRevenue * 0.4 },
-      { name: "Mar", ingresos: monthlyRevenue * 1.1, egresos: monthlyRevenue * 0.6 },
-      { name: "Abr", ingresos: monthlyRevenue * 1.0, egresos: monthlyRevenue * 0.7 },
-      { name: "May", ingresos: monthlyRevenue * 1.2, egresos: monthlyRevenue * 0.5 },
-      { name: "Jun", ingresos: monthlyRevenue * 0.95, egresos: monthlyRevenue * 0.55 },
-      { name: "Jul", ingresos: monthlyRevenue, egresos: monthlyRevenue * 0.5 },
-    ]
+    // 5. Flujo de Caja Semanal / Histórico Real (Últimos 7 días)
+    const sevenDaysAgo = new Date(today)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+
+    const [recentTx, recentExp] = await Promise.all([
+      prisma.transaction.findMany({
+        where: {
+          status: 'COMPLETED',
+          date: { gte: sevenDaysAgo }
+        },
+        select: { date: true, total: true }
+      }),
+      prisma.expense.findMany({
+        where: {
+          date: { gte: sevenDaysAgo }
+        },
+        select: { date: true, amount: true }
+      })
+    ])
+
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+    const revenueData = []
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
+      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
+
+      const ingresosDia = recentTx
+        .filter(t => {
+          const tDate = new Date(t.date)
+          return tDate >= dayStart && tDate <= dayEnd
+        })
+        .reduce((sum, t) => sum + (t.total || 0), 0)
+
+      const egresosDia = recentExp
+        .filter(e => {
+          const eDate = new Date(e.date)
+          return eDate >= dayStart && eDate <= dayEnd
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0)
+
+      revenueData.push({
+        name: dayNames[d.getDay()],
+        ingresos: parseFloat(ingresosDia.toFixed(2)),
+        egresos: parseFloat(egresosDia.toFixed(2))
+      })
+    }
 
     const attendanceData = [
       { name: "Lun", checkins: Math.round(attendancesToday * 1.2) },
