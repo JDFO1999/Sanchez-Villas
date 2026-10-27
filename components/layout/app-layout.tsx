@@ -78,21 +78,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, isAuthOrPublicPage, router])
 
-  // Páginas públicas (login, registro, landing promocional, recuperación de contraseña):
-  // Se renderizan de inmediato sin bloquear al visitante con una pantalla de 'Iniciando...'
+  // Páginas estrictamente públicas (login, registro, landing /inicio, recuperación de contraseña):
+  // Se renderizan de inmediato sin esperar la carga de sesión
   if (
     pathname === '/login' ||
     pathname === '/registro' ||
     pathname === '/inicio' ||
     pathname.startsWith('/recuperar-password') ||
-    pathname.startsWith('/olvide-password') ||
-    (pathname === '/' && !user)
+    pathname.startsWith('/olvide-password')
   ) {
     return <>{children}</>
   }
 
-  // En rutas privadas o cuando el usuario está logueado en '/', mostrar cargador mientras finaliza
+  // En '/' y rutas privadas esperamos que finalice la validación de sesión
   if (isLoading) return <FullScreenLoader text="Iniciando..." progressive={true} />
+
+  // Si en '/' no hay usuario autenticado tras cargar sesión, mostrar landing promocional sin barra lateral
+  if (pathname === '/' && !user) {
+    return <>{children}</>
+  }
 
   const customRole = settings?.customRoles?.find(
     (r: any) => r.id === user?.role || r.name?.toLowerCase() === user?.role?.toLowerCase()

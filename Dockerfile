@@ -36,12 +36,6 @@ RUN apk add --no-cache openssl curl wget
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy Prisma schema, CLI and engine for runtime
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
@@ -49,13 +43,19 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy Prisma schema, CLI and engine for runtime AFTER standalone so engines are not overwritten
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+
 # Imágenes subidas por los usuarios (fotos de perfil, productos, comprobantes).
 # Monta aquí un volumen PERSISTENTE en Coolify (Storage -> /data/uploads); sin él se pierden en cada despliegue.
 ENV UPLOAD_DIR=/data/uploads
 RUN mkdir -p /data/uploads && chown -R nextjs:nodejs /data
 COPY entrypoint.sh ./entrypoint.sh
 USER root
-RUN chmod +x ./entrypoint.sh
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 USER nextjs
 
 EXPOSE 3000

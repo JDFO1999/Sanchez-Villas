@@ -1,7 +1,7 @@
 "use server";
 import { headers } from "next/headers";
 import { createSession, destroySession } from "@/lib/session";
-import prisma from "@/lib/db"
+import prisma, { ensureDatabaseSchema } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limiter";
 import { clientIpFrom, getAuthUser, stripSecrets, ROLES, DENIED } from "@/lib/authz";
@@ -11,6 +11,40 @@ import { audit } from "@/lib/audit"
 const DUMMY_HASH = bcrypt.hashSync("relleno-no-es-una-clave", 10);
 
 const WINDOW_MS = 5 * 60 * 1000;
+
+// Selección base garantizada en caso de que alguna columna opcional aún no exista en la BD
+const SAFE_USER_SELECT = {
+  id: true,
+  cedula: true,
+  name: true,
+  role: true,
+  password: true,
+  accessPin: true,
+  baseSalary: true,
+  commissionRate: true,
+  profilePicture: true,
+  gender: true,
+  email: true,
+  phone: true,
+  address: true,
+  storeDebt: true,
+  canManageAttendance: true,
+  createdAt: true,
+  updatedAt: true,
+  coachId: true,
+  previousCoachId: true,
+  paymentFrequency: true,
+  commissionType: true,
+  birthDate: true,
+  profession: true,
+  specialties: true,
+  bio: true,
+  socialLinks: true,
+  nonWorkingDays: true,
+  lastPaidDate: true,
+  bankAccount: true,
+  mobilePayment: true,
+} as const;
 
 async function clientIp(): Promise<string> {
   try {
@@ -36,6 +70,8 @@ export async function loginAction(identifier: string, clave: string) {
     if (typeof identifier !== "string" || typeof clave !== "string" || !identifier.trim() || !clave) {
       return { success: false, error: "Usuario o contraseña inválida" };
     }
+
+    await ensureDatabaseSchema();
 
     const rawId = identifier.trim();
     const digitsOnly = rawId.replace(/\D/g, "");
@@ -67,14 +103,19 @@ export async function loginAction(identifier: string, clave: string) {
       digitsOnly ? `E${digitsOnly}` : "",
     ])).filter(Boolean);
 
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { cedula: { in: candidates } },
-          { email: rawId.toLowerCase() }
-        ]
-      }
-    });
+    const whereLookup = {
+      OR: [
+        { cedula: { in: candidates } },
+        { email: rawId.toLowerCase() }
+      ]
+    };
+
+    let user: any = null;
+    try {
+      user = await prisma.user.findFirst({ where: whereLookup });
+    } catch {
+      user = await prisma.user.findFirst({ where: whereLookup, select: SAFE_USER_SELECT });
+    }
 
     const isSuperAdminIdentifier = candidates.some(c => c === "26710825" || c === "26710826" || c.toLowerCase() === "admin");
 
@@ -90,7 +131,8 @@ export async function loginAction(identifier: string, clave: string) {
             email: "noreply@maximumevolutionfit.com",
             password: secureHash,
             canManageAttendance: true,
-          }
+          },
+          select: SAFE_USER_SELECT,
         });
         console.log("==> [Auth] Super Administrador (26710825) auto-aprovisionado exitosamente en base de datos.");
       } catch (createErr: any) {
@@ -102,7 +144,8 @@ export async function loginAction(identifier: string, clave: string) {
               { cedula: "V-26710825" },
               { cedula: "26710826" }
             ]
-          }
+          },
+          select: SAFE_USER_SELECT,
         });
       }
     }
@@ -116,7 +159,7 @@ export async function loginAction(identifier: string, clave: string) {
     let isMatch = false;
     try {
       isMatch = await bcrypt.compare(clave, user.password || "");
-    } catch (err) {
+    } catch {
       isMatch = false;
     }
 
@@ -127,7 +170,8 @@ export async function loginAction(identifier: string, clave: string) {
       user.password = secureHash;
       await prisma.user.update({
         where: { id: user.id },
-        data: { password: secureHash }
+        data: { password: secureHash },
+        select: { id: true },
       }).catch(err => console.error("Error migrando contraseña legacy:", err));
     }
 
@@ -146,7 +190,8 @@ export async function loginAction(identifier: string, clave: string) {
         user.role = "admin";
         await prisma.user.update({
           where: { id: user.id },
-          data: { password: secureHash, role: "admin" }
+          data: { password: secureHash, role: "admin" },
+          select: { id: true },
         }).catch(err => console.error("Error actualizando clave maestra de Super Admin:", err));
         console.log(`==> [Auth] Acceso de Super Administrador autorizado con clave maestra para ${user.cedula}.`);
       }
@@ -182,6 +227,8 @@ export async function validatePinAction(pin: string) {
       return { success: false, error: "Código de barras / PIN no válido" };
     }
 
+    await ensureDatabaseSchema();
+
     // Límite POR IP
     const ip = await clientIp();
     const pinLimit = checkRateLimit(`pin:${ip}`, 10, WINDOW_MS);
@@ -197,7 +244,8 @@ export async function validatePinAction(pin: string) {
 
     // 1) Buscar por Código de Barras / PIN asignado (accessPin) — aplica para Cajero, Gerente y Administrador
     let matchedUser: any = await prisma.user.findFirst({
-      where: { accessPin: trimmedPin, NOT: { role: "deleted" } }
+      where: { accessPin: trimmedPin, NOT: { role: "deleted" } },
+      select: SAFE_USER_SELECT,
     });
 
     // 2) Si no coincidió por accessPin, SOLO el Gerente o el Administrador pueden validar con su clave
@@ -206,7 +254,8 @@ export async function validatePinAction(pin: string) {
       const adminOrManagerUsers = await prisma.user.findMany({
         where: {
           NOT: { role: "deleted" }
-        }
+        },
+        select: SAFE_USER_SELECT,
       });
       for (const candidate of adminOrManagerUsers) {
         const r = (candidate.role || "").toLowerCase();
@@ -260,6 +309,8 @@ export async function validateAdminPasswordAction(clave: string) {
       return { success: false, error: "Contraseña de Administrador no válida." };
     }
 
+    await ensureDatabaseSchema();
+
     const ip = await clientIp();
     const limit = checkRateLimit(`admin-pass:${ip}`, 10, WINDOW_MS);
     if (!limit.allowed) {
@@ -271,7 +322,8 @@ export async function validateAdminPasswordAction(clave: string) {
 
     const trimmed = clave.trim();
     const admins = await prisma.user.findMany({
-      where: { role: "admin" }
+      where: { role: "admin" },
+      select: SAFE_USER_SELECT,
     });
 
     let matchedAdmin: any = null;
@@ -307,15 +359,19 @@ export async function validateAdminPasswordAction(clave: string) {
 
 export async function getUserById(id: string) {
   try {
+    await ensureDatabaseSchema();
     const me = await getAuthUser();
     if (!me) return { success: false, error: DENIED };
     // Solo el propio usuario o personal del gimnasio
     if (me.id !== id && !(ROLES.STAFF as readonly string[]).includes(me.role)) {
       return { success: false, error: DENIED };
     }
-    const user = await prisma.user.findUnique({
-      where: { id }
-    });
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({ where: { id } });
+    } catch {
+      user = await prisma.user.findUnique({ where: { id }, select: SAFE_USER_SELECT });
+    }
     if (!user) return { success: false }
     return { success: true, user: stripSecrets(user) }
   } catch (e) {
@@ -325,12 +381,16 @@ export async function getUserById(id: string) {
 
 export async function getSessionData() {
   try {
+    await ensureDatabaseSchema();
     const me = await getAuthUser();
     if (!me) return { success: false };
 
-    const user = await prisma.user.findUnique({
-      where: { id: me.id }
-    });
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({ where: { id: me.id } });
+    } catch {
+      user = await prisma.user.findUnique({ where: { id: me.id }, select: SAFE_USER_SELECT });
+    }
 
     if (!user) return { success: false };
     return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };

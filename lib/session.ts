@@ -41,6 +41,19 @@ export async function decrypt(input: string): Promise<any> {
   }
 }
 
+async function resolveIsSecureCookie(): Promise<boolean> {
+  try {
+    const h = await headers();
+    const proto = h.get("x-forwarded-proto") || h.get("x-forwarded-protocol");
+    if (proto) {
+      return proto.toLowerCase().includes("https");
+    }
+    return process.env.NODE_ENV === "production";
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+}
+
 export async function createSession(user: Partial<User>) {
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const sessionData = {
@@ -53,19 +66,7 @@ export async function createSession(user: Partial<User>) {
   const session = await encrypt(sessionData);
 
   const cookieStore = await cookies();
-  
-  let isSecure = false;
-  try {
-    const h = await headers();
-    const proto = h.get("x-forwarded-proto") || h.get("x-forwarded-protocol");
-    if (proto) {
-      isSecure = proto.toLowerCase().includes("https");
-    } else {
-      isSecure = process.env.NODE_ENV === "production" && Boolean(process.env.APP_URL?.startsWith("https"));
-    }
-  } catch {
-    isSecure = process.env.NODE_ENV === "production";
-  }
+  const isSecure = await resolveIsSecureCookie();
 
   cookieStore.set("session", session, {
     expires,
@@ -86,10 +87,11 @@ export async function verifySession() {
 
 export async function destroySession() {
   const cookieStore = await cookies();
+  const isSecure = await resolveIsSecureCookie();
   cookieStore.set("session", "", {
     expires: new Date(0),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
   });

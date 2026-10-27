@@ -6,8 +6,7 @@ import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { FullScreenLoader } from "@/components/ui/loader"
-import { Lock, User as UserIcon, Sun, Moon, Mail, X, Eye, EyeOff, Shield } from "lucide-react"
-import Link from "next/link"
+import { Lock, User as UserIcon, Sun, Moon, Eye, EyeOff } from "lucide-react"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
@@ -23,7 +22,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showRecoveryModal, setShowRecoveryModal] = useState(false)
-  const [recoveryMessage, setRecoveryMessage] = useState("")
 
   const [recoveryInput, setRecoveryInput] = useState("")
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1)
@@ -38,11 +36,11 @@ export default function LoginPage() {
 
     try {
       const res = await login(cedula, clave)
-      if (res === true || (typeof res === 'object' && res.success)) {
-        // Redirección completa para asegurar sincronización de cookies httpOnly
-        window.location.href = "/"
+      if (res === true || (typeof res === 'object' && res?.success)) {
+        router.push("/")
+        router.refresh()
       } else {
-        const errorMsg = (typeof res === 'object' && res.error)
+        const errorMsg = (typeof res === 'object' && res?.error)
           ? res.error
           : "Cédula o contraseña incorrectos"
         setError(errorMsg)

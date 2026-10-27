@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs"
-import prisma from "@/lib/db"
+import prisma, { ensureDatabaseSchema } from "@/lib/db"
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limiter"
 import { verifySession, passwordFingerprint } from "@/lib/session"
 
@@ -32,6 +32,7 @@ export interface AuthUser {
 export type Guard = { ok: true; user: AuthUser } | { ok: false; error: string }
 
 export async function getAuthUser(): Promise<AuthUser | null> {
+  await ensureDatabaseSchema()
   const session = await verifySession()
   if (!session?.id) return null
   const user = await prisma.user.findUnique({
