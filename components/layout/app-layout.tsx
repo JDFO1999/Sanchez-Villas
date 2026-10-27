@@ -156,6 +156,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if ((user as any)?.canManageAttendance || hasPermission('CRM_MANAGE')) {
       currentNavItems.push({ name: "Asistencia", href: "/asistencia", icon: ScanLine })
     }
+    if (hasPermission('CRM_MANAGE')) {
+      currentNavItems.push({ name: "Membresías", href: "/membresias", icon: CreditCard })
+    }
+    if (hasPermission('POS_ACCESS') || hasPermission('INVENTORY_MANAGE')) {
+      currentNavItems.push({ name: "Tienda (POS)", href: "/tienda", icon: Store })
+    }
     currentNavItems.push({ name: "Comunidad", href: "/comunidad", icon: MessageSquare })
   } else {
     // Gerente, Cajero, Recepción y demás personal:

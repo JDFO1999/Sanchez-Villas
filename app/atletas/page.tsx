@@ -10,9 +10,12 @@ import { Loader } from "@/components/ui/loader"
 import { CardGridSkeleton } from "@/components/ui/skeleton"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
 import { showSweetToast } from "@/lib/toast-context"
+import { useSettings } from "@/lib/settings-context"
+import { calculateCutoffDate } from "@/lib/confirm"
 
 export default function AtletasPage() {
   const { user } = useAuth()
+  const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [coaches, setCoaches] = useState<Record<string, string>>({})
   const [coachList, setCoachList] = useState<{ id: string; name: string }[]>([])
@@ -52,6 +55,29 @@ export default function AtletasPage() {
 
   const canEdit = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
   const canRegister = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
+
+  const defaultLandingPlans = [
+    { name: "PLAN CORPORATIVO", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN MAXIMUM BASICO", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN SOLO PARA ELLAS", price: "$25", billingPeriod: "/mes" },
+    { name: "PLAN ADULTO MAYOR", price: "$25", billingPeriod: "/mes" },
+  ]
+  const rawLandingPlans = settings?.landingSettings?.plansSettings?.plans?.length
+    ? settings.landingSettings.plansSettings.plans
+    : defaultLandingPlans
+  const baseMonthlyPrice = settings?.monthlyFee || 25
+  const promotionalPlans = rawLandingPlans.map((p: any) => {
+    const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
+    return {
+      name: String(p.name || "Plan Promocional").trim(),
+      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : baseMonthlyPrice,
+      period: p.billingPeriod || p.period || "/mes",
+    }
+  })
+  const availablePlans = [
+    { name: "Plan Estándar", price: baseMonthlyPrice, period: "/mes" },
+    ...promotionalPlans.filter((p: any) => p.name.toLowerCase() !== "plan estándar")
+  ]
 
   const loadAthletes = async () => {
     try {
@@ -660,15 +686,68 @@ export default function AtletasPage() {
                     </div>
                   </div>
 
+                  {/* Botones rápidos de cálculo de Fecha de Corte */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
+                    {[
+                      { label: "+1 Mes", months: 1 },
+                      { label: "+3 Meses", months: 3 },
+                      { label: "+6 Meses", months: 6 },
+                      { label: "+1 Año", months: 12 },
+                    ].map(btn => (
+                      <button
+                        key={btn.months}
+                        type="button"
+                        onClick={() => setEditEndDate(calculateCutoffDate(editStartDate, btn.months))}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div>
-                    <label className="text-xs font-semibold mb-1 block">Nombre del Plan / Membresía</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Plan Mensual, Plan Estándar..."
+                    <label className="text-xs font-semibold mb-1.5 block">Seleccionar Plan / Membresía</label>
+                    <select
                       value={editPlanName}
                       onChange={e => setEditPlanName(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                      className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
+                    >
+                      {availablePlans.map((plan) => (
+                        <option key={plan.name} value={plan.name}>
+                          {plan.name} — {settings?.storeCurrency || "$"}{plan.price} {plan.period}
+                        </option>
+                      ))}
+                      {editPlanName && !availablePlans.some(p => p.name === editPlanName) && (
+                        <option value={editPlanName}>{editPlanName}</option>
+                      )}
+                    </select>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {availablePlans.map((plan) => {
+                        const isSelected = editPlanName === plan.name
+                        return (
+                          <button
+                            key={plan.name}
+                            type="button"
+                            onClick={() => setEditPlanName(plan.name)}
+                            className={`text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+                              isSelected
+                                ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                                : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs block truncate">{plan.name}</span>
+                              <span className="text-[11px] font-black text-primary">
+                                {settings?.storeCurrency || "$"}{plan.price} <span className="text-[10px] font-normal text-muted-foreground">{plan.period}</span>
+                              </span>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               )}

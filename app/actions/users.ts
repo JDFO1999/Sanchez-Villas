@@ -544,13 +544,24 @@ export async function getAthleteById(id: string) {
   const g = await guardSelfOr(id, ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
   try {
+    const canSeeTransactions = g.user.id === id || ['admin', 'gerente', 'cajero', 'recepcion'].includes(g.user.role)
     const athlete = await prisma.user.findUnique({
       where: { id },
       include: {
         memberships: { orderBy: { endDate: 'desc' } },
         coach: true,
         biometrics: { orderBy: { date: 'asc' } },
-        attendances: { orderBy: { date: 'desc' } }
+        attendances: { orderBy: { date: 'desc' } },
+        ...(canSeeTransactions ? {
+          customerTx: {
+            orderBy: { date: 'desc' },
+            take: 30,
+            include: {
+              items: true,
+              cashier: { select: { name: true } }
+            }
+          }
+        } : {})
       }
     })
 

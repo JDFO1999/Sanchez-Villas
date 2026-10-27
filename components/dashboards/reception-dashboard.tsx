@@ -201,7 +201,7 @@ export function ReceptionDashboard() {
     const targetCode = (code || universalSearch).trim()
     if (!targetCode) return
 
-    const { swalTheme, themeColor } = await import("@/lib/confirm")
+    const { swalTheme, themeColor, playCheckInSound } = await import("@/lib/confirm")
     const theme = swalTheme()
 
     let managerOrAdminKey: string | undefined = undefined
@@ -237,6 +237,7 @@ export function ReceptionDashboard() {
     const res = await checkInByCedula(targetCode, managerOrAdminKey, Boolean(code))
 
     if (res.success) {
+      playCheckInSound("success")
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -255,6 +256,7 @@ export function ReceptionDashboard() {
       setShowScanner(false)
       fetchTodayData()
     } else {
+      playCheckInSound("error")
       Swal.fire({
         title: "No se pudo recepcionar",
         text: res.error || "Error al procesar la entrada",

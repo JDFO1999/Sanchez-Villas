@@ -62,3 +62,60 @@ export async function askPassword({ title, text, error }: { title: string; text?
   })
   return res.isConfirmed ? String(res.value) : null
 }
+
+/**
+ * Reproduce un sonido de validación en recepción (Web Audio API):
+ * - 'success': Beep corto ascendente de acceso aprobado (verde)
+ * - 'error': Doble beep grave de alerta por membresía vencida o denegada (rojo)
+ */
+export function playCheckInSound(type: "success" | "error") {
+  if (typeof window === "undefined") return
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+
+    if (type === "success") {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(880, ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(1480, ctx.currentTime + 0.14)
+      gain.gain.setValueAtTime(0.45, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.16)
+    } else {
+      // Doble beep de alerta (rojo)
+      ;[0, 0.18].forEach((offset) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.type = "sawtooth"
+        osc.frequency.setValueAtTime(220, ctx.currentTime + offset)
+        osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + offset + 0.13)
+        gain.gain.setValueAtTime(0.45, ctx.currentTime + offset)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + offset + 0.14)
+        osc.start(ctx.currentTime + offset)
+        osc.stop(ctx.currentTime + offset + 0.14)
+      })
+    }
+  } catch {}
+}
+
+/**
+ * Calcula automáticamente la Fecha de Corte sumando N meses a la fecha de inicio (YYYY-MM-DD).
+ */
+export function calculateCutoffDate(startDateStr: string, monthsToAdd: number): string {
+  const base = startDateStr && /^\d{4}-\d{2}-\d{2}$/.test(startDateStr)
+    ? new Date(`${startDateStr}T12:00:00`)
+    : new Date()
+  if (isNaN(base.getTime())) return new Date().toISOString().split("T")[0]
+  const result = new Date(base)
+  result.setMonth(result.getMonth() + monthsToAdd)
+  return result.toISOString().split("T")[0]
+}
+

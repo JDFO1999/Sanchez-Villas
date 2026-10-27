@@ -10,6 +10,7 @@ import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Came
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
+import { calculateCutoffDate } from "@/lib/confirm"
 
 type PaymentMethodType = 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
 
@@ -1370,6 +1371,26 @@ export default function MembresíasPage() {
                       className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Botones rápidos de cálculo de Fecha de Corte */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
+                  {[
+                    { label: "+1 Mes", months: 1 },
+                    { label: "+3 Meses", months: 3 },
+                    { label: "+6 Meses", months: 6 },
+                    { label: "+1 Año", months: 12 },
+                  ].map(btn => (
+                    <button
+                      key={btn.months}
+                      type="button"
+                      onClick={() => setEditEndDate(calculateCutoffDate(editStartDate, btn.months))}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
                 </div>
 
                 <div>

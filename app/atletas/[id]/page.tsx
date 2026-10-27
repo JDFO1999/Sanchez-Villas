@@ -5,8 +5,9 @@ import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare } from "lucide-react"
+import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare, CreditCard, Receipt } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
+import { calculateCutoffDate } from "@/lib/confirm"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import { AttendanceHistoryModal } from "@/components/athletes/attendance-history-modal"
@@ -1228,6 +1229,76 @@ export default function AtletaPerfilPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Historial de Pagos y Renovaciones (Oculto para Entrenadores) */}
+          {user?.role !== 'coach' && user?.role !== 'employee' && (
+            <Card className="glass border-primary/20">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-primary" /> Historial de Pagos y Renovaciones
+                </CardTitle>
+                {Array.isArray((athlete as any).customerTx) && (athlete as any).customerTx.length > 0 && (
+                  <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-primary/10 text-primary border border-primary/20">
+                    {(athlete as any).customerTx.length} factura(s)
+                  </span>
+                )}
+              </CardHeader>
+              <CardContent>
+                {!Array.isArray((athlete as any).customerTx) || (athlete as any).customerTx.length === 0 ? (
+                  <div className="py-8 text-center rounded-xl bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10">
+                    <CreditCard className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-foreground">Sin facturas o renovaciones registradas</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Los pagos de planes, renovaciones y compras realizadas por este atleta aparecerán aquí.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    {(athlete as any).customerTx.map((tx: any) => {
+                      const itemsSummary = Array.isArray(tx.items) && tx.items.length > 0
+                        ? tx.items.map((it: any) => `${it.qty}x ${it.name}`).join(", ")
+                        : "Pago / Renovación"
+                      const cleanRef = tx.reference
+                        ? String(tx.reference).replace(/\s*\[VUELTO:.*?\]/g, "").trim()
+                        : ""
+                      return (
+                        <div
+                          key={tx.id}
+                          className="p-3.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-primary/40 transition"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-sm text-foreground truncate">{itemsSummary}</span>
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                                {tx.paymentMethod || "Efectivo"}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span>📅 {new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {cleanRef && (
+                                <span className="font-mono text-[11px] text-foreground/80">Ref: {cleanRef}</span>
+                              )}
+                              {tx.cashier?.name && (
+                                <span>👤 Cobrado por: <strong className="text-foreground">{tx.cashier.name}</strong></span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="sm:text-right shrink-0">
+                            <span className="text-base font-black text-emerald-500">
+                              {settings?.storeCurrency || "$"}{Number(tx.total || 0).toFixed(2)}
+                            </span>
+                            <span className="block text-[10px] uppercase font-bold text-muted-foreground">
+                              {tx.status === "COMPLETED" ? "Completado" : tx.status === "PENDING_DELIVERY" ? "Por Retirar" : tx.status}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -1442,6 +1513,26 @@ export default function AtletaPerfilPage() {
                     </div>
                   </div>
 
+                  {/* Botones rápidos de cálculo de Fecha de Corte */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
+                    {[
+                      { label: "+1 Mes", months: 1 },
+                      { label: "+3 Meses", months: 3 },
+                      { label: "+6 Meses", months: 6 },
+                      { label: "+1 Año", months: 12 },
+                    ].map(btn => (
+                      <button
+                        key={btn.months}
+                        type="button"
+                        onClick={() => setEditMembEnd(calculateCutoffDate(editMembStart, btn.months))}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div>
                     <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
                     <select
@@ -1537,6 +1628,26 @@ export default function AtletaPerfilPage() {
                     className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Botones rápidos de cálculo de Fecha de Corte */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
+                {[
+                  { label: "+1 Mes", months: 1 },
+                  { label: "+3 Meses", months: 3 },
+                  { label: "+6 Meses", months: 6 },
+                  { label: "+1 Año", months: 12 },
+                ].map(btn => (
+                  <button
+                    key={btn.months}
+                    type="button"
+                    onClick={() => setEditMembEnd(calculateCutoffDate(editMembStart, btn.months))}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                  >
+                    {btn.label}
+                  </button>
+                ))}
               </div>
 
               <div>

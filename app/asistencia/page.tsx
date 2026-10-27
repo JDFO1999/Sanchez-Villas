@@ -22,7 +22,7 @@ import {
 import { Scanner } from "@yudiel/react-qr-scanner"
 import Swal from "sweetalert2"
 import { useAuth } from "@/lib/auth-context"
-import { swalTheme, themeColor } from "@/lib/confirm"
+import { swalTheme, themeColor, playCheckInSound } from "@/lib/confirm"
 import { getAttendanceReportAction, checkInByCedula } from "@/app/actions/attendance"
 import { Card } from "@/components/ui/card"
 import { Loader } from "@/components/ui/loader"
@@ -158,21 +158,7 @@ export default function AsistenciaPage() {
     try {
       const res = await checkInByCedula(targetCode, managerOrAdminKey, !isManual)
       if (res.success) {
-        // Sonido de éxito
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.type = "sine"
-          osc.frequency.setValueAtTime(880, ctx.currentTime)
-          osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1)
-          gain.gain.setValueAtTime(0.5, ctx.currentTime)
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
-          osc.start()
-          osc.stop(ctx.currentTime + 0.1)
-        } catch (_) {}
+        playCheckInSound("success")
 
         Swal.fire({
           toast: true,
@@ -191,21 +177,7 @@ export default function AsistenciaPage() {
         setShowCheckInModal(false)
         loadReport(selectedDate)
       } else {
-        // Sonido de error
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.type = "sawtooth"
-          osc.frequency.setValueAtTime(160, ctx.currentTime)
-          osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.25)
-          gain.gain.setValueAtTime(0.5, ctx.currentTime)
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25)
-          osc.start()
-          osc.stop(ctx.currentTime + 0.25)
-        } catch (_) {}
+        playCheckInSound("error")
 
         Swal.fire({
           title: "Acceso Denegado",

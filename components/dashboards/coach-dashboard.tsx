@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, CheckCircle2, FileEdit, UserCheck, Plus, Trash2, X, Eye, EyeOff, Dumbbell, CalendarDays } from "lucide-react"
+import { Users, CheckCircle2, FileEdit, UserCheck, Plus, Trash2, X, Eye, EyeOff, Dumbbell, CalendarDays, QrCode, Camera, ScanLine } from "lucide-react"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import { getCoachAthletes, getCoachAssignedRoutines, createRoutine, createDiet } from "@/app/actions/routines"
 import { QRCodeSVG } from "qrcode.react"
 import { athleteService } from "@/lib/data-service"
 import { Loader } from "@/components/ui/loader"
+import { QRScanner } from "@/components/qr-scanner"
+import { playCheckInSound, swalTheme, themeColor } from "@/lib/confirm"
+import Swal from "sweetalert2"
 import Link from "next/link"
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -21,8 +24,118 @@ export function CoachDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   
   const [showQRModal, setShowQRModal] = useState(false)
+  const [dynamicQrToken, setDynamicQrToken] = useState<string>("")
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(60)
   const [coachProfile, setCoachProfile] = useState<any>(null)
   const [showTopAthletes, setShowTopAthletes] = useState(true)
+
+  // Estados para Recepcionar Atletas desde el Dashboard del Coach (cuando tiene permiso activo)
+  const [showScanner, setShowScanner] = useState(false)
+  const [universalSearch, setUniversalSearch] = useState("")
+
+  const canReceiveAthletes = Boolean(
+    (user as any)?.canManageAttendance ||
+    coachProfile?.canManageAttendance ||
+    user?.permissions?.includes("CRM_MANAGE")
+  )
+
+  useEffect(() => {
+    let timer: any
+    let countdown: any
+
+    if (showQRModal && user) {
+      const fetchToken = async () => {
+        try {
+          const { getAthleteDynamicQrToken } = await import("@/app/actions/attendance")
+          const res = await getAthleteDynamicQrToken(user.id, user.cedula)
+          if (res.success && res.token) {
+            setDynamicQrToken(res.token)
+            setQrSecondsLeft(60)
+          }
+        } catch {
+          setDynamicQrToken(user.cedula)
+        }
+      }
+
+      fetchToken()
+      timer = setInterval(fetchToken, 60000)
+      countdown = setInterval(() => {
+        setQrSecondsLeft((prev) => (prev > 1 ? prev - 1 : 60))
+      }, 1000)
+    }
+
+    return () => {
+      if (timer) clearInterval(timer)
+      if (countdown) clearInterval(countdown)
+    }
+  }, [showQRModal, user])
+
+  const handleUniversalCheckIn = async (e?: React.FormEvent, code?: string) => {
+    if (e) e.preventDefault()
+    const targetCode = (code || universalSearch).trim()
+    if (!targetCode) return
+
+    const theme = swalTheme()
+    let managerOrAdminKey: string | undefined = undefined
+
+    if (!code) {
+      const { value: key } = await Swal.fire({
+        title: "Autorización Requerida",
+        html: `
+          <div class="text-sm text-muted-foreground text-left space-y-2 mb-2">
+            <p>Para recepcionar manualmente por cédula a <b>C.I. ${targetCode}</b>, ingresa la clave o PIN generado de un <b>Gerente</b> o <b>Administrador</b>:</p>
+          </div>
+        `,
+        input: "password",
+        inputPlaceholder: "Clave o PIN generado...",
+        inputAttributes: {
+          autocomplete: "off",
+          autocapitalize: "off",
+        },
+        showCancelButton: true,
+        ...theme,
+        confirmButtonText: "Autorizar y Recepcionar",
+        cancelButtonText: "Cancelar",
+        reverseButtons: true,
+        inputValidator: (v) => (!v || !v.trim() ? "Debes ingresar la clave o PIN de autorización" : undefined),
+      })
+
+      if (!key) return
+      managerOrAdminKey = key.trim()
+    }
+
+    const { checkInByCedula } = await import("@/app/actions/attendance")
+    const res = await checkInByCedula(targetCode, managerOrAdminKey, Boolean(code))
+
+    if (res.success) {
+      playCheckInSound("success")
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 3500,
+        timerProgressBar: true,
+        icon: "success",
+        title: `✅ Entrada: ${res.user?.name} (${res.user?.role === "athlete" ? "Atleta" : "Personal"})`,
+        text: res.authorizedBy ? `Autorizado por: ${res.authorizedBy}` : undefined,
+        ...theme,
+        customClass: {
+          popup: "border border-black/10 dark:border-white/10 rounded-xl shadow-xl glass",
+        },
+      })
+      setUniversalSearch("")
+      setShowScanner(false)
+    } else {
+      playCheckInSound("error")
+      Swal.fire({
+        title: "Acceso Denegado",
+        text: res.error || "No se pudo recepcionar al atleta (verifica si su membresía está activa).",
+        icon: "error",
+        ...theme,
+        confirmButtonColor: themeColor("destructive") || "#ef4444",
+      })
+    }
+  }
 
 
   const [showModal, setShowModal] = useState(false)
@@ -180,7 +293,7 @@ export function CoachDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
               Atletas Asignados
-              <Link href="/mis-atletas" className="p-1 hover:bg-primary/20 hover:text-primary rounded transition" title="Ver Lista Completa">
+              <Link href="/atletas" className="p-1 hover:bg-primary/20 hover:text-primary rounded transition" title="Ver Lista Completa">
                 <Eye className="w-4 h-4" />
               </Link>
             </CardTitle>
@@ -191,6 +304,68 @@ export function CoachDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Módulo Compacto de Recepción / Escáner QR para Entrenadores Autorizados (Sin Facturación ni Caja) */}
+      {canReceiveAthletes && (
+        <div className="flex justify-center mb-6">
+          <Card className="w-full max-w-lg rounded-3xl border-2 border-primary/30 bg-card p-6 sm:p-7 shadow-xl relative overflow-hidden text-center space-y-5">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="space-y-2 relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-[11px] font-black uppercase tracking-wider mb-1">
+                <ScanLine className="w-3.5 h-3.5" /> Permiso de Recepción Activo
+              </div>
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-primary shadow-inner">
+                <QrCode className="h-7 w-7 text-primary" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                Recepcionar Atleta (Acceso QR)
+              </h2>
+              <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                Escanea el código QR del atleta para validar su entrada en 1 toque. (Solo control de asistencia, sin acceso a caja ni facturación).
+              </p>
+            </div>
+
+            <div className="space-y-3.5 relative z-10">
+              <button
+                type="button"
+                onClick={() => setShowScanner(true)}
+                className="w-full border-2 border-primary text-primary hover:bg-primary/10 rounded-2xl py-3.5 px-4 font-bold flex items-center justify-center gap-2.5 transition shadow-sm group text-sm sm:text-base cursor-pointer"
+              >
+                <Camera className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                Escanear Código QR
+              </button>
+
+              <div className="relative flex items-center justify-center py-0.5">
+                <div className="border-t border-black/10 dark:border-white/10 w-full" />
+                <span className="bg-card px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                  O ingreso por cédula
+                </span>
+                <div className="border-t border-black/10 dark:border-white/10 w-full" />
+              </div>
+
+              <form onSubmit={handleUniversalCheckIn} className="space-y-2.5">
+                <input
+                  type="text"
+                  placeholder="Escribe la cédula para recepcionar..."
+                  value={universalSearch}
+                  onChange={(e) => setUniversalSearch(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl p-3 text-center text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition"
+                />
+
+                <button
+                  type="submit"
+                  className="w-full border-2 border-primary text-primary hover:bg-primary/10 rounded-2xl py-3 px-4 font-bold flex items-center justify-center gap-2 transition shadow-sm text-sm cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  Recepcionar por Cédula
+                </button>
+              </form>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Top 10 Nuevos Atletas */}
       <Card className="shadow-none border border-black/10 dark:border-white/10 rounded-xl bg-transparent mb-6 card-gold-gradient relative overflow-hidden">
@@ -338,22 +513,47 @@ export function CoachDashboard() {
 
       
       {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
-          <div className="bg-white rounded-xl p-8 max-w-sm w-full flex flex-col items-center shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-black text-black mb-2 text-center">Tu Código de Acceso</h3>
-            <p className="text-gray-500 text-sm mb-6 text-center">Muéstralo en recepción para registrar tu asistencia o pagos.</p>
-            
-            <div className="bg-white p-4 rounded-xl shadow-inner border-2 border-gray-100 mb-6">
-              <QRCodeSVG value={user?.cedula || ''} size={200} level="H" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setShowQRModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full flex flex-col items-center shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-black text-black mb-1 text-center">Tu Código de Acceso</h3>
+            <p className="text-gray-500 text-xs mb-4 text-center">Muéstralo en recepción para registrar tu asistencia.</p>
+
+            <div className="w-full flex items-center justify-between text-[11px] font-bold text-zinc-700 mb-2 pb-1.5 border-b border-zinc-200">
+              <span className="flex items-center gap-1.5 text-emerald-600">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Código Dinámico en Vivo</span>
+              </span>
+              <span className="font-mono text-zinc-600 font-bold bg-zinc-100 px-2 py-0.5 rounded-md">
+                {qrSecondsLeft}s
+              </span>
             </div>
             
-            <p className="text-xl font-bold text-black tracking-widest mb-6 border-b-2 border-primary pb-2">{user?.cedula}</p>
+            <div className="bg-white p-3 rounded-xl shadow-inner border-2 border-dashed border-gray-200 mb-3">
+              <QRCodeSVG value={dynamicQrToken || user?.cedula || ''} size={200} level="H" includeMargin={true} />
+            </div>
+
+            <div className="w-full h-1.5 bg-zinc-200 rounded-full overflow-hidden mb-3">
+              <div 
+                className="h-full bg-primary transition-all duration-1000 ease-linear rounded-full"
+                style={{ width: `${Math.max(0, Math.min(100, (qrSecondsLeft / 60) * 100))}%` }}
+              />
+            </div>
             
-            <button onClick={() => setShowQRModal(false)} className="w-full bg-black text-white font-bold py-3 rounded-lg hover:bg-gray-800 transition">
+            <p className="text-xl font-bold text-black tracking-widest mb-4 border-b-2 border-primary pb-1 font-mono">{user?.cedula}</p>
+            
+            <button onClick={() => setShowQRModal(false)} className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition">
               Cerrar
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal Escáner QR para Recepcionar Atletas */}
+      {showScanner && (
+        <QRScanner
+          onScan={(code) => handleUniversalCheckIn(undefined, code)}
+          onClose={() => setShowScanner(false)}
+        />
       )}
 
       {showModal && (
