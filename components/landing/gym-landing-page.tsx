@@ -12,8 +12,59 @@ import { useSettings } from "@/lib/settings-context"
 
 export function GymLandingPage() {
   const { settings } = useSettings()
+
+  const siteUrl = "https://www.maximumevolutionfit.com"
+  const appName = settings.appName || "Maximum Evolution Fit"
+  const address = settings.landingSettings?.map?.address || (settings as any).storeAddress || "Avenida Principal, Centro Deportivo, Edificio Gym, Nivel 1"
+  const phone = settings.landingSettings?.map?.phone || (settings as any).phone || "+58 412 123 4567"
+  const socialLinks = settings.footerSocialLinks?.map((l: any) => l.url).filter(Boolean) || []
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ExerciseGym",
+    "name": appName,
+    "url": siteUrl,
+    "logo": settings.logoUrl || `${siteUrl}/api/favicon`,
+    "image": settings.landingSettings?.heroSlides?.[0]?.url || settings.logoUrl || `${siteUrl}/api/favicon`,
+    "description": settings.landingSettings?.tagline || "Gimnasio y centro de entrenamiento especializado en musculación, acondicionamiento físico, entrenadores certificados y planes de membresía.",
+    "telephone": phone,
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": address,
+      "addressCountry": "VE"
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "06:00",
+        "closes": "22:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Saturday"],
+        "opens": "07:00",
+        "closes": "18:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Sunday"],
+        "opens": "08:00",
+        "closes": "14:00"
+      }
+    ],
+    "sameAs": socialLinks
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary selection:text-primary-foreground">
+      {/* STRUCTURED DATA FOR GOOGLE SEARCH & MAPS */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       {/* TOP NAVBAR */}
       <LandingNavbar />
 

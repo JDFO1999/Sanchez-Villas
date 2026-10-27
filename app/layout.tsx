@@ -10,23 +10,91 @@ import { getSystemSettingsAction } from "@/app/actions/settings";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = process.env.APP_URL || "https://www.maximumevolutionfit.com";
+  const defaultTitle = "Maximum Evolution Fit | Gimnasio, Fitness y Entrenamiento";
+  const defaultDesc = "Transforma tu cuerpo y mente en Maximum Evolution Fit. Planes de musculación, entrenamiento funcional, pesas, biometría y los mejores entrenadores.";
+
   try {
     const res = await getSystemSettingsAction();
     const s = res?.settings;
+    const appName = s?.appName || "Maximum Evolution Fit";
+    const title = `${appName} | Gimnasio, Fitness y Entrenamiento`;
+    const description = s?.landingSettings?.tagline || defaultDesc;
+
     const rawIcon = s?.faviconUrl || s?.logoUrl || s?.logoUrlDark || "";
     const versionHash = rawIcon
       ? Buffer.from(rawIcon.slice(-32)).toString("hex").slice(0, 12)
       : "default";
     const iconUrl = `/api/favicon?v=${versionHash}`;
+    const ogImage = s?.logoUrl || s?.logoUrlDark || `${siteUrl}/api/favicon`;
 
     return {
-      title: s?.appName ? `${s.appName} - MaximumFitAPP` : "MaximumFitAPP - Sistema de Gestión",
-      description: s?.landingSettings?.tagline || "Sistema integral de entrenamiento y administración para gimnasios",
-      applicationName: "MaximumFitAPP",
+      metadataBase: new URL(siteUrl),
+      title: {
+        default: title,
+        template: `%s | ${appName}`,
+      },
+      description,
+      applicationName: appName,
+      keywords: [
+        "gimnasio",
+        "fitness",
+        "musculación",
+        "entrenamiento funcional",
+        "planes de gimnasio",
+        "pesas",
+        "coach personalizado",
+        "entrenador personal",
+        appName,
+        "Maximum Evolution Fit",
+        "gimnasio cerca de mi",
+        "membresías fitness",
+        "salud y bienestar",
+        "bodybuilding",
+      ],
+      authors: [{ name: appName }],
+      creator: appName,
+      publisher: appName,
+      alternates: {
+        canonical: "/",
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+        },
+      },
+      openGraph: {
+        type: "website",
+        locale: "es_VE",
+        url: siteUrl,
+        siteName: appName,
+        title,
+        description,
+        images: [
+          {
+            url: ogImage,
+            width: 1200,
+            height: 630,
+            alt: appName,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [ogImage],
+      },
       appleWebApp: {
         capable: true,
         statusBarStyle: "black-translucent",
-        title: "MaximumFitAPP",
+        title: appName,
       },
       icons: {
         icon: [{ url: iconUrl }],
@@ -36,13 +104,35 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   } catch {
     return {
-      title: "MaximumFitAPP - Sistema de Gestión",
-      description: "Sistema integral de entrenamiento y administración para gimnasios",
-      applicationName: "MaximumFitAPP",
+      metadataBase: new URL(siteUrl),
+      title: defaultTitle,
+      description: defaultDesc,
+      applicationName: "Maximum Evolution Fit",
+      keywords: ["gimnasio", "fitness", "musculación", "entrenadores", "pesas"],
+      alternates: {
+        canonical: "/",
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+      openGraph: {
+        type: "website",
+        locale: "es_VE",
+        url: siteUrl,
+        siteName: "Maximum Evolution Fit",
+        title: defaultTitle,
+        description: defaultDesc,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: defaultTitle,
+        description: defaultDesc,
+      },
       appleWebApp: {
         capable: true,
         statusBarStyle: "black-translucent",
-        title: "MaximumFitAPP",
+        title: "Maximum Evolution Fit",
       },
       icons: {
         icon: "/api/favicon",
