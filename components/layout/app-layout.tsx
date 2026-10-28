@@ -39,6 +39,24 @@ const navItems = [
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const pathname = usePathname()
+
+  // Cerrar automáticamente la barra lateral en móviles al cambiar de ruta
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
+
+  // Bloquear el scroll del fondo cuando la barra lateral móvil está abierta
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [sidebarOpen])
 
   useEffect(() => {
     const stored = localStorage.getItem('gympro_sidebar_collapsed')
@@ -52,8 +70,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsSidebarCollapsed(newState)
     localStorage.setItem('gympro_sidebar_collapsed', String(newState))
   }
-
-  const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const { user, isLoading, logout, isLoggingOut } = useAuth()
   const { settings } = useSettings()
@@ -278,27 +294,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {isLoggingOut && <FullScreenLoader text="Cerrando sesión..." progressive={true} />}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card transition-[width,transform] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${isSidebarCollapsed ? "w-16 lg:w-16" : "w-64"} lg:static lg:translate-x-0`}
+        className={`print:hidden fixed inset-y-0 left-0 z-50 bg-card transition-[width,transform] duration-300 ease-in-out ${
+          sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        } ${isSidebarCollapsed ? "w-72 lg:w-16" : "w-72 lg:w-64"} lg:static lg:translate-x-0 h-full max-h-[100dvh] flex flex-col`}
       >
         <div className="absolute right-0 top-0 w-[1px] h-full bg-gradient-to-b from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-        <div className="flex flex-col h-full">
-          <div className={`flex items-center min-h-[4rem] py-2 relative gap-2 ${isSidebarCollapsed ? 'justify-center px-0' : 'px-4'}`}>
+        <div className="flex flex-col h-full overflow-hidden">
+          <div className={`flex items-center min-h-[4rem] py-2 relative gap-2 shrink-0 ${isSidebarCollapsed ? 'justify-between lg:justify-center px-4 lg:px-0' : 'justify-between px-4'}`}>
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
             
-            {/* Solo se muestra el Logo / Marca cuando la barra lateral está desplegada */}
-            {!isSidebarCollapsed && (
-              <div className="flex-1 min-w-0 transition-all duration-300 flex items-center">
-                <LogoComponent />
-              </div>
-            )}
+            {/* Solo se oculta el Logo en escritorio cuando la barra está colapsada; en móvil SIEMPRE visible */}
+            <div className={`flex-1 min-w-0 transition-all duration-300 flex items-center ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+              <LogoComponent />
+            </div>
 
             <button aria-label="Expandir o colapsar menú" className={`hidden lg:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors shrink-0 ${isSidebarCollapsed ? 'mx-auto' : ''}`}
               onClick={toggleSidebarCollapse}
@@ -306,21 +320,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <button aria-label="Cerrar menú" className="lg:hidden text-muted-foreground hover:text-foreground p-2"
+            <button
+              aria-label="Cerrar menú"
+              className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors cursor-pointer touch-manipulation"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-6 w-6" />
             </button>
           </div>
 
-          <div className="flex flex-col flex-1 justify-between py-4 overflow-y-auto">
-            <nav className="space-y-1 px-2">
+          <div className="flex flex-col flex-1 justify-between py-4 px-2 overflow-y-auto overscroll-contain touch-auto">
+            <nav className="space-y-1">
               {currentNavItems.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                     aria-current={isActive ? "page" : undefined}
                     className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isActive
@@ -329,13 +346,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     <item.icon className={`h-5 w-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-primary' : ''}`} />
-                    <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "sr-only" : "opacity-100 w-auto"}`}>
+                    <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "lg:sr-only" : "opacity-100 w-auto"}`}>
                       {item.name}
                     </span>
 
-                    {/* Tooltip flotante enriquecido cuando la barra está colapsada */}
+                    {/* Tooltip flotante enriquecido cuando la barra está colapsada (SOLO en pantallas grandes) */}
                     {isSidebarCollapsed && (
-                      <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-card/95 text-foreground text-xs font-semibold rounded-lg shadow-xl border border-border whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 backdrop-blur-md">
+                      <span className="hidden lg:block absolute left-full ml-3 px-2.5 py-1.5 bg-card/95 text-foreground text-xs font-semibold rounded-lg shadow-xl border border-border whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 backdrop-blur-md">
                         {item.name}
                       </span>
                     )}
@@ -344,26 +361,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               })}
             </nav>
 
-            <div className={`px-2 py-4 relative flex flex-col gap-3 ${isSidebarCollapsed ? 'items-center' : ''}`}>
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-              <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between px-1'}`}>
-                {!isSidebarCollapsed && (
-                  <span className="text-sm text-muted-foreground font-medium">Tema</span>
-                )}
-                <button aria-label="Cambiar tema" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+            <div className={`pt-4 border-t border-black/10 dark:border-white/10 flex flex-col gap-3 pb-8 lg:pb-2 ${isSidebarCollapsed ? 'lg:items-center' : ''}`}>
+              <div className={`flex items-center ${isSidebarCollapsed ? 'lg:justify-center justify-between px-1' : 'justify-between px-1'}`}>
+                <span className={`text-sm text-muted-foreground font-medium ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>Tema</span>
+                <button
+                  aria-label="Cambiar tema"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="p-2 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
                   title="Cambiar tema"
                 >
                   {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </button>
               </div>
-              <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent my-1"></div>
               <button
-                onClick={() => logout()}
-                className={`text-sm text-destructive hover:text-destructive font-medium flex items-center gap-2 px-1 ${isSidebarCollapsed ? 'justify-center' : 'text-left'}`}
+                onClick={() => {
+                  setSidebarOpen(false)
+                  logout()
+                }}
+                className={`text-sm text-destructive hover:text-destructive/80 font-medium flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer ${isSidebarCollapsed ? 'lg:justify-center' : 'text-left'}`}
                 title="Cerrar sesión"
               >
                 <Unplug className="h-5 w-5 shrink-0" />
-                <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "sr-only" : "opacity-100 w-auto"}`}>
+                <span className={`transition-all duration-300 whitespace-nowrap ${isSidebarCollapsed ? "lg:sr-only" : "opacity-100 w-auto"}`}>
                   Cerrar Sesión
                 </span>
               </button>
@@ -373,26 +392,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between h-16 px-3 sm:px-6 relative bg-card">
+        <header className="flex items-center justify-between h-16 px-2 sm:px-6 relative bg-card z-30">
           <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button aria-label="Abrir menú" className="lg:hidden text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors"
+          
+          {/* Botón de Menú hamburguesa (z-20 relativo para estar siempre libre de bloqueos) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative z-20">
+            <button
+              aria-label="Abrir menú lateral"
+              className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg transition-colors cursor-pointer touch-manipulation"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
           </div>
 
-          {/* Tasa Oficial BCV / Divisas centrada en el Navbar */}
-          <div className="flex-1 flex justify-center items-center px-2 min-w-0">
+          {/* Tasa Oficial BCV / Divisas centrada en el Navbar (con contenedor seguro que no bloquea clics laterales) */}
+          <div className="flex-1 flex justify-center items-center px-1 sm:px-2 min-w-0 relative z-10 pointer-events-auto overflow-hidden">
             <BcvRateBadge />
           </div>
 
           {user && (
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative z-20">
               <Link
                 href={user.role !== 'athlete' ? '/perfil' : `/atletas/${user.id}`}
-                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
+                className="flex items-center gap-2 sm:gap-2.5 p-1 sm:p-1.5 sm:pr-3 rounded-xl bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 transition-colors border border-black/5 dark:border-white/5"
                 title="Ver Perfil"
               >
                 {user.profilePicture && !navImgError ? (
@@ -408,7 +431,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
                 <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-bold leading-tight text-foreground">{user.name}</span>
+                  <span className="text-xs font-bold leading-tight text-foreground truncate max-w-[120px]">{user.name}</span>
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold">{getRoleLabel(user.role)}</span>
                 </div>
               </Link>
