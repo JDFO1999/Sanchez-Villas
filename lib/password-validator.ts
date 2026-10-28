@@ -134,15 +134,15 @@ export function validatePassword(password: string, cedula?: string): PasswordVal
 }
 
 /**
- * Valida que la cédula contenga exactamente 8 dígitos numéricos.
+ * Valida que la cédula contenga 7 u 8 dígitos numéricos.
  */
 export function validateCedula(cedula: string): { isValid: boolean; cleanCedula: string; error?: string } {
   const cleanCedula = String(cedula || "").replace(/\D/g, "").slice(0, 8)
-  if (cleanCedula.length !== 8) {
+  if (cleanCedula.length < 7 || cleanCedula.length > 8) {
     return {
       isValid: false,
       cleanCedula,
-      error: "La cédula debe tener exactamente 8 dígitos numéricos (ej. 12345678).",
+      error: "La cédula debe tener 7 u 8 dígitos numéricos (ej. 12345678).",
     }
   }
   return {

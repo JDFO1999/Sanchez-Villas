@@ -10,9 +10,10 @@ import Link from "next/link"
 import { useTheme } from "next-themes"
 import { getPublicCoaches, createAthlete } from "@/app/actions/users"
 import { validatePassword } from "@/lib/password-validator"
+import { showSweetToast } from "@/lib/toast-context"
 
 export default function RegistroPage() {
-  const { login } = useAuth()
+  const { user, login } = useAuth()
   const { settings } = useSettings()
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -49,27 +50,46 @@ export default function RegistroPage() {
     : (settings.logoUrl || settings.logoUrlDark)
 
   const cleanCedula = cedula.replace(/\D/g, "").slice(0, 8)
-  const isCedulaComplete = cleanCedula.length === 8
+  const isCedulaComplete = cleanCedula.length >= 7 && cleanCedula.length <= 8
   const pwdValidation = validatePassword(clave, cleanCedula)
   const claveMatch = clave && confirmClave && clave === confirmClave
-  const canSubmit = isCedulaComplete && pwdValidation.isValid && Boolean(claveMatch) && Boolean(nombre.trim()) && Boolean(correo.trim())
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    if (cleanCedula.length !== 8) {
-      setError("La cédula de identidad debe contener exactamente 8 dígitos numéricos (ej. 12345678).")
+    if (!nombre.trim()) {
+      const msg = "Por favor ingresa tu nombre y apellido."
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+    }
+
+    if (cleanCedula.length < 7 || cleanCedula.length > 8) {
+      const msg = "La cédula de identidad debe contener 7 u 8 dígitos numéricos (ej. 12345678)."
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+    }
+
+    if (!correo.trim()) {
+      const msg = "Por favor ingresa tu correo electrónico."
+      setError(msg)
+      showSweetToast(msg, "warning")
       return
     }
 
     if (!pwdValidation.isValid) {
-      setError(pwdValidation.error || "La contraseña debe ser más segura y cumplir con todos los requisitos.")
+      const msg = pwdValidation.error || "La contraseña debe tener al menos 8 caracteres, mayúscula, minúscula y número."
+      setError(msg)
+      showSweetToast(msg, "warning")
       return
     }
 
     if (clave !== confirmClave) {
-      setError("Las contraseñas no coinciden.")
+      const msg = "Las contraseñas no coinciden."
+      setError(msg)
+      showSweetToast(msg, "warning")
       return
     }
     
@@ -82,21 +102,31 @@ export default function RegistroPage() {
         phone: telefono.trim(), 
         email: correo.trim(), 
         address: direccion.trim(), 
-        coachId: entrenador || undefined
+        coachId: entrenador || undefined,
+        isSelfRegistration: true,
       })
 
-      if (!res.success) {
-        setError(res.error || "La cédula ya está registrada o hubo un error en el servidor.")
+      if (!res || !res.success) {
+        const msg = res?.error || "La cédula ya está registrada o hubo un error en el servidor."
+        setError(msg)
+        showSweetToast(msg, "error")
         setIsLoading(false)
         return
       }
 
-      // Si no es staff, iniciar sesión automáticamente
-      const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('gympro_session_id') : null
-      if (!storedUserId) {
-        const loginSuccess = await login(cleanCedula, clave)
-        if (loginSuccess) {
+      showSweetToast("¡Cuenta creada exitosamente!", "success")
+
+      // Verificar si quien está operando tiene sesión activa como personal del gimnasio
+      const isStaffSession = Boolean(
+        user && ["admin", "gerente", "cajero", "recepcion", "coach", "employee"].includes(String(user.role || "").toLowerCase())
+      )
+
+      if (!isStaffSession) {
+        const loginRes = await login(cleanCedula, clave)
+        const loginOk = loginRes === true || (typeof loginRes === "object" && loginRes?.success)
+        if (loginOk) {
           router.push("/")
+          router.refresh()
         } else {
           router.push("/login")
         }
@@ -104,7 +134,9 @@ export default function RegistroPage() {
         router.push(res.user?.id ? `/atletas/${res.user.id}` : "/atletas")
       }
     } catch (err: any) {
-      setError(err?.message || "Ocurrió un error inesperado al procesar el registro.")
+      const msg = err?.message || "Ocurrió un error inesperado al procesar el registro."
+      setError(msg)
+      showSweetToast(msg, "error")
       setIsLoading(false)
     }
   }
@@ -217,7 +249,7 @@ export default function RegistroPage() {
               </div>
               {cleanCedula.length > 0 && !isCedulaComplete && (
                 <p className="text-[11px] text-amber-500 mt-1">
-                  Faltan {8 - cleanCedula.length} dígito{8 - cleanCedula.length === 1 ? "" : "s"} para completar los 8 requeridos.
+                  Ingresa al menos 7 dígitos numéricos ({cleanCedula.length}/8).
                 </p>
               )}
             </div>
@@ -421,8 +453,8 @@ export default function RegistroPage() {
 
           <button 
             type="submit" 
-            disabled={!canSubmit || isLoading} 
-            className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            disabled={isLoading} 
+            className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 shadow-lg shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
             {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>

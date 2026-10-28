@@ -367,22 +367,22 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       : (input || {})
 
     const me = await getAuthUser()
-    const staff = !!me && isStaff(me.role)
+    const isPosWalkIn = !!me && isStaff(me.role) && !data.isSelfRegistration
 
-    if (!staff) {
+    if (!isPosWalkIn) {
       let ip = "unknown"
       try { ip = clientIpFrom(await headers()) } catch {}
-      const limit = checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+      const limit = checkRateLimit(`register:${ip}`, 25, 60 * 60 * 1000)
       if (!limit.allowed) return { success: false, error: "Demasiados registros desde esta conexión. Intenta más tarde." }
     }
 
     const rawCedula = String(data.cedula ?? "").trim()
     const cleanCedula = rawCedula.replace(/^[VEJvej]-?/i, "").replace(/\D/g, "").trim()
 
-    // Para registros web de atletas, la cédula debe tener exactamente 8 dígitos
-    if (!staff) {
-      if (cleanCedula.length !== 8 || !/^\d{8}$/.test(cleanCedula)) {
-        return { success: false, error: "La cédula debe contener exactamente 8 dígitos numéricos (ej. 12345678)." }
+    // Para registros web de atletas, la cédula debe tener 7 u 8 dígitos numéricos
+    if (!isPosWalkIn) {
+      if (cleanCedula.length < 7 || cleanCedula.length > 8 || !/^\d{7,8}$/.test(cleanCedula)) {
+        return { success: false, error: "La cédula debe contener 7 u 8 dígitos numéricos (ej. 12345678)." }
       }
     } else {
       if (!CEDULA_RE.test(cleanCedula)) return { success: false, error: "Cédula no válida." }
@@ -390,7 +390,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     if (!data.name || String(data.name).length > 120) return { success: false, error: "Nombre no válido." }
 
     let plain: string
-    if (staff) {
+    if (isPosWalkIn) {
       plain = data.password && String(data.password).length >= MIN_PASSWORD ? String(data.password) : cleanCedula.padEnd(8, "0")
     } else {
       const pwdVal = validatePassword(String(data.password || ""), cleanCedula)
@@ -400,10 +400,13 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       plain = String(data.password)
     }
 
-    // El entrenador elegido debe existir y serlo realmente
+    // El entrenador elegido debe existir y ser parte del personal de entrenadores
     let coachId: string | undefined
     if (data.coachId) {
-      const coach = await prisma.user.findFirst({ where: { id: String(data.coachId), role: "coach" }, select: { id: true } })
+      const coach = await prisma.user.findFirst({
+        where: { id: String(data.coachId), role: { in: ["coach", "employee"] } },
+        select: { id: true }
+      })
       if (coach) coachId = coach.id
     }
 
@@ -427,8 +430,8 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
         return { success: false, error: "Esta cédula pertenece a un miembro del personal del gimnasio." }
       }
 
-      // Caso 1: El personal de Recepción/Caja está cobrando un plan a una cédula ya registrada
-      if (staff) {
+      // Caso 1: El personal de Recepción/Caja está cobrando un plan a una cédula ya registrada (no es el formulario de /registro)
+      if (isPosWalkIn) {
         const updatedUser = await prisma.user.update({
           where: { id: existing.id },
           data: {
@@ -460,7 +463,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
 
       // Caso 2: El cliente compró un plan en Recepción antes de registrarse y ahora se registra en /registro con su cédula
       const isPreRegisteredByPos = existing.profession === "PRE_REGISTERED_POS" || !existing.email
-      if (!staff && isPreRegisteredByPos) {
+      if (!isPosWalkIn && isPreRegisteredByPos) {
         const linkedUser = await prisma.user.update({
           where: { id: existing.id },
           data: {
@@ -496,7 +499,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
         phone: data.phone || null,
         address: data.address || null,
         email: data.email || null,
-        profession: staff ? "PRE_REGISTERED_POS" : null,
+        profession: isPosWalkIn && !data.email ? "PRE_REGISTERED_POS" : null,
       }
     });
 

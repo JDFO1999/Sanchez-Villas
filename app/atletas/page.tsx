@@ -135,8 +135,8 @@ export default function AtletasPage() {
       return
     }
     const cleanCedula = regCedula.replace(/\D/g, "").slice(0, 8).trim()
-    if (cleanCedula.length !== 8) {
-      showSweetToast("La cédula debe contener exactamente 8 dígitos numéricos (ej. 12345678).", "warning")
+    if (cleanCedula.length < 7 || cleanCedula.length > 8) {
+      showSweetToast("La cédula debe contener 7 u 8 dígitos numéricos (ej. 12345678).", "warning")
       return
     }
     if (regPassword.length < 8) {
