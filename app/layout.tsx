@@ -171,6 +171,8 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         {/* Preload prioritario de logos e imágenes críticas antes de renderizar la página */}
         {canPreload(primaryLogo) && (
           <link rel="preload" as="image" href={primaryLogo} {...({ fetchPriority: "high" } as any)} />
