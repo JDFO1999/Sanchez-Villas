@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Download, X, Share, PlusSquare, Smartphone } from "lucide-react"
+import { useSettings } from "@/lib/settings-context"
 
 export function PWAInstallPrompt() {
+  const { settings } = useSettings()
+  const appLogo = settings.logoUrl || settings.logoUrlDark
+  const appName = settings.appName || "MaximumFitAPP"
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isIOS, setIsIOS] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
@@ -107,13 +112,17 @@ export function PWAInstallPrompt() {
         <div className="bg-card/95 backdrop-blur-xl border-2 border-primary/40 rounded-2xl p-4 shadow-2xl glass text-foreground flex items-center justify-between gap-3 relative">
           
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary shrink-0 shadow-inner">
-              <Smartphone className="w-6 h-6 animate-pulse" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 shadow-inner overflow-hidden p-1">
+              {appLogo ? (
+                <img src={appLogo} alt={appName} className="w-full h-full object-contain" />
+              ) : (
+                <Smartphone className="w-6 h-6 text-primary animate-pulse" />
+              )}
             </div>
             <div className="min-w-0">
               <h4 className="font-black text-sm text-foreground tracking-tight flex items-center gap-1.5">
-                <span>MaximumFitAPP</span>
-                <span className="text-[10px] bg-primary text-black font-extrabold px-1.5 py-0.2 rounded-full uppercase">App</span>
+                <span className="truncate">{appName}</span>
+                <span className="text-[10px] bg-primary text-black font-extrabold px-1.5 py-0.2 rounded-full uppercase shrink-0">App</span>
               </h4>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
                 Instálala en tu teléfono para acceso rápido y pantalla completa.
@@ -146,10 +155,14 @@ export function PWAInstallPrompt() {
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-3xl max-w-sm w-full p-6 shadow-2xl glass relative text-foreground space-y-4">
             <div className="flex justify-between items-center border-b border-black/10 dark:border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
-                  <Smartphone className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden p-0.5">
+                  {appLogo ? (
+                    <img src={appLogo} alt={appName} className="w-full h-full object-contain" />
+                  ) : (
+                    <Smartphone className="w-4 h-4 text-primary" />
+                  )}
                 </div>
-                <h3 className="font-black text-base">Instalar MaximumFitAPP</h3>
+                <h3 className="font-black text-base truncate">Instalar {appName}</h3>
               </div>
               <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground p-1">
                 <X className="w-5 h-5" />

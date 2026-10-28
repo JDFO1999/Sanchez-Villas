@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const title = `${appName} | Gimnasio, Fitness y Entrenamiento`;
     const description = s?.landingSettings?.tagline || defaultDesc;
 
-    const rawIcon = s?.faviconUrl || s?.logoUrl || s?.logoUrlDark || "";
+    const rawIcon = s?.logoUrl || s?.logoUrlDark || s?.faviconUrl || "";
     const versionHash = rawIcon
       ? Buffer.from(rawIcon.slice(-32)).toString("hex").slice(0, 12)
       : "default";
@@ -104,7 +104,7 @@ export async function generateMetadata(): Promise<Metadata> {
       icons: {
         icon: [{ url: iconUrl }],
         shortcut: [{ url: iconUrl }],
-        apple: [{ url: iconUrl, sizes: "180x180" }],
+        apple: [{ url: `${iconUrl}&apple=1`, sizes: "180x180" }],
       },
     };
   } catch {

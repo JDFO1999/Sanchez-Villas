@@ -5,16 +5,21 @@ import path from "path"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const isAppOrSize = searchParams.has("size") || searchParams.has("apple")
+
     const record = await prisma.systemSetting.findUnique({
       where: { id: "default" },
     })
 
     if (record?.data) {
       const parsed = JSON.parse(record.data)
-      const iconSource: string | undefined =
-        parsed.faviconUrl || parsed.logoUrl || parsed.logoUrlDark
+      // Priorizar el logo del gimnasio para que la app móvil y el navegador siempre muestren el logo actual
+      const iconSource: string | undefined = isAppOrSize
+        ? (parsed.logoUrl || parsed.logoUrlDark || parsed.faviconUrl)
+        : (parsed.logoUrl || parsed.logoUrlDark || parsed.faviconUrl)
 
       if (iconSource && typeof iconSource === "string") {
         // Caso 1: Data URI (data:image/png;base64,...)

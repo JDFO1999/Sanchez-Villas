@@ -1,5 +1,5 @@
 // Service Worker básico para soporte PWA y cache offline de recursos esenciales
-const CACHE_NAME = 'maximumfit-v1';
+const CACHE_NAME = 'maximumfit-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
