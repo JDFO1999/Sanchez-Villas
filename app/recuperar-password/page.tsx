@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -8,6 +8,7 @@ import Link from "next/link"
 import { Lock, Eye, EyeOff, Check, AlertCircle, ArrowLeft, Sun, Moon, ShieldCheck } from "lucide-react"
 import { Loader } from "@/components/ui/loader"
 import { verifyPasswordResetToken, resetPasswordWithToken } from "@/app/actions/auth-reset"
+import { validatePassword } from "@/lib/password-validator"
 
 function RecuperarPasswordContent() {
   const searchParams = useSearchParams()
@@ -64,14 +65,14 @@ function RecuperarPasswordContent() {
   }, [token])
 
   const passwordsMatch = password && confirmPassword && password === confirmPassword
-  const isLengthValid = password.length >= 6
+  const pwdValidation = validatePassword(password)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError("")
 
-    if (!isLengthValid) {
-      setSubmitError("La contraseña debe tener al menos 6 caracteres.")
+    if (!pwdValidation.isValid) {
+      setSubmitError(pwdValidation.error || "La contraseña debe tener al menos 8 caracteres, mayúscula, minúscula y número.")
       return
     }
 
@@ -255,7 +256,7 @@ function RecuperarPasswordContent() {
 
               <button
                 type="submit"
-                disabled={isSubmitting || !isLengthValid || !passwordsMatch}
+                disabled={isSubmitting || !pwdValidation.isValid || !passwordsMatch}
                 className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3 rounded-xl transition flex items-center justify-center disabled:opacity-50 active:scale-[0.99] text-sm mt-2"
               >
                 {isSubmitting ? <Loader size={18} color="currentColor" /> : "Guardar Nueva Contraseña"}

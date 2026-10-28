@@ -12,6 +12,7 @@ import {
   guard, guardSelfOr, guardAttendance, getAuthUser, stripSecrets, omitFields, clientIpFrom, verifyActorPassword,
   ROLES, DENIED, EMPLOYEE_PRIVATE_FIELDS,
 } from "@/lib/authz"
+import { validatePassword } from "@/lib/password-validator"
 
 const EMPLOYEE_ROLES = ["admin", "gerente", "coach", "cajero", "recepcion", "employee"]
 const CEDULA_RE = /^[A-Za-z0-9._-]{3,30}$/
@@ -376,16 +377,25 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     }
 
     const rawCedula = String(data.cedula ?? "").trim()
-    const cleanCedula = rawCedula.replace(/^[VEJvej]-?/i, "").trim()
-    if (!CEDULA_RE.test(cleanCedula)) return { success: false, error: "Cédula no válida." }
+    const cleanCedula = rawCedula.replace(/^[VEJvej]-?/i, "").replace(/\D/g, "").trim()
+
+    // Para registros web de atletas, la cédula debe tener exactamente 8 dígitos
+    if (!staff) {
+      if (cleanCedula.length !== 8 || !/^\d{8}$/.test(cleanCedula)) {
+        return { success: false, error: "La cédula debe contener exactamente 8 dígitos numéricos (ej. 12345678)." }
+      }
+    } else {
+      if (!CEDULA_RE.test(cleanCedula)) return { success: false, error: "Cédula no válida." }
+    }
     if (!data.name || String(data.name).length > 120) return { success: false, error: "Nombre no válido." }
 
     let plain: string
     if (staff) {
-      plain = data.password && String(data.password).length >= MIN_PASSWORD ? String(data.password) : cleanCedula.padEnd(MIN_PASSWORD, "0")
+      plain = data.password && String(data.password).length >= MIN_PASSWORD ? String(data.password) : cleanCedula.padEnd(8, "0")
     } else {
-      if (!data.password || String(data.password).length < MIN_PASSWORD) {
-        return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
+      const pwdVal = validatePassword(String(data.password || ""), cleanCedula)
+      if (!pwdVal.isValid) {
+        return { success: false, error: pwdVal.error || "La contraseña debe ser más segura." }
       }
       plain = String(data.password)
     }
@@ -600,8 +610,13 @@ export async function updateAthlete(id: string, data: any) {
       if (!isAdminOrGerente && g.user.id !== id) {
         return { success: false, error: "Solo los administradores pueden cambiar la contraseña de otro usuario." }
       }
-      if (String(plainPwd).length < MIN_PASSWORD) {
-        return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` }
+      if (!isAdminOrGerente) {
+        const pwdVal = validatePassword(String(plainPwd), targetUser.cedula)
+        if (!pwdVal.isValid) {
+          return { success: false, error: pwdVal.error || "La contraseña debe ser más segura." }
+        }
+      } else if (String(plainPwd).length < 6) {
+        return { success: false, error: `La contraseña debe tener al menos 6 caracteres.` }
       }
       newHashedPassword = await bcrypt.hash(String(plainPwd), 10)
     }

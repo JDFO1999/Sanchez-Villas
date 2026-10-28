@@ -134,13 +134,13 @@ export default function AtletasPage() {
       showSweetToast("Las contraseñas no coinciden.", "warning")
       return
     }
-    const cleanCedula = regCedula.replace(/\D/g, "").trim()
-    if (!cleanCedula) {
-      showSweetToast("Ingresa un número de cédula válido.", "warning")
+    const cleanCedula = regCedula.replace(/\D/g, "").slice(0, 8).trim()
+    if (cleanCedula.length !== 8) {
+      showSweetToast("La cédula debe contener exactamente 8 dígitos numéricos (ej. 12345678).", "warning")
       return
     }
-    if (regPassword.length < 6) {
-      showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
+    if (regPassword.length < 8) {
+      showSweetToast("La contraseña debe tener al menos 8 caracteres.", "warning")
       return
     }
 
@@ -820,13 +820,15 @@ export default function AtletasPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold mb-1 block">Cédula (Solo números) *</label>
+                  <label className="text-xs font-semibold mb-1 block">Cédula (8 dígitos) *</label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={8}
                     required
                     placeholder="12345678"
                     value={regCedula}
-                    onChange={e => setRegCedula(e.target.value.replace(/\D/g, ""))}
+                    onChange={e => setRegCedula(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm font-mono focus:border-primary focus:outline-none"
                   />
                 </div>

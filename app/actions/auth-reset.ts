@@ -4,6 +4,7 @@ import crypto from "crypto"
 import bcrypt from "bcryptjs"
 import prisma from "@/lib/db"
 import { sendPasswordResetEmail } from "@/lib/mailer"
+import { validatePassword } from "@/lib/password-validator"
 
 function maskEmail(email: string): string {
   if (!email || !email.includes("@")) return email
@@ -190,8 +191,9 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
       return { success: false, error: verification.error }
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      return { success: false, error: "La nueva contraseña debe tener al menos 6 caracteres." }
+    const pwdVal = validatePassword(newPassword)
+    if (!pwdVal.isValid) {
+      return { success: false, error: pwdVal.error || "La nueva contraseña debe ser más segura." }
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
