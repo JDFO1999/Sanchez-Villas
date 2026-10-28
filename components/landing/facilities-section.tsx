@@ -74,7 +74,7 @@ export function FacilitiesSection() {
                 <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
                   <item.icon className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-sm text-foreground uppercase">{item.title}</h4>
+                <h3 className="font-bold text-sm text-foreground uppercase">{item.title}</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
               </div>
             ))}

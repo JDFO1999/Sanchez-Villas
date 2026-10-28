@@ -19,13 +19,21 @@ export function GymLandingPage() {
   const phone = settings.landingSettings?.map?.phone || (settings as any).phone || "+58 412 123 4567"
   const socialLinks = settings.footerSocialLinks?.map((l: any) => l.url).filter(Boolean) || []
 
+  const cleanLogo = (settings.logoUrl && !settings.logoUrl.startsWith("data:"))
+    ? (settings.logoUrl.startsWith("http") ? settings.logoUrl : `${siteUrl}${settings.logoUrl}`)
+    : `${siteUrl}/api/favicon`
+  const heroSlideUrl = settings.landingSettings?.heroSlides?.[0]?.url
+  const cleanImage = (heroSlideUrl && !heroSlideUrl.startsWith("data:"))
+    ? (heroSlideUrl.startsWith("http") ? heroSlideUrl : `${siteUrl}${heroSlideUrl}`)
+    : cleanLogo
+
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ExerciseGym",
     "name": appName,
     "url": siteUrl,
-    "logo": settings.logoUrl || `${siteUrl}/api/favicon`,
-    "image": settings.landingSettings?.heroSlides?.[0]?.url || settings.logoUrl || `${siteUrl}/api/favicon`,
+    "logo": cleanLogo,
+    "image": cleanImage,
     "description": settings.landingSettings?.tagline || "Gimnasio y centro de entrenamiento especializado en musculación, acondicionamiento físico, entrenadores certificados y planes de membresía.",
     "telephone": phone,
     "priceRange": "$$",

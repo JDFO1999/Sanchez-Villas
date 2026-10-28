@@ -26,7 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
       ? Buffer.from(rawIcon.slice(-32)).toString("hex").slice(0, 12)
       : "default";
     const iconUrl = `/api/favicon?v=${versionHash}`;
-    const ogImage = s?.logoUrl || s?.logoUrlDark || `${siteUrl}/api/favicon`;
+    const cleanLogo = (s?.logoUrl && !s.logoUrl.startsWith("data:"))
+      ? s.logoUrl
+      : (s?.logoUrlDark && !s.logoUrlDark.startsWith("data:"))
+      ? s.logoUrlDark
+      : "/logo_clean_transparent.png";
+    const ogImage = cleanLogo.startsWith("http") ? cleanLogo : `${siteUrl}${cleanLogo}`;
 
     return {
       metadataBase: new URL(siteUrl),
@@ -187,6 +192,11 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
+          rel="preload"
+          as="style"
+          href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
+        />
+        <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Arvo:wght@400;700&family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
         />
@@ -196,13 +206,24 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-title" content="MaximumFitAPP" />
         <meta name="theme-color" content="#eab308" />
 
-        {/* Script síncrono para inicializar configuración antes de la hidratación (sanitizado contra XSS y HTML breaks) */}
+        {/* Script síncrono para inicializar configuración (sanitizado contra data URIs masivas y XSS) */}
         <script
           id="gympro-instant-settings"
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                window.__INITIAL_SETTINGS__ = ${JSON.stringify(initialSettings || null).replace(/</g, '\\u003c')};
+                window.__INITIAL_SETTINGS__ = ${JSON.stringify(
+                  initialSettings
+                    ? JSON.parse(
+                        JSON.stringify(initialSettings, (key, value) => {
+                          if (typeof value === "string" && value.startsWith("data:image/") && value.length > 500) {
+                            return "/api/favicon";
+                          }
+                          return value;
+                        })
+                      )
+                    : null
+                ).replace(/</g, "\\u003c")};
               } catch (e) {}
             `,
           }}
