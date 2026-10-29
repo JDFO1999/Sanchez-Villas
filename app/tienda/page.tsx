@@ -44,6 +44,8 @@ export default function TiendaPOSPage() {
   const [showAdminCart, setShowAdminCart] = useState(false)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [planMonths, setPlanMonths] = useState(1)
+  const [athleteDaysLeft, setAthleteDaysLeft] = useState<number | null>(null)
+  const [athleteHasHistory, setAthleteHasHistory] = useState(false)
 
   const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || []).map((p: any) => {
     const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
@@ -162,15 +164,34 @@ export default function TiendaPOSPage() {
   ]
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get('elegirPlan') === '1') {
-        setShowPlanModal(true)
-      }
-    }
+    const wantsPlanModal = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('elegirPlan') === '1'
+
     async function load() {
-      const { getAthletes } = await import('@/app/actions/users')
-      const athRes = await getAthletes()
+      const { getAthletes, getAthleteDashboardData } = await import('@/app/actions/users')
+      if (user?.role === 'athlete' && user?.id) {
+        const dash = await getAthleteDashboardData(user.id)
+        if (dash.success && Array.isArray(dash.memberships) && dash.memberships.length > 0) {
+          const active = dash.memberships.find((m: any) => m.status === 'ACTIVE') || dash.memberships[0]
+          const endDate = active?.endDate ? new Date(active.endDate) : null
+          const hasValid = Boolean(endDate && endDate.getFullYear() > 1970)
+          if (hasValid && endDate) {
+            const days = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24))
+            setAthleteDaysLeft(days)
+            setAthleteHasHistory(true)
+            if (wantsPlanModal && days <= 3) {
+              setShowPlanModal(true)
+            }
+          } else if (wantsPlanModal) {
+            setShowPlanModal(true)
+          }
+        } else if (wantsPlanModal) {
+          setShowPlanModal(true)
+        }
+      } else {
+        if (wantsPlanModal) setShowPlanModal(true)
+        const athRes = await getAthletes()
+        if (athRes.success) setAthletes(athRes.athletes as any)
+      }
       
       const { getProducts } = await import('@/app/actions/store')
       const prodRes = await getProducts()
@@ -188,13 +209,12 @@ export default function TiendaPOSPage() {
         costPrice: p.cost
       })) as any[] : []
       setProducts(loadedProducts)
-      if (athRes.success) setAthletes(athRes.athletes as any)
       
       const uniqueCats = Array.from(new Set(loadedProducts.map((p: any) => p.category)))
       setCategories(["Todas", ...(uniqueCats as string[])])
     }
     load()
-  }, [])
+  }, [user?.id, user?.role])
 
   const executeAddToCart = (product: Product) => {
     setCart(prev => {
@@ -784,23 +804,36 @@ export default function TiendaPOSPage() {
 
   // ===== VISTA CATÁLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
+    const canAthletePayOrRenewPlan = athleteDaysLeft === null || athleteDaysLeft <= 3
     return (
       <div className="space-y-6 max-w-full mx-auto pb-20">
-        {renderPlanSelectorModal()}
+        {canAthletePayOrRenewPlan && renderPlanSelectorModal()}
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
             <h1 className="page-title">Catálogo {settings.appName}</h1>
-            <p className="text-muted-foreground mt-1">Reserva tus productos o paga tu plan mensual desde aquí.</p>
+            <p className="text-muted-foreground mt-1">
+              {canAthletePayOrRenewPlan
+                ? "Reserva tus productos o renueva tu membresía desde aquí."
+                : "Reserva tus productos suplementarios e hidratación desde aquí."}
+            </p>
           </div>
           <div className="relative flex flex-wrap items-center gap-2">
             <BcvRateBadge />
-            <button 
-              onClick={() => setShowPlanModal(true)}
-              className="bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition shadow-sm"
-            >
-              <CreditCard className="h-5 w-5" />
-              <span>Pagar Mensualidad / Elegir Plan</span>
-            </button>
+            {canAthletePayOrRenewPlan && (
+              <button 
+                onClick={() => setShowPlanModal(true)}
+                className="bg-emerald-500/10 border-2 border-emerald-500 text-emerald-500 font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition shadow-sm"
+              >
+                <CreditCard className="h-5 w-5" />
+                <span>
+                  {athleteHasHistory
+                    ? athleteDaysLeft !== null && athleteDaysLeft > 0
+                      ? `Renovar Membresía (Vence en ${athleteDaysLeft}d)`
+                      : "Renovar Membresía"
+                    : "Elegir / Pagar Plan"}
+                </span>
+              </button>
+            )}
             <button onClick={() => setShowAthleteCart(true)} className="bg-transparent border-2 border-success text-success font-bold py-2 px-4 rounded-xl flex items-center gap-2 hover:bg-success/10 transition shadow-sm">
               <ShoppingCart className="h-5 w-5" />
               <span>Carrito ({cart.reduce((a, b) => a + b.qty, 0)})</span>

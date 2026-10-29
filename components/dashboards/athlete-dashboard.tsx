@@ -282,7 +282,7 @@ export function AthleteDashboard() {
             <CreditCard className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent className="space-y-3">
-            {memberships.length > 0 ? (() => {
+            {(() => {
               const active = memberships.find(m => m.status === 'ACTIVE') || memberships[0];
               const endDate = active?.endDate ? new Date(active.endDate) : null;
               const hasValidDate = Boolean(endDate && endDate.getFullYear() > 1970);
@@ -290,56 +290,108 @@ export function AthleteDashboard() {
                 ? Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24))
                 : 0;
 
-              if (hasValidDate && daysLeft > 0) {
+              // Caso 1: Membresía activa con más de 3 días de vigencia -> NO mostrar botón de pagar ni renovar
+              if (hasValidDate && daysLeft > 3) {
                 return (
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="stat-number text-4xl">{daysLeft} días</div>
-                      {active?.planName && (
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
-                          {active.planName}
-                        </span>
-                      )}
+                  <div className="space-y-2.5">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="stat-number text-4xl">{daysLeft} días</div>
+                        {active?.planName && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                            {active.planName}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs mt-1 text-success font-medium">
+                        Vence el {endDate?.toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-xs mt-1 text-success font-medium">
-                      Vence el {endDate?.toLocaleDateString()}
-                    </p>
-                  </div>
-                );
-              } else if (hasValidDate && daysLeft <= 0) {
-                return (
-                  <div>
-                    <div className="text-base font-black text-destructive">Membresía Vencida</div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Venció el {endDate?.toLocaleDateString()}
-                    </p>
-                  </div>
-                );
-              } else {
-                return (
-                  <div>
-                    <div className="text-base font-black text-amber-500">Sin plan activo</div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Elige tu plan o paga tu mensualidad en línea
-                    </p>
+                    <div className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-500 font-bold text-xs">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Membresía activa y al día
+                    </div>
                   </div>
                 );
               }
-            })() : (
-              <div>
-                <div className="text-base font-black text-amber-500">Sin membresía activa</div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Elige un plan promocional o mensualidad básica
-                </p>
-              </div>
-            )}
-            <Link
-              href="/tienda?elegirPlan=1"
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 font-bold text-xs transition shadow-sm"
-            >
-              <CreditCard className="h-3.5 w-3.5" />
-              Pagar / Elegir Plan Online
-            </Link>
+
+              // Caso 2: Faltan 3 días o menos para vencer -> Sugerir renovar
+              if (hasValidDate && daysLeft > 0 && daysLeft <= 3) {
+                return (
+                  <div className="space-y-2.5">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="stat-number text-4xl text-amber-500">
+                          {daysLeft} {daysLeft === 1 ? 'día' : 'días'}
+                        </div>
+                        {active?.planName && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                            {active.planName}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs mt-1 text-amber-500 font-semibold">
+                        ⚠️ Vence el {endDate?.toLocaleDateString()} — Te sugerimos renovar a tiempo
+                      </p>
+                    </div>
+                    <Link
+                      href="/tienda?elegirPlan=1"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 text-black hover:bg-amber-400 font-bold text-xs transition shadow-sm"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Renovar Membresía
+                    </Link>
+                  </div>
+                );
+              }
+
+              // Caso 3: Membresía ya vencida -> Botón de Renovar
+              if (hasValidDate && daysLeft <= 0) {
+                return (
+                  <div className="space-y-2.5">
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-base font-black text-destructive">Membresía Vencida</div>
+                        {active?.planName && (
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-destructive/15 text-destructive border border-destructive/30">
+                            {active.planName}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Venció el {endDate?.toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Link
+                      href="/tienda?elegirPlan=1"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 font-bold text-xs transition shadow-sm"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Renovar Membresía
+                    </Link>
+                  </div>
+                );
+              }
+
+              // Caso 4: Atleta nuevo sin membresía registrada -> Elegir / Pagar Plan
+              return (
+                <div className="space-y-2.5">
+                  <div>
+                    <div className="text-base font-black text-amber-500">Sin membresía activa</div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Elige un plan promocional o mensualidad básica
+                    </p>
+                  </div>
+                  <Link
+                    href="/tienda?elegirPlan=1"
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground hover:opacity-90 font-bold text-xs transition shadow-sm"
+                  >
+                    <CreditCard className="h-3.5 w-3.5" />
+                    Elegir / Pagar Plan Online
+                  </Link>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
