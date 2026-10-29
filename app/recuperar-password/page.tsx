@@ -203,7 +203,7 @@ function RecuperarPasswordContent() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres (Mayúscula, minúscula y número)"
                     className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl pl-9 pr-10 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition"
                   />
                   <button
@@ -214,6 +214,22 @@ function RecuperarPasswordContent() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {password.length > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 grid grid-cols-2 gap-1.5 text-[11px]">
+                    <span className={pwdValidation.hasMinLength ? "text-emerald-500 font-semibold" : "text-muted-foreground"}>
+                      {pwdValidation.hasMinLength ? "✓" : "○"} Mín. 8 caracteres
+                    </span>
+                    <span className={pwdValidation.hasUpperCase ? "text-emerald-500 font-semibold" : "text-muted-foreground"}>
+                      {pwdValidation.hasUpperCase ? "✓" : "○"} 1 Mayúscula (A-Z)
+                    </span>
+                    <span className={pwdValidation.hasLowerCase ? "text-emerald-500 font-semibold" : "text-muted-foreground"}>
+                      {pwdValidation.hasLowerCase ? "✓" : "○"} 1 Minúscula (a-z)
+                    </span>
+                    <span className={pwdValidation.hasNumber ? "text-emerald-500 font-semibold" : "text-muted-foreground"}>
+                      {pwdValidation.hasNumber ? "✓" : "○"} 1 Número (0-9)
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -256,7 +272,7 @@ function RecuperarPasswordContent() {
 
               <button
                 type="submit"
-                disabled={isSubmitting || !pwdValidation.isValid || !passwordsMatch}
+                disabled={isSubmitting}
                 className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary/10 font-bold py-3 rounded-xl transition flex items-center justify-center disabled:opacity-50 active:scale-[0.99] text-sm mt-2"
               >
                 {isSubmitting ? <Loader size={18} color="currentColor" /> : "Guardar Nueva Contraseña"}

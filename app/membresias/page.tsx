@@ -22,7 +22,7 @@ interface PaymentSplit {
 }
 
 export default function MembresíasPage() {
-  const { user, adminUpdateAthleteCredentials, getAllEmployees, updateEmployee } = useAuth()
+  const { user, getAllEmployees, updateEmployee } = useAuth()
   const { settings } = useSettings()
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [search, setSearch] = useState("")
@@ -353,6 +353,7 @@ export default function MembresíasPage() {
       const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
       const res = await updateAthlete(showEditModal.id, {
         name: editName,
+        cedula: editCedula,
         phone: editPhone,
         address: editAddress,
         coachId: editCoachId || null,
@@ -362,15 +363,6 @@ export default function MembresíasPage() {
       if (!res.success) {
         showSweetToast(res.error || "Error al actualizar datos.", "error")
         return
-      }
-
-      if (editPassword && updateEmployee && user?.role === 'admin') {
-        await updateEmployee(showEditModal.id, {
-          name: editName,
-          cedula: editCedula,
-          role: 'athlete',
-          clave: editPassword
-        } as any)
       }
 
       // Actualizar fecha de inicio, corte, plan y entrenador

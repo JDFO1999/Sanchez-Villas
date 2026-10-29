@@ -383,7 +383,10 @@ export async function getSessionData() {
   try {
     await ensureDatabaseSchema();
     const me = await getAuthUser();
-    if (!me) return { success: false };
+    if (!me) {
+      await destroySession().catch(() => {});
+      return { success: false };
+    }
 
     let user: any = null;
     try {
@@ -392,7 +395,10 @@ export async function getSessionData() {
       user = await prisma.user.findUnique({ where: { id: me.id }, select: SAFE_USER_SELECT });
     }
 
-    if (!user) return { success: false };
+    if (!user || user.role === "deleted") {
+      await destroySession().catch(() => {});
+      return { success: false };
+    }
     return { success: true, user: { ...stripSecrets(user), permissions: extractUserPermissions(user) } };
   } catch (error) {
     console.error("getSessionData error:", error);

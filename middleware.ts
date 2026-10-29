@@ -22,6 +22,7 @@ const PROTECTED_PREFIXES = [
   "/perfil",
   "/comunidad",
   "/entrenadores",
+  "/planes",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -40,7 +41,6 @@ export async function middleware(request: NextRequest) {
 
   const isExactHome = pathname === "/";
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
-  const isAuthPage = pathname === "/login" || pathname === "/registro";
 
   let validPayload: any = null;
   if (sessionCookie && key) {
@@ -52,12 +52,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 1. If accessing auth pages (login/registro) while already logged in with valid token
-  if (isAuthPage && validPayload) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  // 2. If accessing a protected route without a valid token
+  // 1. If accessing a protected route without a valid token
   if (isProtected && !validPayload) {
     const loginUrl = new URL("/login", request.url);
     if (!isExactHome) {
@@ -70,7 +65,7 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
-  // 3. Role-based server guard for critical administrative routes
+  // 2. Role-based server guard for critical administrative routes
   if (validPayload) {
     const role = validPayload.role as string;
     
@@ -82,21 +77,25 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Admin and gerente can access employees, finance, settings, and trainers
-    if (
-      pathname.startsWith("/empleados") ||
-      pathname.startsWith("/finanzas") ||
-      pathname.startsWith("/ajustes") ||
-      pathname.startsWith("/entrenadores")
-    ) {
-      if (role !== "admin" && role !== "gerente") {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
+    // Coaches/employees can never access finance
+    if (pathname.startsWith("/finanzas") && (role === "coach" || role === "employee")) {
+      return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Athletes cannot access inventory or membership management directly
+    // Athletes cannot access administrative, staff, inventory, or membership management routes
     if (role === "athlete") {
-      if (pathname.startsWith("/tienda/inventario") || pathname.startsWith("/membresias")) {
+      if (
+        pathname.startsWith("/tienda/inventario") ||
+        pathname.startsWith("/membresias") ||
+        pathname.startsWith("/planes") ||
+        pathname.startsWith("/empleados") ||
+        pathname.startsWith("/finanzas") ||
+        pathname.startsWith("/ajustes") ||
+        pathname.startsWith("/entrenadores") ||
+        pathname.startsWith("/asistencia") ||
+        pathname.startsWith("/atletas") ||
+        pathname.startsWith("/mis-atletas")
+      ) {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }
