@@ -5,7 +5,7 @@ import { useAuth, AVAILABLE_PERMISSIONS } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
-import { Plus, Search, Eye, EyeOff, Shield } from "lucide-react"
+import { Plus, Search, Eye, EyeOff, Shield, CheckCircle2, X, UserCheck } from "lucide-react"
 import Swal from "sweetalert2"
 import JsBarcode from "jsbarcode"
 import { confirmAction } from "@/lib/confirm"
@@ -17,6 +17,8 @@ export default function EmpleadosPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [showEmployeeModal, setShowEmployeeModal] = useState(false)
+  const [showAthleteSearchModal, setShowAthleteSearchModal] = useState(false)
+  const [athleteSearchQuery, setAthleteSearchQuery] = useState("")
   const [showPin, setShowPin] = useState(false)
   const [editingPermsEmp, setEditingPermsEmp] = useState<any | null>(null)
   const [tempPermissions, setTempPermissions] = useState<string[]>([])
@@ -145,89 +147,37 @@ export default function EmpleadosPage() {
     if (getAllEmployees) setEmployees(await getAllEmployees())
   }
   
-  const buscarAtleta = async () => {
-    const { swalTheme, themeColor } = await import('@/lib/confirm')
-    const theme = swalTheme()
-
-    const { value: cedulaStr } = await Swal.fire({
-      title: 'Buscar Atleta Existente',
-      html: `
-        <div style="text-align: left; padding: 0 4px;">
-          <p style="font-size: 0.875rem; margin-bottom: 8px; opacity: 0.85;">
-            Ingresa la cédula del atleta para ascenderlo a Administrador, Gerente, Cajero o Entrenador:
-          </p>
-        </div>
-      `,
-      input: 'text',
-      inputPlaceholder: 'Ej: 12345678',
-      showCancelButton: true,
-      confirmButtonText: 'Buscar Atleta',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true,
-      ...theme,
-      confirmButtonColor: themeColor('primary') || '#eab308',
-      cancelButtonColor: 'rgba(150, 150, 150, 0.4)',
-      customClass: {
-        popup: 'border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl glass',
-        title: 'font-black text-xl tracking-tight text-foreground',
-        input: 'bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl p-3 text-base text-foreground font-mono focus:border-primary',
-        confirmButton: 'font-bold rounded-xl px-5 py-2.5 shadow-md',
-        cancelButton: 'font-bold rounded-xl px-4 py-2.5'
-      }
+  const selectExistingAthlete = (atleta: AthleteProfile) => {
+    const pic = (atleta as any).profilePicture || atleta.avatar || ''
+    setEmpForm({
+      ...empForm,
+      name: atleta.name,
+      cedula: atleta.cedula,
+      phone: atleta.phone || empForm.phone || '',
+      email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
+      avatar: pic,
+      existingAthleteFound: true,
     })
-
-    if (!cedulaStr) return;
-    const atleta = athletes.find(a => a.cedula === cedulaStr.trim());
-    if (atleta) {
-      setEmpForm({
-        ...empForm,
-        name: atleta.name,
-        cedula: atleta.cedula,
-        phone: atleta.phone || empForm.phone || '',
-        email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
-        existingAthleteFound: true,
-      });
-
-      const avatarHtml = (atleta as any).profilePicture || atleta.avatar
-        ? `<img src="${(atleta as any).profilePicture || atleta.avatar}" alt="${atleta.name}" style="width:64px;height:64px;border-radius:9999px;object-fit:cover;margin:0 auto 10px auto;border:2px solid ${themeColor('primary') || '#eab308'};" />`
-        : `<div style="width:56px;height:56px;border-radius:9999px;margin:0 auto 10px auto;background:rgba(234,179,8,0.15);color:${themeColor('primary') || '#eab308'};display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;border:2px solid ${themeColor('primary') || '#eab308'};">${atleta.name.charAt(0)}</div>`
-
-      Swal.fire({
-        title: '¡Atleta Encontrado!',
-        html: `
-          ${avatarHtml}
-          <p style="font-size:1.15rem;font-weight:800;margin-bottom:4px;">${atleta.name}</p>
-          <p style="font-size:0.875rem;opacity:0.75;margin-bottom:12px;">C.I. ${atleta.cedula}</p>
-          <p style="font-size:0.85rem;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.25);border-radius:10px;padding:8px 12px;color:${themeColor('primary') || '#eab308'};font-weight:600;">
-            Datos precargados. Puedes seleccionar su nuevo rol de personal y dejar la contraseña en blanco para que conserve la suya actual.
-          </p>
-        `,
-        icon: 'success',
-        confirmButtonText: 'Continuar',
-        ...theme,
-        confirmButtonColor: themeColor('primary') || '#eab308',
-        customClass: {
-          popup: 'border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl glass',
-          title: 'font-black text-xl text-foreground',
-          confirmButton: 'font-bold rounded-xl px-6 py-2.5'
-        }
-      });
-    } else {
-      Swal.fire({
-        title: 'No Encontrado',
-        text: `No se encontró ningún atleta registrado con la cédula "${cedulaStr.trim()}".`,
-        icon: 'error',
-        confirmButtonText: 'Entendido',
-        ...theme,
-        confirmButtonColor: themeColor('destructive') || '#ef4444',
-        customClass: {
-          popup: 'border border-destructive/30 rounded-2xl shadow-2xl glass',
-          title: 'font-black text-xl text-destructive',
-          confirmButton: 'font-bold rounded-xl px-5 py-2.5'
-        }
-      });
-    }
+    setShowAthleteSearchModal(false)
+    setAthleteSearchQuery("")
+    showSweetToast(`Datos de ${atleta.name} (C.I. ${atleta.cedula}) precargados`, "success")
   }
+
+  const buscarAtleta = () => {
+    setAthleteSearchQuery("")
+    setShowAthleteSearchModal(true)
+  }
+
+  const matchingAthletes = athletes.filter(a => {
+    const q = athleteSearchQuery.trim().toLowerCase()
+    if (!q) return true
+    const cleanQ = q.replace(/\D/g, "")
+    return (
+      a.cedula.toLowerCase().includes(q) ||
+      (cleanQ.length > 0 && a.cedula.replace(/\D/g, "").includes(cleanQ)) ||
+      a.name.toLowerCase().includes(q)
+    )
+  }).slice(0, 12)
 
   return (
     <div className="space-y-6 max-w-full w-full mx-auto pb-20 relative">
@@ -380,10 +330,45 @@ export default function EmpleadosPage() {
             <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Personal' : 'Registrar Personal'}</h3>
             <form onSubmit={handleAddEmployee} className="space-y-4">
               {!empForm.id && (
-                <div className="flex gap-2 mb-2">
-                   <button type="button" onClick={buscarAtleta} className="bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2">
-                     <Search className="h-4 w-4" /> Buscar Atleta Existente
-                   </button>
+                <div className="space-y-3 mb-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <button type="button" onClick={buscarAtleta} className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-3.5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-sm">
+                      <Search className="h-4 w-4" /> Buscar Atleta Existente
+                    </button>
+                    {empForm.existingAthleteFound && (
+                      <button
+                        type="button"
+                        onClick={() => setEmpForm({ ...empForm, name: '', cedula: '', email: '', phone: '', avatar: '', existingAthleteFound: false })}
+                        className="text-xs text-muted-foreground hover:text-destructive font-semibold transition"
+                      >
+                        Limpiar selección
+                      </button>
+                    )}
+                  </div>
+
+                  {empForm.existingAthleteFound && (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/30">
+                      {empForm.avatar ? (
+                        <img src={empForm.avatar} alt={empForm.name} className="w-12 h-12 rounded-full object-cover border-2 border-primary shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary text-primary flex items-center justify-center font-black text-lg shrink-0">
+                          {empForm.name?.charAt(0)?.toUpperCase() || 'A'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-black text-sm text-foreground truncate">{empForm.name}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shrink-0">
+                            Atleta Seleccionado
+                          </span>
+                        </div>
+                        <p className="text-xs font-mono text-muted-foreground">C.I. {empForm.cedula}</p>
+                        <p className="text-[11px] text-primary font-semibold mt-0.5">
+                          Puedes asignarle su nuevo rol y dejar la contraseña en blanco para conservar la actual.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
@@ -523,6 +508,96 @@ export default function EmpleadosPage() {
                 <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Empleado</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL INTERACTIVO EN VIVO: BUSCAR ATLETA EXISTENTE */}
+      {showAthleteSearchModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-[#111520] border border-white/15 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/10">
+              <div>
+                <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                  <Search className="w-5 h-5 text-primary" /> Buscar Atleta Existente
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Escribe la cédula o el nombre del atleta para ver sus coincidencias en tiempo real y seleccionarlo:
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAthleteSearchModal(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+              <input
+                autoFocus
+                type="text"
+                value={athleteSearchQuery}
+                onChange={e => setAthleteSearchQuery(e.target.value)}
+                placeholder="Ej: 12345678 o nombre del atleta..."
+                className="w-full bg-black/40 border-2 border-primary/50 focus:border-primary rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono text-foreground placeholder:font-sans focus:outline-none transition"
+              />
+            </div>
+
+            <div className="mt-3 flex-1 overflow-y-auto space-y-2 pr-1 max-h-80">
+              {matchingAthletes.length === 0 ? (
+                <div className="py-10 text-center text-muted-foreground text-xs border border-dashed border-white/10 rounded-xl">
+                  No se encontró ningún atleta con &ldquo;{athleteSearchQuery}&rdquo;.
+                </div>
+              ) : (
+                matchingAthletes.map(atleta => {
+                  const photo = (atleta as any).profilePicture || atleta.avatar
+                  return (
+                    <button
+                      key={atleta.id}
+                      type="button"
+                      onClick={() => selectExistingAthlete(atleta)}
+                      className="w-full text-left p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-primary/15 hover:border-primary/50 transition-all flex items-center gap-3 group"
+                    >
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt={atleta.name}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-primary/40 group-hover:border-primary shrink-0 shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary/40 group-hover:border-primary text-primary flex items-center justify-center font-black text-lg shrink-0">
+                          {atleta.name?.charAt(0)?.toUpperCase() || 'A'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-sm text-foreground group-hover:text-primary truncate transition-colors">
+                          {atleta.name}
+                        </p>
+                        <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                          C.I. <span className="text-foreground font-bold">{atleta.cedula}</span>
+                        </p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-lg bg-primary/20 group-hover:bg-primary text-primary group-hover:text-primary-foreground text-[11px] font-bold transition shrink-0 flex items-center gap-1">
+                        <UserCheck className="w-3.5 h-3.5" /> Elegir
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-white/10 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAthleteSearchModal(false)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-foreground transition"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
