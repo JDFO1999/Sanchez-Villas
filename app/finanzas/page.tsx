@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
+import { askPassword } from "@/lib/confirm"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
 function escapeHtml(value: unknown): string {
@@ -310,31 +311,23 @@ export default function FinanzasPage() {
   }
 
   const handleAdminCancelTx = async (id: string) => {
-    const { value: pin } = await Swal.fire({
-      title: 'Validación Requerida',
-      text: 'Ingrese PIN de Administrador para anular esta factura:',
-      input: 'password',
-      inputPlaceholder: 'PIN...',
-      showCancelButton: true,
-      confirmButtonText: 'Validar y Anular',
-      cancelButtonText: 'Cancelar'
+    const targetTx = transactions.find((t: any) => t.id === id);
+    const invNum = targetTx ? getInvoiceNumber(targetTx) : id;
+    const superPass = await askPassword({
+      title: 'Autorización del Super Administrador',
+      text: `Para anular la Factura #${invNum} (reintegrar stock y descontar del flujo de caja), ingresa la contraseña del Super Administrador:`,
+      placeholder: 'Contraseña del Super Administrador...'
     });
-    if (!pin) return;
-    
-    const { validatePinAction } = await import('@/app/actions/auth');
-    const authRes = await validatePinAction(pin);
-    if (!authRes.success || authRes.user?.role !== 'admin') {
-      return Swal.fire('Error', 'PIN incorrecto o sin permisos.', 'error');
-    }
+    if (!superPass) return;
     
     Swal.fire({ title: 'Anulando...', allowOutsideClick: false, didOpen: () => Swal.getPopup()!.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:20px"><div style="position:relative;width:48px;height:48px;animation:ios-spin 1s steps(12,end) infinite"><style>@keyframes ios-spin{100%{transform:rotate(360deg)}}.ios-blade{position:absolute;left:46%;top:0;width:8%;height:25%;border-radius:5px;background-color:#22c55e;transform-origin:50% 200%}</style>' + Array.from({length:12}).map((_,i) => '<div class="ios-blade" style="transform:rotate('+(i*30)+'deg);opacity:'+((i+1)/12)+'"></div>').join('') + '</div><p style="margin-top:16px;font-weight:bold;color:#22c55e;animation:pulse 2s infinite">Cargando...</p></div>' });
     const { adminRefundTransaction } = await import('@/app/actions/store');
-    const res = await adminRefundTransaction(id);
+    const res = await adminRefundTransaction(id, superPass);
     if (res.success) {
-      Swal.fire('¡Anulada!', 'La factura fue anulada y el stock devuelto.', 'success');
-      window.location.reload();
+      setTransactions(prev => prev.map((t: any) => t.id === id ? { ...t, status: 'CANCELED' } : t));
+      Swal.fire('¡Anulada!', `La Factura #${invNum} fue anulada y el stock devuelto.`, 'success');
     } else {
-      Swal.fire('Error', res.error, 'error');
+      Swal.fire('Error', res.error || 'No se pudo anular la factura.', 'error');
     }
   };
 
@@ -1260,6 +1253,11 @@ export default function FinanzasPage() {
                         <span className="text-xs text-muted-foreground">{tx.reference || '-'}</span>
                         {tx.receiptImage && (
                           <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
+                        )}
+                        {tx.status === 'CANCELED' ? (
+                          <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
+                        ) : (
+                          <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
                         )}
                       </div>
                     </div>

@@ -4,8 +4,19 @@ import prisma from "@/lib/db"
 import { sendReceiptEmail } from "@/lib/mailer"
 import { revalidatePath } from "next/cache"
 import { saveBase64Image } from "@/lib/image-utils"
-import { guard, ROLES } from "@/lib/authz"
+import { guard, ROLES, verifyActorPassword } from "@/lib/authz"
 import { audit } from "@/lib/audit"
+
+async function getSuperAdminUser() {
+  let superAdmin = await prisma.user.findFirst({ where: { cedula: "26710825", role: "admin" } })
+  if (!superAdmin) {
+    superAdmin = await prisma.user.findFirst({
+      where: { role: "admin" },
+      orderBy: { createdAt: "asc" }
+    })
+  }
+  return superAdmin
+}
 
 function cleanReceiptReference(ref?: string | null): string | null {
   if (!ref) return null
@@ -525,11 +536,23 @@ export async function cancelTransaction(transactionId: string) {
   }
 }
 
-export async function adminRefundTransaction(transactionId: string) {
+export async function adminRefundTransaction(transactionId: string, superAdminPassword?: string) {
   // guard:adminRefundTransaction
-  const g = await guard(ROLES.ADMIN)
+  const g = await guard(ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
   try {
+    if (!superAdminPassword) {
+      return { success: false, error: 'Se requiere la contraseña del Super Administrador para anular una factura.' };
+    }
+    const superAdmin = await getSuperAdminUser();
+    if (!superAdmin) {
+      return { success: false, error: 'No se encontró la cuenta del Super Administrador.' };
+    }
+    const validPass = await verifyActorPassword(superAdmin.id, superAdminPassword);
+    if (!validPass) {
+      return { success: false, error: 'Contraseña del Super Administrador incorrecta.' };
+    }
+
     const tx = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: { items: true }
