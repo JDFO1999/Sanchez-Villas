@@ -1,13 +1,14 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import prisma from "@/lib/db";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
  * Carpeta donde se guardan las imágenes subidas. En desarrollo: public/uploads.
- * En producción define UPLOAD_DIR apuntando a un VOLUMEN PERSISTENTE (p. ej. /data/uploads); si no,
- * las imágenes se pierden en cada despliegue. Se sirven mediante app/uploads/[...path]/route.ts.
+ * En producción define UPLOAD_DIR apuntando a un VOLUMEN PERSISTENTE (p. ej. /data/uploads).
+ * Se sirven mediante app/uploads/[...path]/route.ts con fallback automático a MySQL.
  */
 export function getUploadDir(): string {
   return process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
@@ -29,8 +30,8 @@ function sniffImage(buf: Buffer): "jpg" | "png" | "webp" | "svg" {
 /**
  * Guarda una imagen enviada como data URI en public/uploads y devuelve su URL.
  * - Soporta SVG, PNG, JPG, JPEG y WEBP.
- * - Máximo 10MB. Nombre aleatorio; `prefix` se limpia a [a-z0-9_-] (sin rutas).
- * - Si recibe una URL (http/https o ruta que empiece con "/") la devuelve; cualquier otra cosa se descarta.
+ * - Máximo 10MB.
+ * - Respalda automáticamente en la base de datos (UploadAsset) para auto-recuperación si Docker se reinicia.
  */
 export async function saveBase64Image(base64Str: string | null | undefined, prefix = "img"): Promise<string | null> {
   if (!base64Str) return null;
@@ -55,6 +56,18 @@ export async function saveBase64Image(base64Str: string | null | undefined, pref
     await mkdir(uploadsDir, { recursive: true });
     const filename = `${safePrefix}_${crypto.randomBytes(12).toString("hex")}.svg`;
     await writeFile(path.join(uploadsDir, filename), buffer);
+
+    // Respaldo en BD para auto-restauración en caso de que el contenedor Docker sea efímero
+    try {
+      await prisma.uploadAsset.upsert({
+        where: { filename },
+        create: { filename, data: buffer.toString("base64"), mimeType: "image/svg+xml" },
+        update: { data: buffer.toString("base64"), mimeType: "image/svg+xml" },
+      });
+    } catch (dbErr) {
+      console.warn("Aviso: no se pudo respaldar SVG en UploadAsset:", dbErr);
+    }
+
     return `/uploads/${filename}`;
   }
 
@@ -74,5 +87,26 @@ export async function saveBase64Image(base64Str: string | null | undefined, pref
 
   const filename = `${safePrefix}_${crypto.randomBytes(12).toString("hex")}.${ext}`;
   await writeFile(path.join(uploadsDir, filename), buffer);
+
+  const mimeMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+  };
+  const mimeType = mimeMap[ext] || "image/png";
+
+  // Respaldo en BD para auto-restauración inmediata
+  try {
+    await prisma.uploadAsset.upsert({
+      where: { filename },
+      create: { filename, data: rawBase64, mimeType },
+      update: { data: rawBase64, mimeType },
+    });
+  } catch (dbErr) {
+    console.warn("Aviso: no se pudo respaldar imagen en UploadAsset:", dbErr);
+  }
+
   return `/uploads/${filename}`;
 }

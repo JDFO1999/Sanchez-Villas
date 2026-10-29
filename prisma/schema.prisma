@@ -258,6 +258,17 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 }
 
+model UploadAsset {
+  id        String   @id @default(cuid())
+  filename  String   @unique
+  data      String   @db.LongText
+  mimeType  String   @default("image/png")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([filename])
+}
+
 model CommunityPost {
   id        String              @id @default(cuid())
   authorId  String
