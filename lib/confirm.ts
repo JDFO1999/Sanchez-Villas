@@ -45,13 +45,13 @@ export async function confirmAction({ title, text, confirmText = "Aceptar", canc
 }
 
 /** Pide la contraseña de quien está operando. Devuelve null si cancela. */
-export async function askPassword({ title, text, error }: { title: string; text?: string; error?: string }): Promise<string | null> {
+export async function askPassword({ title, text, error, placeholder }: { title: string; text?: string; error?: string; placeholder?: string }): Promise<string | null> {
   const res = await Swal.fire({
     title,
     text: error ? undefined : text,
     html: error ? `<p style="color:${themeColor("destructive")};font-weight:600">${error}</p>` : undefined,
     input: "password",
-    inputPlaceholder: "Tu contraseña",
+    inputPlaceholder: placeholder || "Tu contraseña",
     inputAttributes: { autocomplete: "current-password", "aria-label": "Tu contraseña" },
     showCancelButton: true,
     confirmButtonText: "Confirmar",
