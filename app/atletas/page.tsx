@@ -319,27 +319,21 @@ export default function AtletasPage() {
           const txRes = await createTransaction({
             cashierId: user?.id,
             customerId: editingAthlete.id,
+            skipAutoMembership: true,
             items: [
               {
                 productId: `PLAN:${pName}`,
-                name: `${pName} (Edición de Atleta)`,
+                name: pName,
                 price: payAmount,
                 qty: 1,
                 subtotal: payAmount
               }
             ],
+            subtotal: payAmount,
+            tax: 0,
             total: payAmount,
             paymentMethod: editPaymentMethod,
-            paymentDetails: JSON.stringify({
-              splits: [
-                {
-                  method: editPaymentMethod,
-                  amount: payAmount,
-                  reference: editPaymentRef || "Asignado desde Directorio de Atletas"
-                }
-              ],
-              source: "ATHLETE_EDIT_MODAL"
-            }),
+            reference: editPaymentRef.trim() || undefined,
             status: "COMPLETED"
           })
           if (!txRes.success) {

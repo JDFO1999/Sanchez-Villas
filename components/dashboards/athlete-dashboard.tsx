@@ -485,7 +485,7 @@ export function AthleteDashboard() {
                 <div key={tx.id} className="bg-transparent py-3 border-b border-border flex flex-col md:flex-row gap-3 justify-between md:items-center last:border-0 hover:bg-muted transition px-2 -mx-2 rounded-lg">
                   <div className="space-y-1.5 flex-1 w-full">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-xs text-foreground uppercase">#{tx.id.slice(-6)}</span>
+                      <span className="font-bold text-xs text-foreground uppercase font-mono">#{String((tx as any).invoiceNumber || '0000001').padStart(7, '0')}</span>
                       <span className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</span>
                       {(tx.status as string) === 'PENDING_DELIVERY' ? (
                         <Badge tone="warning"><Clock className="h-3 w-3" aria-hidden="true" /> Pendiente</Badge>
@@ -527,7 +527,7 @@ export function AthleteDashboard() {
                         onClick={() => setShowTicketModal(tx)}
                         className="bg-transparent border border-border text-foreground hover:bg-muted px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition shadow-sm"
                       >
-                        <Eye className="h-3 w-3" /> Ticket
+                        <Eye className="h-3 w-3" /> Factura
                       </button>
                       {(tx.status as string) === 'PENDING_DELIVERY' && tx.paymentMethod === 'Efectivo' && (
                         <button
@@ -602,58 +602,108 @@ export function AthleteDashboard() {
       )}
 
       {/* TICKET MODAL */}
-      {showTicketModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto" onClick={() => setShowTicketModal(null)}>
-          <div className="w-full flex justify-center pt-4 md:pt-0" onClick={e => e.stopPropagation()}>
-            <div className="bg-white text-black p-6 w-full max-w-sm font-mono text-sm relative shadow-sm border border-gray-200 mx-auto">
-              <button onClick={() => setShowTicketModal(null)} className="absolute top-2 right-2 text-gray-500 hover:text-black font-sans font-bold text-xl">&times;</button>
-              <div className="text-center mb-4 border-b border-dashed border-black pb-4">
-                <h2 className="font-bold text-xl uppercase tracking-widest">TICKET DE COMPRA</h2>
-                <p className="text-black mt-1 font-bold">{showTicketModal.id}</p>
-                {showTicketModal.id.slice(-5).toUpperCase() && (showTicketModal.status as string) === 'PENDING_DELIVERY' && (
-                  <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
-                    <p className="font-bold text-xs">CÓDIGO DE RETIRO</p>
-                    <p className="text-xl font-black">{showTicketModal.id.slice(-5).toUpperCase()}</p>
-                  </div>
-                )}
-                <p className="text-black text-xs">{new Date(showTicketModal.date).toLocaleString()}</p>
-                <p className="text-black text-xs font-bold mt-1">Estatus: {(showTicketModal.status as string) === 'PENDING_DELIVERY' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
-              </div>
+      {showTicketModal && (() => {
+        const invNum = String((showTicketModal as any).invoiceNumber || '0000001').padStart(7, '0');
+        const cashierDisplay = (showTicketModal as any).cashier?.name || (showTicketModal.cashierId ? 'Administración' : 'Tienda Online');
+        const clientName = (showTicketModal as any).customer?.name || user?.name || 'Cliente';
+        const clientCedula = (showTicketModal as any).customer?.cedula || user?.cedula || '';
+        const cleanedRef = String(showTicketModal.reference || '')
+          .replace(/^Ref:\s*/i, '')
+          .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
+          .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
+          .replace(/^Asignado desde Directorio de Atletas$/i, '')
+          .trim();
+        const logoSrc = settings.logoUrl || settings.logoUrlDark;
+        const rate = settings.storeExchangeRate || 1;
+        const secCurr = settings.storeCurrencySecondary || 'BsS';
+        const mainCurr = settings.storeCurrency || '$';
 
-              <div className="space-y-2 mb-4 text-black">
-                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2 text-xs">
-                  <span>CANT. DESC.</span>
-                  <span>TOTAL</span>
-                </div>
-                {showTicketModal.items.map(item => (
-                  <div key={item.productId} className="flex justify-between items-start text-xs mb-1 leading-tight">
-                    <div className="flex gap-2 pr-2">
-                      <span className="font-bold">{item.qty}x</span>
-                      <span>{item.name}</span>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto" onClick={() => setShowTicketModal(null)}>
+            <div className="w-full flex justify-center pt-4 md:pt-0" onClick={e => e.stopPropagation()}>
+              <div className="bg-white text-black p-6 w-full max-w-sm font-mono text-sm relative shadow-sm border border-gray-200 mx-auto">
+                <button onClick={() => setShowTicketModal(null)} className="absolute top-2 right-2 text-gray-500 hover:text-black font-sans font-bold text-xl">&times;</button>
+                <div className="text-center mb-4 border-b border-dashed border-black pb-4">
+                  {logoSrc && (
+                    <div className="flex justify-center mb-2">
+                      <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
                     </div>
-                    <span className="shrink-0 font-bold">${item.subtotal.toFixed(2)}</span>
+                  )}
+                  <h2 className="font-bold text-xl uppercase tracking-widest">{settings.appName || 'FACTURA DE COMPRA'}</h2>
+                  {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
+                  {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
+                  {showTicketModal.id.slice(-5).toUpperCase() && (showTicketModal.status as string) === 'PENDING_DELIVERY' && (
+                    <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100 text-center">
+                      <p className="font-bold text-xs">CÓDIGO DE RETIRO</p>
+                      <p className="text-xl font-black">{showTicketModal.id.slice(-5).toUpperCase()}</p>
+                    </div>
+                  )}
+                  <div className="text-xs border-b border-black/20 pb-3 mb-2 mt-2 space-y-0.5">
+                    <p className="text-black font-bold text-sm">Factura N°: {invNum}</p>
+                    <p className="text-black">Fecha: {new Date(showTicketModal.date).toLocaleString()}</p>
+                    <p className="text-black">Cajero: {cashierDisplay}</p>
+                    <p className="text-black">Cliente: {clientName}</p>
+                    {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
+                    <p className="text-black font-bold mt-1">Estatus: {(showTicketModal.status as string) === 'PENDING_DELIVERY' ? 'PENDIENTE DE RETIRO' : 'COMPLETADA'}</p>
                   </div>
-                ))}
-              </div>
+                </div>
 
-              <div className="border-t border-dashed border-black pt-3 space-y-1 text-black text-xs">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>${showTicketModal.subtotal.toFixed(2)}</span>
+                <div className="space-y-2 mb-4 text-black">
+                  <div className="flex justify-between font-bold border-b border-black pb-1 mb-2 text-xs">
+                    <span>CANT. DESC.</span>
+                    <span>TOTAL</span>
+                  </div>
+                  {showTicketModal.items.map(item => {
+                    const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
+                    return (
+                      <div key={item.productId} className="flex justify-between items-start text-xs mb-1 leading-tight">
+                        <div className="flex gap-2 pr-2">
+                          <span className="font-bold">{item.qty}x</span>
+                          <span>{cleanName}</span>
+                        </div>
+                        <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="flex justify-between text-base font-black mt-1 pt-1 border-t border-black">
-                  <span>TOTAL</span>
-                  <span>${showTicketModal.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span>Pago con:</span>
-                  <span className="uppercase">{showTicketModal.paymentMethod}</span>
+
+                <div className="border-t border-dashed border-black pt-3 space-y-1 text-black text-xs font-bold">
+                  <div className="flex justify-between">
+                    <span>Artículos Totales</span>
+                    <span>{showTicketModal.items.reduce((acc, item) => acc + item.qty, 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{secCurr} {(showTicketModal.subtotal * rate).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>IVA ({settings.storeTaxRate}%)</span>
+                    <span>{secCurr} {((showTicketModal.tax || 0) * rate).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-black mt-1 pt-1 border-t border-black">
+                    <span>TOTAL</span>
+                    <span>{secCurr} {(showTicketModal.total * rate).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-black text-gray-800 pb-1">
+                    <span>TOTAL ({mainCurr})</span>
+                    <span>{mainCurr} {Number(showTicketModal.total || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span>Pago con:</span>
+                    <span className="uppercase">{showTicketModal.paymentMethod}</span>
+                  </div>
+                  {cleanedRef && (
+                    <div className="flex justify-between">
+                      <span>Ref:</span>
+                      <span className="uppercase">{cleanedRef}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <Dialog
         open={showQRModal}

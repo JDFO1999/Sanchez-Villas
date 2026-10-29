@@ -438,10 +438,11 @@ export default function MembresíasPage() {
           const txRes = await createTransaction({
             cashierId: user?.id,
             customerId: showEditModal.id,
+            skipAutoMembership: true,
             items: [
               {
                 productId: `PLAN:${pName}`,
-                name: `${pName} (Ajuste administrativo)`,
+                name: pName,
                 price: payAmount,
                 qty: 1,
                 subtotal: payAmount
@@ -452,7 +453,7 @@ export default function MembresíasPage() {
             total: payAmount,
             creditAmount: 0,
             paymentMethod: editPaymentMethod,
-            reference: editPaymentRef ? `Ref: ${editPaymentRef.trim()} (Asiento desde edición)` : 'Asiento directo desde edición de membresía'
+            reference: editPaymentRef.trim() || undefined
           })
 
           if (!txRes.success) {

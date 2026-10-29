@@ -21,9 +21,12 @@ export interface TransactionItem {
 
 export interface Transaction {
   id: string
+  invoiceNumber?: string
   date: string
   cashierId: string
+  cashier?: { name: string; cedula?: string; role?: string } | null
   customerId?: string // null if walk-in client
+  customer?: { name: string; cedula?: string; phone?: string | null } | null
   items: TransactionItem[]
   subtotal: number
   tax: number

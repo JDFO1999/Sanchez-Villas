@@ -1091,11 +1091,33 @@ export async function getAthleteDashboardData(athleteId: string) {
       where: { athleteId },
       orderBy: { endDate: 'desc' }
     })
-    const purchases = await prisma.transaction.findMany({
+    const rawPurchases = await prisma.transaction.findMany({
       where: { customerId: athleteId },
       orderBy: { date: 'desc' },
-      include: { items: true }
-      })
+      include: {
+        items: true,
+        cashier: { select: { name: true, cedula: true } },
+        customer: { select: { name: true, cedula: true } }
+      }
+    })
+    const purchases = rawPurchases.map((tx: any, idx: number) => ({
+      ...tx,
+      invoiceNumber: String(rawPurchases.length - idx).padStart(7, '0'),
+      reference: tx.reference
+        ? String(tx.reference)
+            .replace(/^Ref:\s*/i, "")
+            .replace(/\s*\(Asiento desde edici[oó]n\)/gi, "")
+            .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, "")
+            .replace(/^Asignado desde Directorio de Atletas$/i, "")
+            .trim() || null
+        : null,
+      items: Array.isArray(tx.items)
+        ? tx.items.map((it: any) => ({
+            ...it,
+            name: String(it.name || "").replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, "").trim()
+          }))
+        : []
+    }))
 
     const routines = await prisma.routine.findMany({
       where: { athleteId },

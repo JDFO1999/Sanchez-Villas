@@ -7,6 +7,24 @@ import { saveBase64Image } from "@/lib/image-utils"
 import { guard, ROLES } from "@/lib/authz"
 import { audit } from "@/lib/audit"
 
+function cleanReceiptReference(ref?: string | null): string | null {
+  if (!ref) return null
+  const cleaned = String(ref)
+    .replace(/^Ref:\s*/i, "")
+    .replace(/\s*\(Asiento desde edici[oó]n\)/gi, "")
+    .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, "")
+    .replace(/^Asignado desde Directorio de Atletas$/i, "")
+    .trim()
+  return cleaned || null
+}
+
+function cleanReceiptItemName(name?: string | null): string {
+  if (!name) return ""
+  return String(name)
+    .replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, "")
+    .trim()
+}
+
 export async function getProducts() {
   // guard:getProducts
   const g = await guard()
@@ -195,13 +213,13 @@ export async function createTransaction(data: any) {
           tax,
           total,
           paymentMethod: method,
-          reference: data.reference ? String(data.reference).slice(0, 190) : null,
+          reference: cleanReceiptReference(data.reference)?.slice(0, 190) || null,
           receiptImage: receiptImage || null,
           status: cashierId ? 'COMPLETED' : 'PENDING_DELIVERY',
           items: {
             create: lines.map(l => ({
               productId: l.productId,
-              name: l.name,
+              name: cleanReceiptItemName(l.name),
               price: l.price,
               qty: l.qty,
               subtotal: l.subtotal
@@ -209,9 +227,14 @@ export async function createTransaction(data: any) {
           }
         },
         include: {
-          items: true
+          items: true,
+          cashier: { select: { name: true, cedula: true, role: true } },
+          customer: { select: { name: true, cedula: true, phone: true } }
         }
       });
+
+      const totalTxCount = await tx.transaction.count()
+      const invoiceNumber = String(totalTxCount).padStart(7, '0')
 
       // 3. Decrement stock for real products
       for (const l of lines) {
@@ -225,7 +248,7 @@ export async function createTransaction(data: any) {
 
       // 3b. Activación unificada y atómica de Membresía/Plan al facturar en Recepción/Caja (/tienda o /membresias).
       // Garantiza que NINGUNA membresía se active sin su respectiva transacción financiera en /finanzas.
-      if (cashierId && customerId) {
+      if (cashierId && customerId && !data.skipAutoMembership) {
         for (const l of lines) {
           if (l.productId === 'MEMB' || l.productId === 'MEMBRESIA-001' || l.productId.startsWith('PLAN:')) {
             const latestMemb = await tx.membership.findFirst({
@@ -264,7 +287,7 @@ export async function createTransaction(data: any) {
         })
       }
 
-      return newTx;
+      return { ...newTx, invoiceNumber };
     })
 
     revalidatePath('/tienda');
@@ -284,14 +307,23 @@ export async function getTransactions() {
   const g = await guard(ROLES.POS)
   if (!g.ok) return { success: false, error: g.error, transactions: [] }
   try {
-    const transactions = await prisma.transaction.findMany({
+    const rawTransactions = await prisma.transaction.findMany({
       include: {
         items: true,
-        cashier: { select: { name: true, cedula: true } },
+        cashier: { select: { name: true, cedula: true, role: true } },
         customer: { select: { name: true, cedula: true, coachId: true, profilePicture: true } }
       },
       orderBy: { date: 'desc' }
     })
+    const total = rawTransactions.length
+    const transactions = rawTransactions.map((t, idx) => ({
+      ...t,
+      invoiceNumber: String(total - idx).padStart(7, '0'),
+      reference: cleanReceiptReference(t.reference),
+      items: Array.isArray(t.items)
+        ? t.items.map(it => ({ ...it, name: cleanReceiptItemName(it.name) }))
+        : []
+    }))
     return { success: true, transactions }
   } catch (error: any) {
     return { success: false, error: error.message, transactions: [] }

@@ -2145,28 +2145,49 @@ export default function TiendaPOSPage() {
       {/* TICKET / RECIBO MODAL */}
       {showReceipt && (() => {
         const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
+        const matchedAthlete = showReceipt.customerId ? athletes.find(a => a.id === showReceipt.customerId) : null;
+        const clientName = showReceipt.customer?.name || matchedAthlete?.name || (showReceipt.customerId ? 'Desconocido' : 'Consumidor Final');
+        const clientCedula = showReceipt.customer?.cedula || matchedAthlete?.cedula || '';
+        const cashierDisplay = showReceipt.cashier?.name || user?.name || 'Administración';
+        const invNum = String(showReceipt.invoiceNumber || '0000001').padStart(7, '0');
+        const cleanedRef = String(showReceipt.reference || '')
+          .replace(/^Ref:\s*/i, '')
+          .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
+          .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
+          .trim();
+        const logoSrc = settings.logoUrl || settings.logoUrlDark;
+        const rate = settings.storeExchangeRate || 1;
+        const secCurr = settings.storeCurrencySecondary || 'BsS';
+        const mainCurr = settings.storeCurrency || '$';
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
             <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
               <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
               
               <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                {logoSrc && (
+                  <div className="flex justify-center mb-2">
+                    <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
+                  </div>
+                )}
                 <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
                 {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
                 {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
-                {true && (
-                  <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
-                    <p className="font-bold">CÓDIGO DE RETIRO</p>
-                    <p className="text-xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
-                  </div>
-                )}
-                <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
-                <p className="text-black mt-2">Cajero: {user?.name}</p>
-                <p className="text-black">Cliente: {showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId)?.name : 'Consumidor Final'}</p>
-                {showReceipt.deliveredBy && (
-                  <p className="text-black font-bold">Despachado por: {showReceipt.deliveredBy}</p>
-                )}
+                <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
+                  <p className="font-bold">CÓDIGO DE RETIRO</p>
+                  <p className="text-xl font-black">{(showReceipt.pickupCode || showReceipt.id.slice(-5)).toUpperCase()}</p>
+                </div>
+                <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
+                  <p className="text-black font-bold">Factura N°: {invNum}</p>
+                  <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
+                  <p className="text-black">Cajero: {cashierDisplay}</p>
+                  <p className="text-black">Cliente: {clientName}</p>
+                  {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
+                  {showReceipt.deliveredBy && (
+                    <p className="text-black font-bold">Despachado por: {showReceipt.deliveredBy}</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2 mb-6 text-black">
@@ -2174,15 +2195,18 @@ export default function TiendaPOSPage() {
                   <span>CANT. DESC.</span>
                   <span>TOTAL</span>
                 </div>
-                {showReceipt.items.map(item => (
-                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                    <div className="flex gap-2 pr-2">
-                      <span className="font-bold">{item.qty}x</span>
-                      <span>{item.name}</span>
+                {showReceipt.items.map(item => {
+                  const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
+                  return (
+                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                      <div className="flex gap-2 pr-2">
+                        <span className="font-bold">{item.qty}x</span>
+                        <span>{cleanName}</span>
+                      </div>
+                      <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
                     </div>
-                    <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
@@ -2192,29 +2216,28 @@ export default function TiendaPOSPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
+                  <span>{secCurr} {(showReceipt.subtotal * rate).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>IVA ({settings.storeTaxRate}%)</span>
-                  <span>{settings.storeCurrency} {showReceipt.tax.toFixed(2)}</span>
+                  <span>{secCurr} {(showReceipt.tax * rate).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
                   <span>TOTAL</span>
-                  <div className="text-right">
-                    <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
-                    {settings.storeExchangeRate > 0 && settings.storeCurrencySecondary && (
-                      <div className="text-sm">({settings.storeCurrencySecondary} {(showReceipt.total * settings.storeExchangeRate).toFixed(2)})</div>
-                    )}
-                  </div>
+                  <span>{secCurr} {(showReceipt.total * rate).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-black text-gray-800 pb-1">
+                  <span>TOTAL ({mainCurr})</span>
+                  <span>{mainCurr} {Number(showReceipt.total || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between mt-2">
                   <span>Pago con:</span>
                   <span className="uppercase">{showReceipt.paymentMethod}</span>
                 </div>
-                {showReceipt.reference && (
+                {cleanedRef && (
                   <div className="flex justify-between">
                     <span>Ref:</span>
-                    <span className="uppercase">{showReceipt.reference}</span>
+                    <span className="uppercase">{cleanedRef}</span>
                   </div>
                 )}
               </div>
@@ -2235,7 +2258,7 @@ export default function TiendaPOSPage() {
                     const client = showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId) : null;
                     const phone = client?.phone || prompt("Ingrese número de teléfono (con código de país ej. 57300...):");
                     if (phone) {
-                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0ATicket: ${showReceipt.id}%0ATotal: ${settings.storeCurrency} ${showReceipt.total.toFixed(2)}%0A%0A¡Gracias por preferirnos!`;
+                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0AFactura N°: ${invNum}%0ATotal: ${mainCurr} ${showReceipt.total.toFixed(2)} (${secCurr} ${(showReceipt.total * rate).toFixed(2)})%0A%0A¡Gracias por preferirnos!`;
                       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                     }
                   }}
@@ -2301,23 +2324,45 @@ export default function TiendaPOSPage() {
         {/* TICKET / RECIBO MODAL PARA ATLETA */}
         {showReceipt && (() => {
           const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
+          const invNum = String(showReceipt.invoiceNumber || '0000001').padStart(7, '0');
+          const clientName = showReceipt.customer?.name || user?.name || 'Consumidor Final';
+          const clientCedula = showReceipt.customer?.cedula || user?.cedula || '';
+          const cashierDisplay = showReceipt.cashier?.name || 'Tienda Online';
+          const cleanedRef = String(showReceipt.reference || '')
+            .replace(/^Ref:\s*/i, '')
+            .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
+            .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
+            .trim();
+          const logoSrc = settings.logoUrl || settings.logoUrlDark;
+          const rate = settings.storeExchangeRate || 1;
+          const secCurr = settings.storeCurrencySecondary || 'BsS';
+          const mainCurr = settings.storeCurrency || '$';
+
           return (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
               <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
                 <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
                 
                 <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                  {logoSrc && (
+                    <div className="flex justify-center mb-2">
+                      <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
+                    </div>
+                  )}
                   <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
                   {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
                   {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                  <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
-                  { (
-                    <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
-                      <p className="font-bold">CÓDIGO DE RETIRO</p>
-                      <p className="text-xl font-black">{showReceipt.id.slice(-5).toUpperCase()}</p>
-                    </div>
-                  )}
-                  <p className="text-black">{new Date(showReceipt.date).toLocaleString()}</p>
+                  <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
+                    <p className="font-bold">CÓDIGO DE RETIRO</p>
+                    <p className="text-xl font-black">{(showReceipt.pickupCode || showReceipt.id.slice(-5)).toUpperCase()}</p>
+                  </div>
+                  <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
+                    <p className="text-black font-bold">Factura N°: {invNum}</p>
+                    <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
+                    <p className="text-black">Cajero: {cashierDisplay}</p>
+                    <p className="text-black">Cliente: {clientName}</p>
+                    {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
+                  </div>
                 </div>
   
                 <div className="space-y-2 mb-6 text-black">
@@ -2325,32 +2370,51 @@ export default function TiendaPOSPage() {
                     <span>CANT. DESC.</span>
                     <span>TOTAL</span>
                   </div>
-                  {showReceipt.items.map((item: any) => (
-                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                      <div className="flex gap-2 pr-2">
-                        <span className="font-bold">{item.qty}x</span>
-                        <span>{item.name}</span>
+                  {showReceipt.items.map((item: any) => {
+                    const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
+                    return (
+                      <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                        <div className="flex gap-2 pr-2">
+                          <span className="font-bold">{item.qty}x</span>
+                          <span>{cleanName}</span>
+                        </div>
+                        <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
                       </div>
-                      <span className="shrink-0 font-bold">{settings.storeCurrency} {item.subtotal.toFixed(2)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
   
                 <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
                   <div className="flex justify-between">
+                    <span>Artículos Totales</span>
+                    <span>{showReceipt.items.reduce((acc: number, item: any) => acc + item.qty, 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>{settings.storeCurrency} {showReceipt.subtotal.toFixed(2)}</span>
+                    <span>{secCurr} {(showReceipt.subtotal * rate).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>IVA ({settings.storeTaxRate}%)</span>
+                    <span>{secCurr} {((showReceipt.tax || 0) * rate).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
                     <span>TOTAL</span>
-                    <div className="text-right">
-                      <div>{settings.storeCurrency} {showReceipt.total.toFixed(2)}</div>
-                    </div>
+                    <span>{secCurr} {(showReceipt.total * rate).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-black text-gray-800 pb-1">
+                    <span>TOTAL ({mainCurr})</span>
+                    <span>{mainCurr} {Number(showReceipt.total || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between mt-2">
                     <span>Pago con:</span>
                     <span className="uppercase">{showReceipt.paymentMethod}</span>
                   </div>
+                  {cleanedRef && (
+                    <div className="flex justify-between">
+                      <span>Ref:</span>
+                      <span className="uppercase">{cleanedRef}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-warning mt-2 text-lg">
                     <span>Estatus:</span>
                     <span className="uppercase">PENDIENTE DE RETIRO</span>

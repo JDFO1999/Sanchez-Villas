@@ -717,26 +717,76 @@ export default function FinanzasPage() {
     return 'Desconocido';
   }
 
+  const getAthleteCedula = (tx: any) => {
+    if (!tx?.customerId || tx.customerId === 'unknown') return '';
+    if (tx.customer?.cedula) return tx.customer.cedula;
+    const athlete = athletes.find(a => a.id === tx.customerId);
+    return athlete?.cedula || '';
+  }
+
+  const getCashierName = (tx: any) => {
+    if (tx?.cashier?.name) return tx.cashier.name;
+    if (tx?.cashierId) {
+      const emp = employees.find(e => e.id === tx.cashierId);
+      if (emp?.name) return emp.name;
+    }
+    if (user?.id && tx?.cashierId === user.id && user?.name) return user.name;
+    return tx?.cashierId ? 'Administración' : 'Pago Online';
+  }
+
+  const getInvoiceNumber = (tx: any) => {
+    if (tx?.invoiceNumber) return String(tx.invoiceNumber).padStart(7, '0');
+    const sorted = [...transactions].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const idx = sorted.findIndex((t: any) => t.id === tx?.id);
+    if (idx >= 0) return String(idx + 1).padStart(7, '0');
+    return '0000001';
+  }
+
+  const cleanRefString = (ref?: string | null) => {
+    if (!ref) return '';
+    return String(ref)
+      .replace(/^Ref:\s*/i, '')
+      .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
+      .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
+      .replace(/^Asignado desde Directorio de Atletas$/i, '')
+      .trim();
+  }
+
   return (
     <div className="space-y-6 max-w-full mx-auto pb-20 relative">
       
       {showReceipt && (() => {
         const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
+        const clientName = showReceipt.customerId ? getAthleteName(showReceipt) : 'Consumidor Final';
+        const clientCedula = getAthleteCedula(showReceipt);
+        const cashierDisplay = getCashierName(showReceipt);
+        const invNum = getInvoiceNumber(showReceipt);
+        const cleanedRef = cleanRefString(showReceipt.reference);
+        const logoSrc = settings.logoUrl || settings.logoUrlDark;
+        const rate = settings.storeExchangeRate || 1;
+        const secCurr = settings.storeCurrencySecondary || 'BsS';
+        const mainCurr = settings.storeCurrency || '$';
+
         return (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
             <div className={`bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl my-auto ${widthClass}`}>
               <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
               
               <div className="text-center mb-6 border-b border-dashed border-black pb-6">
+                {logoSrc && (
+                  <div className="flex justify-center mb-2">
+                    <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
+                  </div>
+                )}
                 <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
                 {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
                 {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                <p className="text-black mt-1 font-bold">Ticket: {showReceipt.id}</p>
-                <div className="text-sm border-b border-black/20 pb-4 mb-4">
+                <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
+                  <p className="text-black font-bold">Factura N°: {invNum}</p>
                   <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
-                  <p className="text-black">Factura N°: {showReceipt.id.split('-')[0]}</p>
-                  <p className="text-black">Cajero: {showReceipt.cashierId || 'Admin'}</p>
-                  <p className="text-black">Cliente: {showReceipt.customerId ? getAthleteName(showReceipt) : 'Consumidor Final'}</p>
+                  <p className="text-black">Cajero: {cashierDisplay}</p>
+                  <p className="text-black">Cliente: {clientName}</p>
+                  {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
                 </div>
               </div>
 
@@ -745,15 +795,18 @@ export default function FinanzasPage() {
                   <span>CANT. DESC.</span>
                   <span>TOTAL</span>
                 </div>
-                {showReceipt.items && showReceipt.items.map((item: any) => (
-                  <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                    <div className="flex gap-2 pr-2">
-                      <span className="font-bold">{item.qty}x</span>
-                      <span>{item.name}</span>
+                {showReceipt.items && showReceipt.items.map((item: any) => {
+                  const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
+                  return (
+                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
+                      <div className="flex gap-2 pr-2">
+                        <span className="font-bold">{item.qty}x</span>
+                        <span>{cleanName}</span>
+                      </div>
+                      <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
                     </div>
-                    <span className="shrink-0 font-bold">{settings.storeCurrencySecondary} {(item.subtotal * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
@@ -763,24 +816,28 @@ export default function FinanzasPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{settings.storeCurrencySecondary} {((showReceipt.subtotal||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <span>{secCurr} {((showReceipt.subtotal||0) * rate).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>IVA ({settings.storeTaxRate}%)</span>
-                  <span>{settings.storeCurrencySecondary} {((showReceipt.tax||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <span>{secCurr} {((showReceipt.tax||0) * rate).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
                   <span>TOTAL</span>
-                  <span>{settings.storeCurrencySecondary} {((showReceipt.total||0) * (settings.storeExchangeRate || 1)).toFixed(2)}</span>
+                  <span>{secCurr} {((showReceipt.total||0) * rate).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between mt-2">
+                <div className="flex justify-between text-sm font-black text-black">
+                  <span>TOTAL ({mainCurr})</span>
+                  <span>{mainCurr} {(showReceipt.total||0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mt-2 pt-1 border-t border-black/20">
                   <span>Pago con:</span>
                   <span className="uppercase">{showReceipt.paymentMethod}</span>
                 </div>
-                {showReceipt.reference && (
+                {cleanedRef && (
                   <div className="flex justify-between">
                     <span>Ref:</span>
-                    <span className="uppercase">{showReceipt.reference}</span>
+                    <span className="uppercase">{cleanedRef}</span>
                   </div>
                 )}
               </div>
@@ -1086,7 +1143,7 @@ export default function FinanzasPage() {
                 <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
                   <tr>
                     <th className="p-4 font-medium">Fecha</th>
-                    <th className="p-4 font-medium">Ticket #</th>
+                    <th className="p-4 font-medium">Factura N°</th>
                     <th className="p-4 font-medium">Cliente / Atleta</th>
                     <th className="p-4 font-medium">Concepto / Plan</th>
                     <th className="p-4 font-medium">Cobrado por</th>
@@ -1106,8 +1163,8 @@ export default function FinanzasPage() {
                     <tr key={tx.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
                       <td className="p-4 text-muted-foreground whitespace-nowrap text-xs">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                       <td className="p-4 font-medium font-mono text-xs whitespace-nowrap">
-                        <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline hover:text-primary/80 transition-colors">
-                          {tx.id.slice(-8).toUpperCase()}
+                        <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline hover:text-primary/80 transition-colors font-bold">
+                          #{getInvoiceNumber(tx)}
                         </button>
                       </td>
                       <td className="p-4 text-xs">
@@ -1184,7 +1241,7 @@ export default function FinanzasPage() {
                       <div>
                         <div className="font-mono text-xs font-bold">
                           <button onClick={() => setShowReceipt(tx)} className="text-primary hover:underline">
-                            #{tx.id.slice(-8).toUpperCase()}
+                            Factura #{getInvoiceNumber(tx)}
                           </button>
                         </div>
                         <div className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
