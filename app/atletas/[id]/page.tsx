@@ -7,7 +7,7 @@ import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare, CreditCard, Receipt } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
-import { calculateCutoffDate, confirmAction } from "@/lib/confirm"
+import { calculateCutoffDate, askPassword } from "@/lib/confirm"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import { AttendanceHistoryModal } from "@/components/athletes/attendance-history-modal"
@@ -303,19 +303,17 @@ export default function AtletaPerfilPage() {
 
   const handleClearAthleteMembership = async () => {
     if (!athlete) return
-    const ok = await confirmAction({
-      title: "¿Devolver / Quitar Membresía?",
-      text: `Se anulará el plan actual de ${athlete.name} y quedará nuevamente como «Sin Membresía».`,
-      confirmText: "Sí, quitar membresía",
-      danger: true,
+    const superAdminPwd = await askPassword({
+      title: "Autorización de Super Administrador",
+      text: `Devolver o quitar la membresía de ${athlete.name} equivale a una devolución. Ingresa la contraseña del Super Administrador para confirmar:`,
     })
-    if (!ok) return
+    if (!superAdminPwd) return
 
     setIsSavingAthlete(true)
     setIsSavingMembership(true)
     try {
       const { clearAthleteMembershipAction } = await import('@/app/actions/users')
-      const res = await clearAthleteMembershipAction(athlete.id)
+      const res = await clearAthleteMembershipAction(athlete.id, superAdminPwd)
       if (res.success) {
         setEditMembEnd("")
         setEditMembPlan("")

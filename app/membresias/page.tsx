@@ -10,7 +10,7 @@ import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Came
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
-import { calculateCutoffDate, confirmAction } from "@/lib/confirm"
+import { calculateCutoffDate, askPassword } from "@/lib/confirm"
 
 type PaymentMethodType = 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Pago Móvil' | 'Binance' | 'Crédito/Fiado'
 
@@ -337,18 +337,16 @@ export default function MembresíasPage() {
 
   const handleClearMembershipInEditModal = async () => {
     if (!showEditModal) return
-    const ok = await confirmAction({
-      title: "¿Devolver / Quitar Membresía?",
-      text: `Se anulará el plan actual de ${showEditModal.name} y quedará nuevamente como «Sin Membresía».`,
-      confirmText: "Sí, quitar membresía",
-      danger: true,
+    const superAdminPwd = await askPassword({
+      title: "Autorización de Super Administrador",
+      text: `Devolver o quitar la membresía de ${showEditModal.name} equivale a una devolución. Ingresa la contraseña del Super Administrador para confirmar:`,
     })
-    if (!ok) return
+    if (!superAdminPwd) return
 
     setIsSavingEdit(true)
     try {
       const { clearAthleteMembershipAction } = await import('@/app/actions/users')
-      const res = await clearAthleteMembershipAction(showEditModal.id)
+      const res = await clearAthleteMembershipAction(showEditModal.id, superAdminPwd)
       if (res.success) {
         setEditEndDate("")
         setEditPlanName("")

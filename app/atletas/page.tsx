@@ -11,7 +11,7 @@ import { CardGridSkeleton } from "@/components/ui/skeleton"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
 import { showSweetToast } from "@/lib/toast-context"
 import { useSettings } from "@/lib/settings-context"
-import { calculateCutoffDate, confirmAction } from "@/lib/confirm"
+import { calculateCutoffDate, askPassword } from "@/lib/confirm"
 
 export default function AtletasPage() {
   const { user } = useAuth()
@@ -231,18 +231,16 @@ export default function AtletasPage() {
 
   const handleClearMembership = async () => {
     if (!editingAthlete) return
-    const ok = await confirmAction({
-      title: "¿Devolver / Quitar Membresía?",
-      text: `Se anulará el plan actual de ${editingAthlete.name} y quedará nuevamente como «Sin Membresía».`,
-      confirmText: "Sí, quitar membresía",
-      danger: true,
+    const superAdminPwd = await askPassword({
+      title: "Autorización de Super Administrador",
+      text: `Devolver o quitar la membresía de ${editingAthlete.name} equivale a una devolución. Ingresa la contraseña del Super Administrador para confirmar:`,
     })
-    if (!ok) return
+    if (!superAdminPwd) return
 
     setIsClearingMembership(true)
     try {
       const { clearAthleteMembershipAction } = await import('@/app/actions/users')
-      const res = await clearAthleteMembershipAction(editingAthlete.id)
+      const res = await clearAthleteMembershipAction(editingAthlete.id, superAdminPwd)
       if (res.success) {
         setEditEndDate("")
         setEditPlanName("")

@@ -817,12 +817,23 @@ export async function updateAthleteMembershipAndCoach(
 
 /**
  * Permite anular o revertir la membresía activa de un atleta (dejarlo "Sin Membresía"),
- * útil cuando se activó un plan por error desde la edición administrativa.
+ * exigiendo obligatoriamente la contraseña del Super Administrador (equivalente a una devolución).
  */
-export async function clearAthleteMembershipAction(athleteId: string) {
+export async function clearAthleteMembershipAction(athleteId: string, superAdminPassword?: string) {
   const g = await guard(ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }
   try {
+    const superAdmin = await getSuperAdminUser()
+    const targetAdminId = superAdmin ? superAdmin.id : g.user.id
+    const stepUp = await verifyActorPassword(targetAdminId, superAdminPassword)
+    if (!stepUp.ok) {
+      return {
+        success: false,
+        needsPassword: true,
+        error: "Contraseña del Super Administrador incorrecta. Se requiere la clave del Super Administrador para devolver o anular una membresía."
+      }
+    }
+
     const athlete = await prisma.user.findUnique({ where: { id: athleteId } })
     if (!athlete) return { success: false, error: "Atleta no encontrado." }
 
@@ -833,7 +844,8 @@ export async function clearAthleteMembershipAction(athleteId: string) {
     await audit("athlete.membership_cleared", g.user, {
       athleteId,
       athleteName: athlete.name,
-      deletedCount: deleted.count
+      deletedCount: deleted.count,
+      authorizedBySuperAdmin: superAdmin?.cedula || g.user.cedula
     })
 
     revalidatePath(`/atletas/${athleteId}`)
