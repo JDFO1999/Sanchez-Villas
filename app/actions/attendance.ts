@@ -4,6 +4,24 @@ import prisma from "@/lib/db"
 import { guardAttendance } from "@/lib/authz"
 import bcrypt from "bcryptjs"
 
+// Helpers de zona horaria Venezuela (America/Caracas, UTC-4 fijo)
+function getVenezuelaDayBounds(dateStr?: string) {
+  let year: number, month: number, day: number
+  if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    ;[year, month, day] = dateStr.split("-").map(Number)
+  } else {
+    const vetNow = new Date(Date.now() - 4 * 60 * 60 * 1000)
+    year = vetNow.getUTCFullYear()
+    month = vetNow.getUTCMonth() + 1
+    day = vetNow.getUTCDate()
+  }
+  // 00:00:00.000 VET = 04:00:00.000 UTC del mismo día
+  const startOfDay = new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0))
+  // 23:59:59.999 VET = 03:59:59.999 UTC del día siguiente
+  const endOfDay = new Date(Date.UTC(year, month - 1, day + 1, 3, 59, 59, 999))
+  return { startOfDay, endOfDay }
+}
+
 export async function checkInByCedula(code: string, adminKey?: string, isQr: boolean = false) {
   // guard:checkInByCedula
   const g = await guardAttendance()
@@ -142,8 +160,7 @@ export async function getTodayAttendanceAndSalesAction() {
   if (!g.ok) return { success: false, error: g.error }
 
   try {
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
+    const { startOfDay: startOfToday } = getVenezuelaDayBounds()
 
     // 1. Asistencias de hoy (últimas 40)
     const attendances = await prisma.attendance.findMany({
@@ -214,19 +231,7 @@ export async function getAttendanceReportAction(dateStr?: string) {
   if (!g.ok) return { success: false, error: g.error }
 
   try {
-    let startOfDay: Date
-    let endOfDay: Date
-
-    if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      const [year, month, day] = dateStr.split("-").map(Number)
-      startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
-      endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
-    } else {
-      startOfDay = new Date()
-      startOfDay.setHours(0, 0, 0, 0)
-      endOfDay = new Date()
-      endOfDay.setHours(23, 59, 59, 999)
-    }
+    const { startOfDay, endOfDay } = getVenezuelaDayBounds(dateStr)
 
     const attendances = await prisma.attendance.findMany({
       where: {

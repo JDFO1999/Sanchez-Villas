@@ -815,6 +815,40 @@ export async function updateAthleteMembershipAndCoach(
   }
 }
 
+/**
+ * Permite anular o revertir la membresía activa de un atleta (dejarlo "Sin Membresía"),
+ * útil cuando se activó un plan por error desde la edición administrativa.
+ */
+export async function clearAthleteMembershipAction(athleteId: string) {
+  const g = await guard(ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error }
+  try {
+    const athlete = await prisma.user.findUnique({ where: { id: athleteId } })
+    if (!athlete) return { success: false, error: "Atleta no encontrado." }
+
+    const deleted = await prisma.membership.deleteMany({
+      where: { athleteId }
+    })
+
+    await audit("athlete.membership_cleared", g.user, {
+      athleteId,
+      athleteName: athlete.name,
+      deletedCount: deleted.count
+    })
+
+    revalidatePath(`/atletas/${athleteId}`)
+    revalidatePath("/atletas")
+    revalidatePath("/membresias")
+    revalidatePath("/finanzas")
+    revalidatePath("/")
+
+    return { success: true, deletedCount: deleted.count }
+  } catch (error: any) {
+    console.error("Error clearing athlete membership:", error)
+    return { success: false, error: error?.message || friendlyError(error) }
+  }
+}
+
 export async function addBiometric(athleteId: string, data: any) {
   const g = await guardSelfOr(athleteId, ROLES.STAFF)
   if (!g.ok) return { success: false, error: g.error }

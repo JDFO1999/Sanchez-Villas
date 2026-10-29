@@ -8,10 +8,11 @@ export async function getDashboardStats() {
   const g = await guard(ROLES.ADMIN)
   if (!g.ok) return { success: false, error: g.error }
   try {
-    const today = new Date()
-    today.setHours(0,0,0,0)
+    // Usar medianoche de Venezuela (UTC-4) para que el conteo de asistencias del día no se reinicie a las 8:00 PM
+    const vetNow = new Date(Date.now() - 4 * 60 * 60 * 1000)
+    const today = new Date(Date.UTC(vetNow.getUTCFullYear(), vetNow.getUTCMonth(), vetNow.getUTCDate(), 4, 0, 0, 0))
 
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const firstDayOfMonth = new Date(Date.UTC(vetNow.getUTCFullYear(), vetNow.getUTCMonth(), 1, 4, 0, 0, 0))
     
     // All athletes with their memberships and attendances
     const allAthletes = await prisma.user.findMany({

@@ -32,8 +32,11 @@ type TabType = "athletes" | "employees" | "all"
 export default function AsistenciaPage() {
   const { user } = useAuth()
   
-  // Fecha seleccionada (YYYY-MM-DD)
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], [])
+  // Fecha seleccionada (YYYY-MM-DD en horario de Venezuela UTC-4 para evitar salto de día a las 8:00 PM)
+  const todayStr = useMemo(() => {
+    const vetNow = new Date(Date.now() - 4 * 60 * 60 * 1000)
+    return vetNow.toISOString().split("T")[0]
+  }, [])
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
 
   // Datos del reporte
