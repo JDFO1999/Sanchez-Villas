@@ -200,7 +200,7 @@ export default function AtletaPerfilPage() {
     if (getAllEmployees) {
       getAllEmployees().then(res => {
         if (Array.isArray(res)) {
-          setAllCoaches(res.filter((e: any) => e.role !== 'athlete' && e.role !== 'deleted'))
+          setAllCoaches(res.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
         }
       }).catch(console.error)
     }

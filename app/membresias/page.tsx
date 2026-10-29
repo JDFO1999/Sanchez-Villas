@@ -73,6 +73,8 @@ export default function MembresíasPage() {
   const [selectedPlanPrice, setSelectedPlanPrice] = useState<number>(25)
   const [renovarIncludeCoach, setRenovarIncludeCoach] = useState(false)
   const [renovarSelectedCoach, setRenovarSelectedCoach] = useState("")
+  const [renovarUseCustomCoachFee, setRenovarUseCustomCoachFee] = useState(false)
+  const [renovarCustomCoachFee, setRenovarCustomCoachFee] = useState<string>("")
   const [renovarMonths, setRenovarMonths] = useState(1)
   const [renovarSplitCount, setRenovarSplitCount] = useState<1 | 2 | 3>(1)
   const [renovarSplits, setRenovarSplits] = useState<PaymentSplit[]>([
@@ -242,7 +244,7 @@ export default function MembresíasPage() {
       
       const empRes = await getAllEmployees()
       if (empRes.success) {
-        setAllCoaches(empRes.employees.filter((e: any) => e.role !== 'athlete' && e.role !== 'deleted'))
+        setAllCoaches(empRes.employees.filter((e: any) => e.role === 'coach' || e.role === 'employee'))
       }
     } catch (err) {
       console.error("Error cargando membresías:", err)
@@ -435,18 +437,34 @@ export default function MembresíasPage() {
     setMessageText("")
   }
 
-  const syncSingleSplitAmount = (planPrice: number, months: number, includeCoach: boolean, coachId: string) => {
-    const mem = planPrice * months
-    let cPrice = 0
-    if (includeCoach && coachId) {
-      if (settings.coachCustomPricing) {
-        const coachInfo = allCoaches.find((e: any) => e.id === coachId)
-        cPrice = (coachInfo?.commissionRate || 15) * months
-      } else {
-        cPrice = 15 * months
-      }
+  const gymCoachPercentage = Number(settings.gymCommissionPercentage) > 0 ? Number(settings.gymCommissionPercentage) : 40
+
+  const calculateCoachMonthlyFee = (
+    planPrice: number,
+    includeCoach: boolean,
+    coachId: string,
+    useCustomFee: boolean = renovarUseCustomCoachFee,
+    customFeeVal: string = renovarCustomCoachFee
+  ) => {
+    if (!includeCoach || !coachId) return 0
+    if (useCustomFee) {
+      const parsed = parseFloat(customFeeVal)
+      return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : 0
     }
-    const newTotal = mem + cPrice
+    return Math.round((planPrice * (gymCoachPercentage / 100)) * 100) / 100
+  }
+
+  const syncSingleSplitAmount = (
+    planPrice: number,
+    months: number,
+    includeCoach: boolean,
+    coachId: string,
+    useCustomFee: boolean = renovarUseCustomCoachFee,
+    customFeeVal: string = renovarCustomCoachFee
+  ) => {
+    const mem = planPrice * months
+    const cPrice = calculateCoachMonthlyFee(planPrice, includeCoach, coachId, useCustomFee, customFeeVal) * months
+    const newTotal = Math.round((mem + cPrice) * 100) / 100
     setRenovarSplits(prev => {
       const copy = [...prev]
       if (renovarSplitCount === 1) {
@@ -465,14 +483,18 @@ export default function MembresíasPage() {
     setRenovarChangeMethod("Efectivo")
     setRenovarChangeRef("")
     const defaultPlan = availablePlans.find(p => p.name.toLowerCase() === (a.membershipType || "").toLowerCase()) || availablePlans.find(p => p.popular) || availablePlans[0]
-    const pName = defaultPlan?.name || "Mensualidad Básica"
+    const pName = defaultPlan?.name || "Plan Estándar"
     const pPrice = defaultPlan?.price || baseMonthlyPrice
     setSelectedPlanName(pName)
     setSelectedPlanPrice(pPrice)
-    setRenovarSelectedCoach(a.coachId || "")
-    setRenovarIncludeCoach(!!a.coachId)
+    const validAssignedCoach = a.coachId && allCoaches.some(c => c.id === a.coachId) ? a.coachId : ""
+    setRenovarSelectedCoach(validAssignedCoach)
+    setRenovarIncludeCoach(!!validAssignedCoach)
+    setRenovarUseCustomCoachFee(false)
+    const defaultPctFee = Math.round((pPrice * (gymCoachPercentage / 100)) * 100) / 100
+    setRenovarCustomCoachFee(defaultPctFee.toString())
     setRenovarMonths(1)
-    const baseTotal = pPrice + (a.coachId ? 15 : 0)
+    const baseTotal = Math.round((pPrice + (validAssignedCoach ? defaultPctFee : 0)) * 100) / 100
     setRenovarSplitCount(1)
     setRenovarSplits([
       { method: 'Efectivo', amount: baseTotal, reference: '', receiptImage: null },
@@ -491,12 +513,15 @@ export default function MembresíasPage() {
     setRenovarChangeMethod("Efectivo")
     setRenovarChangeRef("")
     const defaultPlan = availablePlans.find(p => p.popular) || availablePlans[0]
-    const pName = defaultPlan?.name || "Mensualidad Básica"
+    const pName = defaultPlan?.name || "Plan Estándar"
     const pPrice = defaultPlan?.price || baseMonthlyPrice
     setSelectedPlanName(pName)
     setSelectedPlanPrice(pPrice)
     setRenovarSelectedCoach("")
     setRenovarIncludeCoach(false)
+    setRenovarUseCustomCoachFee(false)
+    const defaultPctFee = Math.round((pPrice * (gymCoachPercentage / 100)) * 100) / 100
+    setRenovarCustomCoachFee(defaultPctFee.toString())
     setRenovarMonths(1)
     setRenovarSplitCount(1)
     setRenovarSplits([
@@ -532,19 +557,15 @@ export default function MembresíasPage() {
     
     // Calculate total
     const membershipPrice = selectedPlanPrice * renovarMonths
-    let coachPrice = 0
-
-    if (renovarIncludeCoach && renovarSelectedCoach) {
-      if (settings.coachCustomPricing) {
-        const coachInfo = getAllEmployees ? (await getAllEmployees()).find((e: any) => e.id === renovarSelectedCoach) : null;
-        const cRate = coachInfo?.commissionRate || 15
-        coachPrice = cRate * renovarMonths
-      } else {
-        coachPrice = 15 * renovarMonths
-      }
-    }
+    const coachPrice = calculateCoachMonthlyFee(
+      selectedPlanPrice,
+      renovarIncludeCoach,
+      renovarSelectedCoach,
+      renovarUseCustomCoachFee,
+      renovarCustomCoachFee
+    ) * renovarMonths
     
-    const total = membershipPrice + coachPrice
+    const total = Math.round((membershipPrice + coachPrice) * 100) / 100
     
     const activeSplits = renovarSplits.slice(0, renovarSplitCount);
     const assignedTotal = activeSplits.reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0);
@@ -874,38 +895,95 @@ export default function MembresíasPage() {
               </div>
 
               {renovarIncludeCoach && (
-                <div className="mt-3">
-                  <label className="text-sm font-medium mb-1 block">Seleccionar Entrenador</label>
-                  <select 
-                    required 
-                    value={renovarSelectedCoach} 
-                    onChange={e => {
-                      const cId = e.target.value
-                      setRenovarSelectedCoach(cId)
-                      syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, cId)
-                    }} 
-                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
-                  >
-                    <option value="">Seleccione uno...</option>
-                    {allCoaches.map((c: any) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                <div className="mt-3 space-y-2.5 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Seleccionar Entrenador (Coach)</label>
+                    <select 
+                      required 
+                      value={renovarSelectedCoach} 
+                      onChange={e => {
+                        const cId = e.target.value
+                        setRenovarSelectedCoach(cId)
+                        syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, cId, renovarUseCustomCoachFee, renovarCustomCoachFee)
+                      }} 
+                      className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
+                    >
+                      <option value="">Seleccione un Coach...</option>
+                      {allCoaches.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {renovarSelectedCoach && (
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRenovarUseCustomCoachFee(false)
+                            syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, false, renovarCustomCoachFee)
+                          }}
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
+                            !renovarUseCustomCoachFee
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-black/5 dark:bg-white/5 text-muted-foreground border-black/10 dark:border-white/10 hover:text-foreground'
+                          }`}
+                        >
+                          Seguir Ajustes ({gymCoachPercentage}% = +{settings.storeCurrency}{((selectedPlanPrice * gymCoachPercentage) / 100).toFixed(2)}/mes)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const fallbackVal = renovarCustomCoachFee || ((selectedPlanPrice * gymCoachPercentage) / 100).toFixed(2)
+                            setRenovarCustomCoachFee(fallbackVal)
+                            setRenovarUseCustomCoachFee(true)
+                            syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, true, fallbackVal)
+                          }}
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
+                            renovarUseCustomCoachFee
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-black/5 dark:bg-white/5 text-muted-foreground border-black/10 dark:border-white/10 hover:text-foreground'
+                          }`}
+                        >
+                          Monto personalizado ($)
+                        </button>
+                      </div>
+
+                      {renovarUseCustomCoachFee && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-primary">{settings.storeCurrency}</span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={renovarCustomCoachFee}
+                            onChange={e => {
+                              const val = e.target.value
+                              setRenovarCustomCoachFee(val)
+                              syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, true, val)
+                            }}
+                            placeholder="0.00"
+                            className="w-24 bg-card dark:bg-black border border-primary/50 rounded-lg px-2 py-1 text-xs font-mono font-bold focus:outline-none focus:border-primary"
+                          />
+                          <span className="text-[10px] text-muted-foreground">/mes</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               
               {(() => {
                 const mem = selectedPlanPrice * renovarMonths
-                let coachPrice = 0
-                if (renovarIncludeCoach && renovarSelectedCoach) {
-                  if (settings.coachCustomPricing) {
-                    const coachInfo = allCoaches.find((e: any) => e.id === renovarSelectedCoach);
-                    coachPrice = (coachInfo?.commissionRate || 15) * renovarMonths
-                  } else {
-                    coachPrice = 15 * renovarMonths
-                  }
-                }
-                const totalCalculado = mem + coachPrice
+                const coachPrice = calculateCoachMonthlyFee(
+                  selectedPlanPrice,
+                  renovarIncludeCoach,
+                  renovarSelectedCoach,
+                  renovarUseCustomCoachFee,
+                  renovarCustomCoachFee
+                ) * renovarMonths
+                const totalCalculado = Math.round((mem + coachPrice) * 100) / 100
 
                 const assignedSum = renovarSplits.slice(0, renovarSplitCount).reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
                 const diff = Math.round((totalCalculado - assignedSum) * 100) / 100
@@ -916,7 +994,12 @@ export default function MembresíasPage() {
                     <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl mt-4 mb-4 flex justify-between items-center">
                       <div>
                         <span className="font-bold text-sm text-primary block">Total a Cobrar:</span>
-                        <span className="text-[11px] text-muted-foreground">{selectedPlanName} × {renovarMonths} mes(es)</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {selectedPlanName} × {renovarMonths} mes(es)
+                          {renovarIncludeCoach && renovarSelectedCoach
+                            ? ` + Coach: ${settings.storeCurrency}${coachPrice.toFixed(2)} (${renovarUseCustomCoachFee ? 'Personalizado' : `${gymCoachPercentage}% Ajustes`})`
+                            : ''}
+                        </span>
                       </div>
                       <span className="text-2xl font-black text-primary">
                         {settings.storeCurrency} {totalCalculado.toFixed(2)}
@@ -1358,7 +1441,7 @@ export default function MembresíasPage() {
                     >
                       <option value="">Sin entrenador asignado</option>
                       {allCoaches.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.role === 'coach' ? 'Entrenador' : c.role})</option>
+                        <option key={c.id} value={c.id}>{c.name} (Coach)</option>
                       ))}
                     </select>
                   </div>

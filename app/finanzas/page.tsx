@@ -159,7 +159,7 @@ export default function FinanzasPage() {
   })
   
   // Calcular Ganancia por Entrenadores (solo sobre atletas con membresía activa y el precio real de su plan)
-  const totalGymProfitFromCoaches = employees.filter(e => e.role !== 'admin').reduce((sum, emp) => {
+  const totalGymProfitFromCoaches = employees.filter(e => e.role === 'coach' || e.role === 'employee').reduce((sum, emp) => {
     const assignedAthletes = athletes.filter(a => a.coachId === emp.id && hasValidDate(a.membershipEnd) && new Date(a.membershipEnd) >= now)
     const commissionRate = emp.commissionRate || 0
     const commission = assignedAthletes.length * commissionRate

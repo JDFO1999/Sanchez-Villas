@@ -650,7 +650,7 @@ export async function updateAthlete(id: string, data: any) {
     if (staff && data.coachId !== undefined) {
       if (data.coachId && String(data.coachId).trim()) {
         const coach = await prisma.user.findFirst({
-          where: { id: String(data.coachId).trim(), role: { notIn: ['athlete', 'deleted'] } }
+          where: { id: String(data.coachId).trim(), role: { in: ['coach', 'employee'] } }
         })
         validCoachId = coach ? coach.id : null
       } else {
@@ -726,7 +726,7 @@ export async function updateAthleteMembershipAndCoach(
     if (data.coachId !== undefined) {
       if (data.coachId && String(data.coachId).trim()) {
         const coach = await prisma.user.findFirst({
-          where: { id: String(data.coachId).trim(), role: { notIn: ['athlete', 'deleted'] } }
+          where: { id: String(data.coachId).trim(), role: { in: ['coach', 'employee'] } }
         })
         coachIdToSet = coach ? coach.id : null
       } else {

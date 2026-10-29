@@ -87,7 +87,7 @@ export default function AtletasPage() {
         const map: Record<string, string> = {}
         const list: { id: string; name: string }[] = []
         ;(empRes.employees as any[]).forEach((e: any) => { 
-          if (e.role !== 'athlete' && e.role !== 'deleted') {
+          if (e.role === 'coach' || e.role === 'employee') {
             map[e.id] = e.name
             list.push({ id: e.id, name: e.name })
           }
