@@ -243,11 +243,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const navAlign = settings.logoSettings?.alignNavbar || 'center'
+  const navJustifyClass = navAlign === 'left' ? 'justify-start' : navAlign === 'right' ? 'justify-end' : 'justify-center'
+
   const LogoComponent = () => (
     <Link 
       href="/inicio" 
       title="Ver Página Principal Promocional"
-      className="flex items-center gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1"
+      className={`flex items-center ${navJustifyClass} gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1`}
       style={{
         margin: settings.logoSettings?.marginNavbar ? `${settings.logoSettings.marginNavbar}px` : undefined,
       }}
@@ -309,8 +312,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className={`flex items-center min-h-[4rem] py-2 relative gap-2 shrink-0 ${isSidebarCollapsed ? 'justify-between lg:justify-center px-4 lg:px-0' : 'justify-between px-4'}`}>
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
             
+            {/* Espaciador simétrico cuando el logo está centrado para que quede en el centro exacto de la barra lateral */}
+            {navAlign === 'center' && !isSidebarCollapsed && (settings.logoSettings?.widthNavbar || 40) <= 136 && !settings.logoSettings?.showNameInNavbar && (
+              <div className="w-9 shrink-0 pointer-events-none" aria-hidden="true" />
+            )}
+
             {/* Solo se oculta el Logo en escritorio cuando la barra está colapsada; en móvil SIEMPRE visible */}
-            <div className={`flex-1 min-w-0 transition-all duration-300 flex items-center ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
+            <div className={`flex-1 min-w-0 transition-all duration-300 flex items-center ${navJustifyClass} ${isSidebarCollapsed ? 'lg:hidden' : ''}`}>
               <LogoComponent />
             </div>
 

@@ -645,20 +645,50 @@ export default function AjustesPage() {
                   </div>
                 </div>
 
-                {/* Ajuste de Proporción / Object Fit */}
-                <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-                  <label className="text-xs font-bold text-foreground block">Ajuste de Proporción (Object Fit)</label>
-                  <select
-                    value={logoSettings?.objectFit || 'contain'}
-                    onChange={e => setLogoSettings(s => ({ ...s, objectFit: e.target.value as any }))}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs text-foreground focus:border-primary"
-                  >
-                    <option value="contain">Contener (Sin distorsión, proporción natural del logo)</option>
-                    <option value="cover">Cubrir (Llenar caja completa)</option>
-                    <option value="fill">Rellenar (Estirar proporcionalmente)</option>
-                  </select>
-                  <span className="text-[10px] text-muted-foreground block">
-                    Con el padding y margen puedes centrar el icono y darle respiración para que quede impecable tanto en pantallas pequeñas como grandes.
+                {/* Ajuste de Proporción / Object Fit y Alineación en la Barra Lateral */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-black/5 dark:border-white/5">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-foreground block">Ajuste de Proporción (Object Fit)</label>
+                    <select
+                      value={logoSettings?.objectFit || 'contain'}
+                      onChange={e => setLogoSettings(s => ({ ...s, objectFit: e.target.value as any }))}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs text-foreground focus:border-primary"
+                    >
+                      <option value="contain">Contener (Sin distorsión, proporción natural del logo)</option>
+                      <option value="cover">Cubrir (Llenar caja completa)</option>
+                      <option value="fill">Rellenar (Estirar proporcionalmente)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-foreground block">Alineación en la Barra Lateral</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'left', label: 'Izquierda' },
+                        { id: 'center', label: 'Centrado' },
+                        { id: 'right', label: 'Derecha' },
+                      ].map(opt => {
+                        const active = (logoSettings?.alignNavbar || 'center') === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setLogoSettings(s => ({ ...s, alignNavbar: opt.id as any }))}
+                            className={`py-2 px-3 rounded-lg text-xs font-bold border transition ${
+                              active
+                                ? 'bg-primary/20 border-primary text-primary shadow-sm'
+                                : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-muted-foreground block md:col-span-2">
+                    Puedes elegir la alineación del logo en la barra lateral (Centrado por defecto) y ajustar su padding y margen.
                   </span>
                 </div>
               </div>

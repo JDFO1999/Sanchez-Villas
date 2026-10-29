@@ -29,6 +29,7 @@ export interface AppSettings {
     fadeEffect: boolean
     paddingNavbar?: number
     marginNavbar?: number
+    alignNavbar?: 'left' | 'center' | 'right'
   }
   footerLogoSettings?: {
     showLogo: boolean
