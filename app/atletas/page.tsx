@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -33,6 +33,7 @@ export default function AtletasPage() {
   const [regPassword, setRegPassword] = useState("")
   const [regConfirmPassword, setRegConfirmPassword] = useState("")
   const [regGender, setRegGender] = useState<'M' | 'F'>('M')
+  const [regBirthDate, setRegBirthDate] = useState("")
   const [regCoachId, setRegCoachId] = useState("")
   const [isRegistering, setIsRegistering] = useState(false)
 
@@ -43,6 +44,7 @@ export default function AtletasPage() {
   const [editPhone, setEditPhone] = useState("")
   const [editEmail, setEditEmail] = useState("")
   const [editAddress, setEditAddress] = useState("")
+  const [editBirthDate, setEditBirthDate] = useState("")
   const [editGender, setEditGender] = useState("M")
   const [editCoachId, setEditCoachId] = useState("")
   const [editPassword, setEditPassword] = useState("")
@@ -121,12 +123,26 @@ export default function AtletasPage() {
     loadAthletes()
   }, [])
 
+  const calculateAge = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    const birth = new Date(dateStr + "T00:00:00")
+    if (isNaN(birth.getTime())) return null
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age >= 0 && age <= 120 ? age : null
+  }
+
   const resetRegisterForm = () => {
     setRegName("")
     setRegCedula("")
     setRegPhone("")
     setRegEmail("")
     setRegAddress("")
+    setRegBirthDate("")
     setRegPassword("")
     setRegConfirmPassword("")
     setRegGender('M')
@@ -158,6 +174,7 @@ export default function AtletasPage() {
         phone: regPhone,
         email: regEmail,
         address: regAddress,
+        birthDate: regBirthDate || undefined,
         password: regPassword,
         gender: regGender,
         coachId: regCoachId || undefined
@@ -185,6 +202,7 @@ export default function AtletasPage() {
     setEditPhone(a.phone || "")
     setEditEmail((a as any).email || "")
     setEditAddress(a.address || "")
+    setEditBirthDate((a as any).birthDate || "")
     setEditGender(a.gender || "M")
     setEditCoachId(a.coachId || "")
     setEditPassword("")
@@ -285,6 +303,7 @@ export default function AtletasPage() {
         email: editEmail,
         address: editAddress,
         gender: editGender,
+        birthDate: editBirthDate || null,
         coachId: editCoachId || null,
         ...(editPassword ? { password: editPassword } : {})
       })
@@ -496,7 +515,17 @@ export default function AtletasPage() {
                           )}
                           <div>
                             <h3 className="font-bold text-foreground group-hover:text-primary transition leading-tight">{atleta.name}</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">C.I. {atleta.cedula}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              <span>C.I. {atleta.cedula}</span>
+                              {atleta.birthDate && calculateAge(atleta.birthDate) !== null && (
+                                <>
+                                  <span className="opacity-40">•</span>
+                                  <span className="text-[11px] font-semibold text-primary">
+                                    🎂 {calculateAge(atleta.birthDate)} años
+                                  </span>
+                                </>
+                              )}
+                            </p>
                           </div>
                         </div>
                         <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
@@ -669,6 +698,25 @@ export default function AtletasPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
+                      {editBirthDate && calculateAge(editBirthDate) !== null && (
+                        <span className="text-[11px] font-semibold text-primary">
+                          🎂 {calculateAge(editBirthDate)} años
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      min="1920-01-01"
+                      value={editBirthDate}
+                      onChange={e => setEditBirthDate(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </div>
+
+                  <div>
                     <label className="text-xs font-semibold mb-1 block">Género</label>
                     <select
                       value={editGender}
@@ -679,7 +727,9 @@ export default function AtletasPage() {
                       <option value="F">Femenino</option>
                     </select>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold mb-1 block">Entrenador (Coach)</label>
                     <select
@@ -693,17 +743,17 @@ export default function AtletasPage() {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
-                  <input
-                    type="text"
-                    placeholder="Sector / Calle / Residencia"
-                    value={editAddress}
-                    onChange={e => setEditAddress(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                  />
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                    <input
+                      type="text"
+                      placeholder="Sector / Calle / Residencia"
+                      value={editAddress}
+                      onChange={e => setEditAddress(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1077,6 +1127,25 @@ export default function AtletasPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
+                    {regBirthDate && calculateAge(regBirthDate) !== null && (
+                      <span className="text-[11px] font-semibold text-primary">
+                        🎂 {calculateAge(regBirthDate)} años
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    max={new Date().toISOString().split("T")[0]}
+                    min="1920-01-01"
+                    value={regBirthDate}
+                    onChange={e => setRegBirthDate(e.target.value)}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                </div>
+
+                <div>
                   <label className="text-xs font-semibold mb-1 block">Género</label>
                   <select
                     value={regGender}
@@ -1087,20 +1156,20 @@ export default function AtletasPage() {
                     <option value="F">Femenino</option>
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Entrenador Asignado (Opcional)</label>
-                  <select
-                    value={regCoachId}
-                    onChange={e => setRegCoachId(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                  >
-                    <option value="">-- Sin entrenador --</option>
-                    {coachList.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Entrenador Asignado (Opcional)</label>
+                <select
+                  value={regCoachId}
+                  onChange={e => setRegCoachId(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                >
+                  <option value="">-- Sin entrenador --</option>
+                  {coachList.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Botones de acción */}

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useRouter } from "next/navigation"
-import { Check, ArrowLeft, Sun, Moon, Eye, EyeOff, ShieldCheck, ShieldAlert, AlertCircle } from "lucide-react"
+import { Check, ArrowLeft, Sun, Moon, Eye, EyeOff, ShieldCheck, ShieldAlert, AlertCircle, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { getPublicCoaches, createAthlete } from "@/app/actions/users"
@@ -24,6 +24,7 @@ export default function RegistroPage() {
   const [telefono, setTelefono] = useState("")
   const [correo, setCorreo] = useState("")
   const [direccion, setDireccion] = useState("")
+  const [fechaNacimiento, setFechaNacimiento] = useState("")
   const [clave, setClave] = useState("")
   const [confirmClave, setConfirmClave] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -54,6 +55,20 @@ export default function RegistroPage() {
   const pwdValidation = validatePassword(clave, cleanCedula)
   const claveMatch = clave && confirmClave && clave === confirmClave
 
+  const calculateAge = (dateStr: string) => {
+    if (!dateStr) return null
+    const birth = new Date(dateStr + "T00:00:00")
+    if (isNaN(birth.getTime())) return null
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  }
+  const userAge = calculateAge(fechaNacimiento)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -79,6 +94,31 @@ export default function RegistroPage() {
       return
     }
 
+    if (!fechaNacimiento) {
+      const msg = "Por favor ingresa tu fecha de nacimiento."
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0]
+    if (fechaNacimiento > todayStr) {
+      const msg = "La fecha de nacimiento no puede ser una fecha futura."
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+    }
+
+    if (userAge !== null && (userAge < 5 || userAge > 115)) {
+      const msg = "Por favor ingresa una fecha de nacimiento válida."
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+      setError(msg)
+      showSweetToast(msg, "warning")
+      return
+    }
+
     if (!pwdValidation.isValid) {
       const msg = pwdValidation.error || "La contraseña debe tener al menos 8 caracteres, mayúscula, minúscula y número."
       setError(msg)
@@ -99,6 +139,7 @@ export default function RegistroPage() {
       const res = await createAthlete(cleanCedula, clave, { 
         name: nombre.trim(), 
         gender: genero, 
+        birthDate: fechaNacimiento, 
         phone: telefono.trim(), 
         email: correo.trim(), 
         address: direccion.trim(), 
@@ -291,6 +332,71 @@ export default function RegistroPage() {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            {/* Fecha de Nacimiento */}
+            <div className="col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-foreground block">Fecha de Nacimiento *</label>
+                {userAge !== null && userAge >= 0 && userAge <= 120 && (
+                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-in fade-in duration-300">
+                    🎂 {userAge} {userAge === 1 ? 'año' : 'años'}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input 
+                  type="date" 
+                  value={fechaNacimiento} 
+                  max={new Date().toISOString().split("T")[0]}
+                  min="1920-01-01"
+                  onChange={e => setFechaNacimiento(e.target.value)} 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 pl-10 text-sm focus:outline-none focus:border-primary transition-colors [color-scheme:light] dark:[color-scheme:dark]" 
+                  required 
+                />
+                <Calendar className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Género */}
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs font-semibold text-foreground mb-1 block">Género *</label>
+              <div className="relative">
+                <select 
+                  value={genero} 
+                  onChange={e => setGenero(e.target.value as 'M'|'F')} 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
+                >
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
+              <div className="relative">
+                <select 
+                  value={entrenador} 
+                  onChange={e => setEntrenador(e.target.value)} 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
+                >
+                  <option value="">-- Sin entrenador --</option>
+                  {coaches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Sección de Contraseña Segura */}
           <div className="space-y-3 pt-1">
             <div className="grid grid-cols-2 gap-4">
@@ -414,47 +520,10 @@ export default function RegistroPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <div className="col-span-2 sm:col-span-1">
-              <label className="text-xs font-semibold text-foreground mb-1 block">Género</label>
-              <div className="relative">
-                <select 
-                  value={genero} 
-                  onChange={e => setGenero(e.target.value as 'M'|'F')} 
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
-                >
-                  <option value="M">Masculino</option>
-                  <option value="F">Femenino</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-              </div>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
-              <div className="relative">
-                <select 
-                  value={entrenador} 
-                  onChange={e => setEntrenador(e.target.value)} 
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
-                >
-                  <option value="">-- Sin entrenador --</option>
-                  {coaches.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <button 
             type="submit" 
             disabled={isLoading} 
-            className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 shadow-lg shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            className="w-full mt-2 bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           >
             {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
           </button>

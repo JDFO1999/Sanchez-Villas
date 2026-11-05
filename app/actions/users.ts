@@ -474,6 +474,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
             phone: data.phone || existing.phone || null,
             address: data.address || existing.address || null,
             email: data.email || existing.email || null,
+            birthDate: data.birthDate ? String(data.birthDate).trim() : (existing.birthDate || null),
             profession: null, // Cuenta ya reclamada y activada por el atleta
             ...(coachId && !existing.coachId ? { coachId } : {})
           }
@@ -495,6 +496,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
         role: 'athlete', // siempre atleta: el rol nunca se toma del cliente
         password: await bcrypt.hash(plain, 10),
         gender: data.gender || 'M',
+        birthDate: data.birthDate ? String(data.birthDate).trim() : null,
         ...(coachId ? { coach: { connect: { id: coachId } } } : {}),
         phone: data.phone || null,
         address: data.address || null,
@@ -668,6 +670,7 @@ export async function updateAthlete(id: string, data: any) {
         phone: data.phone !== undefined ? (data.phone || null) : targetUser.phone,
         address: data.address !== undefined ? (data.address || null) : targetUser.address,
         email: data.email !== undefined ? (data.email || null) : targetUser.email,
+        birthDate: data.birthDate !== undefined ? (data.birthDate ? String(data.birthDate).trim() : null) : targetUser.birthDate,
         ...(cleanCedula ? { cedula: cleanCedula } : {}),
         ...(newHashedPassword ? { password: newHashedPassword } : {}),
         ...(validCoachId !== undefined ? { coachId: validCoachId } : {}),

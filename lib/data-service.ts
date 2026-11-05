@@ -96,6 +96,8 @@ export interface AthleteProfile {
   name: string
   gender: 'M' | 'F'
   coachId: string | null
+  birthDate?: string | null
+  email?: string | null
   phone?: string
   address?: string
   membershipStart?: string

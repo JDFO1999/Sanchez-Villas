@@ -19,6 +19,18 @@ import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
 
 export default function AtletaPerfilPage() {
+  const calculateAge = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    const birth = new Date(dateStr + "T00:00:00")
+    if (isNaN(birth.getTime())) return null
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age >= 0 && age <= 120 ? age : null
+  }
   const { user, getAllEmployees, updateUserProfilePicture } = useAuth()
   const { settings } = useSettings()
   const params = useParams()
@@ -36,6 +48,7 @@ export default function AtletaPerfilPage() {
   const [editPhone, setEditPhone] = useState("")
   const [editEmail, setEditEmail] = useState("")
   const [editAddress, setEditAddress] = useState("")
+  const [editBirthDate, setEditBirthDate] = useState("")
   const [editGender, setEditGender] = useState("M")
   const [editCoachId, setEditCoachId] = useState("")
   const [editPassword, setEditPassword] = useState("")
@@ -281,6 +294,7 @@ export default function AtletaPerfilPage() {
     setEditPhone(athlete.phone || "")
     setEditEmail((athlete as any).email || "")
     setEditAddress(athlete.address || "")
+    setEditBirthDate((athlete as any).birthDate || "")
     setEditGender(athlete.gender || "M")
     setEditCoachId(athlete.coachId || "")
     setEditPassword("")
@@ -358,6 +372,7 @@ export default function AtletaPerfilPage() {
         phone: editPhone,
         email: editEmail,
         address: editAddress,
+        birthDate: editBirthDate || null,
         gender: editGender,
         coachId: editCoachId || null,
         ...(editPassword ? { password: editPassword } : {})
@@ -844,7 +859,15 @@ export default function AtletaPerfilPage() {
           <div>
             <h1 className="page-title">{athlete.name}</h1>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
-              <User className="h-4 w-4" /> C.C. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
+              <User className="h-4 w-4" /> C.I. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
+              {athlete.birthDate && (
+                <>
+                  &nbsp;|&nbsp;
+                  <span className="flex items-center gap-1 font-medium text-foreground">
+                    🎂 {athlete.birthDate} {calculateAge(athlete.birthDate) !== null ? `(${calculateAge(athlete.birthDate)} años)` : ''}
+                  </span>
+                </>
+              )}
             </p>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <span className="font-bold">Coach Actual:</span> {currentCoachName} 
@@ -1431,6 +1454,25 @@ export default function AtletaPerfilPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
+                      {editBirthDate && calculateAge(editBirthDate) !== null && (
+                        <span className="text-[11px] font-semibold text-primary">
+                          🎂 {calculateAge(editBirthDate)} años
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      min="1920-01-01"
+                      value={editBirthDate}
+                      onChange={e => setEditBirthDate(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                    />
+                  </div>
+
+                  <div>
                     <label className="text-xs font-semibold mb-1 block">Género</label>
                     <select
                       value={editGender}
@@ -1441,7 +1483,9 @@ export default function AtletaPerfilPage() {
                       <option value="F">Femenino</option>
                     </select>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-semibold mb-1 block">Entrenador (Coach)</label>
                     <select
@@ -1455,17 +1499,17 @@ export default function AtletaPerfilPage() {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
-                  <input
-                    type="text"
-                    placeholder="Sector / Calle / Residencia"
-                    value={editAddress}
-                    onChange={e => setEditAddress(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                  />
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                    <input
+                      type="text"
+                      placeholder="Sector / Calle / Residencia"
+                      value={editAddress}
+                      onChange={e => setEditAddress(e.target.value)}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
