@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { Users, TrendingUp, Banknote, AlertCircle, ArrowUpRight, ShoppingCart, Download, FileText, FileSpreadsheet, Calendar, CheckCircle2, X, CalendarDays, Activity, UserMinus, DollarSign, Flame, Clock } from "lucide-react"
+import { Users, TrendingUp, Banknote, AlertCircle, ArrowUpRight, ShoppingCart, Download, FileText, FileSpreadsheet, Calendar, CheckCircle2, X, CalendarDays, Activity, UserMinus, DollarSign, Flame, Clock, Cake, Gift, Sparkles, MessageCircle } from "lucide-react"
 import { useState, useEffect } from "react"
 import Swal from "sweetalert2"
 import { useSettings } from "@/lib/settings-context"
@@ -51,7 +51,8 @@ export function AdminDashboard() {
     membresiasNuevas: [] as any[],
     revenueData: [] as any[],
     recentCheckins: [] as any[],
-    attendanceData: [] as any[]
+    attendanceData: [] as any[],
+    proximosCumpleanos: [] as any[]
   })
 
   const [coachRequests, setCoachRequests] = useState<any[]>([])
@@ -772,6 +773,101 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Próximos Cumpleañeros (< 3 días) */}
+      <Card className="glass border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-card to-card rounded-2xl shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-amber-500/15 text-amber-500 shrink-0">
+              <Cake className="w-6 h-6 animate-bounce" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-extrabold text-foreground flex items-center gap-2 flex-wrap">
+                <span>Próximos Cumpleañeros</span>
+                <span className="text-xs bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full font-bold">
+                  &lt; 3 días ({dynamicStats.proximosCumpleanos?.length || 0})
+                </span>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Atletas que cumplen años hoy, mañana o en 2 días. ¡Incentiva el compañerismo felicitándolos!
+              </p>
+            </div>
+          </div>
+          <Sparkles className="w-5 h-5 text-amber-500 opacity-70 hidden sm:block shrink-0" />
+        </CardHeader>
+        <CardContent className="pt-4">
+          {!dynamicStats.proximosCumpleanos || dynamicStats.proximosCumpleanos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center bg-black/5 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-3">
+                <Gift className="w-6 h-6 text-amber-500 opacity-80" />
+              </div>
+              <h4 className="text-sm font-bold text-foreground mb-1">Sin cumpleañeros en los próximos 3 días</h4>
+              <p className="text-xs text-muted-foreground px-4">
+                El sistema te avisará automáticamente cuando un atleta esté a 3 días o menos de celebrar su cumpleaños.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {dynamicStats.proximosCumpleanos.map((cump: any, idx: number) => {
+                const isToday = cump.dias === 0
+                return (
+                  <div
+                    key={cump.id || idx}
+                    className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                      isToday
+                        ? "bg-amber-500/15 border-amber-500/50 shadow-md ring-1 ring-amber-500/30"
+                        : "bg-black/20 border-black/5 dark:border-white/5 hover:border-amber-500/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {cump.profilePicture ? (
+                        <img
+                          src={cump.profilePicture}
+                          alt={cump.nombre}
+                          className="h-10 w-10 rounded-full object-cover shrink-0 border-2 border-amber-500/40 shadow-sm"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center font-black text-sm shrink-0 border border-amber-500/30 shadow-sm">
+                          {cump.nombre?.charAt(0) || "A"}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-foreground truncate">{cump.nombre}</h4>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">C.I. {cump.cedula}</p>
+                        <p className="text-[11px] flex items-center gap-1.5 mt-0.5">
+                          <span className={`font-black ${isToday ? "text-amber-500" : "text-foreground font-semibold"}`}>
+                            {cump.cuandoTexto}
+                          </span>
+                          {cump.edad && (
+                            <>
+                              <span className="opacity-40">•</span>
+                              <span className="text-muted-foreground font-medium">Cumple {cump.edad} años</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {cump.phone && (
+                      <a
+                        href={`https://wa.me/58${cump.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                          `¡Hola ${cump.nombre}! 🎈 Desde ${settings?.appName || "Maximum Evolution Fit"} queremos desearte un muy feliz cumpleaños. ¡Que este nuevo año de vida venga cargado de salud, bendiciones y mucho éxito! 🎂💪🔥`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white transition-all shrink-0 ml-2 shadow-sm border border-emerald-500/20"
+                        title="Enviar felicitación por WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
     </div>
   )

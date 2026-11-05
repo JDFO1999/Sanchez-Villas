@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import prisma from "@/lib/db"
 import { guard, getAuthUser, ROLES } from "@/lib/authz"
@@ -8,8 +8,100 @@ import { revalidatePath } from "next/cache"
 // POSTS DEL MURO Y AVISOS
 // -------------------------------------------------------------
 
+/**
+ * Publica automáticamente un póster de felicitación con mensaje motivacional en la Comunidad
+ * para cada atleta que cumpla años el día de hoy, evitando duplicados en el mismo año.
+ */
+export async function syncDailyBirthdayCommunityPosts() {
+  try {
+    const nowVet = new Date(Date.now() - 4 * 60 * 60 * 1000)
+    const currentMonth = nowVet.getUTCMonth() + 1
+    const currentDay = nowVet.getUTCDate()
+    const currentYear = nowVet.getUTCFullYear()
+
+    const athletes = await prisma.user.findMany({
+      where: {
+        role: "athlete",
+        birthDate: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        cedula: true,
+        birthDate: true,
+        profilePicture: true,
+      },
+    })
+
+    const todayBirthdays = athletes.filter((a) => {
+      if (!a.birthDate) return false
+      const parts = a.birthDate.split("-").map(Number)
+      if (parts.length < 3) return false
+      return parts[1] === currentMonth && parts[2] === currentDay
+    })
+
+    if (todayBirthdays.length === 0) return
+
+    const adminUser = await prisma.user.findFirst({
+      where: { role: { in: ["admin", "gerente"] } },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    })
+
+    if (!adminUser) return
+
+    const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 0, 0, 0))
+
+    const motivationalQuotes = [
+      "Cada repetición cuenta, cada día suma y cada nuevo año de vida es una oportunidad dorada para conquistar metas más grandes.",
+      "La disciplina construye campeones, pero la constancia, el compañerismo y la pasión definen a los grandes atletas como tú.",
+      "El verdadero progreso no solo se mide en el gimnasio, sino en la fortaleza mental y el corazón que le pones a cada reto diario.",
+      "Entrenar duro te hace fuerte, pero entrenar con propósito y constancia te hace imparable. ¡Sigue inspirándonos a todos!",
+    ]
+
+    for (const b of todayBirthdays) {
+      const birthYear = Number(b.birthDate!.split("-")[0])
+      const ageTurning = currentYear - birthYear
+      const title = `🎂 ¡Feliz Cumpleaños, ${b.name}! 🎉`
+
+      const existing = await prisma.communityPost.findFirst({
+        where: {
+          title,
+          createdAt: { gte: startOfYear },
+        },
+      })
+
+      if (!existing) {
+        const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
+        const content = `🎈 ¡Hoy toda la familia de Maximum Evolution Fit está de fiesta! 🎈
+
+Queremos felicitar de todo corazón a nuestro atleta y compañero ${b.name}${ageTurning > 0 && ageTurning < 120 ? ` en su cumpleaños número ${ageTurning}` : ''}.
+
+"${quote}"
+
+Te deseamos un nuevo año de vida lleno de salud, superación personal, récords superados y muchísima energía positiva para alcanzar todo lo que te propongas. ¡Gracias por ser parte esencial de nuestra comunidad y motivarnos día a día con tu constancia y compañerismo! 🏋️‍♂️💪🔥
+
+¡Dejémosle todos nuestras felicitaciones, aplausos y mejores deseos en las reacciones y comentarios! 👏🥳🎉`
+
+        await prisma.communityPost.create({
+          data: {
+            authorId: adminUser.id,
+            title,
+            content,
+            tag: "Cumpleaños",
+            imageUrl: b.profilePicture || null,
+          },
+        })
+      }
+    }
+  } catch (err) {
+    console.error("Error sincronizando posts de cumpleaños:", err)
+  }
+}
+
 export async function getCommunityPostsAction() {
   try {
+    await syncDailyBirthdayCommunityPosts()
     const posts = await prisma.communityPost.findMany({
       orderBy: { createdAt: "desc" },
       include: {

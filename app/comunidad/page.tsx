@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from "react"
 import { useSettings } from "@/lib/settings-context"
@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Users,
   Target,
+  Cake,
   Share2,
   Heart,
   Award,
@@ -527,7 +528,7 @@ export default function ComunidadPage() {
                     return (
                       <div
                         key={post.id}
-                        className="rounded-2xl border border-black/10 dark:border-white/10 bg-card p-6 shadow-md hover:border-primary/40 transition-all duration-300 space-y-4"
+                        className={`rounded-2xl p-6 shadow-md transition-all duration-300 space-y-4 ${post.tag === "Cumpleaños" ? "border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/10 via-card to-card shadow-amber-500/10 hover:border-amber-500/80" : "border border-black/10 dark:border-white/10 bg-card hover:border-primary/40"}`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-center gap-3">
@@ -565,9 +566,15 @@ export default function ComunidadPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 text-muted-foreground border border-black/10 dark:border-white/10">
-                              {post.tag}
-                            </span>
+                            {post.tag === "Cumpleaños" ? (
+                              <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-sm flex items-center gap-1.5 animate-pulse">
+                                <Cake className="w-3.5 h-3.5" /> Cumpleaños
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 text-muted-foreground border border-black/10 dark:border-white/10">
+                                {post.tag}
+                              </span>
+                            )}
                             {isAdmin && (
                               <button
                                 onClick={() => handleDeletePost(post.id)}
@@ -586,6 +593,21 @@ export default function ComunidadPage() {
                             {post.content}
                           </p>
                         </div>
+
+                        {post.imageUrl && (
+                          <div className={`relative rounded-2xl overflow-hidden border ${post.tag === "Cumpleaños" ? "border-amber-500/40 max-h-96" : "border-black/10 dark:border-white/10 max-h-80"} w-full bg-black/5 dark:bg-black/40 flex items-center justify-center`}>
+                            <img
+                              src={post.imageUrl}
+                              alt={post.title}
+                              className="w-full max-h-96 object-cover object-center"
+                            />
+                            {post.tag === "Cumpleaños" && (
+                              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-white text-xs font-black flex items-center gap-1.5 border border-white/20 shadow-md">
+                                <Cake className="w-3.5 h-3.5 text-amber-400" /> ¡Cumpleañero(a) del Día!
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Barra de Reacciones: Me gusta y Me encanta */}
                         <div className="pt-3 border-t border-border flex items-center justify-between">

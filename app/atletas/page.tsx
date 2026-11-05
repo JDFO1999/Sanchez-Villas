@@ -517,13 +517,15 @@ export default function AtletasPage() {
                             <h3 className="font-bold text-foreground group-hover:text-primary transition leading-tight">{atleta.name}</h3>
                             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
                               <span>C.I. {atleta.cedula}</span>
-                              {atleta.birthDate && calculateAge(atleta.birthDate) !== null && (
-                                <>
-                                  <span className="opacity-40">•</span>
-                                  <span className="text-[11px] font-semibold text-primary">
-                                    🎂 {calculateAge(atleta.birthDate)} años
-                                  </span>
-                                </>
+                              <span className="opacity-40">•</span>
+                              {atleta.birthDate && calculateAge(atleta.birthDate) !== null ? (
+                                <span className="text-[11px] font-semibold text-primary">
+                                  🎂 {calculateAge(atleta.birthDate)} años
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground/70 italic">
+                                  🎂 Sin datos
+                                </span>
                               )}
                             </p>
                           </div>
@@ -700,9 +702,13 @@ export default function AtletasPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
-                      {editBirthDate && calculateAge(editBirthDate) !== null && (
+                      {editBirthDate && calculateAge(editBirthDate) !== null ? (
                         <span className="text-[11px] font-semibold text-primary">
                           🎂 {calculateAge(editBirthDate)} años
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/80 italic">
+                          Sin datos
                         </span>
                       )}
                     </div>

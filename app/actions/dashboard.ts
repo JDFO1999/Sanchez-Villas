@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import prisma from "@/lib/db"
 import { guard, ROLES } from "@/lib/authz"
@@ -127,6 +127,44 @@ export async function getDashboardStats() {
       })
       .slice(0, 5)
 
+    // Cumpleañeros en un intervalo menor a 3 días (hoy = 0 días, mañana = 1 día, en 2 días = 2 días)
+    const proximosCumpleanos = allAthletes
+      .filter(a => {
+        if (!a.birthDate) return false
+        const parts = a.birthDate.split("-").map(Number)
+        return parts.length >= 3 && !isNaN(parts[1]) && !isNaN(parts[2])
+      })
+      .map(a => {
+        const parts = a.birthDate!.split("-").map(Number)
+        const bYear = parts[0]
+        const bMonth = parts[1]
+        const bDay = parts[2]
+
+        const currentYear = vetNow.getUTCFullYear()
+        let bDate = new Date(Date.UTC(currentYear, bMonth - 1, bDay, 4, 0, 0, 0))
+        if (bDate < today) {
+          bDate = new Date(Date.UTC(currentYear + 1, bMonth - 1, bDay, 4, 0, 0, 0))
+        }
+
+        const diffTime = bDate.getTime() - today.getTime()
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24))
+        const turningAge = bDate.getUTCFullYear() - bYear
+
+        return {
+          id: a.id,
+          nombre: a.name,
+          cedula: a.cedula,
+          phone: a.phone || "",
+          profilePicture: a.profilePicture,
+          birthDate: a.birthDate,
+          dias: diffDays,
+          edad: turningAge > 0 && turningAge < 120 ? turningAge : null,
+          cuandoTexto: diffDays === 0 ? "¡Hoy cumple años! 🎂" : diffDays === 1 ? "Mañana" : "En 2 días"
+        }
+      })
+      .filter(a => a.dias >= 0 && a.dias < 3)
+      .sort((a, b) => a.dias - b.dias)
+
     // 1. Asistencias de los últimos 30 días para Mapa de Calor de Horas Pico (6:00 a 22:00)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     const recentAttendances = await prisma.attendance.findMany({
@@ -244,7 +282,8 @@ export async function getDashboardStats() {
         membresiasPorVencer,
         membresiasNuevas,
         revenueData,
-        attendanceData
+        attendanceData,
+        proximosCumpleanos
       }
     }
   } catch (error: any) {

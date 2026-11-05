@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -858,16 +858,14 @@ export default function AtletaPerfilPage() {
           </div>
           <div>
             <h1 className="page-title">{athlete.name}</h1>
-            <p className="text-muted-foreground flex items-center gap-2 mt-1">
-              <User className="h-4 w-4" /> C.I. {athlete.cedula} &nbsp;|&nbsp; {athlete.gender === 'M' ? 'Masculino' : 'Femenino'}
-              {athlete.birthDate && (
-                <>
-                  &nbsp;|&nbsp;
-                  <span className="flex items-center gap-1 font-medium text-foreground">
-                    🎂 {athlete.birthDate} {calculateAge(athlete.birthDate) !== null ? `(${calculateAge(athlete.birthDate)} años)` : ''}
-                  </span>
-                </>
-              )}
+            <p className="text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
+              <span className="flex items-center gap-1"><User className="h-4 w-4" /> C.I. {athlete.cedula}</span>
+              <span>&nbsp;|&nbsp;</span>
+              <span>{athlete.gender === 'M' ? 'Masculino' : 'Femenino'}</span>
+              <span>&nbsp;|&nbsp;</span>
+              <span className="flex items-center gap-1 font-medium text-foreground">
+                🎂 {athlete.birthDate ? `${athlete.birthDate} ${calculateAge(athlete.birthDate) !== null ? `(${calculateAge(athlete.birthDate)} años)` : ''}` : 'Sin datos'}
+              </span>
             </p>
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <span className="font-bold">Coach Actual:</span> {currentCoachName} 
@@ -1456,9 +1454,13 @@ export default function AtletaPerfilPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
-                      {editBirthDate && calculateAge(editBirthDate) !== null && (
+                      {editBirthDate && calculateAge(editBirthDate) !== null ? (
                         <span className="text-[11px] font-semibold text-primary">
                           🎂 {calculateAge(editBirthDate)} años
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/80 italic">
+                          Sin datos
                         </span>
                       )}
                     </div>
