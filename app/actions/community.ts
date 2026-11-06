@@ -3,6 +3,7 @@
 import prisma from "@/lib/db"
 import { guard, getAuthUser, ROLES } from "@/lib/authz"
 import { revalidatePath } from "next/cache"
+import { broadcastNotification, sendNotificationToUser } from "@/lib/push-notifications"
 
 // -------------------------------------------------------------
 // POSTS DEL MURO Y AVISOS
@@ -91,6 +92,14 @@ Te deseamos un nuevo año de vida lleno de salud, superación personal, récords
             tag: "Cumpleaños",
             imageUrl: b.profilePicture || null,
           },
+        })
+
+        await broadcastNotification({
+          title: `🎂 ¡Hoy es el cumpleaños de ${b.name}! 🎉`,
+          message: `¡Hoy celebramos a nuestro compañero ${b.name}! Entra a la comunidad y déjale tu mensaje de felicitaciones y buenos deseos en su día. 🥳🎈`,
+          type: "BIRTHDAY",
+          url: "/comunidad",
+          avatarUrl: b.profilePicture || undefined,
         })
       }
     }
@@ -224,6 +233,21 @@ export async function createCommunityPostAction({
     })
 
     revalidatePath("/comunidad")
+
+    broadcastNotification(
+      {
+        title: `📢 ${newPost.title}`,
+        message:
+          newPost.content.length > 110
+            ? `${newPost.content.slice(0, 107)}...`
+            : newPost.content,
+        type: "POST",
+        url: "/comunidad",
+        avatarUrl: newPost.author?.profilePicture || undefined,
+      },
+      user.id
+    ).catch(() => {})
+
     return { success: true, post: newPost }
   } catch (error) {
     console.error("Error creating community post:", error)
@@ -693,6 +717,31 @@ export async function getHallOfFameAction() {
       ...l,
       pos: index + 1,
     }))
+
+    // Notificar a los atletas en top 5 que ingresaron al ranking (Trigger 4)
+    ;(async () => {
+      const top5 = topLeaders.slice(0, 5)
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      for (const leader of top5) {
+        if (!leader.athleteId) continue
+        const recentNotif = await prisma.appNotification.findFirst({
+          where: {
+            userId: leader.athleteId,
+            type: "RANKING",
+            createdAt: { gte: oneWeekAgo },
+          },
+        })
+        if (!recentNotif) {
+          await sendNotificationToUser(leader.athleteId, {
+            title: `🏆 ¡Felicidades, entraste al Ranking #${leader.pos}!`,
+            message: `¡Tu disciplina da frutos! Estás en el puesto #${leader.pos} del Salón de la Fama por "${leader.category}" (${leader.stat}). ¡Sigue así! 🔥`,
+            type: "RANKING",
+            url: "/comunidad",
+            avatarUrl: leader.profilePicture || undefined,
+          })
+        }
+      }
+    })().catch(() => {})
 
     return { success: true, leaders: topLeaders }
   } catch (error) {

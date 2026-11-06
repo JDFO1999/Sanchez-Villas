@@ -13,6 +13,7 @@ import {
   ROLES, DENIED, EMPLOYEE_PRIVATE_FIELDS,
 } from "@/lib/authz"
 import { validatePassword } from "@/lib/password-validator"
+import { notifyMembershipActivated } from "@/lib/push-notifications"
 
 const EMPLOYEE_ROLES = ["admin", "gerente", "coach", "cajero", "recepcion", "employee"]
 const CEDULA_RE = /^[A-Za-z0-9._-]{3,30}$/
@@ -452,7 +453,8 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
               status: 'ACTIVE',
               planName: data.planName || 'Plan Estándar'
             }
-          })
+          });
+          notifyMembershipActivated(existing.id, data.planName || 'Plan Estándar', new Date(data.membershipEnd)).catch(() => {})
         }
 
         const safeUpdated = stripSecrets(updatedUser)
@@ -515,7 +517,8 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
           status: 'ACTIVE',
           planName: data.planName || 'Plan Estándar'
         }
-      })
+      });
+      notifyMembershipActivated(user.id, data.planName || 'Plan Estándar', new Date(data.membershipEnd)).catch(() => {})
     }
 
     const safeCreated = stripSecrets(user)
@@ -688,6 +691,7 @@ export async function updateAthlete(id: string, data: any) {
             planName: data.planName || data.membershipType || 'Plan Estándar'
          }
       });
+      notifyMembershipActivated(id, data.planName || data.membershipType || 'Plan Estándar', new Date(data.membershipEnd)).catch(() => {});
     }
 
     revalidatePath(`/atletas/${id}`)

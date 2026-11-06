@@ -1,6 +1,7 @@
 "use server";
 import prisma from "@/lib/db"
 import { guard, guardSelfOr, ROLES, DENIED } from "@/lib/authz"
+import { sendNotificationToUser } from "@/lib/push-notifications"
 
 const isTrainer = (role: string) => (ROLES.TRAINER as readonly string[]).includes(role)
 
@@ -107,6 +108,12 @@ export async function createRoutine(data: {
         }
       }
     })
+    sendNotificationToUser(data.athleteId, {
+      title: "🏋️‍♂️ ¡Nueva rutina asignada!",
+      message: `Tu entrenador te ha asignado la rutina "${data.title}" (${data.duration}). ¡A darlo todo hoy en el gym!`,
+      type: "ROUTINE",
+      url: "/rutina",
+    }).catch(() => {});
     return { success: true, routine }
   } catch (error: any) {
     console.error(error)
@@ -136,6 +143,12 @@ export async function createDiet(data: {
         date: data.date
       }
     })
+    sendNotificationToUser(data.athleteId, {
+      title: "🥗 ¡Nuevo plan de alimentación!",
+      message: `Tu entrenador te ha asignado tu plan nutricional "${data.title}". Revisa tu menú y objetivos.`,
+      type: "DIET",
+      url: "/rutina",
+    }).catch(() => {});
     return { success: true, diet }
   } catch (error: any) {
     console.error(error)
