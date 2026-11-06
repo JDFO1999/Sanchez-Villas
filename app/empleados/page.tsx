@@ -365,21 +365,43 @@ export default function EmpleadosPage() {
       </div>
 
       {showEmployeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-2xl w-full p-6 shadow-2xl glass relative my-8">
-            <h3 className="text-xl font-bold mb-4">{empForm.id ? 'Editar Personal' : 'Registrar Personal'}</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-6 backdrop-blur-md overflow-hidden">
+          <div className="bg-card border border-black/10 dark:border-white/10 rounded-3xl max-w-2xl w-full shadow-2xl glass relative max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Header del modal fijo arriba (siempre visible, nunca se pierde por la altura) */}
+            <div className="px-6 py-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between shrink-0 bg-black/5 dark:bg-black/20">
+              <div>
+                <h3 className="text-lg sm:text-xl font-black text-foreground">
+                  {empForm.id ? 'Editar Personal' : 'Registrar Personal'}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {empForm.id ? 'Modifica los datos, rol de sistema y credenciales de acceso' : 'Ingresa los datos para registrar un nuevo integrante del equipo'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEmployeeModal(false)}
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
+                title="Cerrar modal"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulario con scroll independiente */}
+            <form id="emp-form" onSubmit={handleAddEmployee} className="flex-1 overflow-y-auto p-6 space-y-4 overscroll-contain">
               {!empForm.id && (
                 <div className="space-y-3 mb-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <button type="button" onClick={buscarAtleta} className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-3.5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-sm">
+                    <button type="button" onClick={buscarAtleta} className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-3.5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-sm cursor-pointer">
                       <Search className="h-4 w-4" /> Buscar Atleta Existente
                     </button>
                     {empForm.existingAthleteFound && (
                       <button
                         type="button"
-                        onClick={() => setEmpForm({ ...empForm, name: '', cedula: '', email: '', phone: '', avatar: '', existingAthleteFound: false })}
-                        className="text-xs text-muted-foreground hover:text-destructive font-semibold transition"
+                        onClick={() => setEmpForm({ ...empForm, name: '', cedula: '', email: '', phone: '', avatar: '', birthDate: '', existingAthleteFound: false })}
+                        className="text-xs text-muted-foreground hover:text-destructive font-semibold transition cursor-pointer"
                       >
                         Limpiar selección
                       </button>
@@ -402,7 +424,7 @@ export default function EmpleadosPage() {
                             Atleta Seleccionado
                           </span>
                         </div>
-                        <p className="text-xs font-mono text-muted-foreground flex items-center gap-2 mt-0.5">
+                        <p className="text-xs font-mono text-muted-foreground flex items-center gap-2 mt-0.5 flex-wrap">
                           <span>C.I. {empForm.cedula}</span>
                           <span className="opacity-40">•</span>
                           {empForm.birthDate && calculateAge(empForm.birthDate) !== null ? (
@@ -423,22 +445,23 @@ export default function EmpleadosPage() {
                   )}
                 </div>
               )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
-                  <input required type="text" value={empForm.name} onChange={e => setEmpForm({...empForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={empForm.name} onChange={e => setEmpForm({...empForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Cédula</label>
-                  <input required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                  <input required type="text" value={empForm.cedula} onChange={e => setEmpForm({...empForm, cedula: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Correo</label>
-                  <input type="email" value={empForm.email || ''} onChange={e => setEmpForm({...empForm, email: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                  <input type="email" value={empForm.email || ''} onChange={e => setEmpForm({...empForm, email: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
-                  <input type="text" value={empForm.phone || ''} onChange={e => setEmpForm({...empForm, phone: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+                  <input type="text" value={empForm.phone || ''} onChange={e => setEmpForm({...empForm, phone: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -459,7 +482,7 @@ export default function EmpleadosPage() {
                     min="1920-01-01"
                     value={empForm.birthDate || ''}
                     onChange={e => setEmpForm({...empForm, birthDate: e.target.value})}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
                   />
                 </div>
                 <div>
@@ -472,7 +495,7 @@ export default function EmpleadosPage() {
                       const nextPin = isBarcodeRole(nextRole) && !empForm.pin ? generateNewPin() : empForm.pin
                       setEmpForm({ ...empForm, role: nextRole, pin: nextPin })
                     }}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                   >
                     <option value="employee">Entrenador (Coach)</option>
                     <option value="cajero">Cajero / Recepción</option>
@@ -487,9 +510,10 @@ export default function EmpleadosPage() {
                     )}
                   </select>
                 </div>
+
                 {empForm.role === 'admin' && (
-                  <div className="col-span-2 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-3">
-                    <span className="text-base">🔐</span>
+                  <div className="col-span-1 sm:col-span-2 bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl flex items-start gap-3">
+                    <span className="text-base shrink-0">🔐</span>
                     <div>
                       <p className="text-xs font-bold text-amber-600 dark:text-amber-400">Autorización de Super Administrador Requerida</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -498,13 +522,14 @@ export default function EmpleadosPage() {
                     </div>
                   </div>
                 )}
+
                 {empForm.role === 'employee' && (
-                  <div className="col-span-2 bg-black/5 dark:bg-black/40 p-3.5 rounded-xl border border-black/10 dark:border-white/10 flex items-center justify-between">
+                  <div className="col-span-1 sm:col-span-2 bg-black/5 dark:bg-black/40 p-3.5 rounded-xl border border-black/10 dark:border-white/10 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-foreground">Acceso al Módulo de Asistencia</p>
                       <p className="text-[11px] text-muted-foreground">Permite a este entrenador acceder al lector QR y validar entradas.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
                       <input 
                         type="checkbox" 
                         checked={Boolean(empForm.canManageAttendance)} 
@@ -515,43 +540,73 @@ export default function EmpleadosPage() {
                     </label>
                   </div>
                 )}
-                <div className="col-span-2">
-                    <h4 className="font-bold border-b border-black/10 dark:border-white/10 pb-2 mb-4 mt-2">Seguridad y Acceso</h4>
+
+                {/* Sección de Seguridad y Acceso con Etiquetas Alineadas al 100% */}
+                <div className="col-span-1 sm:col-span-2">
+                  <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-2 mb-2 mt-2 flex-wrap gap-1">
+                    <h4 className="font-bold text-sm text-foreground">Seguridad y Acceso</h4>
+                    {(empForm.id || empForm.existingAthleteFound) && (
+                      <span className="text-[11px] text-muted-foreground/80 italic">
+                        (Opcional: Dejar en blanco para mantener la contraseña actual)
+                      </span>
+                    )}
                   </div>
-                  <div className="col-span-2 grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Contraseña de Sesión {(empForm.id || empForm.existingAthleteFound) && <span className="text-xs text-muted-foreground font-normal">(Opcional: Dejar en blanco para mantener la actual)</span>}
-                      </label>
-                      <div className="relative">
-                        <input required={!empForm.id && !empForm.existingAthleteFound} type={showPin ? "text" : "password"} value={empForm.clave} onChange={e => setEmpForm({...empForm, clave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
-                        <button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                          {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Confirmar Contraseña</label>
-                      <div className="relative">
-                        <input required={!empForm.id && !empForm.existingAthleteFound} type={showPin ? "text" : "password"} value={empForm.confirmClave} onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary pr-10" />
-                      </div>
-                    </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Contraseña de Sesión
+                  </label>
+                  <div className="relative">
+                    <input
+                      required={!empForm.id && !empForm.existingAthleteFound}
+                      type={showPin ? "text" : "password"}
+                      value={empForm.clave}
+                      onChange={e => setEmpForm({...empForm, clave: e.target.value})}
+                      placeholder={empForm.id || empForm.existingAthleteFound ? "•••••••• (Sin cambios)" : "Mínimo 6 caracteres"}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Confirmar Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      required={!empForm.id && !empForm.existingAthleteFound}
+                      type={showPin ? "text" : "password"}
+                      value={empForm.confirmClave}
+                      onChange={e => setEmpForm({...empForm, confirmClave: e.target.value})}
+                      placeholder={empForm.id || empForm.existingAthleteFound ? "•••••••• (Sin cambios)" : "Repite la contraseña"}
+                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none pr-10"
+                    />
+                  </div>
+                </div>
+
                 {isBarcodeRole(empForm.role) && empForm.pin && (
-                   <div className="col-span-2 p-3.5 rounded-xl bg-warning/5 border border-warning/30">
-                     <div className="flex items-center justify-between mb-1.5">
+                   <div className="col-span-1 sm:col-span-2 p-3.5 rounded-xl bg-warning/5 border border-warning/30">
+                     <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                        <label className="text-xs font-bold text-warning block">
                          Código de Barras / PIN Exclusivo de Caja (11 dígitos)
                        </label>
                        <button
                          type="button"
                          onClick={() => setEmpForm({ ...empForm, pin: generateNewPin() })}
-                         className="text-[11px] font-bold text-primary hover:underline"
+                         className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
                        >
                          Regenerar Código
                        </button>
                      </div>
-                     <p className="text-[11px] text-muted-foreground mb-2">
+                     <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
                        Exclusivo para Cajero, Gerente y Administrador en facturación/activación de planes. El cajero debe usar este código de barras/PIN (no la clave de su cuenta personal).
                      </p>
                      <div className="relative">
@@ -559,34 +614,47 @@ export default function EmpleadosPage() {
                          type={showPin ? "text" : "password"} 
                          value={empForm.pin} 
                          disabled 
-                         className="w-full bg-black/5 dark:bg-black/40 border border-warning/50 rounded-lg p-2 text-sm font-mono font-bold pr-10" 
+                         className="w-full bg-black/5 dark:bg-black/40 border border-warning/50 rounded-lg p-2.5 text-sm font-mono font-bold pr-10" 
                        />
                        <button 
                          type="button" 
                          onClick={() => setShowPin(!showPin)} 
-                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                        >
                          {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                        </button>
                      </div>
-                     <div className="mt-3 flex justify-center bg-white p-4 rounded-lg">
+                     <div className="mt-3 flex justify-center bg-white p-3 rounded-lg overflow-x-auto shadow-inner">
                        <svg ref={barcodeCallbackRef}></svg>
                      </div>
                    </div>
                 )}
-                
-
-              </div>
-              <div className="flex gap-2 justify-end pt-4 border-t border-black/10 dark:border-white/10 mt-4">
-                <button type="button" onClick={() => setShowEmployeeModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-transparent border border-success text-success font-bold hover:bg-success/10 transition">Guardar Empleado</button>
               </div>
             </form>
+
+            {/* Footer del modal fijo abajo (siempre accesible) */}
+            <div className="px-6 py-3.5 border-t border-black/10 dark:border-white/10 flex gap-2 justify-end shrink-0 bg-black/5 dark:bg-black/20">
+              <button
+                type="button"
+                onClick={() => setShowEmployeeModal(false)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 text-foreground transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="emp-form"
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-transparent border border-success text-success hover:bg-success/10 transition cursor-pointer"
+              >
+                Guardar Empleado
+              </button>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* MODAL INTERACTIVO EN VIVO: BUSCAR ATLETA EXISTENTE */}
+            {/* MODAL INTERACTIVO EN VIVO: BUSCAR ATLETA EXISTENTE */}
       {showAthleteSearchModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-[#111520] border border-white/15 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col max-h-[85vh]">
