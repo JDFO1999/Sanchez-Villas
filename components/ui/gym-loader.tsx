@@ -52,8 +52,8 @@ export function GymLoader({
   const darkCandidate = settings.logoUrlDark || cachedLogoDark
   const lightCandidate = settings.logoUrl || cachedLogo
   const rawLogo = isDark
-    ? (darkCandidate || lightCandidate)
-    : (lightCandidate || darkCandidate)
+    ? (darkCandidate || lightCandidate || "/uploads/sys_logourldark_8456539f5fe89f8796d1f53a.png")
+    : (lightCandidate || darkCandidate || "/uploads/sys_logourl_537fc153bd61e2b18a3bf2de.png")
 
   useEffect(() => {
     setImgError(false)
@@ -62,30 +62,33 @@ export function GymLoader({
   const logoSrc = !imgError && rawLogo ? rawLogo : ""
   const appName = settings.appName || cachedName || ""
 
-  const logoH = size === "sm" ? 44 : size === "md" ? 64 : 85
-  const spinnerSize = size === "sm" ? 28 : size === "md" ? 36 : 44
+  const spinnerSize = size === "sm" ? 24 : size === "md" ? 32 : 40
+
+  const logoClasses =
+    size === "sm"
+      ? "max-h-12 max-w-[140px]"
+      : size === "md"
+      ? "max-h-16 max-w-[200px]"
+      : "max-h-24 sm:max-h-28 max-w-[280px] sm:max-w-[340px]"
 
   return (
     <div className={`flex flex-col items-center justify-center select-none ${className}`}>
       <div className="relative flex flex-col items-center">
-        {/* Soft Ambient Brand Glow */}
+        {/* Soft Ambient Brand Glow detrás del logo */}
         <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-125 animate-pulse pointer-events-none" />
 
         {logoSrc ? (
-          <div className="relative z-10 flex flex-col items-center mb-5">
-            <img
-              src={logoSrc}
-              alt={appName || "Logo"}
-              onError={() => setImgError(true)}
-              style={{
-                height: logoH,
-                maxWidth: 240,
-                objectFit: "contain",
-              }}
-              className="drop-shadow-lg transition-transform animate-pulse"
-            />
-            {appName && size !== "sm" && (
-              <span className="font-display font-black text-lg md:text-2xl uppercase tracking-wider text-foreground mt-2 drop-shadow">
+          <div className="relative z-10 flex flex-col items-center mb-4">
+            <div className="relative flex items-center justify-center p-2">
+              <img
+                src={logoSrc}
+                alt={appName || "Logo"}
+                onError={() => setImgError(true)}
+                className={`w-auto h-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.45)] transition-all duration-500 ${logoClasses}`}
+              />
+            </div>
+            {appName && size === "lg" && (
+              <span className="font-display font-black text-lg md:text-xl uppercase tracking-wider text-foreground mt-2 drop-shadow">
                 {appName}
               </span>
             )}
@@ -100,10 +103,10 @@ export function GymLoader({
           )
         )}
 
-        {/* Spinner Redondo Minimalista */}
+        {/* Spinner Redondo Minimalista con Pulso */}
         <div className="relative z-10 flex flex-col items-center gap-3">
           <div 
-            className="rounded-full border-[3px] border-primary/20 border-t-primary animate-spin"
+            className="rounded-full border-[3px] border-primary/20 border-t-primary animate-spin shadow-sm"
             style={{ width: spinnerSize, height: spinnerSize }}
           />
           {text && (
@@ -134,7 +137,7 @@ export function FullScreenGymLoader({
   }, [])
 
   const loaderOverlay = (
-    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/90 dark:bg-black/90 backdrop-blur-xl transition-all duration-300 ${className}`}>
+    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/95 dark:bg-[#09090b]/95 backdrop-blur-2xl transition-all duration-300 ${className}`}>
       <GymLoader
         size="lg"
         text={text}

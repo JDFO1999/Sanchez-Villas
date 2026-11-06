@@ -8,6 +8,7 @@ import { ToastProvider } from "@/lib/toast-context";
 import { FontWrapper } from "@/components/font-wrapper";
 import { getSystemSettingsAction } from "@/app/actions/settings";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { AppOpeningSplash } from "@/components/ui/app-opening-splash";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteUrl = process.env.APP_URL || "https://www.maximumevolutionfit.com";
@@ -148,7 +149,6 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -240,6 +240,7 @@ export default async function RootLayout({
                 disableTransitionOnChange
               >
                 <AuthProvider>
+                  <AppOpeningSplash />
                   <AppLayout>
                     {children}
                   </AppLayout>
