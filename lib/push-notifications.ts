@@ -1,4 +1,4 @@
-import webpush from "web-push"
+import { setVapidDetails, sendNotification } from "web-push"
 import prisma from "@/lib/db"
 
 // Inicializar configuración VAPID
@@ -7,7 +7,7 @@ const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "bfOm1J-KOmciseLGkzQLXv
 const vapidSubject = process.env.VAPID_SUBJECT || "mailto:soporte@maximumevolutionfit.com"
 
 try {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+  setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
 } catch (e) {
   console.warn("Advertencia al inicializar WebPush VAPID:", e)
 }
@@ -72,7 +72,7 @@ export async function sendNotificationToUser(
 
       const pushPromises = subscriptions.map(async (sub) => {
         try {
-          await webpush.sendNotification(
+          await sendNotification(
             {
               endpoint: sub.endpoint,
               keys: {
@@ -151,7 +151,7 @@ export async function broadcastNotification(
 
       const pushPromises = subscriptions.map(async (sub) => {
         try {
-          await webpush.sendNotification(
+          await sendNotification(
             {
               endpoint: sub.endpoint,
               keys: {
