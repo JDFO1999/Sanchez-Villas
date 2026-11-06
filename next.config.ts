@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [],
   poweredByHeader: false,
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       // Las imágenes se limitan a 5MB en el servidor; este tope cubre el base64 (+33%)
       bodySizeLimit: '8mb',

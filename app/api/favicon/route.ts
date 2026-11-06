@@ -43,8 +43,8 @@ export async function GET(req: Request) {
       // Si no, buscar ruta de archivo
       if (!srcBuffer) {
         const logoPath = getLatestLogoFilePath()
-        if (logoPath && fs.existsSync(logoPath)) {
-          srcBuffer = fs.readFileSync(logoPath)
+        if (logoPath && fs.existsSync(/*turbopackIgnore: true*/ logoPath)) {
+          srcBuffer = fs.readFileSync(/*turbopackIgnore: true*/ logoPath)
         }
       }
 
@@ -82,13 +82,13 @@ export async function GET(req: Request) {
         const cleanRel = iconSource.replace(/^\/api\/uploads\//, "").replace(/^\/uploads\//, "").replace(/^\//, "")
         const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads")
         const candidatePaths = [
-          path.join(process.cwd(), "public", cleanRel),
-          path.join(process.cwd(), "public", "uploads", path.basename(cleanRel)),
-          path.join(uploadDir, path.basename(cleanRel)),
+          path.join(/*turbopackIgnore: true*/ process.cwd(), "public", cleanRel),
+          path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", path.basename(cleanRel)),
+          path.join(/*turbopackIgnore: true*/ uploadDir, path.basename(cleanRel)),
         ]
         for (const p of candidatePaths) {
-          if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-            const fileBuf = fs.readFileSync(p)
+          if (fs.existsSync(/*turbopackIgnore: true*/ p) && fs.statSync(/*turbopackIgnore: true*/ p).isFile()) {
+            const fileBuf = fs.readFileSync(/*turbopackIgnore: true*/ p)
             const ext = path.extname(p).toLowerCase()
             const mime =
               ext === ".png"
@@ -117,9 +117,9 @@ export async function GET(req: Request) {
 
   // Fallback a default-favicon.ico o icon.png
   try {
-    const iconPath = path.join(process.cwd(), "public", "icon.png")
-    if (fs.existsSync(iconPath)) {
-      const buf = fs.readFileSync(iconPath)
+    const iconPath = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "icon.png")
+    if (fs.existsSync(/*turbopackIgnore: true*/ iconPath)) {
+      const buf = fs.readFileSync(/*turbopackIgnore: true*/ iconPath)
       return new NextResponse(new Uint8Array(buf), {
         status: 200,
         headers: {
@@ -128,9 +128,9 @@ export async function GET(req: Request) {
         },
       })
     }
-    const fallbackPath = path.join(process.cwd(), "public", "default-favicon.ico")
-    if (fs.existsSync(fallbackPath)) {
-      const buf = fs.readFileSync(fallbackPath)
+    const fallbackPath = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "default-favicon.ico")
+    if (fs.existsSync(/*turbopackIgnore: true*/ fallbackPath)) {
+      const buf = fs.readFileSync(/*turbopackIgnore: true*/ fallbackPath)
       return new NextResponse(new Uint8Array(buf), {
         status: 200,
         headers: {

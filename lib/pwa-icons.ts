@@ -1,6 +1,6 @@
 import fs from "fs"
 import path from "path"
-import fastPng from "fast-png"
+import { decode, encode } from "fast-png"
 
 /**
  * Genera un icono PNG cuadrado (por defecto 512x512) con el logo centrado
@@ -17,7 +17,7 @@ export function generateMaskableIconBuffer(
   bgB = 11
 ): Buffer {
   try {
-    const src = fastPng.decode(imageBuffer)
+    const src = decode(imageBuffer)
     if (!src || !src.width || !src.height) {
       throw new Error("Formato de imagen no compatible para decodificación PNG")
     }
@@ -84,7 +84,7 @@ export function generateMaskableIconBuffer(
       }
     }
 
-    const encoded = fastPng.encode({
+    const encoded = encode({
       width: size,
       height: size,
       data: outData,
@@ -102,29 +102,29 @@ export function generateMaskableIconBuffer(
  * Resuelve la ruta física del archivo del logo más reciente en el servidor.
  */
 export function getLatestLogoFilePath(): string | null {
-  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads")
+  const uploadDir = process.env.UPLOAD_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads")
   const candidates = [
-    path.join(uploadDir, "sys_logourl_537fc153bd61e2b18a3bf2de.png"),
-    path.join(uploadDir, "sys_logourldark_8456539f5fe89f8796d1f53a.png"),
-    path.join(uploadDir, "maximum-logo-full.png"),
-    path.join(process.cwd(), "public", "icon.png"),
+    path.join(/*turbopackIgnore: true*/ uploadDir, "sys_logourl_537fc153bd61e2b18a3bf2de.png"),
+    path.join(/*turbopackIgnore: true*/ uploadDir, "sys_logourldark_8456539f5fe89f8796d1f53a.png"),
+    path.join(/*turbopackIgnore: true*/ uploadDir, "maximum-logo-full.png"),
+    path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "icon.png"),
   ]
 
   for (const c of candidates) {
-    if (fs.existsSync(c)) {
+    if (fs.existsSync(/*turbopackIgnore: true*/ c)) {
       try {
-        if (fs.statSync(c).size > 1000) return c
+        if (fs.statSync(/*turbopackIgnore: true*/ c).size > 1000) return c
       } catch (_) {}
     }
   }
 
   // Buscar cualquier sys_logourl*.png reciente
-  if (fs.existsSync(uploadDir)) {
+  if (fs.existsSync(/*turbopackIgnore: true*/ uploadDir)) {
     try {
-      const files = fs.readdirSync(uploadDir)
+      const files = fs.readdirSync(/*turbopackIgnore: true*/ uploadDir)
       const logos = files.filter(f => f.startsWith("sys_logourl") && f.endsWith(".png"))
       if (logos.length > 0) {
-        return path.join(uploadDir, logos[logos.length - 1])
+        return path.join(/*turbopackIgnore: true*/ uploadDir, logos[logos.length - 1])
       }
     } catch (_) {}
   }
