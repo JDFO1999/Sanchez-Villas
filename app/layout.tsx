@@ -8,6 +8,7 @@ import { ToastProvider } from "@/lib/toast-context";
 import { FontWrapper } from "@/components/font-wrapper";
 import { getSystemSettingsAction } from "@/app/actions/settings";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { PWAUpdatePrompt } from "@/components/pwa-update-prompt";
 import { AppOpeningSplash } from "@/components/ui/app-opening-splash";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -245,6 +246,7 @@ export default async function RootLayout({
                     {children}
                   </AppLayout>
                   <PWAInstallPrompt />
+                  <PWAUpdatePrompt />
                 </AuthProvider>
               </ThemeProvider>
             </FontWrapper>
