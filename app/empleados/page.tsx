@@ -67,6 +67,19 @@ export default function EmpleadosPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal administrativo autorizado con permiso de gestión de personal.</div>
   }
 
+  const calculateAge = (dateStr?: string | null) => {
+    if (!dateStr) return null
+    const birth = new Date(dateStr + "T00:00:00")
+    if (isNaN(birth.getTime())) return null
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age >= 0 && age <= 120 ? age : null
+  }
+
   const isBarcodeRole = (role?: string) => {
     if (!role) return false
     const r = role.toLowerCase()
@@ -98,7 +111,7 @@ export default function EmpleadosPage() {
       generatedNewPin = true
     }
 
-    const payload = { ...empForm, pin: currentPin }
+    const payload = { ...empForm, pin: currentPin, birthDate: empForm.birthDate ? String(empForm.birthDate).trim() : null }
 
     if (empForm.id) {
       const ok = await updateEmployee(empForm.id, payload)
@@ -155,6 +168,7 @@ export default function EmpleadosPage() {
       cedula: atleta.cedula,
       phone: atleta.phone || empForm.phone || '',
       email: (atleta as any).email || `${atleta.cedula}@atleta.com`,
+      birthDate: (atleta as any).birthDate || '',
       avatar: pic,
       existingAthleteFound: true,
     })
@@ -238,6 +252,16 @@ export default function EmpleadosPage() {
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
                         <span>C.C. {emp.cedula}</span>
+                        <span className="opacity-40">•</span>
+                        {emp.birthDate && calculateAge(emp.birthDate) !== null ? (
+                          <span className="text-[11px] font-semibold text-primary">
+                            🎂 {calculateAge(emp.birthDate)} años ({emp.birthDate})
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground/70 italic">
+                            🎂 Sin datos
+                          </span>
+                        )}
                         {emp.role === 'employee' && <span>| ENTRENADOR</span>}
                         {emp.role === 'cajero' && <span>| CAJERO</span>}
                         {emp.role === 'gerente' && <span>| GERENTE</span>}
@@ -293,7 +317,23 @@ export default function EmpleadosPage() {
                       )}
                       <button onClick={() => {
                         const initialPin = emp.accessPin || (isBarcodeRole(emp.role) ? generateNewPin() : '');
-                        setEmpForm({ birthDate: '', profession: '', courses: '', specialty: '', bankAccount: '', mobilePayment: '', avatar: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', ...emp, pin: initialPin, clave: '', confirmClave: '', existingAthleteFound: false });
+                        setEmpForm({ 
+                          profession: '', 
+                          courses: '', 
+                          specialty: '', 
+                          bankAccount: '', 
+                          mobilePayment: '', 
+                          avatar: '', 
+                          baseSalary: 0, 
+                          commissionRate: 0, 
+                          commissionType: 'flat', 
+                          ...emp, 
+                          birthDate: emp.birthDate || '',
+                          pin: initialPin, 
+                          clave: '', 
+                          confirmClave: '', 
+                          existingAthleteFound: false 
+                        });
                         setShowEmployeeModal(true);
                       }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
                         Editar
@@ -362,7 +402,19 @@ export default function EmpleadosPage() {
                             Atleta Seleccionado
                           </span>
                         </div>
-                        <p className="text-xs font-mono text-muted-foreground">C.I. {empForm.cedula}</p>
+                        <p className="text-xs font-mono text-muted-foreground flex items-center gap-2 mt-0.5">
+                          <span>C.I. {empForm.cedula}</span>
+                          <span className="opacity-40">•</span>
+                          {empForm.birthDate && calculateAge(empForm.birthDate) !== null ? (
+                            <span className="text-primary font-semibold">
+                              🎂 {calculateAge(empForm.birthDate)} años ({empForm.birthDate})
+                            </span>
+                          ) : (
+                            <span className="italic text-muted-foreground/70">
+                              🎂 Sin fecha de nac.
+                            </span>
+                          )}
+                        </p>
                         <p className="text-[11px] text-primary font-semibold mt-0.5">
                           Puedes asignarle su nuevo rol y dejar la contraseña en blanco para conservar la actual.
                         </p>
@@ -371,7 +423,7 @@ export default function EmpleadosPage() {
                   )}
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Nombre Completo</label>
                   <input required type="text" value={empForm.name} onChange={e => setEmpForm({...empForm, name: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
@@ -388,7 +440,29 @@ export default function EmpleadosPage() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono</label>
                   <input type="text" value={empForm.phone || ''} onChange={e => setEmpForm({...empForm, phone: e.target.value})} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
                 </div>
-                <div className="col-span-2">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-muted-foreground block">Fecha de Nacimiento</label>
+                    {empForm.birthDate && calculateAge(empForm.birthDate) !== null ? (
+                      <span className="text-[11px] font-semibold text-primary">
+                        🎂 {calculateAge(empForm.birthDate)} años
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/80 italic">
+                        Sin datos
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="date"
+                    max={new Date().toISOString().split("T")[0]}
+                    min="1920-01-01"
+                    value={empForm.birthDate || ''}
+                    onChange={e => setEmpForm({...empForm, birthDate: e.target.value})}
+                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Rol de Sistema</label>
                   <select
                     required
