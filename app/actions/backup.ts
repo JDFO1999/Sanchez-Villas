@@ -130,7 +130,7 @@ export async function exportDatabaseBackupAction(adminPassword?: string) {
 
     const backupPayload = {
       meta: {
-        sistema: "MaximumFitAPP - Sistema de Gestión de Gimnasio",
+        sistema: "MaximumAPP - Sistema de Gestión de Gimnasio",
         appName,
         version: "2.0.0",
         formato: "JSON_COMPLETE_BACKUP",

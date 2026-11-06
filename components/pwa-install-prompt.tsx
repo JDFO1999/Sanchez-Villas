@@ -7,7 +7,7 @@ import { useSettings } from "@/lib/settings-context"
 export function PWAInstallPrompt() {
   const { settings } = useSettings()
   const appLogo = settings.logoUrl || settings.logoUrlDark
-  const appName = settings.appName || "MaximumFitAPP"
+  const appName = "MaximumAPP"
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isIOS, setIsIOS] = useState(false)
@@ -108,7 +108,7 @@ export function PWAInstallPrompt() {
   return (
     <>
       {/* Banner flotante discreto y elegante en móviles */}
-      <aside aria-label="Instalar MaximumFitAPP" className="fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 animate-in slide-in-from-bottom-5 duration-300">
+      <aside aria-label="Instalar MaximumAPP" className="fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50 animate-in slide-in-from-bottom-5 duration-300">
         <div className="bg-card/95 backdrop-blur-xl border-2 border-primary/40 rounded-2xl p-4 shadow-2xl glass text-foreground flex items-center justify-between gap-3 relative">
           
           <div className="flex items-center gap-3 min-w-0">

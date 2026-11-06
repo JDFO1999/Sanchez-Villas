@@ -4,8 +4,8 @@ import prisma from "@/lib/db"
 export const dynamic = "force-dynamic"
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  let appName = "MaximumFitAPP"
-  let shortName = "MaximumFit"
+  let appName = "MaximumAPP"
+  let shortName = "MaximumAPP"
   let tagline = "Sistema de Gestión y Entrenamiento Fitness"
   let themeColor = "#eab308"
   let bgColor = "#09090b"
@@ -18,10 +18,9 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     if (record?.data) {
       const parsed = JSON.parse(record.data)
       if (parsed.landingSettings?.tagline) tagline = parsed.landingSettings.tagline
-      if (parsed.appName) {
-        const cleanName = String(parsed.appName).trim()
-        appName = cleanName.toLowerCase().includes("app") ? cleanName : `${cleanName} App`
-        shortName = cleanName.slice(0, 15)
+      if (parsed.mobileAppName) {
+        appName = parsed.mobileAppName
+        shortName = parsed.mobileAppName
       }
       if (parsed.primaryColor) themeColor = parsed.primaryColor
       // El icono de la App Móvil (PWA) prioriza el logo más reciente del gimnasio
