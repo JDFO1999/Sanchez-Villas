@@ -57,6 +57,14 @@ function playWhatsAppChime() {
   } catch (_) {}
 }
 
+function isMobilePhoneDevice(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false
+  const ua = navigator.userAgent || ""
+  const isPhoneUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)
+  const isSmallScreenTouch = window.innerWidth <= 768 && (navigator.maxTouchPoints > 0 || "ontouchstart" in window)
+  return isPhoneUA || isSmallScreenTouch
+}
+
 export function WhatsAppNotificationManager() {
   const { user } = useAuth()
   const router = useRouter()
@@ -67,9 +75,17 @@ export function WhatsAppNotificationManager() {
   const [showDrawer, setShowDrawer] = useState(false)
   const [permissionRequested, setPermissionRequested] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   const lastSeenIdRef = useRef<string | null>(null)
   const isPollingRef = useRef(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(isMobilePhoneDevice())
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   useEffect(() => {
     const handleOpen = () => {
@@ -80,9 +96,10 @@ export function WhatsAppNotificationManager() {
     return () => window.removeEventListener("open_notifications_drawer", handleOpen)
   }, [user])
 
-  // 1. Inicializar Service Worker y verificar permisos Push
+  // 1. Inicializar Service Worker y verificar permisos Push (SOLO en teléfono móvil, nunca en PC)
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
+    if (!isMobilePhoneDevice()) return
 
     if ("Notification" in window) {
       if (Notification.permission === "granted") {
@@ -91,8 +108,10 @@ export function WhatsAppNotificationManager() {
       } else if (Notification.permission === "default") {
         const dismissed = localStorage.getItem("maxfit_push_prompt_dismissed")
         if (!dismissed) {
-          // Mostrar aviso tras 5 segundos de navegación
-          const t = setTimeout(() => setPermissionRequested(true), 5000)
+          // Mostrar aviso tras 5 segundos de navegación solo en teléfonos
+          const t = setTimeout(() => {
+            if (isMobilePhoneDevice()) setPermissionRequested(true)
+          }, 5000)
           return () => clearTimeout(t)
         }
       }
@@ -173,15 +192,15 @@ export function WhatsAppNotificationManager() {
         setNotifications(res.notifications)
         setUnreadCount(res.unreadCount || 0)
 
-        // Detectar si hay una notificación nueva sin leer para mostrar el banner
+        // Detectar si hay una notificación nueva sin leer para mostrar el banner (solo en teléfonos móviles)
         const newest = res.notifications[0]
-        if (newest && !newest.read) {
+        if (newest && !newest.read && isMobilePhoneDevice()) {
           const storedLastId = sessionStorage.getItem("maxfit_last_notif_id")
           if (newest.id !== storedLastId && newest.id !== lastSeenIdRef.current) {
             lastSeenIdRef.current = newest.id
             sessionStorage.setItem("maxfit_last_notif_id", newest.id)
 
-            // Disparar sonido y vibración tipo WhatsApp
+            // Disparar sonido y vibración en el teléfono
             playWhatsAppChime()
             if (typeof navigator !== "undefined" && navigator.vibrate) {
               navigator.vibrate([180, 80, 180])
@@ -248,12 +267,12 @@ export function WhatsAppNotificationManager() {
 
   return (
     <>
-      {/* 1. Banner Flotante Heads-up estilo Notificación de WhatsApp */}
-      {activeBanner && (
+      {/* 1. Banner Flotante Heads-up (Solo Teléfono Móvil) */}
+      {isMobile && activeBanner && (
         <aside
           role="alert"
           aria-live="assertive"
-          className="fixed top-3 left-3 right-3 sm:left-auto sm:right-6 sm:w-[400px] z-[999999] animate-in slide-in-from-top-4 duration-300 pointer-events-auto"
+          className="md:hidden fixed top-3 left-3 right-3 z-[999999] animate-in slide-in-from-top-4 duration-300 pointer-events-auto"
         >
           <div
             onClick={handleBannerClick}
@@ -298,12 +317,12 @@ export function WhatsAppNotificationManager() {
         </aside>
       )}
 
-      {/* 2. Banner discreto de activación de notificaciones móviles */}
-      {permissionRequested && !pushEnabled && (
+      {/* 2. Banner discreto de activación de alertas móviles (SOLO en teléfono, oculto en PC) */}
+      {isMobile && permissionRequested && !pushEnabled && (
         <aside
           role="dialog"
           aria-label="Permisos de notificación"
-          className="fixed bottom-20 lg:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:w-[380px] z-[99998] animate-in slide-in-from-bottom-4 duration-300"
+          className="md:hidden fixed bottom-20 left-3 right-3 z-[99998] animate-in slide-in-from-bottom-4 duration-300"
         >
           <div className="bg-card/95 border-2 border-emerald-500/50 rounded-2xl p-4 shadow-2xl glass text-foreground flex flex-col gap-2.5">
             <div className="flex items-start justify-between gap-2">
@@ -312,7 +331,7 @@ export function WhatsAppNotificationManager() {
                   <Bell className="w-4 h-4 animate-bounce" />
                 </div>
                 <div>
-                  <h4 className="font-black text-sm text-foreground">Alertas tipo WhatsApp</h4>
+                  <h4 className="font-black text-sm text-foreground">Alertas</h4>
                   <p className="text-[11px] text-muted-foreground">En tu móvil al instante</p>
                 </div>
               </div>
