@@ -55,11 +55,14 @@ async function resolveIsSecureCookie(): Promise<boolean> {
 }
 
 export async function createSession(user: Partial<User>) {
+  if (!user?.id || !user?.role || !user?.cedula) {
+    throw new Error("No se puede crear sesión: información de usuario incompleta.");
+  }
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const sessionData = {
-    id: user.id || "admin_26710825",
-    role: user.role || "admin",
-    cedula: user.cedula || "26710825",
+    id: user.id,
+    role: user.role,
+    cedula: user.cedula,
     pv: passwordFingerprint(user.password),
   };
 

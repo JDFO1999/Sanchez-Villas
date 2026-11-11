@@ -1,19 +1,22 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log("Iniciando seeder...")
 
+  const defaultPasswordHash = await bcrypt.hash("MaxFit#Admin2026!Secure", 10)
+
   // Crear usuario Admin
   const admin = await prisma.user.upsert({
-    where: { cedula: 'admin' },
+    where: { cedula: '26710825' },
     update: {},
     create: {
-      cedula: 'admin',
-      name: 'Super Admin',
+      cedula: '26710825',
+      name: 'Super Administrador',
       role: 'admin',
-      password: 'admin' // Asegurate de encriptarla en el futuro
+      password: defaultPasswordHash
     },
   })
   

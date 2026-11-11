@@ -54,6 +54,15 @@ async function runSchemaSelfHeal(client: PrismaClient): Promise<void> {
         // Tabla ya existe
       }
 
+      // Seguridad: neutralizar usuario 'admin' de prueba si quedó de semillas anteriores
+      try {
+        await client.$executeRawUnsafe(
+          `DELETE FROM \`User\` WHERE \`cedula\` = 'admin' AND \`role\` = 'admin'`
+        )
+      } catch {
+        // Ignorar si no existe o ya fue eliminado
+      }
+
       schemaEnsured = true
     } catch (err) {
       console.warn('[db] Aviso en auto-verificación de esquema:', err)
