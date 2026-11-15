@@ -14,6 +14,7 @@ interface DialogProps {
   title: string
   description?: string
   hideTitle?: boolean
+  hideCloseButton?: boolean
   /** Evita cerrar al hacer clic fuera (formularios con datos sin guardar). */
   persistent?: boolean
   className?: string
@@ -24,7 +25,7 @@ interface DialogProps {
  * Modal accesible: role="dialog", Escape cierra, el foco queda atrapado dentro,
  * se restaura al elemento que lo abrió y se bloquea el scroll del fondo.
  */
-export function Dialog({ open, onClose, title, description, hideTitle, persistent, className, children }: DialogProps) {
+export function Dialog({ open, onClose, title, description, hideTitle, hideCloseButton, persistent, className, children }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null)
   const onCloseRef = React.useRef(onClose)
   const persistentRef = React.useRef(persistent)
@@ -88,14 +89,16 @@ export function Dialog({ open, onClose, title, description, hideTitle, persisten
           className
         )}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar"
-          className="absolute right-3 top-3 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        {!hideCloseButton && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="absolute right-3 top-3 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
         <h2 id={titleId} className={cn("font-display text-2xl font-extrabold uppercase leading-none pr-8", hideTitle && "sr-only")}>
           {title}
         </h2>

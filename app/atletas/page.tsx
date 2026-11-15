@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
@@ -35,6 +35,9 @@ export default function AtletasPage() {
   const [regGender, setRegGender] = useState<'M' | 'F'>('M')
   const [regBirthDate, setRegBirthDate] = useState("")
   const [regCoachId, setRegCoachId] = useState("")
+  const [regGuardianName, setRegGuardianName] = useState("")
+  const [regGuardianCedula, setRegGuardianCedula] = useState("")
+  const [regGuardianPhone, setRegGuardianPhone] = useState("")
   const [isRegistering, setIsRegistering] = useState(false)
 
   // Estados para Modal de Edición de Atleta
@@ -47,6 +50,9 @@ export default function AtletasPage() {
   const [editBirthDate, setEditBirthDate] = useState("")
   const [editGender, setEditGender] = useState("M")
   const [editCoachId, setEditCoachId] = useState("")
+  const [editGuardianName, setEditGuardianName] = useState("")
+  const [editGuardianCedula, setEditGuardianCedula] = useState("")
+  const [editGuardianPhone, setEditGuardianPhone] = useState("")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
   // Membresía editable (Fechas de inicio/compra y corte/vencimiento, y plan)
@@ -147,6 +153,9 @@ export default function AtletasPage() {
     setRegConfirmPassword("")
     setRegGender('M')
     setRegCoachId("")
+    setRegGuardianName("")
+    setRegGuardianCedula("")
+    setRegGuardianPhone("")
   }
 
   const handleRegisterAthlete = async (e: React.FormEvent) => {
@@ -175,6 +184,9 @@ export default function AtletasPage() {
         email: regEmail,
         address: regAddress,
         birthDate: regBirthDate || undefined,
+        guardianName: regGuardianName || undefined,
+        guardianCedula: regGuardianCedula || undefined,
+        guardianPhone: regGuardianPhone || undefined,
         password: regPassword,
         gender: regGender,
         coachId: regCoachId || undefined
@@ -205,6 +217,9 @@ export default function AtletasPage() {
     setEditBirthDate((a as any).birthDate || "")
     setEditGender(a.gender || "M")
     setEditCoachId(a.coachId || "")
+    setEditGuardianName((a as any).guardianName || "")
+    setEditGuardianCedula((a as any).guardianCedula || "")
+    setEditGuardianPhone((a as any).guardianPhone || "")
     setEditPassword("")
     setEditConfirmPassword("")
 
@@ -305,6 +320,9 @@ export default function AtletasPage() {
         gender: editGender,
         birthDate: editBirthDate || null,
         coachId: editCoachId || null,
+        guardianName: editGuardianName || null,
+        guardianCedula: editGuardianCedula || null,
+        guardianPhone: editGuardianPhone || null,
         ...(editPassword ? { password: editPassword } : {})
       })
 
@@ -535,6 +553,18 @@ export default function AtletasPage() {
                     </Link>
                     
                     <div className="mt-4 pt-3.5 border-t border-black/10 dark:border-white/10 space-y-3">
+                      {/* Badge para menor de edad con datos de representante */}
+                      {atleta.birthDate && calculateAge(atleta.birthDate) !== null && calculateAge(atleta.birthDate)! < 18 && (
+                        <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs flex items-center justify-between gap-2">
+                          <span className="font-bold text-amber-500 flex items-center gap-1 shrink-0">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Menor de Edad
+                          </span>
+                          <span className="text-[11px] text-muted-foreground truncate" title={atleta.guardianName || 'Sin registrar'}>
+                            Rep: {atleta.guardianName || 'Sin registrar'}
+                          </span>
+                        </div>
+                      )}
+
                       {hasValidMemb && diffDays > 0 && (() => {
                         const startDate = atleta.membershipStart ? new Date(atleta.membershipStart) : new Date()
                         const totalDays = Math.max(1, Math.ceil((new Date(atleta.membershipEnd).getTime() - startDate.getTime()) / (1000*60*60*24)))
@@ -734,6 +764,51 @@ export default function AtletasPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Sección Representante Legal si es menor de edad o ya tiene datos */}
+                {(editGuardianName || (editBirthDate && calculateAge(editBirthDate) !== null && calculateAge(editBirthDate)! < 18)) && (
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
+                      <ShieldAlert className="w-4 h-4 shrink-0" />
+                      <span>Datos del Representante Legal (Menor de 18 años)</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Nombre y Apellido del Representante</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. María Elena Pérez"
+                        value={editGuardianName}
+                        onChange={e => setEditGuardianName(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Cédula del Representante</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. 12345678"
+                          value={editGuardianCedula}
+                          onChange={e => setEditGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Teléfono del Representante</label>
+                        <input
+                          type="tel"
+                          placeholder="Ej. 04141234567"
+                          value={editGuardianPhone}
+                          onChange={e => setEditGuardianPhone(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -1163,6 +1238,51 @@ export default function AtletasPage() {
                   </select>
                 </div>
               </div>
+
+              {/* Sección Representante Legal para menor de 18 años */}
+              {regBirthDate && calculateAge(regBirthDate) !== null && calculateAge(regBirthDate)! < 18 && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
+                    <ShieldAlert className="w-4 h-4 shrink-0" />
+                    <span>Datos del Representante Legal (Requerido para menor de edad)</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Nombre y Apellido del Representante *</label>
+                    <input
+                      type="text"
+                      placeholder="Ej. María Elena Pérez"
+                      value={regGuardianName}
+                      onChange={e => setRegGuardianName(e.target.value)}
+                      className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Cédula del Representante *</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. 12345678"
+                        value={regGuardianCedula}
+                        onChange={e => setRegGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Teléfono del Representante *</label>
+                      <input
+                        type="tel"
+                        placeholder="Ej. 04141234567"
+                        value={regGuardianPhone}
+                        onChange={e => setRegGuardianPhone(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold mb-1 block">Entrenador Asignado (Opcional)</label>

@@ -51,6 +51,9 @@ export default function AtletaPerfilPage() {
   const [editBirthDate, setEditBirthDate] = useState("")
   const [editGender, setEditGender] = useState("M")
   const [editCoachId, setEditCoachId] = useState("")
+  const [editGuardianName, setEditGuardianName] = useState("")
+  const [editGuardianCedula, setEditGuardianCedula] = useState("")
+  const [editGuardianPhone, setEditGuardianPhone] = useState("")
   const [editPassword, setEditPassword] = useState("")
   const [editConfirmPassword, setEditConfirmPassword] = useState("")
   const [isSavingAthlete, setIsSavingAthlete] = useState(false)
@@ -297,6 +300,9 @@ export default function AtletaPerfilPage() {
     setEditBirthDate((athlete as any).birthDate || "")
     setEditGender(athlete.gender || "M")
     setEditCoachId(athlete.coachId || "")
+    setEditGuardianName((athlete as any).guardianName || "")
+    setEditGuardianCedula((athlete as any).guardianCedula || "")
+    setEditGuardianPhone((athlete as any).guardianPhone || "")
     setEditPassword("")
     setEditConfirmPassword("")
 
@@ -375,6 +381,9 @@ export default function AtletaPerfilPage() {
         birthDate: editBirthDate || null,
         gender: editGender,
         coachId: editCoachId || null,
+        guardianName: editGuardianName || null,
+        guardianCedula: editGuardianCedula || null,
+        guardianPhone: editGuardianPhone || null,
         ...(editPassword ? { password: editPassword } : {})
       })
 
@@ -960,6 +969,67 @@ export default function AtletaPerfilPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna Izquierda: Membresía y Asistencia */}
         <div className="space-y-6">
+          {/* Ficha de Representante Legal (Menores de 18 años) */}
+          {(athlete.guardianName || (athlete.birthDate && calculateAge(athlete.birthDate) !== null && calculateAge(athlete.birthDate)! < 18)) && (
+            <Card className="glass border-amber-500/30 bg-amber-500/5 shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base flex items-center gap-2 text-foreground font-black">
+                  <ShieldAlert className="h-5 w-5 text-amber-500" /> Ficha de Representante Legal
+                </CardTitle>
+                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                  Menor de Edad
+                </span>
+              </CardHeader>
+              <CardContent className="space-y-3.5 pt-1">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Nombre del Representante</p>
+                  <p className="font-extrabold text-sm text-foreground">
+                    {athlete.guardianName || <span className="text-amber-500 italic">Pendiente por registrar</span>}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-black/10 dark:border-white/10">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Cédula</p>
+                    <p className="font-bold text-sm text-foreground">
+                      {athlete.guardianCedula ? (athlete.guardianCedula.startsWith('V-') || athlete.guardianCedula.startsWith('E-') ? athlete.guardianCedula : `V-${athlete.guardianCedula}`) : <span className="text-muted-foreground/70 italic text-xs">Sin registro</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Teléfono / WhatsApp</p>
+                    {athlete.guardianPhone ? (
+                      <a
+                        href={`https://wa.me/58${athlete.guardianPhone.replace(/\D/g, '').replace(/^0/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1.5 transition underline underline-offset-2"
+                        title="Abrir WhatsApp del Representante"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span>{athlete.guardianPhone}</span>
+                      </a>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Sin teléfono</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Custodia y Exoneración Registrada</span>
+                  {canEditAthlete && (
+                    <button
+                      type="button"
+                      onClick={handleOpenEditAthlete}
+                      className="text-primary hover:underline font-bold text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit className="w-3 h-3" /> Editar
+                    </button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="glass border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -1497,6 +1567,51 @@ export default function AtletaPerfilPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Sección Representante Legal si es menor de edad o ya tiene datos */}
+                {(editGuardianName || (editBirthDate && calculateAge(editBirthDate) !== null && calculateAge(editBirthDate)! < 18)) && (
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
+                      <ShieldAlert className="w-4 h-4 shrink-0" />
+                      <span>Datos del Representante Legal (Menor de 18 años)</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Nombre y Apellido del Representante</label>
+                      <input
+                        type="text"
+                        placeholder="Ej. María Elena Pérez"
+                        value={editGuardianName}
+                        onChange={e => setEditGuardianName(e.target.value)}
+                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Cédula del Representante</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. 12345678"
+                          value={editGuardianCedula}
+                          onChange={e => setEditGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Teléfono del Representante</label>
+                        <input
+                          type="tel"
+                          placeholder="Ej. 04141234567"
+                          value={editGuardianPhone}
+                          onChange={e => setEditGuardianPhone(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
