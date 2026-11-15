@@ -11,6 +11,7 @@ import { useTheme } from "next-themes"
 import { getPublicCoaches, createAthlete } from "@/app/actions/users"
 import { validatePassword } from "@/lib/password-validator"
 import { showSweetToast } from "@/lib/toast-context"
+import { TermsModal } from "@/components/ui/terms-modal"
 
 export default function RegistroPage() {
   const { user, login } = useAuth()
@@ -32,6 +33,15 @@ export default function RegistroPage() {
   const [genero, setGenero] = useState<'M' | 'F'>('M')
   const [entrenador, setEntrenador] = useState("")
   const [coaches, setCoaches] = useState<{ id: string; name: string }[]>([])
+  
+  // Representante legal para menores de 18 años
+  const [guardianName, setGuardianName] = useState("")
+  const [guardianCedula, setGuardianCedula] = useState("")
+  const [guardianPhone, setGuardianPhone] = useState("")
+
+  // Términos y condiciones
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
   
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -114,6 +124,32 @@ export default function RegistroPage() {
       setError(msg)
       showSweetToast(msg, "warning")
       return
+    }
+
+    // Validación estricta para menores de 18 años
+    if (userAge !== null && userAge < 18) {
+      if (!guardianName.trim()) {
+        const msg = "Al ser menor de 18 años, debes ingresar el nombre del representante legal."
+        setError(msg)
+        showSweetToast(msg, "warning")
+        return
+      }
+      if (!guardianCedula.trim()) {
+        const msg = "Al ser menor de 18 años, debes ingresar la cédula del representante legal."
+        setError(msg)
+        showSweetToast(msg, "warning")
+        return
+      }
+      if (!guardianPhone.trim()) {
+        const msg = "Al ser menor de 18 años, debes ingresar el teléfono de contacto del representante."
+        setError(msg)
+        showSweetToast(msg, "warning")
+        return
+      }
+    }
+
+    if (!acceptedTerms) {
+      const msg = "Debes leer y aceptar los Términos, Condiciones y Exoneración de Responsabilidad."
       setError(msg)
       showSweetToast(msg, "warning")
       return
@@ -144,6 +180,9 @@ export default function RegistroPage() {
         email: correo.trim(), 
         address: direccion.trim(), 
         coachId: entrenador || undefined,
+        guardianName: (userAge !== null && userAge < 18) ? guardianName.trim() : undefined,
+        guardianCedula: (userAge !== null && userAge < 18) ? guardianCedula.trim() : undefined,
+        guardianPhone: (userAge !== null && userAge < 18) ? guardianPhone.trim() : undefined,
         isSelfRegistration: true,
       })
 
@@ -376,6 +415,69 @@ export default function RegistroPage() {
             </div>
           </div>
 
+          {/* Sección Representante Legal para Menores de 18 Años */}
+          {userAge !== null && userAge < 18 && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 space-y-3.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">
+                    Datos del Representante Legal (Obligatorio para menores de 18 años)
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Al tener {userAge} {userAge === 1 ? 'año' : 'años'}, debes registrar los datos de tu padre, madre o tutor responsable para autorizar tu actividad deportiva.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold text-foreground mb-1 block">
+                    Nombre y Apellido del Representante *
+                  </label>
+                  <input
+                    type="text"
+                    value={guardianName}
+                    onChange={e => setGuardianName(e.target.value)}
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Ej. María Elena Pérez"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">
+                    Cédula del Representante *
+                  </label>
+                  <input
+                    type="text"
+                    value={guardianCedula}
+                    onChange={e => setGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Ej. 12345678"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">
+                    Teléfono / WhatsApp del Representante *
+                  </label>
+                  <input
+                    type="tel"
+                    value={guardianPhone}
+                    onChange={e => setGuardianPhone(e.target.value)}
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Ej. 04141234567"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
@@ -520,6 +622,33 @@ export default function RegistroPage() {
             )}
           </div>
 
+          {/* Aceptación de Términos y Condiciones */}
+          <div className="pt-1">
+            <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 hover:border-primary/40 transition cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={e => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+              />
+              <span className="text-xs text-muted-foreground leading-relaxed">
+                He leído y acepto los{" "}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowTermsModal(true)
+                  }}
+                  className="text-primary font-bold hover:underline inline underline-offset-2"
+                >
+                  Términos, Condiciones y Exoneración de Responsabilidad
+                </button>{" "}
+                del centro deportivo y gimnasio.
+              </span>
+            </label>
+          </div>
+
           <button 
             type="submit" 
             disabled={isLoading} 
@@ -529,6 +658,12 @@ export default function RegistroPage() {
           </button>
         </form>
       </div>
+
+      <TermsModal
+        open={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={() => setAcceptedTerms(true)}
+      />
     </div>
   )
 }

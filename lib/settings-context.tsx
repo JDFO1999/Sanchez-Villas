@@ -207,7 +207,8 @@ export const defaultSettings: AppSettings = {
     objectFit: 'contain',
     fadeEffect: false,
     paddingNavbar: 0,
-    marginNavbar: 0
+    marginNavbar: 0,
+    alignNavbar: 'center'
   },
   footerLogoSettings: {
     showLogo: true,

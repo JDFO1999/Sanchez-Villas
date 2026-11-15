@@ -1,11 +1,11 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { athleteService, AthleteProfile, BiometricRecord } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare, CreditCard, Receipt } from "lucide-react"
+import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare, CreditCard, Receipt, ShieldAlert } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
 import { calculateCutoffDate, askPassword } from "@/lib/confirm"
 import { updateCoachProfile } from "@/app/actions/users"
@@ -867,6 +867,17 @@ export default function AtletaPerfilPage() {
                 🎂 {athlete.birthDate ? `${athlete.birthDate} ${calculateAge(athlete.birthDate) !== null ? `(${calculateAge(athlete.birthDate)} años)` : ''}` : 'Sin datos'}
               </span>
             </p>
+            {((athlete as any).guardianName || (athlete.birthDate && calculateAge(athlete.birthDate) !== null && calculateAge(athlete.birthDate)! < 18)) && (
+              <div className="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center gap-2 text-xs flex-wrap">
+                <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-foreground font-bold">Representante Legal:</span>
+                <span className="text-muted-foreground font-medium">
+                  {(athlete as any).guardianName || 'Pendiente por registrar'}
+                  {(athlete as any).guardianCedula ? ` • C.I. ${(athlete as any).guardianCedula}` : ''}
+                  {(athlete as any).guardianPhone ? ` • Tel: ${(athlete as any).guardianPhone}` : ''}
+                </span>
+              </div>
+            )}
             <p className="text-muted-foreground flex items-center gap-2 mt-1">
               <span className="font-bold">Coach Actual:</span> {currentCoachName} 
               {previousCoachName && (

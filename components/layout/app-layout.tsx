@@ -251,7 +251,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <Link 
       href="/inicio" 
       title="Ver Página Principal Promocional"
-      className={`flex items-center ${navJustifyClass} gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1`}
+      className={`flex items-center ${navJustifyClass} gap-2.5 font-bold text-xl text-primary hover:opacity-85 transition group py-1 w-full`}
       style={{
         margin: settings.logoSettings?.marginNavbar ? `${settings.logoSettings.marginNavbar}px` : undefined,
       }}
@@ -315,7 +315,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-black/70 dark:via-primary/50 to-transparent"></div>
             
             {/* Espaciador simétrico cuando el logo está centrado para que quede en el centro exacto de la barra lateral */}
-            {navAlign === 'center' && !isSidebarCollapsed && (settings.logoSettings?.widthNavbar || 40) <= 136 && !settings.logoSettings?.showNameInNavbar && (
+            {navAlign === 'center' && !isSidebarCollapsed && (
               <div className="w-9 shrink-0 pointer-events-none" aria-hidden="true" />
             )}
 

@@ -43,6 +43,9 @@ export interface User {
 
   // Datos extendidos de Empleados
   birthDate?: string
+  guardianName?: string
+  guardianPhone?: string
+  guardianCedula?: string
   profession?: string
   courses?: string
   specialty?: string

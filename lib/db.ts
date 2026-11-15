@@ -37,6 +37,30 @@ async function runSchemaSelfHeal(client: PrismaClient): Promise<void> {
       }
 
       try {
+        await client.$executeRawUnsafe(
+          `ALTER TABLE \`User\` ADD COLUMN \`guardianName\` VARCHAR(191) NULL`
+        )
+      } catch {
+        // Columna ya existe o tabla no creada
+      }
+
+      try {
+        await client.$executeRawUnsafe(
+          `ALTER TABLE \`User\` ADD COLUMN \`guardianPhone\` VARCHAR(191) NULL`
+        )
+      } catch {
+        // Columna ya existe o tabla no creada
+      }
+
+      try {
+        await client.$executeRawUnsafe(
+          `ALTER TABLE \`User\` ADD COLUMN \`guardianCedula\` VARCHAR(191) NULL`
+        )
+      } catch {
+        // Columna ya existe o tabla no creada
+      }
+
+      try {
         await client.$executeRawUnsafe(`
           CREATE TABLE IF NOT EXISTS \`PasswordResetToken\` (
             \`id\` VARCHAR(191) NOT NULL,

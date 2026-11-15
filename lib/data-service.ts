@@ -97,6 +97,9 @@ export interface AthleteProfile {
   gender: 'M' | 'F'
   coachId: string | null
   birthDate?: string | null
+  guardianName?: string | null
+  guardianPhone?: string | null
+  guardianCedula?: string | null
   email?: string | null
   phone?: string
   address?: string

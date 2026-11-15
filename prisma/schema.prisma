@@ -46,6 +46,9 @@ model User {
   paymentFrequency String?
   commissionType   String?
   birthDate        String?
+  guardianName     String?
+  guardianPhone    String?
+  guardianCedula   String?
   profession       String?
   specialties      String?
   bio              String?  @db.Text

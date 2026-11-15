@@ -401,6 +401,35 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
       plain = String(data.password)
     }
 
+    // Validación para menores de 18 años: representante legal obligatorio
+    let isUnderage = false
+    if (data.birthDate) {
+      const birth = new Date(data.birthDate)
+      if (!isNaN(birth.getTime())) {
+        const today = new Date()
+        let age = today.getFullYear() - birth.getFullYear()
+        const m = today.getMonth() - birth.getMonth()
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+          age--
+        }
+        if (age < 18) {
+          isUnderage = true
+        }
+      }
+    }
+
+    if (isUnderage && !isPosWalkIn) {
+      if (!data.guardianName || String(data.guardianName).trim().length < 3) {
+        return { success: false, error: "Para atletas menores de 18 años, el nombre del representante legal es obligatorio." }
+      }
+      if (!data.guardianCedula || String(data.guardianCedula).trim().length < 6) {
+        return { success: false, error: "Para atletas menores de 18 años, la cédula del representante legal es obligatoria." }
+      }
+      if (!data.guardianPhone || String(data.guardianPhone).trim().length < 7) {
+        return { success: false, error: "Para atletas menores de 18 años, el teléfono de contacto del representante es obligatorio." }
+      }
+    }
+
     // El entrenador elegido debe existir y ser parte del personal de entrenadores
     let coachId: string | undefined
     if (data.coachId) {
@@ -477,6 +506,9 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
             address: data.address || existing.address || null,
             email: data.email || existing.email || null,
             birthDate: data.birthDate ? String(data.birthDate).trim() : (existing.birthDate || null),
+            guardianName: data.guardianName ? String(data.guardianName).trim() : (existing.guardianName || null),
+            guardianPhone: data.guardianPhone ? String(data.guardianPhone).trim() : (existing.guardianPhone || null),
+            guardianCedula: data.guardianCedula ? String(data.guardianCedula).trim() : (existing.guardianCedula || null),
             profession: null, // Cuenta ya reclamada y activada por el atleta
             ...(coachId && !existing.coachId ? { coachId } : {})
           }
@@ -503,6 +535,9 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
         phone: data.phone || null,
         address: data.address || null,
         email: data.email || null,
+        guardianName: data.guardianName ? String(data.guardianName).trim() : null,
+        guardianPhone: data.guardianPhone ? String(data.guardianPhone).trim() : null,
+        guardianCedula: data.guardianCedula ? String(data.guardianCedula).trim() : null,
         profession: isPosWalkIn && !data.email ? "PRE_REGISTERED_POS" : null,
       }
     });
@@ -674,6 +709,9 @@ export async function updateAthlete(id: string, data: any) {
         address: data.address !== undefined ? (data.address || null) : targetUser.address,
         email: data.email !== undefined ? (data.email || null) : targetUser.email,
         birthDate: data.birthDate !== undefined ? (data.birthDate ? String(data.birthDate).trim() : null) : targetUser.birthDate,
+        ...(data.guardianName !== undefined ? { guardianName: data.guardianName ? String(data.guardianName).trim() : null } : {}),
+        ...(data.guardianPhone !== undefined ? { guardianPhone: data.guardianPhone ? String(data.guardianPhone).trim() : null } : {}),
+        ...(data.guardianCedula !== undefined ? { guardianCedula: data.guardianCedula ? String(data.guardianCedula).trim() : null } : {}),
         ...(cleanCedula ? { cedula: cleanCedula } : {}),
         ...(newHashedPassword ? { password: newHashedPassword } : {}),
         ...(validCoachId !== undefined ? { coachId: validCoachId } : {}),

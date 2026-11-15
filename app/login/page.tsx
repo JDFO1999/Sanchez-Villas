@@ -9,6 +9,7 @@ import { FullScreenLoader } from "@/components/ui/loader"
 import { Lock, User as UserIcon, Sun, Moon, Eye, EyeOff } from "lucide-react"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { TermsModal } from "@/components/ui/terms-modal"
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showRecoveryModal, setShowRecoveryModal] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
 
   const [recoveryInput, setRecoveryInput] = useState("")
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1)
@@ -248,7 +250,22 @@ export default function LoginPage() {
             </button>
           </div>
 
+          <div className="mt-5 pt-3 border-t border-black/10 dark:border-white/10 text-center">
+            <button
+              type="button"
+              onClick={() => setShowTerms(true)}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
+            >
+              Términos, Condiciones y Exoneración de Responsabilidad
+            </button>
+          </div>
+
       </div>
+
+      <TermsModal
+        open={showTerms}
+        onClose={() => setShowTerms(false)}
+      />
 
       {isLoading && <FullScreenLoader text="Iniciando sesión..." progressive={true} />}
     </div>
