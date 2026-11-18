@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import type { AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon, UserPlus, Calendar } from "lucide-react"
+import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon, UserPlus, Calendar, Send, Loader2 } from "lucide-react"
 import Link from "next/link"
+import Swal from "sweetalert2"
 import { Loader } from "@/components/ui/loader"
 import { CardGridSkeleton } from "@/components/ui/skeleton"
 import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/athletes/attendance-history-modal"
@@ -66,6 +67,7 @@ export default function AtletasPage() {
   const [editPaymentRef, setEditPaymentRef] = useState("")
   const [isClearingMembership, setIsClearingMembership] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSendingReset, setIsSendingReset] = useState(false)
 
   const canEdit = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
   const canRegister = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'cajero' || user?.role === 'recepcion'
@@ -279,26 +281,94 @@ export default function AtletasPage() {
     }
   }
 
+  const handleSendResetLink = async (targetAthlete: { id: string; name: string; email?: string | null; phone?: string | null }) => {
+    setIsSendingReset(true)
+    try {
+      const { adminSendAthletePasswordReset } = await import("@/app/actions/auth-reset")
+      const res = await adminSendAthletePasswordReset(targetAthlete.id)
+      if (!res.success) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: res.error || 'No se pudo generar el enlace de recuperación.'
+        })
+        return
+      }
+
+      const emailNote = res.emailSent
+        ? `<div class="p-2.5 mb-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-semibold">
+             ✉️ Enlace enviado exitosamente al correo <b>${res.userEmail}</b>
+           </div>`
+        : res.hasEmail
+        ? `<div class="p-2.5 mb-3 bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-semibold">
+             ⚠️ No se pudo enviar por correo (${res.emailError || 'sin servidor SMTP configurado'}), pero el enlace está listo abajo.
+           </div>`
+        : `<div class="p-2.5 mb-3 bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold">
+             ℹ️ El atleta no tiene correo registrado. Puedes compartirle el enlace directamente por WhatsApp o copiarlo.
+           </div>`;
+
+      const phoneClean = res.userPhone ? res.userPhone.replace(/\D/g, "") : ""
+      const waPhone = phoneClean.startsWith('58') ? phoneClean : phoneClean.length === 11 && phoneClean.startsWith('0') ? '58' + phoneClean.slice(1) : phoneClean
+      const waUrl = waPhone
+        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${res.userName}! Aquí tienes tu enlace seguro para acceder y configurar tu contraseña en Maximum Evolution Fit:\n\n${res.resetUrl}\n\n(Válido por 60 minutos)`)}`
+        : null
+
+      await Swal.fire({
+        title: 'Enlace de Restablecimiento',
+        html: `
+          <div class="text-left text-sm space-y-2">
+            ${emailNote}
+            <p class="text-xs text-muted-foreground mb-1 font-semibold">Enlace de acceso generado (válido por 60 min):</p>
+            <div class="p-2.5 bg-black/10 dark:bg-white/10 rounded-lg font-mono text-[11px] break-all select-all border border-black/10 dark:border-white/10">
+              ${res.resetUrl}
+            </div>
+            <div class="pt-3 flex flex-col gap-2">
+              <button id="swal-copy-btn" type="button" class="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition cursor-pointer">
+                📋 Copiar Enlace al Portapapeles
+              </button>
+              ${waUrl ? `
+                <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg text-center transition flex items-center justify-center gap-1.5 no-underline">
+                  💬 Enviar por WhatsApp al ${res.userPhone}
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `,
+        icon: 'success',
+        showConfirmButton: true,
+        confirmButtonText: 'Listo',
+        confirmButtonColor: '#f59e0b',
+        didOpen: () => {
+          const btn = document.getElementById('swal-copy-btn')
+          if (btn) {
+            btn.addEventListener('click', () => {
+              navigator.clipboard.writeText(res.resetUrl || "")
+              btn.innerText = '✅ ¡Enlace Copiado!'
+              setTimeout(() => { btn.innerText = '📋 Copiar Enlace al Portapapeles' }, 2000)
+            })
+          }
+        }
+      })
+    } catch (err: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Conexión',
+        text: err?.message || 'Error al conectar con el servidor.'
+      })
+    } finally {
+      setIsSendingReset(false)
+    }
+  }
+
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingAthlete) return
-
-    if (editPassword) {
-      if (editPassword.length < 6) {
-        showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
-        return
-      }
-      if (editPassword !== editConfirmPassword) {
-        showSweetToast("Las contraseñas no coinciden.", "warning")
-        return
-      }
-    }
 
     setIsSaving(true)
     try {
       const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
       
-      // 1. Guardar datos personales y credenciales
+      // 1. Guardar datos personales
       const res = await updateAthlete(editingAthlete.id, {
         name: editName,
         cedula: editCedula,
@@ -310,8 +380,7 @@ export default function AtletasPage() {
         coachId: editCoachId || null,
         guardianName: editGuardianName || null,
         guardianCedula: editGuardianCedula || null,
-        guardianPhone: editGuardianPhone || null,
-        ...(editPassword ? { password: editPassword } : {})
+        guardianPhone: editGuardianPhone || null
       })
 
       if (!res.success) {
@@ -862,47 +931,38 @@ export default function AtletasPage() {
                 </div>
               </div>
 
-              {/* Sección Credenciales / Contraseña */}
-              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
+              {/* Sección Seguridad / Restablecer Contraseña */}
+              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-2">
                 <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Restablecer Contraseña (Opcional)
+                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Restablecer Contraseña
                 </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Deja estos campos en blanco si no deseas modificar la clave actual del atleta.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Nueva Contraseña</label>
-                    <input
-                      type="password"
-                      placeholder="Mínimo 6 caracteres"
-                      value={editPassword}
-                      onChange={e => setEditPassword(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">
+                      Enviar enlace de restablecimiento al atleta
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Genera un link seguro (válido por 60 min) enviado al correo y listo para compartir por WhatsApp.
+                    </p>
                   </div>
-
-                  <div className="relative">
-                    <label className="text-xs font-semibold mb-1 block">Confirmar Contraseña</label>
-                    <input
-                      type="password"
-                      placeholder="Repetir contraseña"
-                      disabled={!editPassword}
-                      value={editConfirmPassword}
-                      onChange={e => setEditConfirmPassword(e.target.value)}
-                      className={`w-full bg-black/5 dark:bg-black/40 border rounded-lg p-2.5 text-sm focus:outline-none transition-all ${
-                        editConfirmPassword
-                          ? editPassword === editConfirmPassword
-                            ? 'border-emerald-500 focus:border-emerald-500'
-                            : 'border-rose-500 focus:border-rose-500'
-                          : 'border-black/10 dark:border-white/10 focus:border-primary'
-                      }`}
-                    />
-                    {editPassword && editConfirmPassword && editPassword === editConfirmPassword && (
-                      <Check className="absolute right-3 top-8 h-4 w-4 text-emerald-500" />
+                  <button
+                    type="button"
+                    onClick={() => handleSendResetLink(editingAthlete)}
+                    disabled={isSendingReset}
+                    className="shrink-0 px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSendingReset ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Enviar Link de Acceso</span>
+                      </>
                     )}
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -1087,7 +1147,7 @@ export default function AtletasPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving || (!!editPassword && editPassword !== editConfirmPassword)}
+                  disabled={isSaving}
                   className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
                 >
                   {isSaving ? (

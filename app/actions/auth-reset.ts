@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import prisma from "@/lib/db"
 import { sendPasswordResetEmail } from "@/lib/mailer"
 import { validatePassword } from "@/lib/password-validator"
+import { guard, ROLES } from "@/lib/authz"
 
 function maskEmail(email: string): string {
   if (!email || !email.includes("@")) return email
@@ -214,5 +215,97 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   } catch (error: any) {
     console.error("Error in resetPasswordWithToken:", error)
     return { success: false, error: "No se pudo actualizar la contraseña. Intenta nuevamente." }
+  }
+}
+
+/**
+ * Permite al personal administrativo / staff generar y enviar un enlace de restablecimiento
+ * de contraseña para cualquier atleta desde el panel de edición.
+ * Envía el enlace por correo (si el atleta tiene email registrado) y devuelve la URL
+ * para que el personal pueda enviarlo por WhatsApp o copiarlo directamente.
+ */
+export async function adminSendAthletePasswordReset(userId: string) {
+  const g = await guard(ROLES.STAFF)
+  if (!g.ok) return { success: false, error: g.error }
+
+  try {
+    const rawId = String(userId || "").trim()
+    if (!rawId) {
+      return { success: false, error: "ID de atleta no proporcionado." }
+    }
+
+    await ensurePasswordResetTable()
+
+    const user = await prisma.user.findUnique({
+      where: { id: rawId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        cedula: true,
+        role: true
+      }
+    })
+
+    if (!user) {
+      return { success: false, error: "No se encontró el atleta especificado." }
+    }
+
+    // Invalidar tokens previos que no se hayan usado
+    await prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        used: false
+      },
+      data: {
+        used: true
+      }
+    })
+
+    // Generar token criptográficamente seguro
+    const token = crypto.randomBytes(32).toString("hex")
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora de validez
+
+    await prisma.passwordResetToken.create({
+      data: {
+        token,
+        userId: user.id,
+        expiresAt,
+        used: false
+      }
+    })
+
+    const appUrl = (process.env.APP_URL || "https://www.maximumevolutionfit.com").replace(/\/$/, "")
+    const resetUrl = `${appUrl}/recuperar-password?token=${token}`
+
+    let emailSent = false
+    let emailError: string | null = null
+
+    if (user.email && user.email.includes("@")) {
+      const mailRes = await sendPasswordResetEmail(user.email, user.name, resetUrl, 60)
+      if (mailRes.success) {
+        emailSent = true
+      } else {
+        emailError = mailRes.error || "No se pudo entregar el correo"
+      }
+    }
+
+    return {
+      success: true,
+      emailSent,
+      emailError,
+      hasEmail: Boolean(user.email && user.email.includes("@")),
+      userEmail: user.email,
+      userPhone: user.phone,
+      userName: user.name,
+      resetUrl
+    }
+  } catch (error: any) {
+    console.error("Error in adminSendAthletePasswordReset:", error)
+    return {
+      success: false,
+      error: error?.message || "Ocurrió un error inesperado al generar el enlace de recuperación."
+    }
   }
 }
