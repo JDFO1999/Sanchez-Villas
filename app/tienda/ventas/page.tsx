@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { storeService, Transaction } from "@/lib/store-service"
-import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { useToast } from "@/lib/toast-context"
 import { StoreNav } from "@/components/store/StoreNav"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,7 +15,6 @@ export default function VentasPage() {
   const { showToast } = useToast()
   
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   const [viewImage, setViewImage] = useState<string | null>(null)
   const [showReceipt, setShowReceipt] = useState<Transaction | null>(null)
 
@@ -26,7 +24,6 @@ export default function VentasPage() {
     if (res.success) {
       setTransactions(res.transactions as any)
     }
-    setAthletes(athleteService.getAthletes())
   }
 
   useEffect(() => {

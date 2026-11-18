@@ -12,6 +12,7 @@ import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/ath
 import { showSweetToast } from "@/lib/toast-context"
 import { useSettings } from "@/lib/settings-context"
 import { calculateCutoffDate, askPassword } from "@/lib/confirm"
+import { calculateAge } from "@/lib/utils"
 
 export default function AtletasPage() {
   const { user } = useAuth()
@@ -128,19 +129,6 @@ export default function AtletasPage() {
   useEffect(() => {
     loadAthletes()
   }, [])
-
-  const calculateAge = (dateStr?: string | null) => {
-    if (!dateStr) return null
-    const birth = new Date(dateStr + "T00:00:00")
-    if (isNaN(birth.getTime())) return null
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--
-    }
-    return age >= 0 && age <= 120 ? age : null
-  }
 
   const resetRegisterForm = () => {
     setRegName("")

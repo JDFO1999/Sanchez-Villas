@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth, AVAILABLE_PERMISSIONS } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
-import { financeService } from "@/lib/finance-service"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Plus, Search, Eye, EyeOff, Shield, CheckCircle2, X, UserCheck } from "lucide-react"
 import Swal from "sweetalert2"
 import JsBarcode from "jsbarcode"
 import { confirmAction } from "@/lib/confirm"
 import { showSweetToast } from "@/lib/toast-context"
+import { calculateAge } from "@/lib/utils"
 
 export default function EmpleadosPage() {
   const { user, getAllEmployees, addEmployee, updateEmployee } = useAuth()
@@ -67,18 +67,6 @@ export default function EmpleadosPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado. Solo personal administrativo autorizado con permiso de gestión de personal.</div>
   }
 
-  const calculateAge = (dateStr?: string | null) => {
-    if (!dateStr) return null
-    const birth = new Date(dateStr + "T00:00:00")
-    if (isNaN(birth.getTime())) return null
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--
-    }
-    return age >= 0 && age <= 120 ? age : null
-  }
 
   const isBarcodeRole = (role?: string) => {
     if (!role) return false

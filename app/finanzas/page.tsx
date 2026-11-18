@@ -5,7 +5,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { storeService } from "@/lib/store-service"
-import { financeService, Expense } from "@/lib/finance-service"
+import type { Expense } from "@/lib/finance-service"
+import { getExpenses, addExpense, updateExpense, deleteExpense } from "@/app/actions/finance"
 import { athleteService, AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -248,27 +249,36 @@ export default function FinanzasPage() {
     employeeId: '', name: '', baseSalary: 0, commission: 0, bonus: 0, deductions: 0, advances: 0, notes: ''
   })
 
-  const handleAddExpense = (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!expForm.description || !expForm.amount) return
     
+    let res: any
     if (expForm.id) {
-      financeService.updateExpense(expForm.id, {
+      res = await updateExpense(expForm.id, {
         description: expForm.description,
         amount: parseFloat(expForm.amount as any),
-        category: expForm.category
+        category: expForm.category || 'Servicios'
       })
     } else {
-      financeService.addExpense({
+      res = await addExpense({
         description: expForm.description,
         amount: parseFloat(expForm.amount as any),
-        category: expForm.category || 'Otros'
+        category: expForm.category || 'Servicios'
       })
     }
-    setExpenses(financeService.getExpenses())
+
+    if (!res?.success) {
+      Swal.fire('Error', res?.error || 'No se pudo guardar el gasto', 'error')
+      return
+    }
+
+    const expRes = await getExpenses()
+    if (expRes.success) setExpenses(expRes.expenses as any)
     setShowExpenseModal(false)
     setExpForm({ id: '', description: '', amount: 0, category: 'Servicios' })
     setIsCustomCategory(false)
+    Swal.fire('Guardado', 'El gasto se ha registrado correctamente.', 'success')
   }
 
   const handleSavePayroll = async (e: React.FormEvent) => {
@@ -301,11 +311,16 @@ export default function FinanzasPage() {
       showCancelButton: true,
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        financeService.deleteExpense(id)
-        setExpenses(financeService.getExpenses())
-        Swal.fire('Eliminado', 'El gasto ha sido eliminado.', 'success')
+        const res = await deleteExpense(id)
+        if (res.success) {
+          const expRes = await getExpenses()
+          if (expRes.success) setExpenses(expRes.expenses as any)
+          Swal.fire('Eliminado', 'El gasto ha sido eliminado.', 'success')
+        } else {
+          Swal.fire('Error', res.error || 'No se pudo eliminar el gasto', 'error')
+        }
       }
     })
   }

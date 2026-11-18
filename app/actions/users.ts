@@ -14,6 +14,7 @@ import {
 } from "@/lib/authz"
 import { validatePassword } from "@/lib/password-validator"
 import { notifyMembershipActivated } from "@/lib/push-notifications"
+import { calculateAge } from "@/lib/utils"
 
 const EMPLOYEE_ROLES = ["admin", "gerente", "coach", "cajero", "recepcion", "employee"]
 const CEDULA_RE = /^[A-Za-z0-9._-]{3,30}$/
@@ -406,12 +407,7 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     if (data.birthDate) {
       const birth = new Date(data.birthDate)
       if (!isNaN(birth.getTime())) {
-        const today = new Date()
-        let age = today.getFullYear() - birth.getFullYear()
-        const m = today.getMonth() - birth.getMonth()
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-          age--
-        }
+        const age = calculateAge(data.birthDate) ?? 0
         if (age < 18) {
           isUnderage = true
         }

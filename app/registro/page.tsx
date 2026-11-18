@@ -12,6 +12,7 @@ import { getPublicCoaches, createAthlete } from "@/app/actions/users"
 import { validatePassword } from "@/lib/password-validator"
 import { showSweetToast } from "@/lib/toast-context"
 import { TermsModal } from "@/components/ui/terms-modal"
+import { calculateAge } from "@/lib/utils"
 
 export default function RegistroPage() {
   const { user, login } = useAuth()
@@ -65,18 +66,6 @@ export default function RegistroPage() {
   const pwdValidation = validatePassword(clave, cleanCedula)
   const claveMatch = clave && confirmClave && clave === confirmClave
 
-  const calculateAge = (dateStr: string) => {
-    if (!dateStr) return null
-    const birth = new Date(dateStr + "T00:00:00")
-    if (isNaN(birth.getTime())) return null
-    const today = new Date()
-    let age = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--
-    }
-    return age
-  }
   const userAge = calculateAge(fechaNacimiento)
 
   const handleSubmit = async (e: React.FormEvent) => {
