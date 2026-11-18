@@ -138,7 +138,6 @@ model Membership {
   planName  String?
   createdAt DateTime @default(now())
 
-  @@index([athleteId])
   @@index([endDate])
   @@index([status])
 }
@@ -157,7 +156,6 @@ model Biometric {
   bodyFat      Float?
   customFields String?
 
-  @@index([athleteId])
   @@index([date])
 }
 
@@ -168,7 +166,6 @@ model Attendance {
   date   DateTime @default(now())
   type   String
 
-  @@index([userId])
   @@index([date])
 }
 
@@ -205,9 +202,6 @@ model Transaction {
   items         TransactionItem[]
 
   @@index([date])
-  @@index([cashierId])
-  @@index([customerId])
-  @@index([cashSessionId])
 }
 
 model TransactionItem {
@@ -220,7 +214,6 @@ model TransactionItem {
   qty           Int
   subtotal      Float
 
-  @@index([transactionId])
   @@index([productId])
 }
 

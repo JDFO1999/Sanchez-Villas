@@ -3,6 +3,11 @@ import { PrismaClient } from '@prisma/client'
 const getDatabaseUrl = () => {
   const url = process.env.DATABASE_URL
   if (!url) return undefined
+  // En conexiones locales (localhost / 127.0.0.1) MySQL/XAMPP no tiene SSL habilitado por defecto
+  const isLocal = url.includes('localhost') || url.includes('127.0.0.1')
+  if (isLocal) {
+    return url
+  }
   if (!url.includes('sslaccept') && !url.includes('sslmode')) {
     const separator = url.includes('?') ? '&' : '?'
     return `${url}${separator}sslaccept=accept_invalid_certs`
