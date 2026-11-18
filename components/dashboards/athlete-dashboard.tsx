@@ -718,24 +718,30 @@ export function AthleteDashboard() {
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-warning/15 rounded-full blur-3xl pointer-events-none"></div>
 
             {/* Header */}
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4 mb-5 pr-10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4 mb-5 pr-8">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/40 font-black text-primary text-sm shadow-inner overflow-hidden">
                   {(settings?.logoUrl || settings?.logoUrlDark) ? (
                     <img src={settings?.logoUrl || settings?.logoUrlDark} alt="Logo" className="w-full h-full object-contain p-0.5" />
                   ) : (
                     settings?.appName?.slice(0, 2).toUpperCase() || 'GP'
                   )}
                 </div>
-                <div>
-                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight truncate">{settings?.appName || 'Gimnasio'}</h4>
-                  <p className="text-xs text-zinc-400 font-bold tracking-widest uppercase">Pase Digital de Acceso</p>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-black text-sm tracking-wider uppercase text-white leading-tight truncate">
+                    {settings?.appName || 'Gimnasio'}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[11px] text-zinc-400 font-bold tracking-widest uppercase truncate">
+                      Pase Digital de Acceso
+                    </p>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-warning/40 text-warning inline-flex items-center gap-1 shadow-sm shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                      VIP
+                    </span>
+                  </div>
                 </div>
               </div>
-              <span className="text-xs font-black uppercase px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-warning/40 text-warning flex items-center gap-1.5 shadow-sm shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                VIP
-              </span>
             </div>
 
             {/* Dynamic Anti-Capture QR Container */}

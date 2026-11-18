@@ -70,7 +70,11 @@ export async function middleware(request: NextRequest) {
     const role = validPayload.role as string;
     
     // Profile is accessible by all staff/employees (admin, gerente, coach, employee, cajero, recepcion)
+    // If an athlete accesses /perfil, redirect directly to their own athlete profile page
     if (pathname.startsWith("/perfil")) {
+      if (role === "athlete") {
+        return NextResponse.redirect(new URL(`/atletas/${validPayload.id}`, request.url));
+      }
       const allowedRoles = ["admin", "gerente", "coach", "employee", "cajero", "recepcion"];
       if (!allowedRoles.includes(role)) {
         return NextResponse.redirect(new URL("/", request.url));
@@ -84,6 +88,8 @@ export async function middleware(request: NextRequest) {
 
     // Athletes cannot access administrative, staff, inventory, or membership management routes
     if (role === "athlete") {
+      const isOwnProfile = pathname === `/atletas/${validPayload.id}`;
+
       if (
         pathname.startsWith("/tienda/inventario") ||
         pathname.startsWith("/membresias") ||
@@ -93,7 +99,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith("/ajustes") ||
         pathname.startsWith("/entrenadores") ||
         pathname.startsWith("/asistencia") ||
-        pathname.startsWith("/atletas") ||
+        (pathname.startsWith("/atletas") && !isOwnProfile) ||
         pathname.startsWith("/mis-atletas")
       ) {
         return NextResponse.redirect(new URL("/", request.url));
