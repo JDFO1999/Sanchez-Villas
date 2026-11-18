@@ -805,11 +805,17 @@ export async function updateAthleteMembershipAndCoach(
         const rawStart = String(data.startDate).trim()
         if (rawStart.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(rawStart)) {
           const [y, m, d] = rawStart.split('-').map(Number)
-          sDate = new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+          // Fijar a las 12:00:00 UTC (medio día) para prevenir que la conversión a UTC-4 o husos horarios locales reste un día
+          sDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
         } else {
           const parsed = new Date(rawStart)
           if (!isNaN(parsed.getTime())) sDate = parsed
         }
+      }
+
+      // Validación estricta: las fechas no pueden ser negativas (corte anterior a inicio)
+      if (sDate && eDate && eDate.getTime() < sDate.getTime()) {
+        return { success: false, error: "La fecha de corte / vencimiento no puede ser anterior a la fecha de inicio." }
       }
 
       const pName = data.planName?.trim() || "Plan Estándar"

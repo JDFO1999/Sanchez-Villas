@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, User, Calendar, Activity, ClipboardList, TrendingUp, Search, Camera, Loader2, CalendarCheck, Edit, Check, X, KeyRound, User as UserIcon, MessageSquare, CreditCard, Receipt, ShieldAlert } from "lucide-react"
 import { useSettings } from "@/lib/settings-context"
 import { calculateCutoffDate, askPassword } from "@/lib/confirm"
+import { toDateInputValue, formatDisplayDate } from "@/lib/utils"
 import { updateCoachProfile } from "@/app/actions/users"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
 import { AttendanceHistoryModal } from "@/components/athletes/attendance-history-modal"
@@ -101,7 +102,7 @@ export default function AtletaPerfilPage() {
     const firstName = athlete.name.split(' ')[0]
     const gymName = settings?.appName || "Maximum Evolution Fit"
     const endDate = athlete.membershipEnd && athlete.membershipEnd !== "1970-01-01T00:00:00.000Z"
-      ? new Date(athlete.membershipEnd).toLocaleDateString()
+      ? formatDisplayDate(athlete.membershipEnd)
       : "Vigente"
     const planName = (athlete as any).membershipType || (athlete as any).planName || "Membresía Activa"
 
@@ -308,10 +309,10 @@ export default function AtletaPerfilPage() {
 
     const hasExistingMemb = Boolean(athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970)
     const sDate = athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970
-      ? new Date(athlete.membershipStart).toISOString().split('T')[0]
-      : new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString().split('T')[0]
+      ? toDateInputValue(athlete.membershipStart)
+      : toDateInputValue(new Date())
     const eDate = hasExistingMemb
-      ? new Date(athlete.membershipEnd).toISOString().split('T')[0]
+      ? toDateInputValue(athlete.membershipEnd)
       : ""
 
     setEditMembStart(sDate)
@@ -395,6 +396,12 @@ export default function AtletaPerfilPage() {
 
       // 2. Si es Admin o Gerente y se especificó fecha de corte, actualizar membresía y coach
       if (canEditAthlete && editMembEnd) {
+        if (editMembStart && editMembEnd < editMembStart) {
+          showSweetToast("La fecha de corte / vencimiento no puede ser anterior a la fecha de inicio.", "warning")
+          setIsSavingAthlete(false)
+          return
+        }
+
         const membRes = await updateAthleteMembershipAndCoach(athlete.id, {
           startDate: editMembStart,
           endDate: editMembEnd,
@@ -403,6 +410,35 @@ export default function AtletaPerfilPage() {
         })
         if (!membRes.success) {
           showSweetToast(membRes.error || "Advertencia: No se pudo actualizar la membresía.", "warning")
+        }
+
+        // Registrar factura histórica informativa (Sin Flujo de Caja)
+        if (editMembPlan) {
+          try {
+            const { createTransaction } = await import('@/app/actions/store')
+            const matched = availablePlans.find(p => p.name.toLowerCase() === editMembPlan.toLowerCase()) || availablePlans[0]
+            const planPrice = matched ? matched.price : baseMonthlyPrice
+            await createTransaction({
+              cashierId: user?.id,
+              customerId: athlete.id,
+              skipAutoMembership: true,
+              items: [
+                {
+                  productId: `PLAN:${editMembPlan}`,
+                  name: `${editMembPlan} (Histórico)`,
+                  price: planPrice,
+                  qty: 1,
+                  subtotal: planPrice
+                }
+              ],
+              subtotal: planPrice,
+              tax: 0,
+              total: planPrice,
+              paymentMethod: "Sin Flujo de Caja (Histórico)",
+              reference: "Asignación administrativa desde Perfil / No pasó por Flujo de Caja",
+              status: "COMPLETED"
+            })
+          } catch {}
         }
       }
 
@@ -1067,11 +1103,11 @@ export default function AtletaPerfilPage() {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                 <div>
                   <p className="text-xs text-muted-foreground">Inicio (Compra)</p>
-                  <p className="font-medium text-sm">{athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970 ? new Date(athlete.membershipStart).toLocaleDateString() : 'Sin registro'}</p>
+                  <p className="font-medium text-sm">{athlete.membershipStart && new Date(athlete.membershipStart).getFullYear() > 1970 ? formatDisplayDate(athlete.membershipStart) : 'Sin registro'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencimiento (Corte)</p>
-                  <p className="font-medium text-sm">{endDate ? endDate.toLocaleDateString() : 'Sin Plan Activo'}</p>
+                  <p className="font-medium text-sm">{athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970 ? formatDisplayDate(athlete.membershipEnd) : 'Sin Plan Activo'}</p>
                 </div>
               </div>
               <div className="pt-2 border-t border-black/10 dark:border-white/10 flex items-center justify-between">

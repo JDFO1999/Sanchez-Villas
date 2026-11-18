@@ -81,6 +81,7 @@ export function ThermalReceiptModal({
 
   const items = transaction.items || []
   const totalItemsCount = items.reduce((acc: number, item: any) => acc + (Number(item.qty) || 0), 0)
+  const isNoFlow = /sin flujo/i.test(transaction?.paymentMethod || "") || /historico/i.test(transaction?.paymentMethod || "")
 
   return (
     <div
@@ -116,6 +117,13 @@ export function ThermalReceiptModal({
             <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
               <p className="font-bold text-xs uppercase">CÓDIGO DE RETIRO</p>
               <p className="text-xl font-black">{transaction.pickupCode}</p>
+            </div>
+          )}
+
+          {isNoFlow && (
+            <div className="mt-2 mb-2 p-2 border-2 border-dashed border-amber-600 bg-amber-50 text-amber-950 rounded">
+              <p className="font-bold text-xs uppercase tracking-wide">⚠️ Factura Sin Flujo de Caja</p>
+              <p className="text-[11px] leading-tight mt-0.5 font-sans font-medium">Asignación administrativa / membresía previa. No ingresó a caja física.</p>
             </div>
           )}
 
@@ -177,8 +185,13 @@ export function ThermalReceiptModal({
           </div>
           <div className="flex justify-between mt-2 pt-1 border-t border-dotted border-gray-400">
             <span>Método de Pago:</span>
-            <span className="uppercase">{transaction.paymentMethod || "Efectivo"}</span>
+            <span className={`uppercase ${isNoFlow ? "text-amber-800 font-bold" : ""}`}>{transaction.paymentMethod || "Efectivo"}</span>
           </div>
+          {isNoFlow && (
+            <div className="text-right text-[10px] text-amber-700 italic font-semibold">
+              * Factura histórica (No computable en arqueo de caja)
+            </div>
+          )}
           {cleanedRef && (
             <div className="flex justify-between">
               <span>Ref / Comprobante:</span>

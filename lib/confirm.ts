@@ -108,14 +108,20 @@ export function playCheckInSound(type: "success" | "error") {
 
 /**
  * Calcula automáticamente la Fecha de Corte sumando N meses a la fecha de inicio (YYYY-MM-DD).
+ * Mantiene de manera determinista el mismo día exacto del mes sin desplazamientos por zonas horarias.
  */
 export function calculateCutoffDate(startDateStr: string, monthsToAdd: number): string {
-  const base = startDateStr && /^\d{4}-\d{2}-\d{2}$/.test(startDateStr)
-    ? new Date(`${startDateStr}T12:00:00`)
-    : new Date()
-  if (isNaN(base.getTime())) return new Date().toISOString().split("T")[0]
-  const result = new Date(base)
-  result.setMonth(result.getMonth() + monthsToAdd)
-  return result.toISOString().split("T")[0]
+  let dateStr = startDateStr && /^\d{4}-\d{2}-\d{2}$/.test(startDateStr) ? startDateStr : ""
+  if (!dateStr) {
+    const now = new Date()
+    dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
+  const [y, m, d] = dateStr.split('-').map(Number)
+  // Sumar meses respetando el día del mes
+  const targetDate = new Date(y, m - 1 + monthsToAdd, d)
+  const resY = targetDate.getFullYear()
+  const resM = String(targetDate.getMonth() + 1).padStart(2, '0')
+  const resD = String(targetDate.getDate()).padStart(2, '0')
+  return `${resY}-${resM}-${resD}`
 }
 

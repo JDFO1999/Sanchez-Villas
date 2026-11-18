@@ -55,3 +55,61 @@ export function formatDualPrice(amountUsd: number, exchangeRate: number, currenc
     combined: `${usdStr} (${vesStr})`
   }
 }
+
+/**
+ * Convierte de manera segura cualquier fecha (Date, ISO string o YYYY-MM-DD)
+ * al formato input date "YYYY-MM-DD" sin sufrir desfasajes de zona horaria (UTC vs Local).
+ */
+export function toDateInputValue(input?: string | Date | null): string {
+  if (!input) return ""
+  if (typeof input === 'string') {
+    const match = input.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (match) return `${match[1]}-${match[2]}-${match[3]}`
+  }
+  const d = new Date(input)
+  if (isNaN(d.getTime()) || d.getFullYear() <= 1970) return ""
+  // Extraemos año, mes y día de forma determinista
+  const year = d.getUTCFullYear()
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Formatea una fecha para mostrar al usuario en formato "DD/MM/YYYY" de forma consistente y sin desplazamiento de días.
+ */
+export function formatDisplayDate(input?: string | Date | null): string {
+  const iso = toDateInputValue(input)
+  if (!iso) return "Sin registro"
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+/**
+ * Parsea una fecha YYYY-MM-DD a Date para almacenar en base de datos.
+ * Para startDate se fija a las 12:00:00 UTC (medio día) para garantizar que en cualquier huso horario
+ * (Venezuela UTC-4, Colombia UTC-5, etc.) nunca retroceda al día anterior.
+ */
+export function parseStartDateToDB(dateStr: string): Date {
+  const clean = String(dateStr).trim().slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    const [y, m, d] = clean.split('-').map(Number)
+    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  }
+  const fallback = new Date(dateStr)
+  return isNaN(fallback.getTime()) ? new Date() : fallback
+}
+
+/**
+ * Parsea una fecha YYYY-MM-DD a Date para fecha de corte / vencimiento.
+ * Se fija a las 23:59:59 UTC para que la membresía cubra el día completo seleccionado.
+ */
+export function parseEndDateToDB(dateStr: string): Date {
+  const clean = String(dateStr).trim().slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    const [y, m, d] = clean.split('-').map(Number)
+    return new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
+  }
+  const fallback = new Date(dateStr)
+  return isNaN(fallback.getTime()) ? new Date() : fallback
+}

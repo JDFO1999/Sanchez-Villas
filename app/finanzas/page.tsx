@@ -91,7 +91,9 @@ export default function FinanzasPage() {
   }
 
   const getTxPaidAmount = (tx: any): number => {
-    if (tx?.status === 'CANCELED') return 0
+    if (tx?.status === 'CANCELED' || tx?.status === 'NO_CASH_FLOW') return 0
+    const pm = String(tx?.paymentMethod || '')
+    if (/sin flujo/i.test(pm)) return 0
     const total = Number(tx?.total) || 0
     const credit = getTxCreditAmount(tx)
     return Math.max(0, total - credit)
@@ -918,6 +920,7 @@ export default function FinanzasPage() {
                 <tbody className="divide-y divide-white/5">
                   {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx: any) => {
                     const hasVuelto = typeof tx.reference === 'string' && tx.reference.includes('Vuelto:')
+                    const isNoFlow = /sin flujo/i.test(String(tx.paymentMethod || '')) || tx.status === 'NO_CASH_FLOW'
                     const itemsText = Array.isArray(tx.items) && tx.items.length > 0
                       ? tx.items.map((it: any) => `${it.qty}x ${it.name || it.productName || 'Producto'}`).join(', ')
                       : 'Venta General'
@@ -952,35 +955,52 @@ export default function FinanzasPage() {
                         <span className="font-semibold text-foreground line-clamp-2" title={itemsText}>{itemsText}</span>
                       </td>
                       <td className="p-4 text-xs">
-                        {tx.cashier ? (
+                        {isNoFlow ? (
+                          <span className="font-semibold text-muted-foreground">Admin / Histórico</span>
+                        ) : tx.cashier ? (
                           <span className="font-medium text-foreground">{tx.cashier.name}</span>
                         ) : (
                           <span className="text-[10px] bg-warning/20 text-warning px-2 py-0.5 rounded font-bold uppercase">Online (Por Confirmar)</span>
                         )}
                       </td>
                       <td className="p-4">
-                        <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
+                        {isNoFlow ? (
+                          <span className="text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
+                            ⚠️ Sin Flujo de Caja
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
+                        )}
                       </td>
                       <td className="p-4 text-xs text-muted-foreground">
                         <div className="flex flex-col gap-1">
-                          <span className={hasVuelto ? "text-amber-500 font-semibold" : ""}>{tx.reference || '-'}</span>
+                          <span className={isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : ""}>{tx.reference || '-'}</span>
                           {tx.receiptImage && (
                             <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold text-left">Ver Comprobante</button>
                           )}
                         </div>
                       </td>
                       <td className="p-4 whitespace-nowrap">
-                        <div className="font-bold text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
-                        </td>
-                        <td className="p-4 text-center">
-                          {tx.status === 'CANCELED' ? (
-                            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
-                          ) : (
-                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
-                          )}
-                        </td>
-                      </tr>
+                        {isNoFlow ? (
+                          <>
+                            <div className="font-bold text-muted-foreground line-through decoration-amber-500/60">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                            <div className="text-[10px] font-bold text-amber-500">No pasó por caja</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-bold text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
+                          </>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        {tx.status === 'CANCELED' ? (
+                          <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
+                        ) : (
+                          <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                        )}
+                      </td>
+                    </tr>
                     )
                   })}
                   {transactions.length === 0 && (
@@ -997,6 +1017,8 @@ export default function FinanzasPage() {
                   const itemsText = Array.isArray(tx.items) && tx.items.length > 0
                     ? tx.items.map((it: any) => `${it.qty}x ${it.name || it.productName || 'Producto'}`).join(', ')
                     : 'Venta General'
+                  const hasVuelto = /Vuelto Entregado/i.test(tx.reference || "")
+                  const isNoFlow = /sin flujo/i.test(tx.paymentMethod || "") || /historico/i.test(tx.paymentMethod || "")
                   return (
                   <div key={tx.id} className="p-4 space-y-2">
                     <div className="flex justify-between items-start">
@@ -1012,14 +1034,29 @@ export default function FinanzasPage() {
                         <div className="text-[10px] text-muted-foreground">Cobrado por: {tx.cashier?.name || 'Online (Por Confirmar)'}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
+                        {isNoFlow ? (
+                          <>
+                            <div className="font-bold text-muted-foreground line-through decoration-amber-500/60">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                            <div className="text-[10px] font-bold text-amber-500">No pasó por caja</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-black text-success">{settings.storeCurrency} {tx.total.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(tx.total * settings.storeExchangeRate).toFixed(2)}</div>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="flex justify-between items-center text-sm pt-2">
-                      <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
+                      {isNoFlow ? (
+                        <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                          ⚠️ Sin Flujo de Caja
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
+                      )}
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-xs text-muted-foreground">{tx.reference || '-'}</span>
+                        <span className={`text-xs ${isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>{tx.reference || '-'}</span>
                         {tx.receiptImage && (
                           <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
                         )}

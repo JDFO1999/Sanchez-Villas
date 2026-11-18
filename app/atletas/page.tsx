@@ -12,7 +12,7 @@ import { AttendanceHistoryModal, AttendanceModalAthlete } from "@/components/ath
 import { showSweetToast } from "@/lib/toast-context"
 import { useSettings } from "@/lib/settings-context"
 import { calculateCutoffDate, askPassword } from "@/lib/confirm"
-import { calculateAge } from "@/lib/utils"
+import { calculateAge, toDateInputValue, formatDisplayDate } from "@/lib/utils"
 
 export default function AtletasPage() {
   const { user } = useAuth()
@@ -215,10 +215,10 @@ export default function AtletasPage() {
     // para que editar datos personales NO active una membresía por accidente.
     const hasExistingMemb = Boolean(a.membershipEnd && new Date(a.membershipEnd).getFullYear() > 1970)
     const sDate = a.membershipStart && new Date(a.membershipStart).getFullYear() > 1970 
-      ? new Date(a.membershipStart).toISOString().split('T')[0]
-      : new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString().split('T')[0]
+      ? toDateInputValue(a.membershipStart)
+      : toDateInputValue(new Date())
     const eDate = hasExistingMemb
-      ? new Date(a.membershipEnd).toISOString().split('T')[0]
+      ? toDateInputValue(a.membershipEnd)
       : ""
     
     const pName = (a as any).planName || (hasExistingMemb ? "Plan Estándar" : "")
@@ -322,6 +322,12 @@ export default function AtletasPage() {
 
       // 2. Si es Admin o Gerente y se especificó fecha de corte, actualizar membresía y coach directo
       if (canEdit && editEndDate) {
+        if (editStartDate && editEndDate < editStartDate) {
+          showSweetToast("La fecha de corte / vencimiento no puede ser anterior a la fecha de inicio.", "warning")
+          setIsSaving(false)
+          return
+        }
+
         const membRes = await updateAthleteMembershipAndCoach(editingAthlete.id, {
           startDate: editStartDate,
           endDate: editEndDate,
@@ -335,41 +341,71 @@ export default function AtletasPage() {
         }
       }
 
-      // 3. Si se activó registrar el cobro en Caja / Flujo de Caja
-      if (canEdit && editRegisterPayment) {
-        const payAmount = parseFloat(editPaymentAmount) || 0
-        if (payAmount > 0) {
-          const { createTransaction } = await import('@/app/actions/store')
-          const pName = editPlanName || "Plan Estándar"
-          const txRes = await createTransaction({
+      // 3. Registrar Transacción / Factura (Con o Sin Flujo de Caja)
+      if (canEdit && editPlanName && editEndDate) {
+        const { createTransaction } = await import('@/app/actions/store')
+        const pName = editPlanName || "Plan Estándar"
+        const matched = availablePlans.find(p => p.name.toLowerCase() === pName.toLowerCase()) || availablePlans[0]
+        const planPrice = matched ? matched.price : baseMonthlyPrice
+
+        if (editRegisterPayment) {
+          // Cobro normal que ingresa a Caja y Flujo Financiero
+          const payAmount = parseFloat(editPaymentAmount) || planPrice
+          if (payAmount > 0) {
+            const txRes = await createTransaction({
+              cashierId: user?.id,
+              customerId: editingAthlete.id,
+              skipAutoMembership: true,
+              items: [
+                {
+                  productId: `PLAN:${pName}`,
+                  name: pName,
+                  price: payAmount,
+                  qty: 1,
+                  subtotal: payAmount
+                }
+              ],
+              subtotal: payAmount,
+              tax: 0,
+              total: payAmount,
+              paymentMethod: editPaymentMethod,
+              reference: editPaymentRef.trim() || undefined,
+              status: "COMPLETED"
+            })
+            if (!txRes.success) {
+              showSweetToast(txRes.error || "Se guardó el atleta pero hubo un error al registrar en Caja.", "warning")
+            }
+          }
+        } else {
+          // Factura emitida sin impacto en Flujo de Caja (Histórico)
+          await createTransaction({
             cashierId: user?.id,
             customerId: editingAthlete.id,
             skipAutoMembership: true,
             items: [
               {
                 productId: `PLAN:${pName}`,
-                name: pName,
-                price: payAmount,
+                name: `${pName} (Histórico)`,
+                price: planPrice,
                 qty: 1,
-                subtotal: payAmount
+                subtotal: planPrice
               }
             ],
-            subtotal: payAmount,
+            subtotal: planPrice,
             tax: 0,
-            total: payAmount,
-            paymentMethod: editPaymentMethod,
-            reference: editPaymentRef.trim() || undefined,
+            total: planPrice,
+            paymentMethod: "Sin Flujo de Caja (Histórico)",
+            reference: "Asignación administrativa / No pasó por Flujo de Caja",
             status: "COMPLETED"
           })
-          if (!txRes.success) {
-            showSweetToast(txRes.error || "Se guardó el atleta pero hubo un error al registrar en Caja.", "warning")
-          }
         }
       }
 
       showSweetToast(
         editRegisterPayment
           ? "Atleta actualizado y cobro registrado en el Flujo de Caja."
+          : editPlanName && editEndDate
+          ? "Membresía asignada: Factura registrada como «Sin Flujo de Caja (Histórico)»."
           : "Datos del atleta actualizados correctamente.",
         "success"
       )

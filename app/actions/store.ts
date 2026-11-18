@@ -214,11 +214,13 @@ export async function createTransaction(data: any) {
         });
       }
 
+      const isNoCashFlow = /sin flujo/i.test(method)
+
       // 2. Create the main transaction
       const newTx = await tx.transaction.create({
         data: {
           cashierId,
-          cashSessionId: activeSession ? activeSession.id : null,
+          cashSessionId: isNoCashFlow ? null : (activeSession ? activeSession.id : null),
           customerId,
           subtotal,
           tax,
