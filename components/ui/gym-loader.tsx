@@ -21,9 +21,14 @@ export function GymLoader({
 }: GymLoaderProps) {
   const { settings } = useSettings()
   const { theme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [imgError, setImgError] = useState(false)
 
-  const isDark = (resolvedTheme || theme) === "dark"
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDark = mounted ? ((resolvedTheme || theme) === "dark") : false
   
   let cachedLogo = ""
   let cachedLogoDark = ""
@@ -84,6 +89,7 @@ export function GymLoader({
                 src={logoSrc}
                 alt={appName || "Logo"}
                 onError={() => setImgError(true)}
+                suppressHydrationWarning
                 className={`w-auto h-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.45)] transition-all duration-500 ${logoClasses}`}
               />
             </div>
@@ -136,6 +142,10 @@ export function FullScreenGymLoader({
     setMounted(true)
   }, [])
 
+  if (!mounted || typeof document === "undefined") {
+    return null
+  }
+
   const loaderOverlay = (
     <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background/95 dark:bg-[#09090b]/95 backdrop-blur-2xl transition-all duration-300 ${className}`}>
       <GymLoader
@@ -145,9 +155,5 @@ export function FullScreenGymLoader({
     </div>
   )
 
-  if (mounted && typeof document !== "undefined") {
-    return createPortal(loaderOverlay, document.body)
-  }
-
-  return loaderOverlay
+  return createPortal(loaderOverlay, document.body)
 }

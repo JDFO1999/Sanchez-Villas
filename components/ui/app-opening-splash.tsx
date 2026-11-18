@@ -8,7 +8,7 @@ export function AppOpeningSplash() {
   const { settings } = useSettings()
   const { theme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [visible, setVisible] = useState(true)
+  const [visible, setVisible] = useState(false)
   const [closing, setClosing] = useState(false)
   const [imgError, setImgError] = useState(false)
 
@@ -51,11 +51,11 @@ export function AppOpeningSplash() {
     // Verificar si ya se mostró en esta sesión de navegación para no ser intrusivo
     const alreadyShown = sessionStorage.getItem("maximumfit_opening_splash_shown")
     if (alreadyShown === "true") {
-      setVisible(false)
       return
     }
 
     setMounted(true)
+    setVisible(true)
 
     // Tiempo de animación elegante al abrir la app (~900ms para lucir el efecto)
     const timer = setTimeout(() => {
@@ -72,7 +72,7 @@ export function AppOpeningSplash() {
     return () => clearTimeout(timer)
   }, [])
 
-  if (!visible) return null
+  if (!mounted || !visible) return null
 
   return (
     <div
@@ -96,6 +96,7 @@ export function AppOpeningSplash() {
                 src={logoSrc}
                 alt={appName}
                 onError={() => setImgError(true)}
+                suppressHydrationWarning
                 className="w-auto h-auto max-w-[260px] sm:max-w-[320px] max-h-[140px] sm:max-h-[170px] object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.7)] transition-transform duration-700"
               />
               {/* Efecto de destello de luz sutil cruzando el logo */}
