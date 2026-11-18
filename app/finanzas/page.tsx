@@ -20,6 +20,8 @@ import { Dialog } from "@/components/ui/dialog"
 import { askPassword } from "@/lib/confirm"
 import { FinanceSummaryTab } from "@/components/finance/FinanceSummaryTab"
 import { FinanceReceivablesTab } from "@/components/finance/FinanceReceivablesTab"
+import { FinanceExpensesTab } from "@/components/finance/FinanceExpensesTab"
+import { FinancePayrollTab } from "@/components/finance/FinancePayrollTab"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
 function escapeHtml(value: unknown): string {
@@ -1055,172 +1057,20 @@ export default function FinanzasPage() {
       </Dialog>
 
       {activeTab === 'egresos' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Registro de Gastos</h2>
-            <div className="flex gap-2">
-              <button onClick={() => setShowExpenseModal(true)} className="bg-transparent border-2 border-success text-success px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-success/10 transition flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Nuevo Gasto
-              </button>
-              <button onClick={() => handleDownloadReport('Egresos')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
-                <Download className="h-4 w-4" /> Exportar
-              </button>
-            </div>
-          </div>
-          
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm hidden md:table">
-                <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
-                  <tr>
-                    <th className="p-4 font-medium">Fecha</th>
-                    <th className="p-4 font-medium">Descripción</th>
-                    <th className="p-4 font-medium">Categoría</th>
-                    <th className="p-4 font-medium">Monto</th>
-                    <th className="p-4 font-medium text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {expenses.map(ex => (
-                    <tr key={ex.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
-                      <td className="p-4 text-muted-foreground">{new Date(ex.date).toLocaleDateString()} {new Date(ex.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                      <td className="p-4 font-medium">{ex.description}</td>
-                      <td className="p-4">
-                        <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded">{ex.category}</span>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-destructive">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(ex.amount * settings.storeExchangeRate).toFixed(2)}</div>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => { setExpForm(ex); setShowExpenseModal(true); }} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">
-                            Editar
-                          </button>
-                          <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {expenses.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-muted-foreground">No hay gastos registrados.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* Mobile View */}
-              <div className="md:hidden flex flex-col divide-y divide-white/5">
-                {expenses.map(ex => (
-                  <div key={ex.id} className="p-4 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-bold">{ex.description}</div>
-                        <div className="text-xs text-muted-foreground">{new Date(ex.date).toLocaleDateString()} {new Date(ex.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-destructive">{settings.storeCurrency} {ex.amount.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{settings.storeCurrencySecondary} {(ex.amount * settings.storeExchangeRate).toFixed(2)}</div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center text-sm pt-2">
-                      <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded">{ex.category}</span>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setExpForm(ex); setShowExpenseModal(true); }} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-xs">
-                          Editar
-                        </button>
-                        <button onClick={() => handleDeleteExpense(ex.id)} className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {expenses.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">No hay gastos registrados.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <FinanceExpensesTab
+          expenses={expenses}
+          settings={settings}
+          showExpenseModal={showExpenseModal}
+          setShowExpenseModal={setShowExpenseModal}
+          expForm={expForm}
+          setExpForm={setExpForm}
+          isCustomCategory={isCustomCategory}
+          setIsCustomCategory={setIsCustomCategory}
+          onSaveExpense={handleAddExpense}
+          onDeleteExpense={handleDeleteExpense}
+          onDownloadReport={handleDownloadReport}
+        />
       )}
-
-      {/* MODAL GASTO */}
-      <Dialog
-        open={showExpenseModal}
-        onClose={() => setShowExpenseModal(false)}
-        title={expForm.id ? 'Editar Gasto' : 'Registrar Gasto'}
-        className="max-w-sm"
-      >
-        <form onSubmit={handleAddExpense} className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descripción</label>
-            <input 
-              required autoFocus type="text" value={expForm.description} onChange={e => setExpForm({...expForm, description: e.target.value})}
-              placeholder="Ej. Pago de luz, Mantenimiento..."
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Monto ({settings.storeCurrency})</label>
-            <input 
-              required type="number" step="0.01" value={expForm.amount} onChange={e => setExpForm({...expForm, amount: parseFloat(e.target.value) || 0})}
-              placeholder="0.00"
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary font-bold text-red-500"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Categoría</label>
-            {!isCustomCategory ? (
-              <select 
-                value={expForm.category} 
-                onChange={e => {
-                  if (e.target.value === 'OTRA') {
-                    setIsCustomCategory(true)
-                    setExpForm({...expForm, category: ''})
-                  } else {
-                    setExpForm({...expForm, category: e.target.value})
-                  }
-                }}
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-              >
-                <option value="Servicios">Servicios (Luz, Agua, Internet)</option>
-                <option value="Insumos">Insumos y Limpieza</option>
-                <option value="Mantenimiento">Mantenimiento de Máquinas</option>
-                <option value="Marketing">Publicidad y Marketing</option>
-                <option value="Alquiler">Alquiler</option>
-                <option value="Otros">Otros</option>
-                <option value="OTRA">+ Nueva Categoría Personalizada...</option>
-              </select>
-            ) : (
-              <div className="flex gap-2">
-                <input 
-                  autoFocus
-                  type="text" 
-                  value={expForm.category} 
-                  onChange={e => setExpForm({...expForm, category: e.target.value})}
-                  placeholder="Nombre de la categoría..."
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => { setIsCustomCategory(false); setExpForm({...expForm, category: 'Servicios'}); }}
-                  className="px-3 bg-black/10 dark:bg-white/10 rounded-lg text-xs"
-                >
-                  Volver
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={() => setShowExpenseModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground font-bold hover:bg-destructive/90">Guardar</button>
-          </div>
-        </form>
-      </Dialog>
 
 
       {activeTab === 'cuentas_cobrar' && (
@@ -1235,105 +1085,38 @@ export default function FinanzasPage() {
       )}
 
       {activeTab === 'nomina' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-end">
-            <button onClick={() => { setPayrollForm({ id: '', name: '', cedula: '', role: 'employee', clave: '', confirmClave: '', baseSalary: 0, commissionRate: 0, commissionType: 'flat', birthDate: '', profession: '', specialties: '', nonWorkingDays: '', avatar: '' }); setShowPayrollModal(true); }} className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-4 py-2 rounded-lg font-bold transition flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Agregar Empleado a Nómina
-            </button>
-          </div>
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
-                  <tr>
-                    <th className="p-4 font-medium">Empleado</th>
-                    <th className="p-4 font-medium">Atletas Asignados</th>
-                    <th className="p-4 font-medium">Sueldo + Comisiones</th>
-                    <th className="p-4 font-medium">Datos de Pago</th>
-                    <th className="p-4 font-medium text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {employees.filter(e => e.role !== 'admin' && e.role !== 'deleted').map(emp => {
-                    const baseSalary = emp.baseSalary || 0
-                    const commissionRate = emp.commissionRate || 0
-                    
-                    const currentMonthPrefix = new Date().toISOString().substring(0, 7)
-                    const monthTransactions = (transactions as any[]).filter(tx => tx.date && new Date(tx.date).toISOString().startsWith(currentMonthPrefix) && tx.status === 'COMPLETED')
-                    
-                    // Solo transacciones pagadas por clientes de este coach
-                    const coachTx = monthTransactions.filter(tx => tx.customer?.coachId === emp.id)
-                    
-                    const empAssignedAthletes = athletes.filter(a => a.coachId === emp.id);
-                      let commission = 0; if (emp.commissionType === 'flat') { commission = empAssignedAthletes.length * commissionRate; } else { for (const tx of coachTx) { for (const item of tx.items) { if (item.productId === 'MEMB' || item.productId === 'COACH') { commission += item.subtotal * (commissionRate / 100); } } } } 
-                      const totalPay = baseSalary + commission
-                    const currentMonth = new Date().toISOString().substring(0, 7)
-                    const isPaidThisMonth = emp.lastPaidDate && new Date(emp.lastPaidDate).toISOString().startsWith(currentMonth)
-
-
-                    return (
-                      <tr key={emp.id} className={`transition-colors ${isPaidThisMonth ? 'bg-success/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
-                        <td className="p-4">
-                          <div className="font-bold flex items-center gap-2">
-                            {emp.name}
-                            {isPaidThisMonth && <span className="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full uppercase">Pagado</span>}
-                          </div>
-                          <div className="text-xs text-muted-foreground">{emp.cedula} | {emp.role}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="font-bold">{empAssignedAthletes.length} atletas</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-xs text-muted-foreground">Base: {settings.storeCurrency} {baseSalary} + Com: {settings.storeCurrency} {commission.toFixed(2)}</div>
-                          <div className="font-black text-primary">{settings.storeCurrency} {totalPay.toFixed(2)}</div>
-                        </td>
-                        <td className="p-4 text-xs">
-                          <div className="space-y-1">
-                            {emp.bankAccount ? (
-                              <div className="text-muted-foreground">
-                                <span className="font-bold">Cta:</span> {emp.bankName ? `${emp.bankName} - ` : ''}{emp.bankAccount}
-                              </div>
-                            ) : null}
-                            {emp.mobilePayment ? (
-                              <div className="text-muted-foreground">
-                                <span className="font-bold">Pago Móvil:</span> {emp.mobilePaymentBank ? `${emp.mobilePaymentBank} - ` : ''}{emp.mobilePayment}
-                              </div>
-                            ) : null}
-                            {!emp.bankAccount && !emp.mobilePayment && (
-                              <span className="text-destructive/70">Sin datos registrados</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4 text-right flex justify-end gap-2">
-                          <button onClick={() => {
-                            setPayrollForm({ ...emp, clave: '', confirmClave: '' })
-                            setShowPayrollModal(true)
-                          }} className="px-3 py-1.5 bg-black/10 dark:bg-white/10 text-foreground text-xs font-bold rounded hover:bg-black/20 transition">
-                            Configurar
-                          </button>
-                          {!isPaidThisMonth ? (
-                            <button onClick={() => openProcessPayroll(emp, baseSalary, commission)} className="px-3 py-1.5 bg-transparent border border-success text-success text-xs font-bold rounded hover:bg-success/10 transition">
-                              Pagar Nómina
-                            </button>
-                          ) : (
-                            <button disabled className="px-3 py-1.5 bg-success/20 text-success text-xs font-bold rounded cursor-not-allowed">
-                              Nómina Pagada
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                  {employees.filter(e => e.role !== 'admin').length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="p-8 text-center text-muted-foreground">No hay entrenadores o empleados registrados.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <FinancePayrollTab
+          employees={employees}
+          athletes={athletes}
+          transactions={transactions}
+          settings={settings}
+          onAddEmployeeClick={() => {
+            setPayrollForm({
+              id: '',
+              name: '',
+              cedula: '',
+              role: 'employee',
+              clave: '',
+              confirmClave: '',
+              baseSalary: 0,
+              commissionRate: 0,
+              commissionType: 'flat',
+              birthDate: '',
+              profession: '',
+              specialties: '',
+              nonWorkingDays: '',
+              avatar: '',
+            })
+            setShowPayrollModal(true)
+          }}
+          onConfigureEmployee={(emp) => {
+            setPayrollForm({ ...emp, clave: '', confirmClave: '' })
+            setShowPayrollModal(true)
+          }}
+          onProcessPayroll={(emp, baseSalary, commission) => {
+            openProcessPayroll(emp, baseSalary, commission)
+          }}
+        />
       )}
 
       {activeTab === 'reportes' && (
