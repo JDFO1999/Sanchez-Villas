@@ -745,40 +745,30 @@ export function AthleteDashboard() {
             </div>
 
             {/* Dynamic Anti-Capture QR Container */}
-            <div className="flex flex-col items-center bg-white p-5 rounded-2xl shadow-xl mb-4 relative">
-              <div className="w-full flex items-center justify-between text-[11px] font-bold text-zinc-700 mb-2 pb-1.5 border-b border-zinc-200">
-                <span className="flex items-center gap-1.5 text-emerald-600">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span>Código Dinámico en Vivo</span>
-                </span>
-                <span className="font-mono text-zinc-600 font-bold bg-zinc-100 px-2 py-0.5 rounded-md">
-                  {qrSecondsLeft}s
-                </span>
+            <div className="flex flex-col items-center bg-white/5 border border-white/10 p-5 rounded-2xl mb-4 relative backdrop-blur-sm">
+              {/* Segundos restantes */}
+              <div className="flex items-center gap-2 font-mono text-xs font-black text-primary bg-primary/15 border border-primary/25 px-3 py-1 rounded-full mb-3.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span>{qrSecondsLeft}s</span>
               </div>
 
-              <div className="p-2 border-2 border-dashed border-zinc-300 rounded-xl bg-white shadow-inner">
+              {/* QR Canvas */}
+              <div className="p-3 rounded-2xl bg-white shadow-2xl flex items-center justify-center">
                 <QRCodeSVG 
                   value={dynamicQrToken || user?.cedula || ''} 
                   size={210} 
                   level="H" 
-                  includeMargin={true}
+                  includeMargin={false}
                 />
               </div>
 
               {/* Barra de progreso regresiva */}
-              <div className="w-full h-1.5 bg-zinc-200 rounded-full overflow-hidden mt-3.5">
+              <div className="w-full max-w-[210px] h-1.5 bg-white/10 rounded-full overflow-hidden mt-4">
                 <div 
                   className="h-full bg-primary transition-all duration-1000 ease-linear rounded-full"
                   style={{ width: `${Math.max(0, Math.min(100, (qrSecondsLeft / 60) * 100))}%` }}
                 />
               </div>
-
-              <p className="text-[11px] font-bold text-zinc-800 mt-2 text-center tracking-tight">
-                🔒 Protección Anti-Captura • Se regenera en vivo
-              </p>
-              <p className="text-[10px] text-zinc-500 text-center leading-tight mt-0.5 max-w-[230px]">
-                Las capturas de pantalla o fotos expiran a los 60s y son rechazadas por el torniquete.
-              </p>
             </div>
 
             {/* Athlete Info details */}
