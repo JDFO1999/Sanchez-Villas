@@ -1558,9 +1558,9 @@ export default function AtletaPerfilPage() {
       {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
       {showEditAthleteModal && athlete && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg lg:max-w-6xl xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
                   <Edit className="h-5 w-5" />
@@ -1579,319 +1579,369 @@ export default function AtletaPerfilPage() {
               </button>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSaveEditAthlete} className="space-y-4 overflow-y-auto pr-1">
-              {/* Sección Datos Personales */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales
-                </span>
+            {/* Formulario con Layout de 3 Columnas en PC */}
+            <form onSubmit={handleSaveEditAthlete} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto pr-1 flex-1">
+                <div className={`grid grid-cols-1 ${canEditAthlete ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4 lg:gap-5 items-start`}>
+                  {/* COLUMNA 1: DATOS PERSONALES & CONTACTO */}
+                  <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-3">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales & Contacto
+                    </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
-                    <input
-                      required
-                      type="text"
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
+                        <input
+                          required
+                          type="text"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
 
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Cédula *</label>
-                    <input
-                      required
-                      type="text"
-                      value={editCedula}
-                      onChange={e => setEditCedula(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Teléfono</label>
-                    <input
-                      type="text"
-                      placeholder="0414-0000000"
-                      value={editPhone}
-                      onChange={e => setEditPhone(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      placeholder="atleta@gym.com"
-                      value={editEmail}
-                      onChange={e => setEditEmail(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
-                      {editBirthDate && calculateAge(editBirthDate) !== null ? (
-                        <span className="text-[11px] font-semibold text-primary">
-                          🎂 {calculateAge(editBirthDate)} años
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground/80 italic">
-                          Sin datos
-                        </span>
-                      )}
-                    </div>
-                    <input
-                      type="date"
-                      max={new Date().toISOString().split("T")[0]}
-                      min="1920-01-01"
-                      value={editBirthDate}
-                      onChange={e => setEditBirthDate(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Género</label>
-                    <select
-                      value={editGender}
-                      onChange={e => setEditGender(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    >
-                      <option value="M">Masculino</option>
-                      <option value="F">Femenino</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Sección Representante Legal si es menor de edad o ya tiene datos */}
-                {(editGuardianName || (editBirthDate && calculateAge(editBirthDate) !== null && calculateAge(editBirthDate)! < 18)) && (
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
-                      <ShieldAlert className="w-4 h-4 shrink-0" />
-                      <span>Datos del Representante Legal (Menor de 18 años)</span>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold mb-1 block">Nombre y Apellido del Representante</label>
-                      <input
-                        type="text"
-                        placeholder="Ej. María Elena Pérez"
-                        value={editGuardianName}
-                        onChange={e => setEditGuardianName(e.target.value)}
-                        className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                      />
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Cédula *</label>
+                        <input
+                          required
+                          type="text"
+                          value={editCedula}
+                          onChange={e => setEditCedula(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-semibold mb-1 block">Cédula del Representante</label>
+                        <label className="text-xs font-semibold mb-1 block">Teléfono (WhatsApp)</label>
                         <input
                           type="text"
-                          placeholder="Ej. 12345678"
-                          value={editGuardianCedula}
-                          onChange={e => setEditGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                          placeholder="0414-0000000"
+                          value={editPhone}
+                          onChange={e => setEditPhone(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="text-xs font-semibold mb-1 block">Teléfono del Representante</label>
+                        <label className="text-xs font-semibold mb-1 block">Correo Electrónico</label>
                         <input
-                          type="tel"
-                          placeholder="Ej. 04141234567"
-                          value={editGuardianPhone}
-                          onChange={e => setEditGuardianPhone(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                          type="email"
+                          placeholder="atleta@gym.com"
+                          value={editEmail}
+                          onChange={e => setEditEmail(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                         />
                       </div>
                     </div>
-                  </div>
-                )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Entrenador (Coach)</label>
-                    <select
-                      value={editCoachId}
-                      onChange={e => setEditCoachId(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    >
-                      <option value="">Sin entrenador asignado</option>
-                      {allCoaches.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold block">Fecha de Nacimiento</label>
+                          {editBirthDate && calculateAge(editBirthDate) !== null ? (
+                            <span className="text-[11px] font-semibold text-primary">
+                              🎂 {calculateAge(editBirthDate)} años
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/80 italic">
+                              Sin datos
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="date"
+                          max={new Date().toISOString().split("T")[0]}
+                          min="1920-01-01"
+                          value={editBirthDate}
+                          onChange={e => setEditBirthDate(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Género</label>
+                        <select
+                          value={editGender}
+                          onChange={e => setEditGender(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        >
+                          <option value="M">Masculino</option>
+                          <option value="F">Femenino</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Entrenador (Coach)</label>
+                        <select
+                          value={editCoachId}
+                          onChange={e => setEditCoachId(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        >
+                          <option value="">Sin entrenador asignado</option>
+                          {allCoaches.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                        <input
+                          type="text"
+                          placeholder="Sector / Calle / Residencia"
+                          value={editAddress}
+                          onChange={e => setEditAddress(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sub-bloque Representante Legal */}
+                    {(editGuardianName || (editBirthDate && calculateAge(editBirthDate) !== null && calculateAge(editBirthDate)! < 18)) && (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-2.5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-500">
+                          <ShieldAlert className="w-4 h-4 shrink-0" />
+                          <span>Datos del Representante Legal (Menor de 18)</span>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold mb-1 block">Nombre y Apellido</label>
+                          <input
+                            type="text"
+                            placeholder="Ej. María Elena Pérez"
+                            value={editGuardianName}
+                            onChange={e => setEditGuardianName(e.target.value)}
+                            className="w-full bg-background border border-border rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-semibold mb-1 block">Cédula</label>
+                            <input
+                              type="text"
+                              placeholder="Ej. 12345678"
+                              value={editGuardianCedula}
+                              onChange={e => setEditGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                              className="w-full bg-background border border-border rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-semibold mb-1 block">Teléfono</label>
+                            <input
+                              type="tel"
+                              placeholder="Ej. 04141234567"
+                              value={editGuardianPhone}
+                              onChange={e => setEditGuardianPhone(e.target.value)}
+                              className="w-full bg-background border border-border rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
-                    <input
-                      type="text"
-                      placeholder="Sector / Calle / Residencia"
-                      value={editAddress}
-                      onChange={e => setEditAddress(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                  {/* COLUMNA 2: SEGURIDAD Y MEMBRESÍA HISTÓRICA */}
+                  <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4">
+                    {/* Sección Seguridad / Restablecer Contraseña */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Seguridad & Acceso
+                      </span>
+                      <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 space-y-2.5">
+                        <div>
+                          <p className="text-xs font-bold text-foreground">
+                            Restablecer Contraseña
+                          </p>
+                          <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                            Genera un link seguro (válido 60 min) enviado al correo y listo para compartir por WhatsApp.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSendResetLink(athlete)}
+                          disabled={isSendingReset}
+                          className="w-full px-3.5 py-2.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSendingReset ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Generando Enlace...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Enviar Link de Acceso</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Sección Membresía & Corte / Entrenador (Solo Admin / Gerente) */}
+                    {canEditAthlete && (
+                      <div className="space-y-3 pt-3 border-t border-black/10 dark:border-white/10">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Corte
+                          </span>
+                          {((athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970) || editMembEnd) && (
+                            <button
+                              type="button"
+                              onClick={handleClearAthleteMembership}
+                              disabled={isSavingAthlete}
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <X className="w-3 h-3" />
+                              Quitar Membresía
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Modifica las fechas históricas. Si no tiene membresía, deja la Fecha de Corte en blanco.
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                            <input
+                              type="date"
+                              value={editMembStart}
+                              onChange={e => setEditMembStart(e.target.value)}
+                              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold mb-1 block">Fecha de Corte</label>
+                            <input
+                              type="date"
+                              value={editMembEnd}
+                              onChange={e => setEditMembEnd(e.target.value)}
+                              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Botones rápidos de cálculo de Fecha de Corte */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-muted-foreground block">Cálculo rápido de corte:</span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {[
+                              { label: "+1 Mes", months: 1 },
+                              { label: "+3 Meses", months: 3 },
+                              { label: "+6 Meses", months: 6 },
+                              { label: "+1 Año", months: 12 },
+                            ].map(btn => (
+                              <button
+                                key={btn.months}
+                                type="button"
+                                onClick={() => setEditMembEnd(calculateCutoffDate(editMembStart, btn.months))}
+                                className="px-2 py-1 rounded-md text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                              >
+                                {btn.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* COLUMNA 3: SELECCIÓN DE PLAN DE MEMBRESÍA */}
+                  {canEditAthlete && (
+                    <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4">
+                      <div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2">
+                          <CalendarCheck className="w-3.5 h-3.5 text-primary" /> Plan de Membresía
+                        </span>
+
+                        <label className="text-xs font-semibold mb-1 block">Seleccionar Plan</label>
+                        <select
+                          value={editMembPlan}
+                          onChange={e => {
+                            const val = e.target.value
+                            setEditMembPlan(val)
+                            if (val && !editMembEnd) {
+                              setEditMembEnd(calculateCutoffDate(editMembStart, 1))
+                            }
+                          }}
+                          className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none font-medium mb-2.5"
+                        >
+                          <option value="">-- Sin Plan Seleccionado --</option>
+                          {availablePlans.map((plan) => (
+                            <option key={plan.name} value={plan.name}>
+                              {plan.name} — {settings?.storeCurrency || "$"}{plan.price} {plan.period}
+                            </option>
+                          ))}
+                          {editMembPlan && !availablePlans.some(p => p.name === editMembPlan) && (
+                            <option value={editMembPlan}>{editMembPlan}</option>
+                          )}
+                        </select>
+
+                        <div className="grid grid-cols-2 gap-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+                          {availablePlans.map((plan) => {
+                            const isSelected = editMembPlan === plan.name
+                            return (
+                              <button
+                                key={plan.name}
+                                type="button"
+                                onClick={() => {
+                                  setEditMembPlan(plan.name)
+                                  if (!editMembEnd) {
+                                    setEditMembEnd(calculateCutoffDate(editMembStart, 1))
+                                  }
+                                }}
+                                className={`text-left p-2 rounded-lg border transition-all flex items-center justify-between gap-1.5 ${
+                                  isSelected
+                                    ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                                    : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <span className="font-bold text-[11px] block truncate">{plan.name}</span>
+                                  <span className="text-[10px] font-black text-primary">
+                                    {settings?.storeCurrency || "$"}{plan.price} <span className="text-[9px] font-normal text-muted-foreground">{plan.period}</span>
+                                  </span>
+                                </div>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                        <span className="font-bold text-xs text-amber-500 block">ℹ️ Ficha Administrativa</span>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                          Las modificaciones directas se guardan como asignación histórica. Si el atleta va a pagar una renovación en caja, realiza la operación desde el módulo de Membresías o Tienda.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Sección Seguridad / Restablecer Contraseña */}
-              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Restablecer Contraseña
-                </span>
-                <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-foreground">
-                      Enviar enlace de restablecimiento al atleta
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Genera un link seguro (válido por 60 min) enviado al correo y listo para compartir por WhatsApp.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSendResetLink(athlete)}
-                    disabled={isSendingReset}
-                    className="shrink-0 px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {isSendingReset ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Enviar Link de Acceso</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Sección Membresía & Corte / Entrenador (Solo Admin / Gerente) */}
-              {canEditAthlete && (
-                <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte (Histórico)
-                    </span>
-                    {((athlete.membershipEnd && new Date(athlete.membershipEnd).getFullYear() > 1970) || editMembEnd) && (
-                      <button
-                        type="button"
-                        onClick={handleClearAthleteMembership}
-                        disabled={isSavingAthlete}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                      >
-                        <X className="w-3 h-3" />
-                        Devolver / Quitar Membresía
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Modifica directamente la fecha de compra, fecha de corte (vencimiento) y plan del atleta. Si no tiene membresía, deja la Fecha de Corte en blanco.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
-                      <input
-                        type="date"
-                        value={editMembStart}
-                        onChange={e => setEditMembStart(e.target.value)}
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
-                      <input
-                        type="date"
-                        value={editMembEnd}
-                        onChange={e => setEditMembEnd(e.target.value)}
-                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botones rápidos de cálculo de Fecha de Corte */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
-                    {[
-                      { label: "+1 Mes", months: 1 },
-                      { label: "+3 Meses", months: 3 },
-                      { label: "+6 Meses", months: 6 },
-                      { label: "+1 Año", months: 12 },
-                    ].map(btn => (
-                      <button
-                        key={btn.months}
-                        type="button"
-                        onClick={() => setEditMembEnd(calculateCutoffDate(editMembStart, btn.months))}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Plan de Membresía</label>
-                    <select
-                      value={editMembPlan}
-                      onChange={e => {
-                        const val = e.target.value
-                        setEditMembPlan(val)
-                        if (val) {
-                          if (!editMembEnd) {
-                            setEditMembEnd(calculateCutoffDate(editMembStart, 1))
-                          }
-                          showSweetToast(
-                            "Seleccionaste un plan desde la ficha histórica (sin pasar por Flujo de Caja). Si es una renovación nueva con pago, usa el módulo de Membresías.",
-                            "warning"
-                          )
-                        }
-                      }}
-                      className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
-                    >
-                      <option value="">-- Sin Plan Seleccionado --</option>
-                      {availablePlans.map((plan) => (
-                        <option key={plan.name} value={plan.name}>
-                          {plan.name} — {settings?.storeCurrency || "$"}{plan.price} {plan.period}
-                        </option>
-                      ))}
-                      {editMembPlan && !availablePlans.some(p => p.name === editMembPlan) && (
-                        <option value={editMembPlan}>{editMembPlan}</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Botones de acción */}
-              <div className="flex gap-2.5 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+              {/* Botones de acción fijos en el pie */}
+              <div className="flex gap-2.5 justify-end pt-3 mt-4 border-t border-black/10 dark:border-white/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowEditAthleteModal(false)}
                   disabled={isSavingAthlete}
-                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition"
+                  className="px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingAthlete}
-                  className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
                   {isSavingAthlete ? (
                     <>
