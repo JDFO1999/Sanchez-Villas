@@ -225,22 +225,22 @@ export default function RegistroPage() {
         {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
       </button>
 
-      <div className="z-10 w-full max-w-lg bg-card/85 backdrop-blur-xl border border-black/10 dark:border-white/10 p-6 sm:p-8 rounded-3xl flex flex-col items-center relative my-8 shadow-2xl">
-        <div className="w-full mb-3 flex items-center justify-between">
-          <Link href="/login" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition">
-            <ArrowLeft className="h-4 w-4 mr-1.5" /> Volver al Inicio de Sesión
+      <div className="z-10 w-full max-w-5xl xl:max-w-6xl bg-card/90 backdrop-blur-xl border border-black/10 dark:border-white/10 p-5 sm:p-6 rounded-3xl flex flex-col items-center relative my-2 sm:my-4 shadow-2xl">
+        <div className="w-full mb-2 flex items-center justify-between">
+          <Link href="/login" className="inline-flex items-center text-xs sm:text-sm font-semibold text-muted-foreground hover:text-primary transition">
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" /> Volver al Inicio de Sesión
           </Link>
         </div>
 
         {settings.logoSettings?.showInLogin && (
-          <div className="mb-4 flex items-center justify-center">
+          <div className="mb-2 flex items-center justify-center">
             {logoSrc ? (
               <img 
                 src={logoSrc} 
                 alt="Logo" 
                 style={{ 
-                  width: settings.logoSettings.widthLogin || 70, 
-                  height: settings.logoSettings.heightLogin || 70, 
+                  width: Math.min(settings.logoSettings.widthLogin || 55, 55), 
+                  height: Math.min(settings.logoSettings.heightLogin || 55, 55), 
                   objectFit: settings.logoSettings.objectFit || 'contain',
                   maskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none',
                   WebkitMaskImage: settings.logoSettings.fadeEffect ? 'linear-gradient(to bottom, black 50%, transparent 100%)' : 'none'
@@ -249,44 +249,45 @@ export default function RegistroPage() {
               />
             ) : (
               <div 
-                style={{ width: settings.logoSettings.widthLogin || 70, height: settings.logoSettings.heightLogin || 70 }} 
-                className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center text-primary font-black text-3xl shadow-inner select-none"
+                style={{ width: 50, height: 50 }} 
+                className="bg-primary/15 border border-primary/30 rounded-2xl flex items-center justify-center text-primary font-black text-2xl shadow-inner select-none"
               >
                 {(settings.appName || 'M').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
         )}
-        <h1 className="text-2xl font-black mb-1 text-center leading-tight tracking-tight text-foreground">
+        <h1 className="text-xl sm:text-2xl font-black mb-0.5 text-center leading-tight tracking-tight text-foreground">
           Únete a {settings.logoSettings?.showNameInLogin ? settings.appName : 'nuestra comunidad'}
         </h1>
-        <p className="text-muted-foreground mb-6 text-center text-xs leading-relaxed max-w-sm">
+        <p className="text-muted-foreground mb-4 text-center text-xs leading-relaxed max-w-xl">
           Crea tu cuenta de atleta (si ya pagaste tu plan en recepción con tu cédula, se enlazará automáticamente)
         </p>
 
         {error && (
-          <div className="w-full p-3 mb-6 bg-destructive/10 border border-destructive/50 text-destructive text-sm rounded-xl text-center font-medium flex items-center justify-center gap-2">
+          <div className="w-full p-2.5 mb-3 bg-destructive/10 border border-destructive/50 text-destructive text-xs sm:text-sm rounded-xl text-center font-medium flex items-center justify-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1">
+        <form onSubmit={handleSubmit} className="w-full space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Col 1: Nombre y Apellido */}
+            <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Nombre y Apellido *</label>
               <input 
                 type="text" 
                 value={nombre} 
                 onChange={e => setNombre(e.target.value)} 
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" 
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors" 
                 placeholder="Ej. Pedro Pérez" 
                 required 
               />
             </div>
             
-            {/* Cédula de 8 dígitos estrictos */}
-            <div className="col-span-2 sm:col-span-1">
+            {/* Col 2: Cédula de 8 dígitos estrictos */}
+            <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-foreground block">Cédula (8 dígitos) *</label>
                 <span className={`text-[11px] font-mono transition-colors ${
@@ -302,7 +303,7 @@ export default function RegistroPage() {
                   maxLength={8}
                   value={cleanCedula} 
                   onChange={e => setCedula(e.target.value.replace(/\D/g, "").slice(0, 8))} 
-                  className={`w-full bg-black/5 dark:bg-black/40 border text-foreground rounded-xl p-3 pr-9 text-sm font-mono focus:outline-none transition-colors ${
+                  className={`w-full bg-black/5 dark:bg-black/40 border text-foreground rounded-xl p-2.5 pr-8 text-sm font-mono focus:outline-none transition-colors ${
                     isCedulaComplete 
                       ? "border-emerald-500/60 focus:border-emerald-500" 
                       : cleanCedula.length > 0 
@@ -313,60 +314,48 @@ export default function RegistroPage() {
                   required 
                 />
                 {isCedulaComplete && (
-                  <Check className="absolute right-3 top-3.5 h-4 w-4 text-emerald-500" />
+                  <Check className="absolute right-2.5 top-3 h-4 w-4 text-emerald-500" />
                 )}
               </div>
               {cleanCedula.length > 0 && !isCedulaComplete && (
-                <p className="text-[11px] text-amber-500 mt-1">
-                  Ingresa al menos 7 dígitos numéricos ({cleanCedula.length}/8).
+                <p className="text-[10px] text-amber-500 mt-0.5">
+                  Ingresa al menos 7 dígitos ({cleanCedula.length}/8).
                 </p>
               )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1">
+            {/* Col 3: Teléfono / WhatsApp */}
+            <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Teléfono / WhatsApp *</label>
               <input 
                 type="text" 
                 value={telefono} 
                 onChange={e => setTelefono(e.target.value)} 
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" 
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors" 
                 placeholder="Ej. 0414-1234567" 
                 required 
               />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+
+            {/* Col 4: Correo Electrónico */}
+            <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Correo Electrónico *</label>
               <input 
                 type="email" 
                 value={correo} 
                 onChange={e => setCorreo(e.target.value)} 
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" 
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors" 
                 placeholder="tu@correo.com" 
                 required 
               />
             </div>
-          </div>
-          
-          <div>
-            <label className="text-xs font-semibold text-foreground mb-1 block">Dirección de Habitación</label>
-            <input 
-              type="text" 
-              value={direccion} 
-              onChange={e => setDireccion(e.target.value)} 
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors" 
-              placeholder="Sector / Calle / Residencia" 
-            />
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Fecha de Nacimiento */}
-            <div className="col-span-2 sm:col-span-1">
+            {/* Col 5: Fecha de Nacimiento */}
+            <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-foreground block">Fecha de Nacimiento *</label>
                 {userAge !== null && userAge >= 0 && userAge <= 120 && (
-                  <span className="text-[11px] font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-in fade-in duration-300">
+                  <span className="text-[10px] font-semibold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20 animate-in fade-in duration-300">
                     🎂 {userAge} {userAge === 1 ? 'año' : 'años'}
                   </span>
                 )}
@@ -378,21 +367,21 @@ export default function RegistroPage() {
                   max={new Date().toISOString().split("T")[0]}
                   min="1920-01-01"
                   onChange={e => setFechaNacimiento(e.target.value)} 
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 pl-10 text-sm focus:outline-none focus:border-primary transition-colors [color-scheme:light] dark:[color-scheme:dark]" 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 pl-9 text-sm focus:outline-none focus:border-primary transition-colors [color-scheme:light] dark:[color-scheme:dark]" 
                   required 
                 />
-                <Calendar className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Calendar className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
               </div>
             </div>
 
-            {/* Género */}
-            <div className="col-span-2 sm:col-span-1">
+            {/* Col 6: Género */}
+            <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Género *</label>
               <div className="relative">
                 <select 
                   value={genero} 
                   onChange={e => setGenero(e.target.value as 'M'|'F')} 
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
                 >
                   <option value="M">Masculino</option>
                   <option value="F">Femenino</option>
@@ -402,35 +391,184 @@ export default function RegistroPage() {
                 </div>
               </div>
             </div>
+
+            {/* Col 7 & 8: Dirección de Habitación (span 2 en lg) */}
+            <div className="md:col-span-2 lg:col-span-2">
+              <label className="text-xs font-semibold text-foreground mb-1 block">Dirección de Habitación</label>
+              <input 
+                type="text" 
+                value={direccion} 
+                onChange={e => setDireccion(e.target.value)} 
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors" 
+                placeholder="Sector / Calle / Residencia" 
+              />
+            </div>
+
+            {/* Col 9: Entrenador (Opcional) */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
+              <div className="relative">
+                <select 
+                  value={entrenador} 
+                  onChange={e => setEntrenador(e.target.value)} 
+                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
+                >
+                  <option value="">-- Sin entrenador --</option>
+                  {coaches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Col 10: Contraseña */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-foreground block">Contraseña *</label>
+                {clave && (
+                  <span className={`text-[10px] font-bold ${
+                    pwdValidation.strengthLabel === 'Fuerte' 
+                      ? 'text-emerald-500' 
+                      : pwdValidation.strengthLabel === 'Media'
+                      ? 'text-yellow-500 dark:text-yellow-400'
+                      : 'text-rose-500'
+                  }`}>
+                    {pwdValidation.strengthLabel}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={clave} 
+                  onChange={e => setClave(e.target.value)} 
+                  className={`w-full bg-black/5 dark:bg-black/40 border text-foreground rounded-xl p-2.5 pr-9 text-sm focus:outline-none transition-colors ${
+                    clave ? (pwdValidation.isValid ? 'border-emerald-500/60 focus:border-emerald-500' : 'border-rose-500/60 focus:border-rose-500') : 'border-black/10 dark:border-white/10 focus:border-primary'
+                  }`} 
+                  placeholder="••••••••" 
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground transition cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Col 11: Confirmar Contraseña */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-foreground block">Confirmar Contraseña *</label>
+                {confirmClave && claveMatch && (
+                  <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-0.5">
+                    <Check className="h-3 w-3" /> Coinciden
+                  </span>
+                )}
+                {confirmClave && !claveMatch && (
+                  <span className="text-[10px] text-rose-500 font-medium">No coinciden</span>
+                )}
+              </div>
+              <div className="relative">
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  value={confirmClave} 
+                  onChange={e => setConfirmClave(e.target.value)} 
+                  className={`w-full bg-black/5 dark:bg-black/40 border rounded-xl p-2.5 pr-9 text-sm focus:outline-none transition-all ${
+                    confirmClave 
+                      ? (claveMatch ? 'border-emerald-500/60 focus:border-emerald-500' : 'border-rose-500/60 focus:border-rose-500') 
+                      : 'border-black/10 dark:border-white/10 focus:border-primary'
+                  }`} 
+                  placeholder="••••••••" 
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground transition cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Col 12: Medidor y requisitos de contraseña compacto */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-1 flex flex-col justify-end">
+              <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/[0.03] border border-black/5 dark:border-white/5 space-y-1.5 text-xs">
+                <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-300 ${
+                      !clave
+                        ? "w-0"
+                        : pwdValidation.score <= 1
+                        ? "w-1/4 bg-rose-500"
+                        : pwdValidation.score <= 2
+                        ? "w-2/4 bg-amber-500"
+                        : pwdValidation.score === 3
+                        ? "w-3/4 bg-yellow-400"
+                        : "w-full bg-emerald-500"
+                    }`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
+                  <span className={`flex items-center gap-1 truncate ${pwdValidation.hasMinLength ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pwdValidation.hasMinLength ? "bg-emerald-500" : "bg-muted-foreground"}`} />
+                    Mín. 8 caracteres
+                  </span>
+                  <span className={`flex items-center gap-1 truncate ${(pwdValidation.hasUpperCase && pwdValidation.hasLowerCase) ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(pwdValidation.hasUpperCase && pwdValidation.hasLowerCase) ? "bg-emerald-500" : "bg-muted-foreground"}`} />
+                    Mayús. y minús.
+                  </span>
+                  <span className={`flex items-center gap-1 truncate ${pwdValidation.hasNumber ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pwdValidation.hasNumber ? "bg-emerald-500" : "bg-muted-foreground"}`} />
+                    Un número
+                  </span>
+                  <span className={`flex items-center gap-1 truncate ${(pwdValidation.isNotCommon && pwdValidation.doesNotMatchCedula) ? "text-emerald-500 font-semibold" : "text-rose-500 font-semibold"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(pwdValidation.isNotCommon && pwdValidation.doesNotMatchCedula) ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    {(!pwdValidation.isNotCommon || !pwdValidation.doesNotMatchCedula) ? "Sin 123456/cédula" : "Clave segura"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Sección Representante Legal para Menores de 18 Años */}
+          {/* Sección Representante Legal para Menores de 18 Años (3 Columnas) */}
           {userAge !== null && userAge < 18 && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 space-y-3.5 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
-                  <ShieldAlert className="h-5 w-5" />
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-500 shrink-0">
+                  <ShieldAlert className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-foreground">
+                  <h4 className="text-xs sm:text-sm font-bold text-foreground">
                     Datos del Representante Legal (Obligatorio para menores de 18 años)
                   </h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-[11px] text-muted-foreground">
                     Al tener {userAge} {userAge === 1 ? 'año' : 'años'}, debes registrar los datos de tu padre, madre o tutor responsable para autorizar tu actividad deportiva.
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div className="sm:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
                   <label className="text-xs font-semibold text-foreground mb-1 block">
-                    Nombre y Apellido del Representante *
+                    Nombre del Representante *
                   </label>
                   <input
                     type="text"
                     value={guardianName}
                     onChange={e => setGuardianName(e.target.value)}
-                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
                     placeholder="Ej. María Elena Pérez"
                     required
                   />
@@ -444,7 +582,7 @@ export default function RegistroPage() {
                     type="text"
                     value={guardianCedula}
                     onChange={e => setGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
                     placeholder="Ej. 12345678"
                     required
                   />
@@ -452,14 +590,14 @@ export default function RegistroPage() {
 
                 <div>
                   <label className="text-xs font-semibold text-foreground mb-1 block">
-                    Teléfono / WhatsApp del Representante *
+                    Teléfono del Representante *
                   </label>
                   <input
                     type="tel"
                     value={guardianPhone}
                     onChange={e => setGuardianPhone(e.target.value)}
-                    className="w-full bg-background border border-border text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary transition-colors"
-                    placeholder="Ej. 04141234567"
+                    className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Ej. 0414-1234567"
                     required
                   />
                 </div>
@@ -467,160 +605,16 @@ export default function RegistroPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
-              <div className="relative">
-                <select 
-                  value={entrenador} 
-                  onChange={e => setEntrenador(e.target.value)} 
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-3 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
-                >
-                  <option value="">-- Sin entrenador --</option>
-                  {coaches.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-foreground">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sección de Contraseña Segura */}
-          <div className="space-y-3 pt-1">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 sm:col-span-1">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-foreground block">Contraseña *</label>
-                  {clave && (
-                    <span className={`text-[11px] font-bold ${
-                      pwdValidation.strengthLabel === 'Fuerte' 
-                        ? 'text-emerald-500' 
-                        : pwdValidation.strengthLabel === 'Media'
-                        ? 'text-yellow-500 dark:text-yellow-400'
-                        : 'text-rose-500'
-                    }`}>
-                      {pwdValidation.strengthLabel}
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    value={clave} 
-                    onChange={e => setClave(e.target.value)} 
-                    className={`w-full bg-black/5 dark:bg-black/40 border text-foreground rounded-xl p-3 pr-10 text-sm focus:outline-none transition-colors ${
-                      clave ? (pwdValidation.isValid ? 'border-emerald-500/60 focus:border-emerald-500' : 'border-rose-500/60 focus:border-rose-500') : 'border-black/10 dark:border-white/10 focus:border-primary'
-                    }`} 
-                    placeholder="••••••••" 
-                    required 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition"
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1">
-                <label className="text-xs font-semibold text-foreground mb-1 block">Confirmar Contraseña *</label>
-                <div className="relative">
-                  <input 
-                    type={showConfirmPassword ? "text" : "password"} 
-                    value={confirmClave} 
-                    onChange={e => setConfirmClave(e.target.value)} 
-                    className={`w-full bg-black/5 dark:bg-black/40 border rounded-xl p-3 pr-10 text-sm focus:outline-none transition-all ${
-                      confirmClave 
-                        ? (claveMatch ? 'border-emerald-500/60 focus:border-emerald-500' : 'border-rose-500/60 focus:border-rose-500') 
-                        : 'border-black/10 dark:border-white/10 focus:border-primary'
-                    }`} 
-                    placeholder="••••••••" 
-                    required 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition"
-                    tabIndex={-1}
-                    aria-label={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {confirmClave && !claveMatch && (
-                  <p className="text-[11px] text-rose-500 mt-1 font-medium">Las contraseñas no coinciden.</p>
-                )}
-                {confirmClave && claveMatch && (
-                  <p className="text-[11px] text-emerald-500 mt-1 font-medium flex items-center gap-1">
-                    <Check className="h-3 w-3" /> Coinciden correctamente
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Medidor de Fortaleza y Requisitos */}
-            {clave && (
-              <div className="space-y-2 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs">
-                <div className="w-full bg-black/10 dark:bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-300 ${
-                      pwdValidation.score <= 1
-                        ? "w-1/4 bg-rose-500"
-                        : pwdValidation.score <= 2
-                        ? "w-2/4 bg-amber-500"
-                        : pwdValidation.score === 3
-                        ? "w-3/4 bg-yellow-400"
-                        : "w-full bg-emerald-500"
-                    }`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-[11px]">
-                  <span className={`flex items-center gap-1.5 ${pwdValidation.hasMinLength ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${pwdValidation.hasMinLength ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-                    Mínimo 8 caracteres
-                  </span>
-                  <span className={`flex items-center gap-1.5 ${(pwdValidation.hasUpperCase && pwdValidation.hasLowerCase) ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${(pwdValidation.hasUpperCase && pwdValidation.hasLowerCase) ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-                    Mayúscula y minúscula
-                  </span>
-                  <span className={`flex items-center gap-1.5 ${pwdValidation.hasNumber ? "text-emerald-500 font-semibold" : "text-muted-foreground"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${pwdValidation.hasNumber ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-                    Al menos un número
-                  </span>
-                  <span className={`flex items-center gap-1.5 ${(pwdValidation.isNotCommon && pwdValidation.doesNotMatchCedula) ? "text-emerald-500 font-semibold" : "text-rose-500 font-semibold"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${(pwdValidation.isNotCommon && pwdValidation.doesNotMatchCedula) ? "bg-emerald-500" : "bg-rose-500"}`} />
-                    {(!pwdValidation.isNotCommon || !pwdValidation.doesNotMatchCedula) ? "No usar 123456 ni tu cédula" : "Clave segura"}
-                  </span>
-                </div>
-
-                {pwdValidation.error && (
-                  <p className="text-[11px] text-rose-500 font-medium pt-0.5 flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                    <span>{pwdValidation.error}</span>
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Aceptación de Términos y Condiciones */}
-          <div className="pt-1">
-            <label className="flex items-start gap-3 p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 hover:border-primary/40 transition cursor-pointer select-none">
+          {/* Footer del Formulario: Términos y Botón de Registro alineados */}
+          <div className="pt-2 flex flex-col md:flex-row items-center justify-between gap-3 border-t border-black/5 dark:border-white/5">
+            <label className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer select-none flex-1">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={e => setAcceptedTerms(e.target.checked)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
               />
-              <span className="text-xs text-muted-foreground leading-relaxed">
+              <span className="text-xs text-muted-foreground leading-snug">
                 He leído y acepto los{" "}
                 <button
                   type="button"
@@ -629,22 +623,22 @@ export default function RegistroPage() {
                     e.stopPropagation()
                     setShowTermsModal(true)
                   }}
-                  className="text-primary font-bold hover:underline inline underline-offset-2"
+                  className="text-primary font-bold hover:underline inline underline-offset-2 cursor-pointer"
                 >
                   Términos, Condiciones y Exoneración de Responsabilidad
                 </button>{" "}
                 del centro deportivo y gimnasio.
               </span>
             </label>
-          </div>
 
-          <button 
-            type="submit" 
-            disabled={isLoading} 
-            className="w-full mt-2 bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-[0.99] font-extrabold py-3.5 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-          >
-            {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
-          </button>
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full md:w-auto px-8 bg-transparent border-2 border-primary text-primary hover:bg-primary/10 active:scale-[0.99] font-extrabold py-3 rounded-xl transition flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer shrink-0 text-sm"
+            >
+              {isLoading ? <Loader size={20} color="currentColor" /> : "Completar Registro"}
+            </button>
+          </div>
         </form>
       </div>
 

@@ -259,8 +259,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {settings.logoSettings?.showInNavbar && (
         (settings.logoUrl || settings.logoUrlDark) ? (
           <img
-            src={(theme === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)}
+            src={((theme || 'dark') === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)}
             alt="Logo"
+            suppressHydrationWarning
             style={{
               width: settings.logoSettings.widthNavbar || 40,
               height: settings.logoSettings.heightNavbar || 40,

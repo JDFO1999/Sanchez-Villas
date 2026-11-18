@@ -11,7 +11,7 @@ export function BaseFooter({
   themeOverride?: string 
 }) {
   const { theme, resolvedTheme } = useTheme();
-  const currentTheme = themeOverride || resolvedTheme || theme;
+  const currentTheme = themeOverride || resolvedTheme || theme || "dark";
   const isDark = currentTheme === 'dark';
 
   const footerSettings = settings.footerLogoSettings || {};
@@ -90,6 +90,7 @@ export function BaseFooter({
           src={logoSrc} 
           alt="Logo Footer" 
           style={{ width: `${w}px`, height: `${h}px` }} 
+          suppressHydrationWarning
           className="object-contain relative z-10 transition-transform duration-300 hover:scale-105" 
         />
       </div>

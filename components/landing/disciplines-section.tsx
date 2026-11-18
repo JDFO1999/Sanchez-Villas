@@ -8,7 +8,7 @@ import { Flame, Zap, Activity, Clock, ShieldCheck } from "lucide-react"
 export function DisciplinesSection() {
   const { settings } = useSettings()
   const { theme, resolvedTheme } = useTheme()
-  const currentTheme = resolvedTheme || theme
+  const currentTheme = resolvedTheme || theme || "dark"
   const logoSrc = currentTheme === "dark"
     ? (settings.logoUrlDark || settings.logoUrl)
     : (settings.logoUrl || settings.logoUrlDark)
@@ -140,6 +140,7 @@ export function DisciplinesSection() {
                 <img
                   src={logoSrc}
                   alt={settings.appName || "Logo"}
+                  suppressHydrationWarning
                   className="w-full h-full object-contain transition-all duration-300"
                 />
               ) : (

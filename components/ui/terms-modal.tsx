@@ -16,7 +16,6 @@ export function TermsModal({ open, onClose, onAccept }: TermsModalProps) {
       open={open}
       onClose={onClose}
       title="Términos, Condiciones y Exoneración de Responsabilidad"
-      description="Reglamento general del centro deportivo y deslinde integral de responsabilidad civil y médica."
       hideTitle={true}
       hideCloseButton={true}
       className="max-w-2xl max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl border border-primary/20 bg-card dark:bg-[#0c0e14] shadow-2xl"
@@ -51,7 +50,7 @@ export function TermsModal({ open, onClose, onAccept }: TermsModalProps) {
       </div>
 
       {/* Contenido con Scroll por Rueda del Mouse SIN Barra Visual Visible */}
-      <div className="flex-1 overflow-y-auto no-scrollbar overscroll-contain p-6 space-y-5 text-sm text-foreground/90">
+      <div className="flex-1 overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain p-6 space-y-5 text-sm text-foreground/90">
         {/* Banner de blindaje */}
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3.5">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />

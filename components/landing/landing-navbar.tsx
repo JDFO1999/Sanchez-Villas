@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Sun, Moon, LogIn, LayoutDashboard, Menu, X } from "lucide-react"
 
 export function LandingNavbar() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const { settings } = useSettings()
   const { user } = useAuth()
   const [scrolled, setScrolled] = useState(false)
@@ -26,7 +26,7 @@ export function LandingNavbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const currentTheme = theme || 'dark'
+  const currentTheme = resolvedTheme || theme || 'dark'
   const isDark = currentTheme === 'dark'
   const logoSrc = isDark 
     ? (settings.logoUrlDark || settings.logoUrl) 
@@ -62,6 +62,7 @@ export function LandingNavbar() {
               <img
                 src={logoSrc}
                 alt={settings.appName || "Gym Logo"}
+                suppressHydrationWarning
                 style={{
                   width: settings.logoSettings.widthNavbar || 44,
                   height: settings.logoSettings.heightNavbar || 44,

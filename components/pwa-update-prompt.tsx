@@ -149,15 +149,9 @@ export function PWAUpdatePrompt() {
           </div>
 
           <div className="flex-1 min-w-0 pr-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-extrabold text-sm text-foreground tracking-tight">
-                Nueva versión lista
-              </span>
-              <span className="inline-flex items-center gap-0.5 bg-primary text-black font-black text-[9px] px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                <Sparkles className="w-2.5 h-2.5" />
+            <h4 className="font-extrabold text-sm text-foreground tracking-tight">
                 Actualización
-              </span>
-            </div>
+              </h4>
 
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Hemos publicado cambios y mejoras en <strong>MaximumAPP</strong>. Actualiza con 1 toque sin desinstalar ni perder tu sesión.
