@@ -374,7 +374,8 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     if (!isPosWalkIn) {
       let ip = "unknown"
       try { ip = clientIpFrom(await headers()) } catch {}
-      const limit = checkRateLimit(`register:${ip}`, 25, 60 * 60 * 1000)
+      const maxAttempts = (process.env.NODE_ENV === 'development' || ip === '127.0.0.1' || ip === '::1') ? 500 : 25
+      const limit = checkRateLimit(`register:${ip}`, maxAttempts, 60 * 60 * 1000)
       if (!limit.allowed) return { success: false, error: "Demasiados registros desde esta conexión. Intenta más tarde." }
     }
 
@@ -553,8 +554,10 @@ export async function createAthlete(input: any, legacyClave?: string, legacyProf
     }
 
     const safeCreated = stripSecrets(user)
-    revalidatePath("/atletas")
-    revalidatePath("/membresias")
+    try {
+      revalidatePath("/atletas")
+      revalidatePath("/membresias")
+    } catch {}
     return { success: true, user: safeCreated, athlete: safeCreated }
   } catch (error: any) {
     return { success: false, error: friendlyError(error) }

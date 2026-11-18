@@ -33,7 +33,12 @@ export type Guard = { ok: true; user: AuthUser } | { ok: false; error: string }
 
 export async function getAuthUser(): Promise<AuthUser | null> {
   await ensureDatabaseSchema()
-  const session = await verifySession()
+  let session: any = null
+  try {
+    session = await verifySession()
+  } catch {
+    return null
+  }
   if (!session?.id) return null
   const user = await prisma.user.findUnique({
     where: { id: String(session.id) },

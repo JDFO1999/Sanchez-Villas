@@ -283,8 +283,9 @@ export default function RegistroPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Col 1: Nombre y Apellido */}
             <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Nombre y Apellido *</label>
+              <label htmlFor="athlete-name" className="text-xs font-semibold text-foreground mb-1 block">Nombre y Apellido *</label>
               <input 
+                id="athlete-name"
                 type="text" 
                 value={nombre} 
                 onChange={e => setNombre(e.target.value)} 
@@ -297,7 +298,7 @@ export default function RegistroPage() {
             {/* Col 2: Cédula de 8 dígitos estrictos */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground block">Cédula (8 dígitos) *</label>
+                <label htmlFor="athlete-cedula" className="text-xs font-semibold text-foreground block">Cédula (8 dígitos) *</label>
                 <span className={`text-[11px] font-mono transition-colors ${
                   isCedulaComplete ? "text-emerald-500 font-bold" : "text-muted-foreground"
                 }`}>
@@ -306,6 +307,7 @@ export default function RegistroPage() {
               </div>
               <div className="relative">
                 <input 
+                  id="athlete-cedula"
                   type="text" 
                   inputMode="numeric"
                   maxLength={8}
@@ -334,8 +336,9 @@ export default function RegistroPage() {
 
             {/* Col 3: Teléfono / WhatsApp */}
             <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Teléfono / WhatsApp *</label>
+              <label htmlFor="athlete-phone" className="text-xs font-semibold text-foreground mb-1 block">Teléfono / WhatsApp *</label>
               <input 
+                id="athlete-phone"
                 type="text" 
                 value={telefono} 
                 onChange={e => setTelefono(e.target.value)} 
@@ -347,8 +350,9 @@ export default function RegistroPage() {
 
             {/* Col 4: Correo Electrónico */}
             <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Correo Electrónico *</label>
+              <label htmlFor="athlete-email" className="text-xs font-semibold text-foreground mb-1 block">Correo Electrónico *</label>
               <input 
+                id="athlete-email"
                 type="email" 
                 value={correo} 
                 onChange={e => setCorreo(e.target.value)} 
@@ -361,7 +365,7 @@ export default function RegistroPage() {
             {/* Col 5: Fecha de Nacimiento */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground block">Fecha de Nacimiento *</label>
+                <label htmlFor="athlete-birthdate" className="text-xs font-semibold text-foreground block">Fecha de Nacimiento *</label>
                 {userAge !== null && userAge >= 0 && userAge <= 120 && (
                   <span className="text-[10px] font-semibold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20 animate-in fade-in duration-300">
                     🎂 {userAge} {userAge === 1 ? 'año' : 'años'}
@@ -370,6 +374,7 @@ export default function RegistroPage() {
               </div>
               <div className="relative">
                 <input 
+                  id="athlete-birthdate"
                   type="date" 
                   value={fechaNacimiento} 
                   max={new Date().toISOString().split("T")[0]}
@@ -387,6 +392,7 @@ export default function RegistroPage() {
               <label className="text-xs font-semibold text-foreground mb-1 block">Género *</label>
               <div className="relative">
                 <select 
+                  id="athlete-gender"
                   value={genero} 
                   onChange={e => setGenero(e.target.value as 'M'|'F')} 
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
@@ -402,8 +408,9 @@ export default function RegistroPage() {
 
             {/* Col 7 & 8: Dirección de Habitación (span 2 en lg) */}
             <div className="md:col-span-2 lg:col-span-2">
-              <label className="text-xs font-semibold text-foreground mb-1 block">Dirección de Habitación</label>
+              <label htmlFor="athlete-address" className="text-xs font-semibold text-foreground mb-1 block">Dirección de Habitación</label>
               <input 
+                id="athlete-address"
                 type="text" 
                 value={direccion} 
                 onChange={e => setDireccion(e.target.value)} 
@@ -417,6 +424,7 @@ export default function RegistroPage() {
               <label className="text-xs font-semibold text-foreground mb-1 block">Entrenador (Opcional)</label>
               <div className="relative">
                 <select 
+                  id="athlete-coach"
                   value={entrenador} 
                   onChange={e => setEntrenador(e.target.value)} 
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary appearance-none pr-8 cursor-pointer"
@@ -435,7 +443,7 @@ export default function RegistroPage() {
             {/* Col 10: Contraseña */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground block">Contraseña *</label>
+                <label htmlFor="athlete-password" className="text-xs font-semibold text-foreground block">Contraseña *</label>
                 {clave && (
                   <span className={`text-[10px] font-bold ${
                     pwdValidation.strengthLabel === 'Fuerte' 
@@ -450,6 +458,7 @@ export default function RegistroPage() {
               </div>
               <div className="relative">
                 <input 
+                  id="athlete-password"
                   type={showPassword ? "text" : "password"} 
                   value={clave} 
                   onChange={e => setClave(e.target.value)} 
@@ -474,7 +483,7 @@ export default function RegistroPage() {
             {/* Col 11: Confirmar Contraseña */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-foreground block">Confirmar Contraseña *</label>
+                <label htmlFor="athlete-confirm-password" className="text-xs font-semibold text-foreground block">Confirmar Contraseña *</label>
                 {confirmClave && claveMatch && (
                   <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-0.5">
                     <Check className="h-3 w-3" /> Coinciden
@@ -486,6 +495,7 @@ export default function RegistroPage() {
               </div>
               <div className="relative">
                 <input 
+                  id="athlete-confirm-password"
                   type={showConfirmPassword ? "text" : "password"} 
                   value={confirmClave} 
                   onChange={e => setConfirmClave(e.target.value)} 
@@ -577,6 +587,7 @@ export default function RegistroPage() {
                     value={guardianName}
                     onChange={e => setGuardianName(e.target.value)}
                     className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                    id="guardian-name"
                     placeholder="Ej. María Elena Pérez"
                     required
                   />
@@ -591,6 +602,7 @@ export default function RegistroPage() {
                     value={guardianCedula}
                     onChange={e => setGuardianCedula(e.target.value.replace(/\D/g, "").slice(0, 9))}
                     className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                    id="guardian-cedula"
                     placeholder="Ej. 12345678"
                     required
                   />
@@ -605,6 +617,7 @@ export default function RegistroPage() {
                     value={guardianPhone}
                     onChange={e => setGuardianPhone(e.target.value)}
                     className="w-full bg-background border border-border text-foreground rounded-xl p-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                    id="guardian-phone"
                     placeholder="Ej. 0414-1234567"
                     required
                   />
