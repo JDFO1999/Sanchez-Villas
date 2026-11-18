@@ -15,6 +15,11 @@ import { useToast } from "@/lib/toast-context"
 import FilterDropdown from "@/components/ui/FilterDropdown"
 import Swal from "sweetalert2"
 import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
+import { ThermalReceiptModal } from "@/components/ui/thermal-receipt-modal"
+import { PlanSelectorModal } from "@/components/store/PlanSelectorModal"
+import { PendingOrdersModal } from "@/components/store/PendingOrdersModal"
+import { WalkInCustomerModal } from "@/components/store/WalkInCustomerModal"
+import { StockOverrideModal } from "@/components/store/StockOverrideModal"
 
 export default function TiendaPOSPage() {
   const router = useRouter();
@@ -27,16 +32,34 @@ export default function TiendaPOSPage() {
   const [showPendingOrders, setShowPendingOrders] = useState(false);
   const [pendingSearch, setPendingSearch] = useState('');
   const fetchPendingOrders = async () => { const data = await getPendingTransactions(); setPendingOrders((data as any).transactions || []); };
+  const handleDeliverOrder = async (order: any) => {
+    if (!user?.id) return;
+    const result = await Swal.fire({
+      title: '¿Confirmar y Entregar Pedido?',
+      html: `Pedido de <b>${order.customer?.name}</b> por <b>${settings.storeCurrency} ${Number(order.total || 0).toFixed(2)}</b> (${order.paymentMethod}).<br><span class="text-xs text-muted-foreground">Si el cliente pagó en efectivo con un billete mayor y entregaste vuelto, puedes anotarlo abajo (ej. Vuelto: $5.00 (Efectivo)) para descontarlo de tu caja:</span>`, 
+      input: 'text',
+      inputPlaceholder: 'Opcional: Recibido: $20.00 | Vuelto: $5.00 (Efectivo)',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, Confirmar y Entregar'
+    });
+    if (result.isConfirmed) {
+      const { deliverTransaction } = await import('@/app/actions/store');
+      const changeNote = typeof result.value === 'string' && result.value.trim() ? result.value.trim() : undefined;
+      const res = await deliverTransaction(order.id, user.id, changeNote);
+      if (res.success) {
+        showToast('Pedido confirmado, asignado a tu caja y membresía activada (si aplica).', 'success');
+        fetchPendingOrders();
+      } else {
+        showToast(res.error || 'Error al entregar pedido.', 'error');
+      }
+    }
+  };
   const [athletes, setAthletes] = useState<AthleteProfile[]>([])
   
   // Client Search & Walk-in
   const [clientSearchQuery, setClientSearchQuery] = useState("")
   const [showWalkInModal, setShowWalkInModal] = useState(false)
-  const [walkInName, setWalkInName] = useState("")
-  const [walkInCedulaType, setWalkInCedulaType] = useState("V")
-  const [walkInCedula, setWalkInCedula] = useState("")
-  const [walkInAddress, setWalkInAddress] = useState("")
-  const [walkInPhone, setWalkInPhone] = useState("")
   const [categories, setCategories] = useState<string[]>([])
   
   // Athlete View Cart & Plan Selector Modal
@@ -679,135 +702,22 @@ export default function TiendaPOSPage() {
     return <div className="p-8 text-center text-destructive font-bold">Acceso Denegado a la Tienda. Solo personal autorizado.</div>
   }
 
-  const renderPlanSelectorModal = () => {
-    if (!showPlanModal) return null
-    return (
-      <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-        <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl glass max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="p-5 border-b border-black/10 dark:border-white/10 bg-black/20 flex items-center justify-between">
-            <div>
-              <h3 className="font-black text-lg sm:text-xl flex items-center gap-2 uppercase tracking-tight">
-                <CreditCard className="h-5 w-5 text-primary" />
-                Elegir Plan o Mensualidad
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Selecciona uno de nuestros planes promocionales o la mensualidad básica y la cantidad de meses a pagar.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowPlanModal(false)}
-              className="text-muted-foreground hover:text-foreground font-bold text-2xl leading-none px-2"
-            >
-              &times;
-            </button>
-          </div>
-
-          <div className="p-5 overflow-y-auto space-y-5">
-            {/* Selector de meses */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-primary/10 border border-primary/20">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-primary block">Duración del Pago</span>
-                <span className="text-xs text-muted-foreground">¿Cuántos meses deseas pagar por adelantado?</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPlanMonths(m => Math.max(1, m - 1))}
-                  className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="min-w-[90px] text-center font-black text-sm">
-                  {planMonths} {planMonths === 1 ? 'Mes' : 'Meses'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPlanMonths(m => Math.min(12, m + 1))}
-                  className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Tarjetas de Planes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {availableStorePlans.map((plan) => {
-                const totalForMonths = plan.price * planMonths
-                return (
-                  <div
-                    key={plan.name}
-                    className={`rounded-2xl p-5 border flex flex-col justify-between transition-all ${
-                      plan.popular
-                        ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40'
-                        : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.03] hover:border-primary/50'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className="font-black text-base uppercase tracking-tight">{plan.name}</h4>
-                        {plan.popular && (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground shrink-0">
-                            Más Popular
-                          </span>
-                        )}
-                      </div>
-                      {plan.description && (
-                        <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
-                      )}
-                      <div className="flex items-baseline gap-1 mb-4">
-                        <span className="text-3xl font-black text-primary">
-                          {settings.storeCurrency}{plan.price}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{plan.period}</span>
-                        {planMonths > 1 && (
-                          <span className="ml-auto text-xs font-bold text-emerald-500">
-                            Total ({planMonths}m): {settings.storeCurrency}{totalForMonths.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-
-                      {plan.features && plan.features.length > 0 && (
-                        <ul className="space-y-1.5 mb-4 border-t border-black/10 dark:border-white/10 pt-3">
-                          {plan.features.map((feat: string, idx: number) => (
-                            <li key={idx} className="text-xs flex items-start gap-2 text-foreground/90">
-                              <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                              <span>{feat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => selectPlanForCart(plan)}
-                      className={`w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 ${
-                        plan.popular
-                          ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20'
-                          : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
-                      }`}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      Elegir {plan.name} ({settings.storeCurrency}{totalForMonths.toFixed(2)})
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   // ===== VISTA CATÁLOGO PARA ATLETAS =====
   if (user.role === 'athlete') {
     const canAthletePayOrRenewPlan = athleteDaysLeft === null || athleteDaysLeft <= 3
     return (
       <div className="space-y-6 max-w-full mx-auto pb-20">
-        {canAthletePayOrRenewPlan && renderPlanSelectorModal()}
+        {canAthletePayOrRenewPlan && (
+          <PlanSelectorModal
+            isOpen={showPlanModal}
+            onClose={() => setShowPlanModal(false)}
+            planMonths={planMonths}
+            setPlanMonths={setPlanMonths}
+            availableStorePlans={availableStorePlans}
+            currency={settings.storeCurrency || "$"}
+            onSelectPlan={selectPlanForCart}
+          />
+        )}
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
             <h1 className="page-title">Catálogo {settings.appName}</h1>
@@ -1265,7 +1175,15 @@ export default function TiendaPOSPage() {
   // ===== VISTA POS PARA EMPLEADOS / ADMIN =====
   return (
     <div className="space-y-4 max-w-full mx-auto h-[calc(100vh-100px)] flex flex-col">
-      {renderPlanSelectorModal()}
+      <PlanSelectorModal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        planMonths={planMonths}
+        setPlanMonths={setPlanMonths}
+        availableStorePlans={availableStorePlans}
+        currency={settings.storeCurrency || "$"}
+        onSelectPlan={selectPlanForCart}
+      />
       <div className="flex justify-between items-end flex-wrap gap-4">
         <div>
           <h1 className="page-title mb-4">Tienda {settings.appName}</h1>
@@ -1934,343 +1852,53 @@ export default function TiendaPOSPage() {
       </div>
       
             {/* MODAL DE PEDIDOS ONLINE */}
-      {showPendingOrders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-3xl w-full max-h-[80vh] flex flex-col shadow-2xl glass overflow-hidden">
-            <div className="p-6 border-b border-black/10 dark:border-white/10 flex justify-between items-center bg-black/5 dark:bg-white/5">
-              <h3 className="text-2xl font-black flex items-center gap-2"><Package className="h-6 w-6 text-warning" /> Pedidos Online Pendientes</h3>
-              <button onClick={() => setShowPendingOrders(false)} className="text-muted-foreground hover:text-foreground font-bold">X</button>
-            </div>
-            
-            <div className="p-6 border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-black/40">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar por Cédula, Nombre o Codigo de Pedido..." 
-                  value={pendingSearch}
-                  onChange={(e) => setPendingSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-background border border-black/10 dark:border-white/10 rounded-lg text-sm focus:border-warning"
-                />
-              </div>
-            </div>
+      <PendingOrdersModal
+        isOpen={showPendingOrders}
+        onClose={() => setShowPendingOrders(false)}
+        pendingOrders={pendingOrders}
+        pendingSearch={pendingSearch}
+        setPendingSearch={setPendingSearch}
+        currency={settings.storeCurrency || "$"}
+        onDeliverOrder={handleDeliverOrder}
+      />
 
-            <div className="flex-1 overflow-y-auto p-6">
-              {pendingOrders.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                  <p>No hay pedidos online pendientes por entregar.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {pendingOrders.filter(o => 
-                    o.customer?.cedula.includes(pendingSearch) || 
-                    o.customer?.name.toLowerCase().includes(pendingSearch.toLowerCase()) || 
-                    o.id.slice(-5).toUpperCase().includes(pendingSearch.toUpperCase())
-                  ).map(order => (
-                    <div key={order.id} className="border border-black/10 dark:border-white/10 rounded-lg p-4 bg-black/5 dark:bg-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                          {order.customer?.profilePicture ? (
-                            <img src={order.customer.profilePicture} alt={order.customer.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-primary/30" />
-                          ) : order.customer?.name ? (
-                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                              {order.customer.name.charAt(0)}
-                            </div>
-                          ) : null}
-                          <span className="font-mono bg-warning/20 text-warning px-2 py-0.5 rounded text-xs font-bold">#{order.id.slice(-5).toUpperCase()}</span>
-                          <span className="font-bold">{order.customer?.name} ({order.customer?.cedula})</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-1">{new Date(order.date).toLocaleString()} • <span className="font-bold text-foreground">{order.paymentMethod}</span></p>
-                        {order.reference && <p className="text-xs text-muted-foreground mb-2">Ref: {order.reference}</p>}
-                        <div className="flex flex-wrap gap-2">
-                          {order.items.map((item: any) => (
-                            <span key={item.id} className="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded">
-                              {item.qty}x {item.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className="text-lg font-black text-primary">{settings.storeCurrency} {Number(order.total || 0).toFixed(2)}</span>
-                        <button 
-                          onClick={async () => {
-                            if (!user?.id) return;
-                            const result = await Swal.fire({
-                              title: '¿Confirmar y Entregar Pedido?',
-                              html: `Pedido de <b>${order.customer?.name}</b> por <b>${settings.storeCurrency} ${Number(order.total || 0).toFixed(2)}</b> (${order.paymentMethod}).<br><span class="text-xs text-muted-foreground">Si el cliente pagó en efectivo con un billete mayor y entregaste vuelto, puedes anotarlo abajo (ej. Vuelto: $5.00 (Efectivo)) para descontarlo de tu caja:</span>`, 
-                              input: 'text',
-                              inputPlaceholder: 'Opcional: Recibido: $20.00 | Vuelto: $5.00 (Efectivo)',
-                              icon: 'question',
-                              showCancelButton: true,
-                              confirmButtonText: 'Sí, Confirmar y Entregar'
-                            });
-                            if (result.isConfirmed) {
-                              const { deliverTransaction } = await import('@/app/actions/store');
-                              const changeNote = typeof result.value === 'string' && result.value.trim() ? result.value.trim() : undefined;
-                              const res = await deliverTransaction(order.id, user.id, changeNote);
-                              if (res.success) {
-                                showToast('Pedido confirmado, asignado a tu caja y membresía activada (si aplica).', 'success');
-                                fetchPendingOrders();
-                              } else {
-                                showToast(res.error || 'Error al entregar pedido.', 'error');
-                              }
-                            }
-                          }}
-                          className="border-2 border-warning text-warning hover:bg-orange-500 hover:text-white dark:bg-orange-500 dark:text-white dark:border-transparent px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition flex items-center gap-2"
-                        >
-                          <Check className="h-4 w-4" /> Confirmar / Entregar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-
-        {/* MODAL DE OVERRIDE DE STOCK */}
-      {showAdminOverride && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-2 text-destructive">Autorización Requerida</h3>
-            <p className="text-sm text-muted-foreground mb-4">El producto <strong>{pendingCartProduct?.name}</strong> no tiene stock. Ingrese Cédula o pase código de Administrador para facturar sin stock.</p>
-            <form onSubmit={handleAdminOverride} className="space-y-4">
-              <input 
-                type="password" 
-                autoFocus
-                placeholder="Cédula de Administrador..." 
-                value={adminCedula}
-                onChange={e => setAdminCedula(e.target.value)}
-                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-3 text-sm focus:border-primary"
-              />
-              <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => {setShowAdminOverride(false); setPendingCartProduct(null);}} className="px-4 py-2 rounded bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 rounded bg-red-500 text-white font-bold hover:bg-red-600">Autorizar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* MODAL DE OVERRIDE DE STOCK */}
+      <StockOverrideModal
+        isOpen={showAdminOverride}
+        onClose={() => {
+          setShowAdminOverride(false)
+          setPendingCartProduct(null)
+        }}
+        productName={pendingCartProduct?.name}
+        adminCedula={adminCedula}
+        setAdminCedula={setAdminCedula}
+        onSubmit={handleAdminOverride}
+      />
 
       {/* MODAL CLIENTE DE PASO */}
-      {showWalkInModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-sm w-full p-6 shadow-2xl glass">
-            <h3 className="text-xl font-bold mb-4">Nuevo Cliente</h3>
-            <form onSubmit={async (e) => {
-                e.preventDefault();
-                const cleanCedula = walkInCedula.replace(/\D/g, "").trim() || walkInCedula.trim();
-                if (walkInName && cleanCedula) {
-                  const { createAthlete } = await import('@/app/actions/users');
-                  const res = await createAthlete({
-                    name: walkInName,
-                    cedula: cleanCedula,
-                    role: 'athlete',
-                    password: cleanCedula,
-                    gender: 'M',
-                    address: walkInAddress,
-                    phone: walkInPhone
-                  });
-
-                  const createdUser = (res as any).athlete || (res as any).user;
-                  if (res.success && createdUser) {
-                    setAthletes((prev: any) => {
-                      const filtered = prev.filter((p: any) => p.id !== createdUser.id);
-                      return [...filtered, createdUser];
-                    });
-                    setSelectedAthleteId(createdUser.id);
-                    setClientSearchQuery(`${createdUser.name} (${createdUser.cedula})`);
-                    setShowWalkInModal(false);
-                    setWalkInName(""); setWalkInCedula(""); setWalkInAddress(""); setWalkInPhone(""); setWalkInCedulaType("V");
-                    showToast("Cliente agregado y enlazado por Cédula.", "success");
-                  } else {
-                    showToast(res.error || "Error al crear cliente", "error");
-                  }
-                }
-              }} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Cédula</label>
-                <div className="flex gap-2">
-                  <select 
-                    value={walkInCedulaType} 
-                    onChange={e => setWalkInCedulaType(e.target.value)}
-                    className="w-20 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                  >
-                    <option value="V">V</option>
-                    <option value="E">E</option>
-                    <option value="J">J</option>
-                  </select>
-                  <input 
-                    required autoFocus type="text" value={walkInCedula} onChange={e => setWalkInCedula(e.target.value)}
-                    className="flex-1 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    placeholder="Número..."
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Nombre / Razón Social</label>
-                <input 
-                  required type="text" value={walkInName} onChange={e => setWalkInName(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Dirección</label>
-                <input 
-                  required type="text" value={walkInAddress} onChange={e => setWalkInAddress(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Teléfono</label>
-                <input 
-                  required type="text" value={walkInPhone} onChange={e => setWalkInPhone(e.target.value)}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                />
-              </div>
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setShowWalkInModal(false)} className="px-4 py-2 text-sm rounded bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-xl bg-transparent border-2 border-success text-success font-bold hover:bg-success/10 transition">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <WalkInCustomerModal
+        isOpen={showWalkInModal}
+        onClose={() => setShowWalkInModal(false)}
+        showToast={showToast}
+        onSuccess={(createdUser) => {
+          setAthletes((prev: any) => {
+            const filtered = prev.filter((p: any) => p.id !== createdUser.id)
+            return [...filtered, createdUser]
+          })
+          setSelectedAthleteId(createdUser.id)
+          setClientSearchQuery(`${createdUser.name} (${createdUser.cedula})`)
+        }}
+      />
 
       {/* TICKET / RECIBO MODAL */}
-      {showReceipt && (() => {
-        const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
-        const matchedAthlete = showReceipt.customerId ? athletes.find(a => a.id === showReceipt.customerId) : null;
-        const clientName = showReceipt.customer?.name || matchedAthlete?.name || (showReceipt.customerId ? 'Desconocido' : 'Consumidor Final');
-        const clientCedula = showReceipt.customer?.cedula || matchedAthlete?.cedula || '';
-        const cashierDisplay = showReceipt.cashier?.name || user?.name || 'Administración';
-        const invNum = String(showReceipt.invoiceNumber || '0000001').padStart(7, '0');
-        const cleanedRef = String(showReceipt.reference || '')
-          .replace(/^Ref:\s*/i, '')
-          .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
-          .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
-          .trim();
-        const logoSrc = settings.logoUrl || settings.logoUrlDark;
-        const rate = settings.storeExchangeRate || 1;
-        const secCurr = settings.storeCurrencySecondary || 'BsS';
-        const mainCurr = settings.storeCurrency || '$';
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
-            <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
-              <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
-              
-              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
-                {logoSrc && (
-                  <div className="flex justify-center mb-2">
-                    <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
-                  </div>
-                )}
-                <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
-                {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
-                {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
-                  <p className="font-bold">CÓDIGO DE RETIRO</p>
-                  <p className="text-xl font-black">{(showReceipt.pickupCode || showReceipt.id.slice(-5)).toUpperCase()}</p>
-                </div>
-                <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
-                  <p className="text-black font-bold">Factura N°: {invNum}</p>
-                  <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
-                  <p className="text-black">Cajero: {cashierDisplay}</p>
-                  <p className="text-black">Cliente: {clientName}</p>
-                  {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
-                  {showReceipt.deliveredBy && (
-                    <p className="text-black font-bold">Despachado por: {showReceipt.deliveredBy}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-6 text-black">
-                <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
-                  <span>CANT. DESC.</span>
-                  <span>TOTAL</span>
-                </div>
-                {showReceipt.items.map(item => {
-                  const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
-                  return (
-                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                      <div className="flex gap-2 pr-2">
-                        <span className="font-bold">{item.qty}x</span>
-                        <span>{cleanName}</span>
-                      </div>
-                      <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
-                <div className="flex justify-between">
-                  <span>Artículos Totales</span>
-                  <span>{showReceipt.items.reduce((acc, item) => acc + item.qty, 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{secCurr} {(showReceipt.subtotal * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>IVA ({settings.storeTaxRate}%)</span>
-                  <span>{secCurr} {(showReceipt.tax * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
-                  <span>TOTAL</span>
-                  <span>{secCurr} {(showReceipt.total * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-base font-black text-gray-800 pb-1">
-                  <span>TOTAL ({mainCurr})</span>
-                  <span>{mainCurr} {Number(showReceipt.total || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mt-2">
-                  <span>Pago con:</span>
-                  <span className="uppercase">{showReceipt.paymentMethod}</span>
-                </div>
-                {cleanedRef && (
-                  <div className="flex justify-between">
-                    <span>Ref:</span>
-                    <span className="uppercase">{cleanedRef}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-center mt-8 text-black italic font-bold">
-                {settings.storeReceiptMessage}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2 print:hidden">
-                <button 
-                  onClick={() => window.print()}
-                  className="w-full bg-black text-white font-sans font-bold py-3 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
-                >
-                  <ReceiptText className="h-5 w-5" /> Imprimir Recibo
-                </button>
-                <button 
-                  onClick={() => {
-                    const client = showReceipt.customerId ? athletes.find(a=>a.id === showReceipt.customerId) : null;
-                    const phone = client?.phone || prompt("Ingrese número de teléfono (con código de país ej. 57300...):");
-                    if (phone) {
-                      const msg = `Hola! Tu recibo de compra en *${settings.appName}* está listo.%0A%0AFactura N°: ${invNum}%0ATotal: ${mainCurr} ${showReceipt.total.toFixed(2)} (${secCurr} ${(showReceipt.total * rate).toFixed(2)})%0A%0A¡Gracias por preferirnos!`;
-                      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
-                    }
-                  }}
-                  className="w-full bg-green-500 text-white font-sans font-bold py-3 rounded hover:bg-green-600 transition flex items-center justify-center gap-2"
-                >
-                  Enviar por WhatsApp
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      <ThermalReceiptModal
+        transaction={showReceipt}
+        onClose={() => setShowReceipt(null)}
+        settings={settings}
+        currentUserName={user?.name}
+        currentUserId={user?.id}
+        athletes={athletes}
+      />
 
       {/* MODAL QR FULLSCREEN */}
       {showQRModal && (
@@ -2322,108 +1950,13 @@ export default function TiendaPOSPage() {
         `}</style>
 
         {/* TICKET / RECIBO MODAL PARA ATLETA */}
-        {showReceipt && (() => {
-          const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
-          const invNum = String(showReceipt.invoiceNumber || '0000001').padStart(7, '0');
-          const clientName = showReceipt.customer?.name || user?.name || 'Consumidor Final';
-          const clientCedula = showReceipt.customer?.cedula || user?.cedula || '';
-          const cashierDisplay = showReceipt.cashier?.name || 'Tienda Online';
-          const cleanedRef = String(showReceipt.reference || '')
-            .replace(/^Ref:\s*/i, '')
-            .replace(/\s*\(Asiento desde edici[oó]n\)/gi, '')
-            .replace(/^Asiento directo desde edici[oó]n de membres[ií]a$/i, '')
-            .trim();
-          const logoSrc = settings.logoUrl || settings.logoUrlDark;
-          const rate = settings.storeExchangeRate || 1;
-          const secCurr = settings.storeCurrencySecondary || 'BsS';
-          const mainCurr = settings.storeCurrency || '$';
-
-          return (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
-              <div id="print-area" className={`bg-white text-black p-8 print:p-2 w-full font-mono text-sm relative shadow-2xl print:shadow-none print:max-w-none print:w-full my-auto ${widthClass}`}>
-                <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
-                
-                <div className="text-center mb-6 border-b border-dashed border-black pb-6">
-                  {logoSrc && (
-                    <div className="flex justify-center mb-2">
-                      <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
-                    </div>
-                  )}
-                  <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
-                  {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
-                  {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                  <div className="mt-2 mb-2 p-2 border-2 border-dashed border-black bg-gray-100">
-                    <p className="font-bold">CÓDIGO DE RETIRO</p>
-                    <p className="text-xl font-black">{(showReceipt.pickupCode || showReceipt.id.slice(-5)).toUpperCase()}</p>
-                  </div>
-                  <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
-                    <p className="text-black font-bold">Factura N°: {invNum}</p>
-                    <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
-                    <p className="text-black">Cajero: {cashierDisplay}</p>
-                    <p className="text-black">Cliente: {clientName}</p>
-                    {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
-                  </div>
-                </div>
-  
-                <div className="space-y-2 mb-6 text-black">
-                  <div className="flex justify-between mt-2 font-bold border-b border-black pb-1 mb-2">
-                    <span>CANT. DESC.</span>
-                    <span>TOTAL</span>
-                  </div>
-                  {showReceipt.items.map((item: any) => {
-                    const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
-                    return (
-                      <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                        <div className="flex gap-2 pr-2">
-                          <span className="font-bold">{item.qty}x</span>
-                          <span>{cleanName}</span>
-                        </div>
-                        <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-  
-                <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
-                  <div className="flex justify-between">
-                    <span>Artículos Totales</span>
-                    <span>{showReceipt.items.reduce((acc: number, item: any) => acc + item.qty, 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{secCurr} {(showReceipt.subtotal * rate).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>IVA ({settings.storeTaxRate}%)</span>
-                    <span>{secCurr} {((showReceipt.tax || 0) * rate).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
-                    <span>TOTAL</span>
-                    <span>{secCurr} {(showReceipt.total * rate).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-base font-black text-gray-800 pb-1">
-                    <span>TOTAL ({mainCurr})</span>
-                    <span>{mainCurr} {Number(showReceipt.total || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between mt-2">
-                    <span>Pago con:</span>
-                    <span className="uppercase">{showReceipt.paymentMethod}</span>
-                  </div>
-                  {cleanedRef && (
-                    <div className="flex justify-between">
-                      <span>Ref:</span>
-                      <span className="uppercase">{cleanedRef}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-warning mt-2 text-lg">
-                    <span>Estatus:</span>
-                    <span className="uppercase">PENDIENTE DE RETIRO</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
+        <ThermalReceiptModal
+          transaction={showReceipt}
+          onClose={() => setShowReceipt(null)}
+          settings={settings}
+          currentUserName={user?.name}
+          currentUserId={user?.id}
+        />
       </div>
     )
   }

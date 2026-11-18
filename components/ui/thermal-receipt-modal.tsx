@@ -21,6 +21,7 @@ export interface ThermalReceiptModalProps {
   }
   currentUserName?: string
   currentUserId?: string
+  athletes?: any[]
 }
 
 export function ThermalReceiptModal({
@@ -29,6 +30,7 @@ export function ThermalReceiptModal({
   settings,
   currentUserName,
   currentUserId,
+  athletes,
 }: ThermalReceiptModalProps) {
   useEffect(() => {
     if (!transaction) return
@@ -57,8 +59,9 @@ export function ThermalReceiptModal({
     (currentUserId && transaction?.cashierId === currentUserId && currentUserName) ||
     (transaction?.cashierId ? "Administración" : "Pago Online")
 
-  const clientName = transaction?.customer?.name || (transaction?.customerId ? "Cliente Registrado" : "Consumidor Final")
-  const clientCedula = transaction?.customer?.cedula || ""
+  const matchedAthlete = transaction?.customerId && athletes ? athletes.find((a: any) => a.id === transaction.customerId) : null
+  const clientName = transaction?.customer?.name || matchedAthlete?.name || (transaction?.customerId ? "Cliente Registrado" : "Consumidor Final")
+  const clientCedula = transaction?.customer?.cedula || matchedAthlete?.cedula || ""
 
   const cleanRefString = (ref?: string | null) => {
     if (!ref) return ""
@@ -122,6 +125,9 @@ export function ThermalReceiptModal({
             <p className="text-black">Cajero: {cashierDisplay}</p>
             <p className="text-black">Cliente: {clientName}</p>
             {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
+            {transaction.deliveredBy && (
+              <p className="text-black font-bold">Despachado por: {transaction.deliveredBy}</p>
+            )}
           </div>
         </div>
 
@@ -193,6 +199,19 @@ export function ThermalReceiptModal({
             className="w-full bg-black text-white font-sans font-bold py-3 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 text-sm shadow-md cursor-pointer"
           >
             <ReceiptText className="h-4 w-4" /> Imprimir Recibo
+          </button>
+          <button
+            onClick={() => {
+              const phone = transaction?.customer?.phone || matchedAthlete?.phone || prompt("Ingrese número de teléfono (con código de país ej. 58412...):")
+              if (phone) {
+                const cleanPhone = phone.replace(/[^0-9]/g, "")
+                const msg = `Hola! Tu recibo de compra en *${settings.appName || "Gym"}* está listo.%0A%0AFactura N°: ${invNum}%0ATotal: ${mainCurr} ${Number(transaction.total || 0).toFixed(2)} (${secCurr} ${(Number(transaction.total || 0) * rate).toFixed(2)})%0A%0A¡Gracias por preferirnos!`
+                window.open(`https://wa.me/${cleanPhone}?text=${msg}`, "_blank")
+              }
+            }}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-2 text-sm shadow-md cursor-pointer"
+          >
+            Enviar por WhatsApp
           </button>
         </div>
       </div>
