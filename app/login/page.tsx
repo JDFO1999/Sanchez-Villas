@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
 import { useTheme } from "next-themes"
@@ -14,8 +14,13 @@ import { TermsModal } from "@/components/ui/terms-modal"
 export default function LoginPage() {
   const { login } = useAuth()
   const { settings } = useSettings()
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const [cedula, setCedula] = useState("")
   const [clave, setClave] = useState("")
@@ -82,6 +87,11 @@ export default function LoginPage() {
     }
   }
 
+  const isDark = mounted ? ((resolvedTheme || theme) === "dark") : true
+  const logoSrc = isDark
+    ? (settings.logoUrlDark || settings.logoUrl)
+    : (settings.logoUrl || settings.logoUrlDark)
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative p-4 overflow-hidden bg-background transition-colors duration-500">
       {/* Abstract Background for Login */}
@@ -91,10 +101,18 @@ export default function LoginPage() {
 
       {/* Theme Toggle Top Right */}
       <button 
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
         className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 p-3 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-foreground transition-all shadow-sm"
+        aria-label="Alternar tema"
+        suppressHydrationWarning
       >
-        {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+        {!mounted ? (
+          <span className="inline-block h-6 w-6" aria-hidden="true" />
+        ) : isDark ? (
+          <Sun className="h-6 w-6" />
+        ) : (
+          <Moon className="h-6 w-6" />
+        )}
       </button>
 
       {/* Recovery Modal */}
@@ -140,10 +158,11 @@ export default function LoginPage() {
 
       <div className={`z-10 w-full max-w-md bg-card/85 backdrop-blur-xl border border-black/10 dark:border-white/10 p-8 rounded-3xl flex flex-col items-center shadow-2xl transition-all duration-300 ${isLoading ? "blur-md opacity-25 scale-[0.98] pointer-events-none select-none" : ""}`}>
         {settings.logoSettings?.showInLogin && (
-          (settings.logoUrl || settings.logoUrlDark) ? (
+          logoSrc ? (
             <img 
-              src={(theme === 'dark' && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark)} 
+              src={logoSrc} 
               alt="Logo" 
+              suppressHydrationWarning
               style={{ 
                 width: settings.logoSettings.widthLogin, 
                 height: settings.logoSettings.heightLogin,

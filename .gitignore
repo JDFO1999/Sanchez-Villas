@@ -48,3 +48,10 @@ insert_*.js
 add_*.js
 move_*.js
 
+
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

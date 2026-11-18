@@ -218,11 +218,18 @@ export default function RegistroPage() {
 
       {/* Theme Toggle Top Right */}
       <button 
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={() => setTheme((resolvedTheme || theme) === 'dark' ? 'light' : 'dark')}
         className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 p-3 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-foreground transition-all shadow-sm"
         aria-label="Alternar tema"
+        suppressHydrationWarning
       >
-        {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+        {!mounted ? (
+          <span className="inline-block h-6 w-6" aria-hidden="true" />
+        ) : (resolvedTheme || theme) === 'dark' ? (
+          <Sun className="h-6 w-6" />
+        ) : (
+          <Moon className="h-6 w-6" />
+        )}
       </button>
 
       <div className="z-10 w-full max-w-5xl xl:max-w-6xl bg-card/90 backdrop-blur-xl border border-black/10 dark:border-white/10 p-5 sm:p-6 rounded-3xl flex flex-col items-center relative my-2 sm:my-4 shadow-2xl">
@@ -238,6 +245,7 @@ export default function RegistroPage() {
               <img 
                 src={logoSrc} 
                 alt="Logo" 
+                suppressHydrationWarning
                 style={{ 
                   width: Math.min(settings.logoSettings.widthLogin || 55, 55), 
                   height: Math.min(settings.logoSettings.heightLogin || 55, 55), 

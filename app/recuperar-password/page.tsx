@@ -109,10 +109,18 @@ function RecuperarPasswordContent() {
 
       {/* Theme Toggle Top Right */}
       <button 
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        onClick={() => setTheme(currentTheme === 'dark' ? 'light' : 'dark')}
         className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 p-3 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-foreground transition-all shadow-sm"
+        aria-label="Alternar tema"
+        suppressHydrationWarning
       >
-        {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+        {!mounted ? (
+          <span className="inline-block h-6 w-6" aria-hidden="true" />
+        ) : currentTheme === 'dark' ? (
+          <Sun className="h-6 w-6" />
+        ) : (
+          <Moon className="h-6 w-6" />
+        )}
       </button>
 
       <div className="z-10 w-full max-w-md bg-card/85 backdrop-blur-xl border border-black/10 dark:border-white/10 p-8 rounded-3xl flex flex-col items-center shadow-2xl relative">
@@ -120,8 +128,7 @@ function RecuperarPasswordContent() {
         {/* Logo */}
         <div className="mb-3 flex items-center justify-center">
           {logoSrc ? (
-            <img 
-              src={logoSrc} 
+            <img suppressHydrationWarning src={logoSrc} 
               alt="Logo" 
               className="h-16 w-16 object-contain transition-all" 
             />
