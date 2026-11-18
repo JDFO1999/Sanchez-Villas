@@ -615,29 +615,34 @@ export default function RegistroPage() {
 
           {/* Footer del Formulario: Términos y Botón de Registro alineados */}
           <div className="pt-2 flex flex-col md:flex-row items-center justify-between gap-3 border-t border-black/5 dark:border-white/5">
-            <label className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer select-none flex-1">
+            <div className="flex items-start gap-2.5 p-2 rounded-xl flex-1 text-xs text-muted-foreground leading-snug">
               <input
+                id="terms-checkbox"
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={e => setAcceptedTerms(e.target.checked)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
               />
-              <span className="text-xs text-muted-foreground leading-snug">
-                He leído y acepto los{" "}
+              <div className="select-none">
+                <label htmlFor="terms-checkbox" className="cursor-pointer">
+                  He leído y acepto los{" "}
+                </label>
                 <button
                   type="button"
+                  id="btn-open-terms"
                   onClick={(e) => {
                     e.preventDefault()
-                    e.stopPropagation()
                     setShowTermsModal(true)
                   }}
                   className="text-primary font-bold hover:underline inline underline-offset-2 cursor-pointer"
                 >
                   Términos, Condiciones y Exoneración de Responsabilidad
                 </button>{" "}
-                del centro deportivo y gimnasio.
-              </span>
-            </label>
+                <label htmlFor="terms-checkbox" className="cursor-pointer">
+                  del centro deportivo y gimnasio.
+                </label>
+              </div>
+            </div>
 
             <button 
               type="submit" 

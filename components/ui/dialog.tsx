@@ -103,7 +103,7 @@ export function Dialog({ open, onClose, title, description, hideTitle, hideClose
           {title}
         </h2>
         {description && <p id={descId} className={cn("mt-2 text-sm text-muted-foreground", hideTitle && "sr-only")}>{description}</p>}
-        <div className={cn(!hideTitle ? "mt-5" : "")}>{children}</div>
+        <div className={cn("min-h-0 flex-1 flex flex-col h-full", !hideTitle && "mt-5")}>{children}</div>
       </div>
     </div>
   )
