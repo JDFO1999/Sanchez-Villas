@@ -16,6 +16,7 @@ import {
 import Swal from "sweetalert2"
 import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 import { ThermalReceiptModal } from "@/components/ui/thermal-receipt-modal"
+import { Dialog } from "@/components/ui/dialog"
 import { askPassword } from "@/lib/confirm"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
@@ -771,69 +772,65 @@ export default function FinanzasPage() {
         currentUserName={user?.name}
         currentUserId={user?.id}
       />
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">
-            <button onClick={() => setShowReportModal(false)} className="absolute top-4 right-4 text-foreground/50 hover:text-foreground transition">
-              <span className="font-bold text-xl leading-none">&times;</span>
-            </button>
-            <div className="text-center mb-6">
-              <div className="mx-auto bg-primary/20 h-16 w-16 rounded-full flex items-center justify-center mb-4">
-                <Download className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-primary dark:dark:via-white via-black via-black to-primary/50 bg-clip-text text-transparent">Exportar Reporte</h3>
-              <p className="text-sm text-muted-foreground mt-2">Módulo: <strong className="text-foreground">{reportSection}</strong></p>
+      {/* Modal Reporte */}
+      <Dialog
+        open={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title="Exportar Reporte"
+        description={`Módulo: ${reportSection}`}
+        className="max-w-sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Periodo</label>
+            <div className="grid grid-cols-3 gap-2">
+              {['Semanal', 'Quincenal', 'Mensual'].map(p => (
+                <button 
+                  key={p} 
+                  type="button"
+                  onClick={() => setReportPeriod(p)}
+                  className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Periodo</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Semanal', 'Quincenal', 'Mensual'].map(p => (
-                    <button 
-                      key={p} 
-                      onClick={() => setReportPeriod(p)}
-                      className={`py-2 px-1 text-xs font-bold rounded-lg transition-colors border ${reportPeriod === p ? 'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent border-primary shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Formato</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => setReportFormat('PDF')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-destructive/20 border-destructive/50 text-destructive shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                  >
-                    <span className="text-xs font-bold">PDF</span>
-                  </button>
-                  <button 
-                    onClick={() => setReportFormat('Excel')}
-                    className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-success/20 border-success/50 text-success shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
-                  >
-                    <span className="text-xs font-bold">Excel (CSV)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={confirmDownload}
-              disabled={isGenerating}
-              className="w-full mt-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              ) : (
-                "Generar y Descargar"
-              )}
-            </button>
           </div>
+
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Formato</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                type="button"
+                onClick={() => setReportFormat('PDF')}
+                className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'PDF' ? 'bg-destructive/20 border-destructive/50 text-destructive shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+              >
+                <span className="text-xs font-bold">PDF</span>
+              </button>
+              <button 
+                type="button"
+                onClick={() => setReportFormat('Excel')}
+                className={`py-3 px-2 flex flex-col items-center justify-center gap-2 rounded-xl transition-colors border ${reportFormat === 'Excel' ? 'bg-success/20 border-success/50 text-success shadow-lg' : 'bg-black/5 dark:bg-black/40 border-black/10 dark:border-white/10 text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+              >
+                <span className="text-xs font-bold">Excel (CSV)</span>
+              </button>
+            </div>
+          </div>
+
+          <button 
+            type="button"
+            onClick={confirmDownload}
+            disabled={isGenerating}
+            className="w-full mt-4 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:border-transparent font-bold py-3.5 rounded-xl transition shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {isGenerating ? (
+              <div className="h-5 w-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              "Generar y Descargar"
+            )}
+          </button>
         </div>
-      )}
+      </Dialog>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1194,16 +1191,19 @@ export default function FinanzasPage() {
       )}
 
       {/* Modal para Ver Comprobante */}
-      {viewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setViewImage(null)}>
-          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setViewImage(null)} className="absolute -top-10 right-0 text-white hover:text-gray-300">
-              Cerrar (Esc)
-            </button>
+      {/* Modal para Ver Comprobante */}
+      <Dialog
+        open={Boolean(viewImage)}
+        onClose={() => setViewImage(null)}
+        title="Comprobante de Pago"
+        className="max-w-2xl bg-black/95 p-4"
+      >
+        <div className="flex justify-center">
+          {viewImage && (
             <img src={viewImage} alt="Comprobante Completo" className="w-full rounded-lg object-contain max-h-[80vh]" />
-          </div>
+          )}
         </div>
-      )}
+      </Dialog>
 
       {activeTab === 'egresos' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1300,82 +1300,79 @@ export default function FinanzasPage() {
       )}
 
       {/* MODAL GASTO */}
-      {showExpenseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative">
-            <h3 className="text-xl font-bold mb-4">{expForm.id ? 'Editar Gasto' : 'Registrar Gasto'}</h3>
-            <form onSubmit={handleAddExpense} className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Descripción</label>
+      {/* MODAL GASTO */}
+      <Dialog
+        open={showExpenseModal}
+        onClose={() => setShowExpenseModal(false)}
+        title={expForm.id ? 'Editar Gasto' : 'Registrar Gasto'}
+        className="max-w-sm"
+      >
+        <form onSubmit={handleAddExpense} className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descripción</label>
+            <input 
+              required autoFocus type="text" value={expForm.description} onChange={e => setExpForm({...expForm, description: e.target.value})}
+              placeholder="Ej. Pago de luz, Mantenimiento..."
+              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Monto ({settings.storeCurrency})</label>
+            <input 
+              required type="number" step="0.01" value={expForm.amount} onChange={e => setExpForm({...expForm, amount: parseFloat(e.target.value) || 0})}
+              placeholder="0.00"
+              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary font-bold text-red-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Categoría</label>
+            {!isCustomCategory ? (
+              <select 
+                value={expForm.category} 
+                onChange={e => {
+                  if (e.target.value === 'OTRA') {
+                    setIsCustomCategory(true)
+                    setExpForm({...expForm, category: ''})
+                  } else {
+                    setExpForm({...expForm, category: e.target.value})
+                  }
+                }}
+                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+              >
+                <option value="Servicios">Servicios (Luz, Agua, Internet)</option>
+                <option value="Insumos">Insumos y Limpieza</option>
+                <option value="Mantenimiento">Mantenimiento de Máquinas</option>
+                <option value="Marketing">Publicidad y Marketing</option>
+                <option value="Alquiler">Alquiler</option>
+                <option value="Otros">Otros</option>
+                <option value="OTRA">+ Nueva Categoría Personalizada...</option>
+              </select>
+            ) : (
+              <div className="flex gap-2">
                 <input 
-                  required autoFocus type="text" value={expForm.description} onChange={e => setExpForm({...expForm, description: e.target.value})}
-                  placeholder="Ej. Pago de luz, Mantenimiento..."
+                  autoFocus
+                  type="text" 
+                  value={expForm.category} 
+                  onChange={e => setExpForm({...expForm, category: e.target.value})}
+                  placeholder="Nombre de la categoría..."
                   className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
                 />
+                <button 
+                  type="button" 
+                  onClick={() => { setIsCustomCategory(false); setExpForm({...expForm, category: 'Servicios'}); }}
+                  className="px-3 bg-black/10 dark:bg-white/10 rounded-lg text-xs"
+                >
+                  Volver
+                </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Monto ({settings.storeCurrency})</label>
-                  <input 
-                    required type="number" step="0.01" min="0" value={expForm.amount} 
-                    onChange={e => setExpForm({...expForm, amount: e.target.value as any})}
-                    placeholder="0.00"
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Monto ({settings.storeCurrencySecondary})</label>
-                  <input 
-                    required type="number" step="0.01" min="0" 
-                    value={expForm.amount ? (Number(expForm.amount) * settings.storeExchangeRate).toFixed(2) : ''} 
-                    onChange={e => setExpForm({...expForm, amount: (Number(e.target.value) / settings.storeExchangeRate) as any})}
-                    placeholder="0.00"
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Categoría</label>
-                {!isCustomCategory ? (
-                  <select 
-                    value={expForm.category} 
-                    onChange={e => {
-                      if (e.target.value === 'CUSTOM') {
-                        setIsCustomCategory(true);
-                        setExpForm({...expForm, category: ''});
-                      } else {
-                        setExpForm({...expForm, category: e.target.value});
-                      }
-                    }}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                  >
-                    <option value="Servicios">Servicios Básicos</option>
-                    <option value="Mantenimiento">Mantenimiento</option>
-                    <option value="Insumos">Insumos (Limpieza, etc)</option>
-                    <option value="Nómina">Nómina / Pago</option>
-                    <option value="Otros">Otros</option>
-                    <option value="CUSTOM">+ Nueva Categoría (Escribir...)</option>
-                  </select>
-                ) : (
-                  <div className="flex gap-2">
-                    <input 
-                      autoFocus required type="text" value={expForm.category} 
-                      onChange={e => setExpForm({...expForm, category: e.target.value})}
-                      placeholder="Ej. Publicidad..."
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                    <button type="button" onClick={() => setIsCustomCategory(false)} className="px-2 bg-black/10 dark:bg-white/10 rounded text-xs">Volver</button>
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setShowExpenseModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-red-500 text-white font-bold hover:bg-red-600">Guardar</button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={() => setShowExpenseModal(false)} className="px-4 py-2 text-sm rounded-lg bg-black/10 dark:bg-white/10 hover:bg-white/20">Cancelar</button>
+            <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground font-bold hover:bg-destructive/90">Guardar</button>
+          </div>
+        </form>
+      </Dialog>
 
 
       {activeTab === 'cuentas_cobrar' && (

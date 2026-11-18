@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { PackagePlus, Search, Edit, Trash2, AlertTriangle, Plus } from "lucide-react"
 import { useToast } from "@/lib/toast-context"
 import { confirmAction } from "@/lib/confirm"
+import { Dialog } from "@/components/ui/dialog"
+import { getStoreCategories } from "@/app/actions/store"
 
 export default function InventarioPage() {
   const { user } = useAuth()
@@ -331,152 +333,159 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl glass overflow-y-auto max-h-[90vh]">
-            <h3 className="text-xl font-bold mb-4">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              
-              <div>
-                <label className="text-xs font-medium mb-1 block">Código de Barras (Escanea o Escribe)</label>
-                <input required type="text" value={barcode} onChange={e=>setBarcode(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-              </div>
-              
-              <div>
-                <label className="text-xs font-medium mb-1 block">Nombre del Producto</label>
-                <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium mb-1 flex items-center justify-between">
-                    Departamento
-                    <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-success hover:underline text-[10px] font-bold">+ Nuevo</button>
-                  </label>
-                  <select required value={department} onChange={e=>setDepartment(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary">
-                    <option value="">Seleccione...</option>
-                    {allDepts.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 flex items-center justify-between">
-                    Categoría
-                    <button type="button" onClick={() => { setShowCatModal(true); setNewItemName(""); }} className="text-primary hover:underline text-[10px] font-bold">+ Nueva</button>
-                  </label>
-                  <select required value={category} onChange={e=>setCategory(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary">
-                    <option value="">Seleccione...</option>
-                    {allCats.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Costo de Compra</label>
-                  <input required type="number" step="0.01" value={costPrice} onChange={e=>setCostPrice(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Precio de Venta</label>
-                  <input required type="number" step="0.01" value={sellPrice} onChange={e=>setSellPrice(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Stock Actual</label>
-                  <input required type="number" value={currentStock} onChange={e=>setCurrentStock(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block">Alerta Stock Mínimo</label>
-                  <input required type="number" value={minStockAlert} onChange={e=>setMinStockAlert(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium mb-1 block">Imagen del Producto (Opcional)</label>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="h-16 w-16 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground text-center leading-tight">Sin Foto</span>
-                    )}
-                  </div>
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="w-full text-xs text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 cursor-pointer" 
-                  />
-                  {imageUrl && <button type="button" onClick={()=>setImageUrl("")} className="text-xs text-destructive hover:underline shrink-0">Quitar</button>}
-                </div>
-              </div>
-              
-              <div className="flex gap-3 justify-end pt-4">
-                <button type="button" onClick={()=>setShowModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-4 py-2 text-sm font-bold rounded">Guardar</button>
-              </div>
-            </form>
+            {/* Modal Producto */}
+      <Dialog
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingId ? 'Editar Producto' : 'Nuevo Producto'}
+        className="max-w-md"
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="text-xs font-medium mb-1 block">Código de Barras (Escanea o Escribe)</label>
+            <input required type="text" value={barcode} onChange={e=>setBarcode(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
           </div>
-        </div>
-      )}
-      {/* Mini Modal Departamento */}
-      {showDeptModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl p-6 shadow-2xl glass max-w-sm w-full">
-            <h3 className="font-bold mb-4">Nuevo Departamento</h3>
-            <input 
-              autoFocus
-              type="text" 
-              value={newItemName}
-              onChange={e => setNewItemName(e.target.value)}
-              placeholder="Nombre..."
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeptModal(false)} className="px-3 py-1.5 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded">Cancelar</button>
-              <button onClick={() => {
-                if (newItemName.trim()) {
-                  storeService.addDepartment(newItemName.trim());
-                  setAllDepts(storeService.getDepartments());
-                  setDepartment(newItemName.trim());
-                  setShowDeptModal(false);
-                  showToast("Departamento creado.", "success");
-                }
-              }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded">Guardar</button>
+          
+          <div>
+            <label className="text-xs font-medium mb-1 block">Nombre del Producto</label>
+            <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium mb-1 flex items-center justify-between">
+                Departamento
+                <button type="button" onClick={() => { setShowDeptModal(true); setNewItemName(""); }} className="text-success hover:underline text-[10px] font-bold">+ Nuevo</button>
+              </label>
+              <select required value={department} onChange={e=>setDepartment(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
+                <option value="">Seleccione...</option>
+                {allDepts.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 flex items-center justify-between">
+                Categoría
+                <button type="button" onClick={() => { setShowCatModal(true); setNewItemName(""); }} className="text-primary hover:underline text-[10px] font-bold">+ Nueva</button>
+              </label>
+              <select required value={category} onChange={e=>setCategory(e.target.value)} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary">
+                <option value="">Seleccione...</option>
+                {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium mb-1 block">Costo de Compra</label>
+              <input required type="number" step="0.01" value={costPrice} onChange={e=>setCostPrice(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block">Precio de Venta</label>
+              <input required type="number" step="0.01" value={sellPrice} onChange={e=>setSellPrice(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium mb-1 block">Stock Actual</label>
+              <input required type="number" value={currentStock} onChange={e=>setCurrentStock(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block">Alerta Stock Mínimo</label>
+              <input required type="number" value={minStockAlert} onChange={e=>setMinStockAlert(Number(e.target.value))} className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium mb-1 block">Imagen del Producto (Opcional)</label>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="h-16 w-16 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Preview" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight">Sin Foto</span>
+                )}
+              </div>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="w-full text-xs text-muted-foreground file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 cursor-pointer" 
+              />
+              {imageUrl && <button type="button" onClick={()=>setImageUrl("")} className="text-xs text-destructive hover:underline shrink-0">Quitar</button>}
+            </div>
+          </div>
+          
+          <div className="flex gap-3 justify-end pt-4">
+            <button type="button" onClick={()=>setShowModal(false)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded-lg transition">Cancelar</button>
+            <button type="submit" className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-4 py-2 text-sm font-bold rounded-lg">Guardar</button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Mini Modal Departamento */}
+      <Dialog
+        open={showDeptModal}
+        onClose={() => setShowDeptModal(false)}
+        title="Nuevo Departamento"
+        className="max-w-sm"
+      >
+        <div className="space-y-4">
+          <input 
+            autoFocus
+            type="text" 
+            value={newItemName}
+            onChange={e => setNewItemName(e.target.value)}
+            placeholder="Nombre del departamento..."
+            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+          />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowDeptModal(false)} className="px-3 py-1.5 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded-lg">Cancelar</button>
+            <button onClick={() => {
+              if (newItemName.trim()) {
+                const name = newItemName.trim();
+                storeService.addDepartment(name);
+                setAllDepts(prev => Array.from(new Set([...prev, name])));
+                setDepartment(name);
+                setShowDeptModal(false);
+                showToast("Departamento creado.", "success");
+              }
+            }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded-lg">Guardar</button>
+          </div>
         </div>
-      )}
+      </Dialog>
 
       {/* Mini Modal Categoría */}
-      {showCatModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl p-6 shadow-2xl glass max-w-sm w-full">
-            <h3 className="font-bold mb-4">Nueva Categoría</h3>
-            <input 
-              autoFocus
-              type="text" 
-              value={newItemName}
-              onChange={e => setNewItemName(e.target.value)}
-              placeholder="Nombre..."
-              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm focus:border-primary mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowCatModal(false)} className="px-3 py-1.5 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded">Cancelar</button>
-              <button onClick={() => {
-                if (newItemName.trim()) {
-                  storeService.addCategory(newItemName.trim());
-                  setAllCats(storeService.getCategories());
-                  setCategory(newItemName.trim());
-                  setShowCatModal(false);
-                  showToast("Categoría creada.", "success");
-                }
-              }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded">Guardar</button>
-            </div>
+      <Dialog
+        open={showCatModal}
+        onClose={() => setShowCatModal(false)}
+        title="Nueva Categoría"
+        className="max-w-sm"
+      >
+        <div className="space-y-4">
+          <input 
+            autoFocus
+            type="text" 
+            value={newItemName}
+            onChange={e => setNewItemName(e.target.value)}
+            placeholder="Nombre de la categoría..."
+            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary"
+          />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowCatModal(false)} className="px-3 py-1.5 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded-lg">Cancelar</button>
+            <button onClick={() => {
+              if (newItemName.trim()) {
+                const name = newItemName.trim();
+                storeService.addCategory(name);
+                setAllCats(prev => Array.from(new Set([...prev, name])));
+                setCategory(name);
+                setShowCatModal(false);
+                showToast("Categoría creada.", "success");
+              }
+            }} className="bg-transparent border-2 border-primary text-primary hover:bg-primary/10 transition px-3 py-1.5 text-sm font-bold rounded-lg">Guardar</button>
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   )
 }

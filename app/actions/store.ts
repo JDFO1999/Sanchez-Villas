@@ -695,3 +695,19 @@ export async function settleAthleteDebt(data: {
   }
 }
 
+export async function getStoreCategories() {
+  const g = await guard()
+  if (!g.ok) return { success: false, categories: [], departments: [] }
+  try {
+    const products = await prisma.product.findMany({
+      select: { category: true }
+    })
+    const existingCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
+    const defaultCats = ["Proteínas", "Aminoácidos", "Creatinas", "Pre-entrenos", "Camisetas", "Mensualidades", "Snacks", "Bebidas", "Accesorios"]
+    const allCats = Array.from(new Set([...defaultCats, ...existingCats]))
+    const defaultDepts = ["Nutrición", "Ropa", "Accesorios", "Membresías", "Snacks"]
+    return { success: true, categories: allCats, departments: defaultDepts }
+  } catch (error: any) {
+    return { success: false, error: error.message, categories: [], departments: [] }
+  }
+}
