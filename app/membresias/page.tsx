@@ -800,7 +800,7 @@ export default function MembresíasPage() {
       {/* RENOVAR / ACTIVAR PLAN MODAL */}
       {showRenovarModal && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <h3 className="text-lg sm:text-xl font-bold">
@@ -1418,7 +1418,7 @@ export default function MembresíasPage() {
       {/* EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -1762,7 +1762,7 @@ export default function MembresíasPage() {
       {/* MESSAGE MODAL */}
       {showMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary"/> Mensaje a {showMessageModal.name}</h3>
             <p className="text-xs text-muted-foreground mb-4">Se enviará a: {showMessageModal.phone || 'Sin número registrado'}</p>
             
@@ -1821,7 +1821,7 @@ export default function MembresíasPage() {
       {/* CREATE MESSAGE MODAL */}
       {showCreateMessageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold mb-4">Crear Plantilla de Mensaje</h3>
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -1850,7 +1850,7 @@ export default function MembresíasPage() {
       {/* CRON ALERTS SUMMARY & WHATSAPP QUEUE MODAL */}
       {cronSummary && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] border border-black/15 dark:border-white/15 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-2.5">

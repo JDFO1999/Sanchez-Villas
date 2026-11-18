@@ -639,7 +639,7 @@ export default function AtletasPage() {
       {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
       {editingAthlete && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-2.5">
@@ -1072,7 +1072,7 @@ export default function AtletasPage() {
       {/* MODAL: REGISTRAR NUEVO ATLETA */}
       {showRegisterModal && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold">
