@@ -1,7 +1,8 @@
 "use client"
 
 import React from "react"
-import { Globe, ExternalLink, Type, Image as ImageIcon, Video, Plus, Trash2, MapPin, Store, HeartHandshake } from "lucide-react"
+import Link from "next/link"
+import { Globe, ExternalLink, Type, Image as ImageIcon, Video, Plus, Trash2, MapPin, Store, HeartHandshake, CreditCard, ArrowRight } from "lucide-react"
 
 interface LandingTabProps {
   landingSettings: any
@@ -531,6 +532,28 @@ export function LandingTab({
                     })}
                   </div>
                 </div>
+              </div>
+
+              {/* MÓDULO INDEPENDIENTE DE PLANES Y MEMBRESÍAS */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">Gestión de Planes y Membresías de la Página Principal</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Esta sección ahora se administra de forma unificada en el módulo independiente <strong>Planes / Promos</strong> con sincronización en tiempo real para la Landing Page y el POS de caja.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/planes"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition shadow-sm whitespace-nowrap shrink-0"
+                >
+                  Ir al módulo de Planes
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
 
               {/* GESTOR DE UBICACIÓN Y GOOGLE MAPS */}
