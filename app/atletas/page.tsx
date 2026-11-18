@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { athleteService, AthleteProfile } from "@/lib/data-service"
+import type { AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Users, ChevronRight, CalendarCheck, Edit, Check, X, ShieldAlert, KeyRound, User as UserIcon, UserPlus, Calendar } from "lucide-react"
 import Link from "next/link"

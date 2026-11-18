@@ -7,7 +7,7 @@ import { useSettings } from "@/lib/settings-context"
 import { storeService } from "@/lib/store-service"
 import type { Expense } from "@/lib/finance-service"
 import { getExpenses, addExpense, updateExpense, deleteExpense } from "@/app/actions/finance"
-import { athleteService, AthleteProfile } from "@/lib/data-service"
+import type { AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   BarChart3, TrendingDown, TrendingUp, DollarSign, 
@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
+import { ThermalReceiptModal } from "@/components/ui/thermal-receipt-modal"
 import { askPassword } from "@/lib/confirm"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
@@ -763,109 +764,13 @@ export default function FinanzasPage() {
   return (
     <div className="space-y-6 max-w-full mx-auto pb-20 relative">
       
-      {showReceipt && (() => {
-        const widthClass = settings.storeTicketWidth === '58mm' ? 'max-w-[280px]' : settings.storeTicketWidth === 'Carta' ? 'max-w-2xl' : 'max-w-sm';
-        const clientName = showReceipt.customerId ? getAthleteName(showReceipt) : 'Consumidor Final';
-        const clientCedula = getAthleteCedula(showReceipt);
-        const cashierDisplay = getCashierName(showReceipt);
-        const invNum = getInvoiceNumber(showReceipt);
-        const cleanedRef = cleanRefString(showReceipt.reference);
-        const logoSrc = settings.logoUrl || settings.logoUrlDark;
-        const rate = settings.storeExchangeRate || 1;
-        const secCurr = settings.storeCurrencySecondary || 'BsS';
-        const mainCurr = settings.storeCurrency || '$';
-
-        return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 overflow-y-auto">
-            <div className={`bg-white text-black p-8 w-full font-mono text-sm relative shadow-2xl my-auto ${widthClass}`}>
-              <button onClick={() => setShowReceipt(null)} className="absolute top-4 right-4 text-gray-500 hover:text-black font-sans font-bold text-xl print:hidden">&times;</button>
-              
-              <div className="text-center mb-6 border-b border-dashed border-black pb-6">
-                {logoSrc && (
-                  <div className="flex justify-center mb-2">
-                    <img src={logoSrc} alt={settings.appName} className="h-14 w-auto max-w-[150px] object-contain mx-auto" />
-                  </div>
-                )}
-                <h2 className="font-bold text-2xl uppercase tracking-widest">{settings.appName}</h2>
-                {settings.storeRif && <p className="text-xs text-black mt-1 font-bold">RIF/NIT: {settings.storeRif}</p>}
-                {settings.storeAddress && <p className="text-xs text-black mb-2">{settings.storeAddress}</p>}
-                <div className="text-sm border-b border-black/20 pb-4 mb-4 mt-3 space-y-0.5">
-                  <p className="text-black font-bold">Factura N°: {invNum}</p>
-                  <p className="text-black">Fecha: {new Date(showReceipt.date).toLocaleString()}</p>
-                  <p className="text-black">Cajero: {cashierDisplay}</p>
-                  <p className="text-black">Cliente: {clientName}</p>
-                  {clientCedula && <p className="text-black">Cédula / C.I.: {clientCedula}</p>}
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-6 text-black">
-                <div className="flex justify-between font-bold border-b border-black pb-1 mb-2">
-                  <span>CANT. DESC.</span>
-                  <span>TOTAL</span>
-                </div>
-                {showReceipt.items && showReceipt.items.map((item: any) => {
-                  const cleanName = String(item.name || '').replace(/\s*\((Ajuste administrativo|Edici[oó]n de Atleta)\)/gi, '').trim();
-                  return (
-                    <div key={item.productId} className="flex justify-between items-start text-sm mb-1 leading-tight">
-                      <div className="flex gap-2 pr-2">
-                        <span className="font-bold">{item.qty}x</span>
-                        <span>{cleanName}</span>
-                      </div>
-                      <span className="shrink-0 font-bold">{secCurr} {(item.subtotal * rate).toFixed(2)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="border-t border-dashed border-black pt-4 space-y-1 text-black font-bold">
-                <div className="flex justify-between">
-                  <span>Artículos Totales</span>
-                  <span>{showReceipt.items ? showReceipt.items.reduce((acc: any, item: any) => acc + item.qty, 0) : 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{secCurr} {((showReceipt.subtotal||0) * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>IVA ({settings.storeTaxRate}%)</span>
-                  <span>{secCurr} {((showReceipt.tax||0) * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xl font-black mt-2 pt-2 border-t border-black">
-                  <span>TOTAL</span>
-                  <span>{secCurr} {((showReceipt.total||0) * rate).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm font-black text-black">
-                  <span>TOTAL ({mainCurr})</span>
-                  <span>{mainCurr} {(showReceipt.total||0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mt-2 pt-1 border-t border-black/20">
-                  <span>Pago con:</span>
-                  <span className="uppercase">{showReceipt.paymentMethod}</span>
-                </div>
-                {cleanedRef && (
-                  <div className="flex justify-between">
-                    <span>Ref:</span>
-                    <span className="uppercase">{cleanedRef}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-center mt-8 text-black italic font-bold">
-                {settings.storeReceiptMessage}
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2 print:hidden">
-                <button 
-                  onClick={() => window.print()}
-                  className="w-full bg-black text-white font-sans font-bold py-3 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2"
-                >
-                   Imprimir Recibo
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+      <ThermalReceiptModal
+        transaction={showReceipt}
+        onClose={() => setShowReceipt(null)}
+        settings={settings}
+        currentUserName={user?.name}
+        currentUserId={user?.id}
+      />
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl glass relative overflow-hidden">

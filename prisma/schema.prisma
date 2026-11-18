@@ -137,6 +137,10 @@ model Membership {
   status    String
   planName  String?
   createdAt DateTime @default(now())
+
+  @@index([athleteId])
+  @@index([endDate])
+  @@index([status])
 }
 
 model Biometric {
@@ -152,6 +156,9 @@ model Biometric {
   legs         Float?
   bodyFat      Float?
   customFields String?
+
+  @@index([athleteId])
+  @@index([date])
 }
 
 model Attendance {
@@ -160,6 +167,9 @@ model Attendance {
   user   User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   date   DateTime @default(now())
   type   String
+
+  @@index([userId])
+  @@index([date])
 }
 
 model Product {
@@ -172,6 +182,8 @@ model Product {
   category  String
   imageUrl  String?  @db.Text
   createdAt DateTime @default(now())
+
+  @@index([category])
 }
 
 model Transaction {
@@ -191,6 +203,11 @@ model Transaction {
   receiptImage  String?           @db.Text
   status        String
   items         TransactionItem[]
+
+  @@index([date])
+  @@index([cashierId])
+  @@index([customerId])
+  @@index([cashSessionId])
 }
 
 model TransactionItem {
@@ -202,6 +219,9 @@ model TransactionItem {
   price         Float
   qty           Int
   subtotal      Float
+
+  @@index([transactionId])
+  @@index([productId])
 }
 
 model Expense {
@@ -210,6 +230,9 @@ model Expense {
   description String
   amount      Float
   category    String
+
+  @@index([date])
+  @@index([category])
 }
 
 model Routine {

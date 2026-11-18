@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth, AVAILABLE_PERMISSIONS } from "@/lib/auth-context"
 import { useSettings } from "@/lib/settings-context"
-import { athleteService, AthleteProfile } from "@/lib/data-service"
+import type { AthleteProfile } from "@/lib/data-service"
 import { Plus, Search, Eye, EyeOff, Shield, CheckCircle2, X, UserCheck } from "lucide-react"
 import Swal from "sweetalert2"
 import JsBarcode from "jsbarcode"

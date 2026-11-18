@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { athleteService, AthleteProfile } from "@/lib/data-service"
+import type { AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"

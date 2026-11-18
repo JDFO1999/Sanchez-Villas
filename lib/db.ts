@@ -78,6 +78,28 @@ async function runSchemaSelfHeal(client: PrismaClient): Promise<void> {
         // Tabla ya existe
       }
 
+      // Índices de optimización de consultas en producción
+      const indexQueries = [
+        "CREATE INDEX `Membership_athleteId_idx` ON `Membership`(`athleteId`)",
+        "CREATE INDEX `Membership_endDate_idx` ON `Membership`(`endDate`)",
+        "CREATE INDEX `Membership_status_idx` ON `Membership`(`status`)",
+        "CREATE INDEX `Attendance_userId_idx` ON `Attendance`(`userId`)",
+        "CREATE INDEX `Attendance_date_idx` ON `Attendance`(`date`)",
+        "CREATE INDEX `Transaction_date_idx` ON `Transaction`(`date`)",
+        "CREATE INDEX `Transaction_customerId_idx` ON `Transaction`(`customerId`)",
+        "CREATE INDEX `Transaction_cashierId_idx` ON `Transaction`(`cashierId`)",
+        "CREATE INDEX `Biometric_athleteId_idx` ON `Biometric`(`athleteId`)",
+        "CREATE INDEX `Expense_date_idx` ON `Expense`(`date`)",
+        "CREATE INDEX `Expense_category_idx` ON `Expense`(`category`)"
+      ];
+      for (const q of indexQueries) {
+        try {
+          await client.$executeRawUnsafe(q);
+        } catch {
+          // Índice ya existe (MySQL 1061) o tabla no creada aún
+        }
+      }
+
       // Seguridad: neutralizar usuario 'admin' de prueba si quedó de semillas anteriores
       try {
         await client.$executeRawUnsafe(
