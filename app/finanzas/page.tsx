@@ -18,6 +18,8 @@ import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
 import { ThermalReceiptModal } from "@/components/ui/thermal-receipt-modal"
 import { Dialog } from "@/components/ui/dialog"
 import { askPassword } from "@/lib/confirm"
+import { FinanceSummaryTab } from "@/components/finance/FinanceSummaryTab"
+import { FinanceReceivablesTab } from "@/components/finance/FinanceReceivablesTab"
 
 /** Escapa texto antes de insertarlo en HTML (recibos y reportes PDF). */
 function escapeHtml(value: unknown): string {
@@ -868,175 +870,23 @@ export default function FinanzasPage() {
 
       {/* Contenido Dinámico */}
       {activeTab === 'resumen' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="glass border-success/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Totales</CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-success">{settings.storeCurrency} {totalIngresos.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalIngresos * settings.storeExchangeRate).toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card className="glass border-destructive/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Egresos Totales</CardTitle>
-                <TrendingDown className="h-4 w-4 text-destructive" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-destructive">{settings.storeCurrency} {totalEgresos.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalEgresos * settings.storeExchangeRate).toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card className={`glass ${balanceNeto >= 0 ? 'border-primary/20' : 'border-destructive/20'}`}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Balance Neto</CardTitle>
-                <Wallet className={`h-4 w-4 ${balanceNeto >= 0 ? 'text-primary' : 'text-destructive'}`} />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-black ${balanceNeto >= 0 ? 'text-foreground' : 'text-destructive'}`}>{settings.storeCurrency} {balanceNeto.toFixed(2)}</div>
-                <p className={`text-xs mt-1 ${balanceNeto >= 0 ? 'text-primary' : 'text-destructive'}`}>{settings.storeCurrencySecondary} {(balanceNeto * settings.storeExchangeRate).toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card className="glass border-warning/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Por Cobrar</CardTitle>
-                <AlertCircle className="h-4 w-4 text-warning" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-warning">{settings.storeCurrency} {estimatedDebt.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(estimatedDebt * settings.storeExchangeRate).toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card className="glass border-info/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Rentabilidad Staff</CardTitle>
-                <Users className="h-4 w-4 text-info" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-info">{settings.storeCurrency} {totalGymProfitFromCoaches.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">{settings.storeCurrencySecondary} {(totalGymProfitFromCoaches * settings.storeExchangeRate).toFixed(2)}</p>
-              </CardContent>
-            </Card>
-            <Card className="glass border-success/20">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">MRR / Liquidez Proyectada</CardTitle>
-                <TrendingUp className="h-4 w-4 text-success" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-success">{settings.storeCurrency} {projectedLiquidity.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">MRR: {settings.storeCurrency} {mrr.toFixed(2)} - Nómina: {settings.storeCurrency} {upcomingPayroll.toFixed(2)}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-            <Card className="glass lg:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Flujo de Ingresos y Egresos</CardTitle>
-                <button onClick={() => handleDownloadReport('Resumen')} className="bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-primary hover:text-foreground transition">
-                  Descargar Reporte
-                </button>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={finanzasData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorEgresos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${settings.storeCurrency} ${value}`} />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.4} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))', borderRadius: '8px' }}
-                      itemStyle={{ color: 'hsl(var(--foreground))' }}
-                      formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)} (${settings.storeCurrencySecondary} ${(Number(value) * settings.storeExchangeRate).toFixed(2)})`, '']}
-                    />
-                    <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorIngresos)" />
-                    <Area type="monotone" dataKey="egresos" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorEgresos)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Distribución de Ingresos</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px] flex flex-col justify-center">
-                {pieChartIngresosData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieChartIngresosData}
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieChartIngresosData.map((entry, index) => (
-                          <Cell key={`cell-in-${index}`} fill={COLORS_IN[index % COLORS_IN.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, 'Monto']}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                      />
-                      <Legend verticalAlign="bottom" height={36}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    No hay ingresos registrados
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Gastos Administrativos</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px] flex flex-col justify-center">
-                {pieChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: any) => [`${settings.storeCurrency} ${Number(value).toFixed(2)}`, 'Monto']}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                      />
-                      <Legend verticalAlign="bottom" height={36}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                    No hay gastos registrados
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <FinanceSummaryTab
+          settings={settings}
+          totalIngresos={totalIngresos}
+          totalEgresos={totalEgresos}
+          balanceNeto={balanceNeto}
+          estimatedDebt={estimatedDebt}
+          totalGymProfitFromCoaches={totalGymProfitFromCoaches}
+          projectedLiquidity={projectedLiquidity}
+          mrr={mrr}
+          upcomingPayroll={upcomingPayroll}
+          finanzasData={finanzasData}
+          pieChartIngresosData={pieChartIngresosData}
+          pieChartData={pieChartData}
+          colors={COLORS}
+          colorsIn={COLORS_IN}
+          onDownloadReport={handleDownloadReport}
+        />
       )}
 
       {activeTab === 'ingresos' && (
@@ -1191,7 +1041,6 @@ export default function FinanzasPage() {
       )}
 
       {/* Modal para Ver Comprobante */}
-      {/* Modal para Ver Comprobante */}
       <Dialog
         open={Boolean(viewImage)}
         onClose={() => setViewImage(null)}
@@ -1300,7 +1149,6 @@ export default function FinanzasPage() {
       )}
 
       {/* MODAL GASTO */}
-      {/* MODAL GASTO */}
       <Dialog
         open={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
@@ -1376,194 +1224,14 @@ export default function FinanzasPage() {
 
 
       {activeTab === 'cuentas_cobrar' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <h2 className="text-xl font-bold">Cuentas por Cobrar (Crédito / Fiado Autorizado)</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Solo aparecen atletas a quienes el Administrador les autorizó un Plan o consumo a Crédito / Fiado.
-              </p>
-            </div>
-            <button onClick={() => handleDownloadReport('Cuentas por Cobrar')} className="bg-black/10 dark:bg-white/10 text-foreground px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-white/20 transition flex items-center gap-2">
-              <Download className="h-4 w-4" /> Exportar Cuentas por Cobrar
-            </button>
-          </div>
-          <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm hidden md:table">
-                <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
-                  <tr>
-                    <th className="p-4 font-medium">Atleta / Cédula</th>
-                    <th className="p-4 font-medium">Plan Seleccionado / Concepto</th>
-                    <th className="p-4 font-medium">Estado Membresía</th>
-                    <th className="p-4 font-medium">Saldo Pendiente (Fiado)</th>
-                    <th className="p-4 font-medium text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {overdueAthletes.map(a => {
-                    let membershipStatus = "Sin membresía activa";
-                    let badgeStyle = "bg-warning/20 text-warning font-semibold";
-                    if (hasValidDate(a.membershipEnd)) {
-                      const isMembOverdue = new Date(a.membershipEnd) < now;
-                      if (isMembOverdue) {
-                        const diffTime = Math.abs(now.getTime() - new Date(a.membershipEnd).getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        membershipStatus = `Vencida (${diffDays} días)`;
-                        badgeStyle = "bg-destructive/20 text-destructive font-semibold";
-                      } else {
-                        membershipStatus = `Activa hasta ${new Date(a.membershipEnd).toLocaleDateString()}`;
-                        badgeStyle = "bg-success/20 text-success font-semibold";
-                      }
-                    }
-
-                    return (
-                      <tr key={a.id} className="hover:bg-black/5 dark:bg-white/5 transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            {(a.profilePicture || a.avatar) ? (
-                              <img src={a.profilePicture || a.avatar || ""} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
-                            ) : (
-                              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
-                                {a.name.charAt(0)}
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-bold">{a.name}</div>
-                              <div className="text-xs text-muted-foreground">{a.cedula}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="font-bold text-primary">
-                            {a.membershipType || 'Crédito en Tienda / Plan'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
-                            {membershipStatus}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          {a.debt && a.debt > 0 ? (
-                            <div className="font-bold text-warning">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
-                          ) : (
-                            <div className="text-muted-foreground">-</div>
-                          )}
-                        </td>
-                        <td className="p-4 text-right flex justify-end gap-2">
-                          {a.debt && a.debt > 0 && (
-                            <button 
-                              onClick={() => handleSaldarDeuda(a.id, a.debt!)}
-                              className="px-3 py-1.5 bg-primary/20 text-primary text-xs font-bold rounded hover:bg-primary/30 transition"
-                            >
-                              Saldar Deuda
-                            </button>
-                          )}
-                          <a 
-                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20un%20saldo%20pendiente%20de%20${encodeURIComponent(settings.storeCurrency)}%20${(a.debt || 0).toFixed(2)}.`} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="inline-flex p-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-lg transition"
-                            title="Cobrar por WhatsApp"
-                          >
-                            <MessageCircle className="h-4 w-4" />
-                          </a>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {overdueAthletes.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                        <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
-                        ¡Excelente! No hay cuentas por cobrar (créditos o fiados pendientes).
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-
-              {/* Mobile View */}
-              <div className="md:hidden flex flex-col divide-y divide-white/5">
-                {overdueAthletes.map(a => {
-                  let membershipStatus = "Sin membresía activa";
-                  let badgeStyle = "bg-warning/20 text-warning font-semibold";
-                  if (hasValidDate(a.membershipEnd)) {
-                    const isMembOverdue = new Date(a.membershipEnd) < now;
-                    if (isMembOverdue) {
-                      const diffTime = Math.abs(now.getTime() - new Date(a.membershipEnd).getTime());
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                      membershipStatus = `Vencida (${diffDays} días)`;
-                      badgeStyle = "bg-destructive/20 text-destructive font-semibold";
-                    } else {
-                      membershipStatus = `Activa hasta ${new Date(a.membershipEnd).toLocaleDateString()}`;
-                      badgeStyle = "bg-success/20 text-success font-semibold";
-                    }
-                  }
-
-                  return (
-                    <div key={a.id} className="p-4 space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2.5">
-                          {(a.profilePicture || a.avatar) ? (
-                            <img src={a.profilePicture || a.avatar || ""} alt={a.name} className="h-9 w-9 rounded-full object-cover shrink-0 border border-primary/30" />
-                          ) : (
-                            <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0 border border-primary/20">
-                              {a.name.charAt(0)}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold">{a.name}</div>
-                            <div className="text-xs text-muted-foreground">{a.cedula}</div>
-                            <div className="text-xs font-bold text-primary mt-0.5">{a.membershipType || 'Crédito en Tienda / Plan'}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          {a.debt && a.debt > 0 ? (
-                            <div className="font-bold text-warning">{settings.storeCurrency} {a.debt.toFixed(2)}</div>
-                          ) : (
-                            <div className="text-muted-foreground">-</div>
-                          )}
-                          <div className="text-xs font-bold mt-1 uppercase">Saldo Fiado</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-sm pt-2">
-                        <span className={`text-xs px-2.5 py-1 rounded-md ${badgeStyle}`}>
-                          {membershipStatus}
-                        </span>
-                        <div className="flex gap-2">
-                          {a.debt && a.debt > 0 && (
-                            <button 
-                              onClick={() => handleSaldarDeuda(a.id, a.debt!)}
-                              className="px-2 py-1 bg-primary/20 text-primary text-xs font-bold rounded hover:bg-primary/30 transition"
-                            >
-                              Saldar Deuda
-                            </button>
-                          )}
-                          <a 
-                            href={`https://wa.me/${a.phone}?text=Hola%20${encodeURIComponent(a.name)},%20te%20escribimos%20de%20${encodeURIComponent(settings.appName)}.%20Tienes%20un%20saldo%20pendiente%20de%20${encodeURIComponent(settings.storeCurrency)}%20${(a.debt || 0).toFixed(2)}.`} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="inline-flex p-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded transition text-xs font-bold gap-1 items-center"
-                          >
-                            <MessageCircle className="h-4 w-4" /> Cobrar
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {overdueAthletes.length === 0 && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <AlertCircle className="h-12 w-12 text-success/50 mx-auto mb-2" />
-                    ¡Excelente! No hay cuentas por cobrar (créditos o fiados pendientes).
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <FinanceReceivablesTab
+          overdueAthletes={overdueAthletes}
+          settings={settings}
+          onDownloadReport={handleDownloadReport}
+          onSaldarDeuda={handleSaldarDeuda}
+          hasValidDate={hasValidDate}
+          now={now}
+        />
       )}
 
       {activeTab === 'nomina' && (
