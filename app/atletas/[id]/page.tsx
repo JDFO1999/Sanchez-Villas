@@ -1557,8 +1557,8 @@ export default function AtletaPerfilPage() {
 
       {/* MODAL DE EDICIÓN DE DATOS Y CREDENCIALES DEL ATLETA */}
       {showEditAthleteModal && athlete && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg lg:max-w-6xl xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-[#0e1017]/90 backdrop-blur-2xl text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-lg lg:max-w-6xl xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1960,8 +1960,8 @@ export default function AtletaPerfilPage() {
 
       {/* MODAL EDITAR MEMBRESÍA Y ENTRENADOR */}
       {showEditMembershipModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0e1017] dark:bg-[#0e1017] text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-[#0e1017]/90 backdrop-blur-2xl text-card-foreground border border-black/15 dark:border-white/15 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-black/10 dark:border-white/10 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
