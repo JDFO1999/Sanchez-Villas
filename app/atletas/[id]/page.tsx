@@ -493,7 +493,7 @@ export default function AtletaPerfilPage() {
               items: [
                 {
                   productId: `PLAN:${editMembPlan}`,
-                  name: `${editMembPlan} (Histórico)`,
+                  name: editMembPlan,
                   price: planPrice,
                   qty: 1,
                   subtotal: planPrice
@@ -1493,12 +1493,27 @@ export default function AtletaPerfilPage() {
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                     {(athlete as any).customerTx.map((tx: any) => {
-                      const itemsSummary = Array.isArray(tx.items) && tx.items.length > 0
+                      const isNoFlow = /sin flujo/i.test(tx.paymentMethod || "")
+                      const rawSummary = Array.isArray(tx.items) && tx.items.length > 0
                         ? tx.items.map((it: any) => `${it.qty}x ${it.name}`).join(", ")
                         : "Pago / Renovación"
-                      const cleanRef = tx.reference
+                      
+                      // Eliminar etiquetas técnicas internas para el usuario
+                      const itemsSummary = rawSummary
+                        .replace(/\s*\((?:Histórico\s*\/?\s*Sin Flujo|Histórico|Sin Flujo)\)/gi, "")
+                        .trim()
+
+                      // Para el atleta, mostrar "Membresía" en vez de "Sin Flujo de Caja (Histórico)"
+                      const displayMethod = isNoFlow ? "Membresía" : (tx.paymentMethod || "Efectivo")
+
+                      const rawRef = tx.reference
                         ? String(tx.reference).replace(/\s*\[VUELTO:.*?\]/g, "").trim()
                         : ""
+                      
+                      // Ocultar al usuario referencias técnicas del flujo de caja administrativo
+                      const isInternalAdminRef = /no pas[oó] por flujo|asignaci[oó]n administrativa/i.test(rawRef)
+                      const cleanRef = isInternalAdminRef ? "" : rawRef
+
                       return (
                         <div
                           key={tx.id}
@@ -1508,7 +1523,7 @@ export default function AtletaPerfilPage() {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-bold text-sm text-foreground truncate">{itemsSummary}</span>
                               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
-                                {tx.paymentMethod || "Efectivo"}
+                                {displayMethod}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

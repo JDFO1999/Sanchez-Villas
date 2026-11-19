@@ -555,7 +555,7 @@ const handleSaveEdit = async (e: React.FormEvent) => {
             items: [
               {
                 productId: `PLAN:${pName}`,
-                name: `${pName} (Histórico)`,
+                name: pName,
                 price: planPrice,
                 qty: 1,
                 subtotal: planPrice

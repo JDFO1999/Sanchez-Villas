@@ -455,7 +455,7 @@ export default function AtletasPage() {
             items: [
               {
                 productId: `PLAN:${pName}`,
-                name: `${pName} (Histórico)`,
+                name: pName,
                 price: planPrice,
                 qty: 1,
                 subtotal: planPrice
