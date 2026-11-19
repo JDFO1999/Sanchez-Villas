@@ -180,25 +180,116 @@ export default function RutinaPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {diets.map((diet) => (
-                <Card key={diet.id} className="shadow-none border-2 border-primary/50 rounded-xl bg-transparent">
-                  <CardHeader>
-                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                      <Apple className="w-6 h-6 text-primary" />
-                      {diet.title}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-4 mt-2 font-medium">
-                      <span className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/> {new Date(diet.date).toLocaleDateString()}</span>
-                      <span className="flex items-center gap-1"><Activity className="w-4 h-4"/> Coach: {diet.coach?.name}</span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="p-6 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 whitespace-pre-wrap font-medium">
-                      {diet.description}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {diets.map((diet) => {
+                let parsedPlan: any = null
+                let schedule: any = null
+                if (diet.weeklyPlan) {
+                  try {
+                    parsedPlan = JSON.parse(diet.weeklyPlan)
+                    if (parsedPlan.__schedule) {
+                      schedule = parsedPlan.__schedule
+                    }
+                  } catch {}
+                }
+
+                return (
+                  <Card key={diet.id} className="shadow-none border border-emerald-500/30 rounded-2xl bg-card/60 backdrop-blur-md overflow-hidden">
+                    <CardHeader className="bg-emerald-500/5 border-b border-emerald-500/10">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <CardTitle className="text-xl font-black flex items-center gap-2 text-foreground">
+                            <Apple className="w-5 h-5 text-emerald-400" />
+                            {diet.title}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-4 mt-1 font-medium text-xs">
+                            <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5"/> {new Date(diet.date).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1"><Activity className="w-3.5 h-3.5"/> Entrenador: {diet.coach?.name}</span>
+                          </CardDescription>
+                        </div>
+                        <span className="text-[10px] uppercase font-black px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 w-fit">
+                          Plan Nutricional Activo
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5 space-y-4">
+                      {/* Horarios de Recordatorio Programados */}
+                      {schedule && (
+                        <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/20 border border-emerald-500/20">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 block mb-2 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" /> Horarios de Recordatorio Programados por tu Coach:
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <div className="bg-card/80 p-2 rounded-lg border border-white/5">
+                              <span className="text-muted-foreground block text-[10px] uppercase font-bold">🌅 Desayuno</span>
+                              <span className="font-black text-foreground">{schedule.breakfast || "08:00 AM"}</span>
+                            </div>
+                            <div className="bg-card/80 p-2 rounded-lg border border-white/5">
+                              <span className="text-muted-foreground block text-[10px] uppercase font-bold">☀️ Almuerzo</span>
+                              <span className="font-black text-foreground">{schedule.lunch || "01:00 PM"}</span>
+                            </div>
+                            <div className="bg-card/80 p-2 rounded-lg border border-white/5">
+                              <span className="text-muted-foreground block text-[10px] uppercase font-bold">🍎 Merienda</span>
+                              <span className="font-black text-foreground">{schedule.snacks || "04:30 PM"}</span>
+                            </div>
+                            <div className="bg-card/80 p-2 rounded-lg border border-white/5">
+                              <span className="text-muted-foreground block text-[10px] uppercase font-bold">🌙 Cena</span>
+                              <span className="font-black text-foreground">{schedule.dinner || "08:00 PM"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {diet.description && (
+                        <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-white/10 whitespace-pre-wrap font-medium text-xs leading-relaxed">
+                          {diet.description}
+                        </div>
+                      )}
+
+                      {/* Si hay plan semanal detallado */}
+                      {parsedPlan && (
+                        <div className="space-y-3">
+                          <span className="text-xs font-black uppercase text-muted-foreground block">
+                            Menú Semanal Detallado
+                          </span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map((day) => {
+                              const dayData = parsedPlan[day]
+                              if (!dayData || (!dayData.breakfast && !dayData.lunch && !dayData.dinner && !dayData.snacks)) return null
+                              return (
+                                <div key={day} className="p-3 rounded-xl bg-black/5 dark:bg-white/[0.02] border border-white/10 space-y-2">
+                                  <span className="text-xs font-black text-emerald-400 uppercase block border-b border-white/5 pb-1">
+                                    {day}
+                                  </span>
+                                  {dayData.breakfast && (
+                                    <p className="text-[11px] text-foreground/90">
+                                      <strong className="text-muted-foreground">Desayuno:</strong> {dayData.breakfast}
+                                    </p>
+                                  )}
+                                  {dayData.lunch && (
+                                    <p className="text-[11px] text-foreground/90">
+                                      <strong className="text-muted-foreground">Almuerzo:</strong> {dayData.lunch}
+                                    </p>
+                                  )}
+                                  {dayData.snacks && (
+                                    <p className="text-[11px] text-foreground/90">
+                                      <strong className="text-muted-foreground">Merienda:</strong> {dayData.snacks}
+                                    </p>
+                                  )}
+                                  {dayData.dinner && (
+                                    <p className="text-[11px] text-foreground/90">
+                                      <strong className="text-muted-foreground">Cena:</strong> {dayData.dinner}
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )
         )}

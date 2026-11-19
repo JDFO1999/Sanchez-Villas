@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, CheckCircle2, FileEdit, UserCheck, Plus, Trash2, X, Eye, EyeOff, Dumbbell, CalendarDays, QrCode, Camera, ScanLine } from "lucide-react"
+import { Users, CheckCircle2, FileEdit, UserCheck, Plus, Trash2, X, Eye, EyeOff, Dumbbell, CalendarDays, QrCode, Camera, ScanLine, Bell, Send } from "lucide-react"
 import { RoutineAssignmentModal } from "@/components/modals/routine-assignment-modal"
-import { getCoachAthletes, getCoachAssignedRoutines, createRoutine, createDiet } from "@/app/actions/routines"
+import { getCoachAthletes, getCoachAssignedRoutines, createRoutine, createDiet, sendCoachFollowUpReminder } from "@/app/actions/routines"
 import { QRCodeSVG } from "qrcode.react"
 import { athleteService } from "@/lib/data-service"
 import { Loader } from "@/components/ui/loader"
@@ -252,6 +252,30 @@ export function CoachDashboard() {
     setActiveDay("Lunes")
   }
 
+  const handleSendReminder = async (athleteId: string, type: "ROUTINE" | "DIET", title: string) => {
+    const res = await sendCoachFollowUpReminder(athleteId, type, title)
+    if (res.success) {
+      if (res.whatsAppUrl) {
+        Swal.fire({
+          title: "¡Recordatorio Programado!",
+          text: "El recordatorio fue enviado a la app del atleta. ¿Deseas abrir WhatsApp para enviárselo directamente?",
+          icon: "success",
+          showCancelButton: true,
+          confirmButtonColor: "#22c55e",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "📲 Abrir WhatsApp",
+          cancelButtonText: "Listo"
+        }).then(r => {
+          if (r.isConfirmed) window.open(res.whatsAppUrl, "_blank")
+        })
+      } else {
+        Swal.fire("¡Recordatorio Enviado!", "Se notificó al atleta a través de la aplicación.", "success")
+      }
+    } else {
+      Swal.fire("Error", res.error || "No se pudo enviar el recordatorio", "error")
+    }
+  }
+
   const top10Athletes = [...athletes].slice(0, 10)
 
   return (
@@ -470,7 +494,19 @@ export function CoachDashboard() {
                         ))}
                       </div>
                     )}
-                    <span className="text-sm font-medium">{routine.title}</span>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <span className="text-sm font-medium">{routine.title}</span>
+                      {routine.athlete?.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendReminder(routine.athlete.id, "ROUTINE", routine.title)}
+                          className="px-2 py-1 rounded-md text-[11px] font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition cursor-pointer flex items-center gap-1"
+                          title="Enviar recordatorio de seguimiento a la app y WhatsApp del atleta"
+                        >
+                          <Bell className="w-3 h-3" /> Recordar
+                        </button>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">{routine.exercises?.length} ejercicios • {routine.duration}</span>
                   </div>
                 ))}
@@ -499,7 +535,19 @@ export function CoachDashboard() {
                       <span className="font-bold text-primary">{diet.athlete?.name}</span>
                       <span className="text-xs text-muted-foreground">{new Date(diet.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <span className="text-sm font-medium">{diet.title}</span>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <span className="text-sm font-medium">{diet.title}</span>
+                      {diet.athlete?.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendReminder(diet.athlete.id, "DIET", diet.title)}
+                          className="px-2 py-1 rounded-md text-[11px] font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition cursor-pointer flex items-center gap-1"
+                          title="Enviar recordatorio de dieta a la app y WhatsApp del atleta"
+                        >
+                          <Bell className="w-3 h-3" /> Recordar
+                        </button>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <CalendarDays className="w-3 h-3"/> Plan Semanal Interactivo
                     </span>

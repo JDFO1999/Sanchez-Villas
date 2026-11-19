@@ -70,28 +70,41 @@ export default function TiendaPOSPage() {
   const [athleteDaysLeft, setAthleteDaysLeft] = useState<number | null>(null)
   const [athleteHasHistory, setAthleteHasHistory] = useState(false)
 
-  const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || []).map((p: any) => {
-    const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
-    return {
-      name: String(p.name || "Plan Promocional").trim(),
-      price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : (settings.monthlyFee || 25),
-      period: p.period || "/mes",
-      description: p.description || "",
-      features: Array.isArray(p.features) ? p.features : [],
-      popular: Boolean(p.popular)
-    }
-  })
-  const baseMonthlyPrice = settings.monthlyFee || 25
+  const standardPrice = Number(settings.monthlyFee) > 0 ? Number(settings.monthlyFee) : 20
+
+  const promotionalPlans = (settings.landingSettings?.plansSettings?.plans || [])
+    .filter((p: any) => {
+      const name = String(p.name || "").trim().toLowerCase()
+      return !name.includes("estándar") && !name.includes("estandar") && !name.includes("mensualidad básica") && !name.includes("mensualidad basica")
+    })
+    .map((p: any) => {
+      const rawNum = parseFloat(String(p.price || "").replace(/[^0-9.]/g, ""))
+      return {
+        name: String(p.name || "Plan Promocional").trim(),
+        price: Number.isFinite(rawNum) && rawNum > 0 ? rawNum : 25,
+        period: p.period || "/mes",
+        description: p.description || "",
+        features: Array.isArray(p.features) ? p.features : [],
+        popular: Boolean(p.popular)
+      }
+    })
+
+  const standardPlan = {
+    name: "Plan Estándar",
+    price: standardPrice,
+    period: "/mes",
+    description: "Acceso ilimitado a sala de pesas, máquinas y área cardiovascular.",
+    features: [
+      "Acceso ilimitado a sala de pesas",
+      "Asesoría técnica y rutinas en la app",
+      "Horario libre de lunes a sábado"
+    ],
+    popular: true
+  }
+
   const availableStorePlans = [
-    ...promotionalPlans,
-    {
-      name: "Mensualidad Básica",
-      price: baseMonthlyPrice,
-      period: "/mes",
-      description: "Acceso general mensual a las instalaciones del gimnasio.",
-      features: ["Acceso general a sala de musculación"],
-      popular: false
-    }
+    standardPlan,
+    ...promotionalPlans
   ]
 
   const selectPlanForCart = (plan: { name: string; price: number }) => {

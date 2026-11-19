@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect } from "react"
-import { CreditCard, Minus, Plus, Check, CheckCircle2, X } from "lucide-react"
+import { CreditCard, Minus, Plus, Check, CheckCircle2, X, Sparkles } from "lucide-react"
 
 export interface StorePlan {
   name: string
@@ -42,106 +42,143 @@ export function PlanSelectorModal({
 
   if (!isOpen) return null
 
+  const quickMonths = [1, 3, 6, 12]
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card border border-black/10 dark:border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/[0.02]">
-          <div>
-            <h3 className="font-black text-lg sm:text-xl flex items-center gap-2 uppercase tracking-tight">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Elegir Plan o Mensualidad
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Selecciona uno de nuestros planes promocionales o la mensualidad básica y la cantidad de meses a pagar.
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-card/95 border border-white/10 rounded-2xl w-full max-w-6xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col">
+        {/* HEADER COMPACTO */}
+        <div className="px-5 py-3.5 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/[0.02]">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-base sm:text-lg flex items-center gap-2 uppercase tracking-tight text-foreground">
+                Elegir Plan o Mensualidad
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Selecciona tu plan y la cantidad de meses para renovar o activar tu membresía.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground font-bold text-2xl leading-none px-2 cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition cursor-pointer"
             aria-label="Cerrar modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto space-y-5">
-          {/* Selector de meses */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-primary/10 border border-primary/20">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-primary block">
-                Duración del Pago
+        {/* CUERPO DEL MODAL */}
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+          {/* BARRA HORIZONTAL COMPACTA DE DURACIÓN */}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/20">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black uppercase tracking-wider text-primary">
+                Duración:
               </span>
-              <span className="text-xs text-muted-foreground">
-                ¿Cuántos meses deseas pagar por adelantado?
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPlanMonths((m) => Math.max(1, m - 1))}
+                  className="h-8 w-8 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary cursor-pointer transition text-foreground"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <span className="min-w-[80px] text-center font-black text-sm text-foreground">
+                  {planMonths} {planMonths === 1 ? "Mes" : "Meses"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPlanMonths((m) => Math.min(12, m + 1))}
+                  className="h-8 w-8 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary cursor-pointer transition text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPlanMonths((m) => Math.max(1, m - 1))}
-                className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary cursor-pointer transition"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="min-w-[90px] text-center font-black text-sm">
-                {planMonths} {planMonths === 1 ? "Mes" : "Meses"}
+
+            {/* Accesos rápidos de meses */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-muted-foreground mr-1 hidden sm:inline">
+                Atajo:
               </span>
-              <button
-                type="button"
-                onClick={() => setPlanMonths((m) => Math.min(12, m + 1))}
-                className="h-9 w-9 rounded-lg bg-card border border-black/10 dark:border-white/10 flex items-center justify-center font-bold hover:border-primary cursor-pointer transition"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              {quickMonths.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setPlanMonths(m)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    planMonths === m
+                      ? "bg-primary text-black font-black shadow-sm"
+                      : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground border border-black/5 dark:border-white/10"
+                  }`}
+                >
+                  {m === 12 ? "1 Año" : `${m}M`}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Tarjetas de Planes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* GRID MULTICOLUMNA DE PLANES (HASTA 5 COLUMNAS EN DESKTOP) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {availableStorePlans.map((plan) => {
               const totalForMonths = plan.price * planMonths
               return (
                 <div
                   key={plan.name}
-                  className={`rounded-2xl p-5 border flex flex-col justify-between transition-all ${
+                  className={`rounded-xl p-3.5 border flex flex-col justify-between transition-all relative ${
                     plan.popular
                       ? "border-primary bg-primary/10 shadow-lg shadow-primary/10 ring-1 ring-primary/40"
-                      : "border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.03] hover:border-primary/50"
+                      : "border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.02] hover:border-primary/50"
                   }`}
                 >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-black text-base uppercase tracking-tight">{plan.name}</h4>
-                      {plan.popular && (
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary text-primary-foreground shrink-0">
-                          Más Popular
-                        </span>
-                      )}
+                  {plan.popular && (
+                    <div className="absolute -top-2.5 right-3 bg-primary text-black text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5" /> Más Popular
                     </div>
-                    {plan.description && (
-                      <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
-                    )}
-                    <div className="flex items-baseline gap-1 mb-4">
-                      <span className="text-3xl font-black text-primary">
+                  )}
+
+                  <div>
+                    <h4 className="font-black text-sm uppercase tracking-tight text-foreground line-clamp-1 mb-1 mt-0.5">
+                      {plan.name}
+                    </h4>
+
+                    <div className="flex items-baseline gap-1 my-2">
+                      <span className="text-2xl font-black text-primary">
                         {currency}
-                        {plan.price}
+                        {plan.price.toFixed(2)}
                       </span>
-                      <span className="text-xs text-muted-foreground">{plan.period || "/mes"}</span>
-                      {planMonths > 1 && (
-                        <span className="ml-auto text-xs font-bold text-emerald-500">
-                          Total ({planMonths}m): {currency}
-                          {totalForMonths.toFixed(2)}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                        {plan.period || "/mes"}
+                      </span>
                     </div>
 
+                    {planMonths > 1 && (
+                      <div className="mb-2 text-[11px] font-bold text-emerald-500">
+                        Total {planMonths}m: {currency}
+                        {totalForMonths.toFixed(2)}
+                      </div>
+                    )}
+
+                    {plan.description && (
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    )}
+
                     {plan.features && plan.features.length > 0 && (
-                      <ul className="space-y-1.5 mb-4 border-t border-black/10 dark:border-white/10 pt-3">
-                        {plan.features.map((feat: string, idx: number) => (
-                          <li key={idx} className="text-xs flex items-start gap-2 text-foreground/90">
-                            <Check className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                            <span>{feat}</span>
+                      <ul className="space-y-1 mb-3 border-t border-black/10 dark:border-white/10 pt-2">
+                        {plan.features.slice(0, 3).map((feat: string, idx: number) => (
+                          <li
+                            key={idx}
+                            className="text-[11px] flex items-start gap-1.5 text-foreground/80 leading-tight"
+                          >
+                            <Check className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                            <span className="line-clamp-1">{feat}</span>
                           </li>
                         ))}
                       </ul>
@@ -151,15 +188,14 @@ export function PlanSelectorModal({
                   <button
                     type="button"
                     onClick={() => onSelectPlan(plan)}
-                    className={`w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`w-full py-2 px-3 rounded-lg font-black text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 ${
                       plan.popular
-                        ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20"
+                        ? "bg-primary text-black hover:opacity-90 shadow-md shadow-primary/20"
                         : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm"
                     }`}
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Elegir {plan.name} ({currency}
-                    {totalForMonths.toFixed(2)})
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>Elegir ({currency}{totalForMonths.toFixed(2)})</span>
                   </button>
                 </div>
               )

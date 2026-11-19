@@ -16,7 +16,7 @@ export async function getCoachAthletes(coachId: string) {
         role: "athlete",
         coachId: coachId
       },
-      select: { id: true, name: true, cedula: true, createdAt: true, profilePicture: true, _count: { select: { athleteRoutines: true, athleteDiets: true } } },
+      select: { id: true, name: true, cedula: true, phone: true, createdAt: true, profilePicture: true, _count: { select: { athleteRoutines: true, athleteDiets: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100
     })
@@ -34,7 +34,7 @@ export async function getCoachAssignedRoutines(coachId: string) {
     const routines = await prisma.routine.findMany({
       where: { coachId },
       include: {
-        athlete: { select: { name: true } },
+        athlete: { select: { id: true, name: true, phone: true } },
         exercises: true
       },
       orderBy: { createdAt: "desc" },
@@ -44,7 +44,7 @@ export async function getCoachAssignedRoutines(coachId: string) {
     const diets = await prisma.dietAssignment.findMany({
       where: { coachId },
       include: {
-        athlete: { select: { name: true } }
+        athlete: { select: { id: true, name: true, phone: true } }
       },
       orderBy: { createdAt: "desc" },
       take: 50
@@ -87,6 +87,7 @@ export async function createRoutine(data: {
   title: string
   date: Date
   duration: string
+  reminderTime?: string
   exercises: { name: string, sets: number, reps: string, notes: string }[]
 }) {
   try {
@@ -108,13 +109,45 @@ export async function createRoutine(data: {
         }
       }
     })
-    sendNotificationToUser(data.athleteId, {
+
+    const coachUser = await prisma.user.findUnique({
+      where: { id: r.coachId },
+      select: { name: true }
+    })
+    const athleteUser = await prisma.user.findUnique({
+      where: { id: data.athleteId },
+      select: { name: true, phone: true }
+    })
+
+    const coachName = coachUser?.name || "tu entrenador"
+    const reminderTimeStr = data.reminderTime ? ` (Hora sugerida: ${data.reminderTime})` : ""
+
+    // 1. Notificación inmediata de asignación
+    await sendNotificationToUser(data.athleteId, {
       title: "🏋️‍♂️ ¡Nueva rutina asignada!",
-      message: `Tu entrenador te ha asignado la rutina "${data.title}" (${data.duration}). ¡A darlo todo hoy en el gym!`,
+      message: `${coachName} te ha asignado la rutina "${data.title}" (${data.duration})${reminderTimeStr}. ¡A darlo todo hoy en el gym!`,
       type: "ROUTINE",
       url: "/rutina",
     }).catch(() => {});
-    return { success: true, routine }
+
+    // 2. Notificación de Seguimiento / Recordatorio
+    await sendNotificationToUser(data.athleteId, {
+      title: "⏰ Seguimiento de Rutina",
+      message: `Hola ${athleteUser?.name?.split(" ")[0] || "atleta"}, tu coach ${coachName} te recuerda cumplir tu rutina "${data.title}" hoy${reminderTimeStr}. ¡La constancia es la clave!`,
+      type: "ROUTINE",
+      url: "/rutina",
+    }).catch(() => {});
+
+    // 3. Generar enlace de WhatsApp para seguimiento directo
+    let whatsAppUrl = ""
+    if (athleteUser?.phone) {
+      const cleanPhone = athleteUser.phone.replace(/\D/g, "")
+      const fullPhone = cleanPhone.startsWith("58") ? cleanPhone : `58${cleanPhone.replace(/^0/, "")}`
+      const msg = `¡Hola ${athleteUser.name?.split(" ")[0]}! Te saluda tu entrenador ${coachName}. Te he asignado tu nueva rutina "${data.title}" (${data.duration})${reminderTimeStr}. Puedes verla y marcar tus ejercicios aquí: https://maximumevolutionfit.com/rutina ¡A entrenar con todo!`
+      whatsAppUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`
+    }
+
+    return { success: true, routine, whatsAppUrl }
   } catch (error: any) {
     console.error(error)
     return { success: false, error: "No se pudo crear la rutina." }
@@ -127,11 +160,28 @@ export async function createDiet(data: {
   title: string
   description?: string
   weeklyPlan?: string
+  mealSchedule?: {
+    breakfast?: string
+    lunch?: string
+    snacks?: string
+    dinner?: string
+  }
   date: Date
 }) {
   try {
     const r = await resolveAssignment(data.athleteId, data.coachId)
     if (!r.ok) return { success: false, error: r.error };
+
+    let finalWeeklyPlan = data.weeklyPlan
+    if (data.mealSchedule) {
+      try {
+        const parsed = finalWeeklyPlan ? JSON.parse(finalWeeklyPlan) : {}
+        parsed.__schedule = data.mealSchedule
+        finalWeeklyPlan = JSON.stringify(parsed)
+      } catch {
+        finalWeeklyPlan = JSON.stringify({ raw: finalWeeklyPlan, __schedule: data.mealSchedule })
+      }
+    }
 
     const diet = await prisma.dietAssignment.create({
       data: {
@@ -139,20 +189,102 @@ export async function createDiet(data: {
         coachId: r.coachId,
         title: data.title,
         description: data.description,
-        weeklyPlan: data.weeklyPlan,
+        weeklyPlan: finalWeeklyPlan,
         date: data.date
       }
     })
-    sendNotificationToUser(data.athleteId, {
+
+    const coachUser = await prisma.user.findUnique({
+      where: { id: r.coachId },
+      select: { name: true }
+    })
+    const athleteUser = await prisma.user.findUnique({
+      where: { id: data.athleteId },
+      select: { name: true, phone: true }
+    })
+
+    const coachName = coachUser?.name || "tu entrenador"
+    const sch = data.mealSchedule
+
+    // 1. Notificación inicial
+    await sendNotificationToUser(data.athleteId, {
       title: "🥗 ¡Nuevo plan de alimentación!",
-      message: `Tu entrenador te ha asignado tu plan nutricional "${data.title}". Revisa tu menú y objetivos.`,
+      message: `${coachName} te ha asignado tu plan nutricional "${data.title}". Revisa tus comidas y horarios de seguimiento en la app.`,
       type: "DIET",
       url: "/rutina",
     }).catch(() => {});
-    return { success: true, diet }
+
+    // 2. Notificaciones de seguimiento según los tiempos que colocó el entrenador para la dieta
+    const scheduleItems = [
+      { label: "Desayuno", time: sch?.breakfast || "08:00 AM" },
+      { label: "Almuerzo", time: sch?.lunch || "01:00 PM" },
+      { label: "Merienda", time: sch?.snacks || "04:30 PM" },
+      { label: "Cena", time: sch?.dinner || "08:00 PM" }
+    ]
+
+    for (const item of scheduleItems) {
+      await sendNotificationToUser(data.athleteId, {
+        title: `⏰ Recordatorio de Dieta (${item.label} - ${item.time})`,
+        message: `Hola ${athleteUser?.name?.split(" ")[0] || "atleta"}, recuerda cumplir con tu ${item.label.toLowerCase()} a las ${item.time} según la pauta asignada por ${coachName}.`,
+        type: "DIET",
+        url: "/rutina",
+      }).catch(() => {});
+    }
+
+    // 3. Generar enlace de WhatsApp para seguimiento directo de dieta
+    let whatsAppUrl = ""
+    if (athleteUser?.phone) {
+      const cleanPhone = athleteUser.phone.replace(/\D/g, "")
+      const fullPhone = cleanPhone.startsWith("58") ? cleanPhone : `58${cleanPhone.replace(/^0/, "")}`
+      const timesSummary = sch
+        ? `\n- Desayuno: ${sch.breakfast || '08:00 AM'}\n- Almuerzo: ${sch.lunch || '01:00 PM'}\n- Merienda: ${sch.snacks || '04:30 PM'}\n- Cena: ${sch.dinner || '08:00 PM'}`
+        : ""
+      const msg = `¡Hola ${athleteUser.name?.split(" ")[0]}! Te saluda tu entrenador ${coachName}. Te he asignado tu nuevo plan de alimentación "${data.title}".${timesSummary ? '\n\nHorarios pautados de comidas:' + timesSummary : ''}\n\nPuedes ver los detalles en tu app: https://maximumevolutionfit.com/rutina\n\n¡La disciplina en la cocina define tus resultados!`
+      whatsAppUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`
+    }
+
+    return { success: true, diet, whatsAppUrl }
   } catch (error: any) {
     console.error(error)
     return { success: false, error: "No se pudo crear la dieta." }
+  }
+}
+
+export async function sendCoachFollowUpReminder(athleteId: string, planType: "ROUTINE" | "DIET", planTitle: string, extraNote?: string) {
+  const g = await guard(["coach", "admin", "employee"])
+  if (!g.ok) return { success: false, error: g.error }
+
+  try {
+    const athlete = await prisma.user.findUnique({
+      where: { id: athleteId },
+      select: { id: true, name: true, phone: true }
+    })
+    if (!athlete) return { success: false, error: "Atleta no encontrado" }
+
+    const coachName = g.user.name || "Tu Entrenador"
+    const typeLabel = planType === "ROUTINE" ? "tu rutina de entrenamiento" : "tu plan nutricional"
+    const titleLabel = planType === "ROUTINE" ? "🏋️ Recordatorio de Rutina" : "🥗 Recordatorio de Alimentación"
+    const noteText = extraNote ? ` Nota del coach: "${extraNote}".` : ""
+
+    await sendNotificationToUser(athlete.id, {
+      title: titleLabel,
+      message: `¡Hola ${athlete.name.split(" ")[0]}! ${coachName} te recuerda cumplir con ${typeLabel} "${planTitle}".${noteText} ¡No te detengas! 💪`,
+      type: planType,
+      url: "/rutina"
+    })
+
+    let whatsAppUrl = ""
+    if (athlete.phone) {
+      const cleanPhone = athlete.phone.replace(/\D/g, "")
+      const fullPhone = cleanPhone.startsWith("58") ? cleanPhone : `58${cleanPhone.replace(/^0/, "")}`
+      const msg = `¡Hola ${athlete.name.split(" ")[0]}! Te saluda tu entrenador ${coachName}. Te recuerdo cumplir hoy con ${typeLabel} "${planTitle}".${noteText}\n\nPuedes revisarla aquí: https://maximumevolutionfit.com/rutina\n¡A darlo todo!`
+      whatsAppUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`
+    }
+
+    return { success: true, whatsAppUrl }
+  } catch (error: any) {
+    console.error(error)
+    return { success: false, error: "No se pudo enviar el recordatorio." }
   }
 }
 

@@ -154,11 +154,11 @@ export function HeroCarousel() {
       {/* CAROUSEL CONTROLS */}
       {slides.length > 1 && (
         <>
-          {/* PREV / NEXT ARROWS */}
+          {/* PREV / NEXT ARROWS (OCULTOS EN MÓVIL / TELÉFONO) */}
           <button
             onClick={prevSlide}
             aria-label="Diapositiva anterior"
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 hover:border-primary transition-all group"
+            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 hover:border-primary transition-all group hidden sm:flex items-center justify-center"
           >
             <ChevronLeft className="w-6 h-6 group-hover:-translate-x-0.5 transition-transform" />
           </button>
@@ -166,7 +166,7 @@ export function HeroCarousel() {
           <button
             onClick={nextSlide}
             aria-label="Siguiente diapositiva"
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 hover:border-primary transition-all group"
+            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 hover:border-primary transition-all group hidden sm:flex items-center justify-center"
           >
             <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
           </button>
