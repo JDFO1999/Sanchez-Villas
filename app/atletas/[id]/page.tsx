@@ -1192,13 +1192,6 @@ export default function AtletaPerfilPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" /> Asistencia
               </CardTitle>
-              <button
-                type="button"
-                onClick={() => setShowAttendanceModal(true)}
-                className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/30 px-2.5 py-1 rounded-lg transition cursor-pointer"
-              >
-                Historial ({totalAttendances})
-              </button>
             </CardHeader>
             <CardContent>
               <div className="flex items-end justify-between mb-2">

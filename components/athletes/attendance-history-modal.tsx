@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import { Dialog } from "@/components/ui/dialog"
 import {
   Calendar,
   CalendarCheck,
@@ -10,8 +9,10 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
+  X,
+  User,
+  Sparkles,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 export interface AttendanceItem {
   id: string
@@ -72,7 +73,7 @@ export function AttendanceHistoryModal({
 }: AttendanceHistoryModalProps) {
   const [filterMonth, setFilterMonth] = useState<string>("TODOS")
 
-  if (!athlete) return null
+  if (!open || !athlete) return null
 
   // Cálculo de estado de membresía
   const hasValidMemb = Boolean(
@@ -132,181 +133,215 @@ export function AttendanceHistoryModal({
   )
 
   const planDisplayName =
-    athlete.planName || athlete.membershipType || "Plan Estándar (General)"
+    athlete.planName || athlete.membershipType || "Plan Estándar"
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title={`Historial de Asistencias - ${athlete.name}`}
-      className="max-w-2xl w-full p-0 overflow-hidden"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+      onClick={onClose}
     >
-      <div className="flex flex-col max-h-[85vh]">
-        {/* Cabecera Atleta y Plan */}
-        <div className="p-6 bg-card border-b border-border space-y-4">
-          <div className="flex items-center gap-4">
+      <div
+        className="bg-card/95 dark:bg-[#0e1017]/95 backdrop-blur-2xl text-card-foreground border border-black/10 dark:border-white/15 rounded-2xl max-w-xl w-full shadow-2xl relative my-auto max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Cabecera del Modal */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-black/10 dark:border-white/10 shrink-0 bg-black/[0.02] dark:bg-white/[0.02]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 ring-1 ring-primary/25">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-black text-foreground truncate leading-tight">
+                Historial de Asistencias — {athlete.name}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                C.I. {athlete.cedula} • Registro cronológico de accesos
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer shrink-0 ml-2"
+            title="Cerrar"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Contenido Principal con Scroll */}
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
+          
+          {/* Ficha Atleta & Entrenador */}
+          <div className="flex items-center gap-3.5 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
             {athlete.profilePicture ? (
               <img
                 src={athlete.profilePicture}
                 alt={athlete.name}
-                className="w-14 h-14 rounded-2xl object-cover border-2 border-primary/40 shrink-0 shadow-md"
+                className="w-12 h-12 rounded-xl object-cover border-2 border-primary/40 shrink-0 shadow-sm"
               />
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-primary/20 text-primary font-black flex items-center justify-center text-xl shrink-0 border border-primary/30 shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-primary/20 text-primary font-black flex items-center justify-center text-lg shrink-0 border border-primary/30 shadow-sm">
                 {athlete.name?.charAt(0) || "A"}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-lg font-black text-foreground truncate">{athlete.name}</h3>
-                <span className="text-xs px-2.5 py-0.5 rounded-md font-bold bg-muted text-muted-foreground border border-border">
+                <span className="font-extrabold text-sm text-foreground truncate">{athlete.name}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-black/10 dark:bg-white/10 text-muted-foreground border border-black/10 dark:border-white/10">
                   C.I. {athlete.cedula}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {athlete.coachName ? `Entrenador asignado: ${athlete.coachName}` : "Sin entrenador personal"}
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                <User className="w-3 h-3 text-primary shrink-0" />
+                <span>{athlete.coachName ? `Entrenador asignado: ${athlete.coachName}` : "Sin entrenador personal asignado"}</span>
               </p>
             </div>
           </div>
 
           {/* Tarjeta Informativa del Plan Contratado */}
-          <div className="rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/25 p-4 space-y-2.5">
+          <div className="rounded-xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/25 p-3.5 space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-primary/20 text-primary">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-primary/20 text-primary">
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                     Plan Contratado
                   </span>
-                  <span className="text-sm font-extrabold text-foreground">{planDisplayName}</span>
+                  <span className="text-sm font-black text-foreground">{planDisplayName}</span>
                 </div>
               </div>
 
               <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusBadge.className}`}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${statusBadge.className}`}
               >
                 <statusBadge.icon className="w-3.5 h-3.5" />
                 <span>{statusBadge.text}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-primary/10 text-xs">
-              <div>
-                <span className="text-muted-foreground block text-[10px]">Inicio:</span>
-                <span className="font-semibold text-foreground">
-                  {startDate ? startDate.toLocaleDateString("es-VE") : "No registrado"}
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-primary/15 text-center">
+              <div className="p-2 rounded-lg bg-black/5 dark:bg-black/30 border border-black/5 dark:border-white/5">
+                <span className="text-muted-foreground block text-[10px] font-bold uppercase">Inicio</span>
+                <span className="font-bold text-xs text-foreground mt-0.5 block">
+                  {startDate ? startDate.toLocaleDateString("es-VE") : "No reg."}
                 </span>
               </div>
-              <div>
-                <span className="text-muted-foreground block text-[10px]">Vence:</span>
-                <span className="font-semibold text-foreground">
+              <div className="p-2 rounded-lg bg-black/5 dark:bg-black/30 border border-black/5 dark:border-white/5">
+                <span className="text-muted-foreground block text-[10px] font-bold uppercase">Vencimiento</span>
+                <span className="font-bold text-xs text-foreground mt-0.5 block">
                   {endDate ? endDate.toLocaleDateString("es-VE") : "Indefinida"}
                 </span>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="text-muted-foreground block text-[10px]">Total Asistencias:</span>
-                <span className="font-black text-primary text-sm">
+              <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <span className="text-primary block text-[10px] font-bold uppercase">Total Asistencias</span>
+                <span className="font-black text-sm text-primary mt-0.5 block">
                   {sortedAttendances.length} {sortedAttendances.length === 1 ? "Día" : "Días"}
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Barra de Filtro y Resumen de Días */}
-        <div className="px-6 py-3 bg-muted/40 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <CalendarCheck className="w-4 h-4 text-primary" />
-            <span>
-              Mostrando {filteredAttendances.length} de {sortedAttendances.length} asistencias
-            </span>
+          {/* Barra de Filtro y Conteo */}
+          <div className="flex items-center justify-between gap-2 pt-1 pb-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+              <CalendarCheck className="w-4 h-4 text-primary" />
+              <span>
+                Mostrando <strong className="text-foreground">{filteredAttendances.length}</strong> de {sortedAttendances.length} asistencias
+              </span>
+            </div>
+
+            {availableMonths.length > 1 && (
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="text-xs bg-card dark:bg-black/40 border border-black/15 dark:border-white/15 rounded-lg px-2.5 py-1 text-foreground focus:outline-none focus:border-primary font-medium"
+              >
+                <option value="TODOS">Todos los meses</option>
+                {availableMonths.map((ym) => {
+                  const [y, m] = ym.split("-")
+                  const mName = MONTHS_ES[parseInt(m, 10) - 1]
+                  return (
+                    <option key={ym} value={ym}>
+                      {mName} {y}
+                    </option>
+                  )
+                })}
+              </select>
+            )}
           </div>
 
-          {availableMonths.length > 1 && (
-            <select
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="text-xs bg-background border border-border rounded-lg px-2.5 py-1 text-foreground focus:outline-none focus:border-primary"
-            >
-              <option value="TODOS">Todos los meses</option>
-              {availableMonths.map((ym) => {
-                const [y, m] = ym.split("-")
-                const mName = MONTHS_ES[parseInt(m, 10) - 1]
-                return (
-                  <option key={ym} value={ym}>
-                    {mName} {y}
-                  </option>
-                )
-              })}
-            </select>
-          )}
-        </div>
-
-        {/* Listado Cronológico de Asistencias */}
-        <div className="p-6 overflow-y-auto space-y-2.5 flex-1 min-h-[220px]">
-          {filteredAttendances.length === 0 ? (
-            <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card/50 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
-                <Calendar className="w-6 h-6 opacity-75" />
+          {/* Listado Cronológico de Asistencias */}
+          <div className="space-y-2">
+            {filteredAttendances.length === 0 ? (
+              <div className="text-center py-10 px-4 rounded-xl border border-dashed border-black/15 dark:border-white/15 bg-black/[0.02] dark:bg-white/[0.02] space-y-2.5">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                  <Calendar className="w-6 h-6 opacity-80" />
+                </div>
+                <h4 className="text-sm font-bold text-foreground">Sin registros de asistencia</h4>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  {filterMonth !== "TODOS"
+                    ? "No se registraron asistencias durante el mes seleccionado."
+                    : "Este atleta aún no tiene asistencias registradas en el torniquete o módulo de recepción."}
+                </p>
               </div>
-              <h4 className="text-sm font-bold text-foreground">Sin registros de asistencia</h4>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                {filterMonth !== "TODOS"
-                  ? "No se registraron asistencias durante el mes seleccionado."
-                  : "Este atleta aún no tiene asistencias registradas en el torniquete o módulo de recepción."}
-              </p>
-            </div>
-          ) : (
-            filteredAttendances.map((att, idx) => {
-              const formatted = formatEntryDate(att.date)
-              const countNumber = sortedAttendances.length - idx
-              return (
-                <div
-                  key={att.id || idx}
-                  className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-card border border-border hover:border-primary/40 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center font-black text-xs shrink-0">
-                      #{countNumber}
-                    </div>
+            ) : (
+              filteredAttendances.map((att, idx) => {
+                const formatted = formatEntryDate(att.date)
+                const countNumber = sortedAttendances.length - idx
+                return (
+                  <div
+                    key={att.id || idx}
+                    className="flex items-center justify-between gap-3 p-3 rounded-xl bg-card border border-black/10 dark:border-white/10 hover:border-primary/40 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center font-black text-xs shrink-0">
+                        #{countNumber}
+                      </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-primary uppercase tracking-wide">
-                          {formatted.dayName}
-                        </span>
-                        <span className="text-xs font-bold text-foreground truncate">
-                          {formatted.fullDate}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-primary uppercase tracking-wide">
+                            {formatted.dayName}
+                          </span>
+                          <span className="text-xs font-bold text-foreground truncate">
+                            {formatted.fullDate}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          Hora de entrada: {formatted.timeStr}
                         </span>
                       </div>
-                      <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
-                        Hora de entrada: {formatted.timeStr}
+                    </div>
+
+                    <div className="shrink-0">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Asistió
                       </span>
                     </div>
                   </div>
+                )
+              })
+            )}
+          </div>
 
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                      Asistió
-                    </span>
-                  </div>
-                </div>
-              )
-            })
-          )}
         </div>
 
         {/* Pie del Modal */}
-        <div className="p-4 bg-card border-t border-border flex justify-end">
-          <Button variant="outline" size="sm" onClick={onClose} className="rounded-xl px-5 font-bold">
+        <div className="p-3.5 sm:p-4 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/10 dark:border-white/10 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl transition cursor-pointer shadow-sm"
+          >
             Cerrar
-          </Button>
+          </button>
         </div>
       </div>
-    </Dialog>
+    </div>
   )
 }

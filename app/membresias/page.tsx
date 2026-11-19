@@ -1150,7 +1150,7 @@ const handleSaveEdit = async (e: React.FormEvent) => {
                                 >
                                   <div>
                                     <div className="font-bold text-xs flex items-center gap-1.5">
-                                      <span>🏢 100% Ganancia Gimnasio</span>
+                                      <span>🏢 Sin División de Porcentaje</span>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground mt-0.5">El gimnasio recibe los ${totalCalculado.toFixed(2)} completos sin deducir comisión.</p>
                                   </div>
@@ -1173,9 +1173,9 @@ const handleSaveEdit = async (e: React.FormEvent) => {
                                 >
                                   <div>
                                     <div className="font-bold text-xs flex items-center gap-1.5">
-                                      <span>🤝 0,5% Comisión al Entrenador</span>
+                                      <span>🤝 Comisión de Entrenador</span>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground mt-0.5">El entrenador devenga el 0,5% (${(totalCalculado * 0.005).toFixed(2)}) del atleta.</p>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">El entrenador devenga el {renovarCoachCommissionRate}% (${(totalCalculado * (renovarCoachCommissionRate / 100)).toFixed(2)}) del atleta.</p>
                                   </div>
                                   {renovarGiveCoachCommission && (
                                     <span className="text-amber-500 text-xs font-bold">✓ Activo</span>
