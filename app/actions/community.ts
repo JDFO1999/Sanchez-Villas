@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import prisma from "@/lib/db"
 import { guard, getAuthUser, ROLES } from "@/lib/authz"
@@ -9,9 +9,39 @@ import { broadcastNotification, sendNotificationToUser } from "@/lib/push-notifi
 // POSTS DEL MURO Y AVISOS
 // -------------------------------------------------------------
 
+async function getProcessedBirthdays(): Promise<string[]> {
+  try {
+    const row = await prisma.systemSetting.findUnique({
+      where: { id: "birthday_posts_tracker" },
+    })
+    if (!row || !row.data) return []
+    const parsed = JSON.parse(row.data)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+async function markBirthdayProcessed(key: string) {
+  try {
+    const current = await getProcessedBirthdays()
+    if (!current.includes(key)) {
+      current.push(key)
+      await prisma.systemSetting.upsert({
+        where: { id: "birthday_posts_tracker" },
+        update: { data: JSON.stringify(current) },
+        create: { id: "birthday_posts_tracker", data: JSON.stringify(current) },
+      })
+    }
+  } catch (err) {
+    console.error("Error marking birthday processed:", err)
+  }
+}
+
 /**
  * Publica automáticamente un póster de felicitación con mensaje motivacional en la Comunidad
  * para cada atleta que cumpla años el día de hoy, evitando duplicados en el mismo año.
+ * Si el administrador elimina la felicitación, queda registrada en el tracker para no volver a crearse.
  */
 export async function syncDailyBirthdayCommunityPosts() {
   try {
@@ -52,6 +82,7 @@ export async function syncDailyBirthdayCommunityPosts() {
     if (!adminUser) return
 
     const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 0, 0, 0))
+    const processedKeys = await getProcessedBirthdays()
 
     const motivationalQuotes = [
       "Cada repetición cuenta, cada día suma y cada nuevo año de vida es una oportunidad dorada para conquistar metas más grandes.",
@@ -64,6 +95,13 @@ export async function syncDailyBirthdayCommunityPosts() {
       const birthYear = Number(b.birthDate!.split("-")[0])
       const ageTurning = currentYear - birthYear
       const title = `🎂 ¡Feliz Cumpleaños, ${b.name}! 🎉`
+      const idKey = `${b.id}_${currentYear}`
+      const nameKey = `${b.name.trim().toLowerCase()}_${currentYear}`
+
+      // Si ya fue procesado o eliminado por el administrador, no volver a generarlo
+      if (processedKeys.includes(idKey) || processedKeys.includes(nameKey)) {
+        continue
+      }
 
       const existing = await prisma.communityPost.findFirst({
         where: {
@@ -72,9 +110,15 @@ export async function syncDailyBirthdayCommunityPosts() {
         },
       })
 
-      if (!existing) {
-        const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
-        const content = `🎈 ¡Hoy toda la familia de Maximum Evolution Fit está de fiesta! 🎈
+      if (existing) {
+        // Registrar en el tracker para persistir estado
+        await markBirthdayProcessed(idKey)
+        await markBirthdayProcessed(nameKey)
+        continue
+      }
+
+      const quote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]
+      const content = `🎈 ¡Hoy toda la familia de Maximum Evolution Fit está de fiesta! 🎈
 
 Queremos felicitar de todo corazón a nuestro atleta y compañero ${b.name}${ageTurning > 0 && ageTurning < 120 ? ` en su cumpleaños número ${ageTurning}` : ''}.
 
@@ -84,24 +128,27 @@ Te deseamos un nuevo año de vida lleno de salud, superación personal, récords
 
 ¡Dejémosle todos nuestras felicitaciones, aplausos y mejores deseos en las reacciones y comentarios! 👏🥳🎉`
 
-        await prisma.communityPost.create({
-          data: {
-            authorId: adminUser.id,
-            title,
-            content,
-            tag: "Cumpleaños",
-            imageUrl: b.profilePicture || null,
-          },
-        })
+      await prisma.communityPost.create({
+        data: {
+          authorId: adminUser.id,
+          title,
+          content,
+          tag: "Cumpleaños",
+          imageUrl: b.profilePicture || null,
+        },
+      })
 
-        await broadcastNotification({
-          title: `🎂 ¡Hoy es el cumpleaños de ${b.name}! 🎉`,
-          message: `¡Hoy celebramos a nuestro compañero ${b.name}! Entra a la comunidad y déjale tu mensaje de felicitaciones y buenos deseos en su día. 🥳🎈`,
-          type: "BIRTHDAY",
-          url: "/comunidad",
-          avatarUrl: b.profilePicture || undefined,
-        })
-      }
+      // Marcar en tracker inmediatamente
+      await markBirthdayProcessed(idKey)
+      await markBirthdayProcessed(nameKey)
+
+      await broadcastNotification({
+        title: `🎂 ¡Hoy es el cumpleaños de ${b.name}! 🎉`,
+        message: `¡Hoy celebramos a nuestro compañero ${b.name}! Entra a la comunidad y déjale tu mensaje de felicitaciones y buenos deseos en su día. 🥳🎈`,
+        type: "BIRTHDAY",
+        url: "/comunidad",
+        avatarUrl: b.profilePicture || undefined,
+      })
     }
   } catch (err) {
     console.error("Error sincronizando posts de cumpleaños:", err)
@@ -268,6 +315,31 @@ export async function deleteCommunityPostAction(postId: string) {
 
     if (!post) {
       return { success: false, error: "Publicación no encontrada." }
+    }
+
+    // Si es una felicitación de cumpleaños, registrarla en el tracker de descartados
+    // para que syncDailyBirthdayCommunityPosts no la vuelva a generar al recargar la página
+    if (post.tag === "Cumpleaños" || post.title.toLowerCase().includes("cumpleaños")) {
+      const nowVet = new Date(Date.now() - 4 * 60 * 60 * 1000)
+      const currentYear = nowVet.getUTCFullYear()
+
+      const match = post.title.match(/¡Feliz Cumpleaños,\s*(.+?)!\s*🎉/i)
+      const athleteName = match ? match[1].trim() : ""
+
+      if (athleteName) {
+        await markBirthdayProcessed(`${athleteName.toLowerCase()}_${currentYear}`)
+        const matchingAthletes = await prisma.user.findMany({
+          where: {
+            role: "athlete",
+            name: { contains: athleteName }
+          },
+          select: { id: true, name: true }
+        })
+        for (const a of matchingAthletes) {
+          await markBirthdayProcessed(`${a.id}_${currentYear}`)
+          await markBirthdayProcessed(`${a.name.trim().toLowerCase()}_${currentYear}`)
+        }
+      }
     }
 
     await prisma.communityPost.delete({
