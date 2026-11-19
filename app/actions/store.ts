@@ -713,3 +713,156 @@ export async function getStoreCategories() {
     return { success: false, error: error.message, categories: [], departments: [] }
   }
 }
+
+/**
+ * Permite al administrador corregir el monto, método o referencia de una factura
+ * o eliminar el recargo erróneo de Entrenador (+USD 8.00).
+ */
+export async function adminCorrectTransaction(
+  transactionId: string,
+  data: {
+    total?: number;
+    paymentMethod?: string;
+    reference?: string;
+    removeCoachItem?: boolean;
+    reason?: string;
+  }
+) {
+  const g = await guard(ROLES.ADMIN);
+  if (!g.ok) return { success: false, error: g.error };
+
+  try {
+    const tx = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: { items: true }
+    });
+
+    if (!tx) return { success: false, error: 'Transacción no encontrada' };
+
+    const newTotal = typeof data.total === 'number' && data.total > 0 ? data.total : tx.total;
+
+    await prisma.$transaction(async (txPrisma) => {
+      // 1. Si removeCoachItem es true, eliminar ítems de entrenador
+      if (data.removeCoachItem) {
+        await txPrisma.transactionItem.deleteMany({
+          where: {
+            transactionId,
+            OR: [
+              { productId: 'COACH' },
+              { name: { contains: 'Entrenador' } }
+            ]
+          }
+        });
+
+        // Actualizar el ítem de membresía/plan restante para que refleje el total
+        const remainingItems = await txPrisma.transactionItem.findMany({
+          where: { transactionId }
+        });
+
+        if (remainingItems.length === 1) {
+          await txPrisma.transactionItem.update({
+            where: { id: remainingItems[0].id },
+            data: {
+              price: newTotal,
+              subtotal: newTotal
+            }
+          });
+        }
+      }
+
+      // 2. Actualizar la transacción
+      await txPrisma.transaction.update({
+        where: { id: transactionId },
+        data: {
+          total: newTotal,
+          subtotal: newTotal,
+          ...(data.paymentMethod ? { paymentMethod: data.paymentMethod } : {}),
+          ...(data.reference !== undefined ? { reference: data.reference } : {})
+        }
+      });
+    });
+
+    await audit('sale.correct', g.user, {
+      transactionId,
+      oldTotal: tx.total,
+      newTotal,
+      reason: data.reason || 'Corrección administrativa de cobro'
+    });
+
+    revalidatePath('/finanzas');
+    revalidatePath('/tienda');
+    revalidatePath('/membresias');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('adminCorrectTransaction error:', error);
+    return { success: false, error: error?.message || 'Error al corregir la transacción' };
+  }
+}
+
+/**
+ * Corrige en lote todas las facturas históricas donde se cobró erróneamente $28.00 por el recargo de coach,
+ * ajustándolas al monto estándar del plan ($20.00) y removiendo el ítem extra de Entrenador.
+ */
+export async function adminFixAllOverchargedCoachTransactions() {
+  const g = await guard(ROLES.ADMIN);
+  if (!g.ok) return { success: false, error: g.error, corrected: 0 };
+
+  try {
+    const candidateTxs = await prisma.transaction.findMany({
+      where: {
+        total: 28,
+        status: { not: 'CANCELED' }
+      },
+      include: { items: true }
+    });
+
+    let correctedCount = 0;
+
+    for (const tx of candidateTxs) {
+      const hasCoach = tx.items.some(i => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'));
+      if (hasCoach) {
+        await prisma.$transaction(async (txPrisma) => {
+          // Eliminar items de entrenador
+          await txPrisma.transactionItem.deleteMany({
+            where: {
+              transactionId: tx.id,
+              OR: [
+                { productId: 'COACH' },
+                { name: { contains: 'Entrenador' } }
+              ]
+            }
+          });
+
+          // Ajustar item de plan a 20
+          const remainingItems = await txPrisma.transactionItem.findMany({
+            where: { transactionId: tx.id }
+          });
+          for (const item of remainingItems) {
+            await txPrisma.transactionItem.update({
+              where: { id: item.id },
+              data: { price: 20, subtotal: 20 }
+            });
+          }
+
+          // Ajustar total de transacción a 20
+          await txPrisma.transaction.update({
+            where: { id: tx.id },
+            data: { total: 20, subtotal: 20 }
+          });
+        });
+
+        correctedCount++;
+      }
+    }
+
+    revalidatePath('/finanzas');
+    revalidatePath('/tienda');
+    revalidatePath('/membresias');
+
+    return { success: true, corrected: correctedCount };
+  } catch (error: any) {
+    console.error('adminFixAllOverchargedCoachTransactions error:', error);
+    return { success: false, error: error?.message || 'Error al corregir facturas', corrected: 0 };
+  }
+}

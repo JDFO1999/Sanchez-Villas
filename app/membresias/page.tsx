@@ -76,6 +76,8 @@ export default function MembresíasPage() {
   const [renovarSelectedCoach, setRenovarSelectedCoach] = useState("")
   const [renovarUseCustomCoachFee, setRenovarUseCustomCoachFee] = useState(false)
   const [renovarCustomCoachFee, setRenovarCustomCoachFee] = useState<string>("")
+  const [renovarGiveCoachCommission, setRenovarGiveCoachCommission] = useState(false)
+  const [renovarCoachCommissionRate, setRenovarCoachCommissionRate] = useState(0.5)
   const [renovarMonths, setRenovarMonths] = useState(1)
   const [renovarSplitCount, setRenovarSplitCount] = useState<1 | 2 | 3>(1)
   const [renovarSplits, setRenovarSplits] = useState<PaymentSplit[]>([
@@ -87,6 +89,7 @@ export default function MembresíasPage() {
   const [renovarChangeMethod, setRenovarChangeMethod] = useState<'Efectivo' | 'Pago Móvil' | 'Transferencia'>('Efectivo')
   const [renovarChangeRef, setRenovarChangeRef] = useState<string>("")
   const [showQRModal, setShowQRModal] = useState<string | null>(null)
+  const [isProcessingRenovar, setIsProcessingRenovar] = useState(false)
 
   // Métodos de pago activos según la configuración en Ajustes
   const hasPagoMovil = Boolean(settings.storePaymentInstructions?.pagoMovil?.trim() || settings.storePaymentInstructions?.pagoMovil2?.trim() || settings.storePaymentQRs?.pagoMovil || settings.storePaymentQRs?.pagoMovil2)
@@ -619,14 +622,13 @@ const handleSaveEdit = async (e: React.FormEvent) => {
   const syncSingleSplitAmount = (
     planPrice: number,
     months: number,
-    includeCoach: boolean,
-    coachId: string,
-    useCustomFee: boolean = renovarUseCustomCoachFee,
-    customFeeVal: string = renovarCustomCoachFee
+    _includeCoach?: boolean,
+    _coachId?: string,
+    _useCustomFee?: boolean,
+    _customFeeVal?: string
   ) => {
-    const mem = planPrice * months
-    const cPrice = calculateCoachMonthlyFee(planPrice, includeCoach, coachId, useCustomFee, customFeeVal) * months
-    const newTotal = Math.round((mem + cPrice) * 100) / 100
+    // El atleta SIEMPRE paga el precio del plan ($20/mes) sin recargos por entrenador
+    const newTotal = Math.round(planPrice * months * 100) / 100
     setRenovarSplits(prev => {
       const copy = [...prev]
       if (renovarSplitCount === 1) {
@@ -653,10 +655,10 @@ const handleSaveEdit = async (e: React.FormEvent) => {
     setRenovarSelectedCoach(validAssignedCoach)
     setRenovarIncludeCoach(!!validAssignedCoach)
     setRenovarUseCustomCoachFee(false)
-    const defaultPctFee = Math.round((pPrice * (gymCoachPercentage / 100)) * 100) / 100
-    setRenovarCustomCoachFee(defaultPctFee.toString())
+    setRenovarGiveCoachCommission(false)
+    setRenovarCoachCommissionRate(0.5)
     setRenovarMonths(1)
-    const baseTotal = Math.round((pPrice + (validAssignedCoach ? defaultPctFee : 0)) * 100) / 100
+    const baseTotal = pPrice
     setRenovarSplitCount(1)
     setRenovarSplits([
       { method: 'Efectivo', amount: baseTotal, reference: '', receiptImage: null },
@@ -682,8 +684,8 @@ const handleSaveEdit = async (e: React.FormEvent) => {
     setRenovarSelectedCoach("")
     setRenovarIncludeCoach(false)
     setRenovarUseCustomCoachFee(false)
-    const defaultPctFee = Math.round((pPrice * (gymCoachPercentage / 100)) * 100) / 100
-    setRenovarCustomCoachFee(defaultPctFee.toString())
+    setRenovarGiveCoachCommission(false)
+    setRenovarCoachCommissionRate(0.5)
     setRenovarMonths(1)
     setRenovarSplitCount(1)
     setRenovarSplits([
@@ -717,17 +719,12 @@ const handleSaveEdit = async (e: React.FormEvent) => {
       }
     }
     
-    // Calculate total
-    const membershipPrice = selectedPlanPrice * renovarMonths
-    const coachPrice = calculateCoachMonthlyFee(
-      selectedPlanPrice,
-      renovarIncludeCoach,
-      renovarSelectedCoach,
-      renovarUseCustomCoachFee,
-      renovarCustomCoachFee
-    ) * renovarMonths
-    
-    const total = Math.round((membershipPrice + coachPrice) * 100) / 100
+    // Calculate total: El cobro al atleta SIEMPRE es el valor del plan ($20/mes)
+    const total = Math.round(selectedPlanPrice * renovarMonths * 100) / 100
+    const membershipPrice = total
+    const coachCommissionAmount = renovarIncludeCoach && renovarSelectedCoach && renovarGiveCoachCommission
+      ? Math.round(total * (renovarCoachCommissionRate / 100) * 100) / 100
+      : 0
     
     const activeSplits = renovarSplits.slice(0, renovarSplitCount);
     const assignedTotal = activeSplits.reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0);
@@ -859,8 +856,13 @@ const handleSaveEdit = async (e: React.FormEvent) => {
        cashierId: validatedCashierId,
        customerId: targetAthleteId,
        items: [
-         { productId: `PLAN:${selectedPlanName}`, name: `${selectedPlanName} (${renovarMonths} mes/es)`, price: selectedPlanPrice, qty: renovarMonths, subtotal: membershipPrice },
-         ...(coachPrice ? [{ productId: 'COACH', name: `Entrenador (${coachInfo?.name || 'Asignado'})`, price: coachPrice / renovarMonths, qty: renovarMonths, subtotal: coachPrice }] : [])
+         { 
+           productId: `PLAN:${selectedPlanName}`, 
+           name: `${selectedPlanName} (${renovarMonths} mes/es)${renovarIncludeCoach && renovarSelectedCoach ? ` • Coach: ${coachInfo?.name || 'Asignado'}${renovarGiveCoachCommission ? ` [Comisión: ${renovarCoachCommissionRate}% = $${coachCommissionAmount.toFixed(2)}]` : ' [Sin Comisión / 100% Gym]'}` : ''}`, 
+           price: selectedPlanPrice, 
+           qty: renovarMonths, 
+           subtotal: total 
+         }
        ],
        subtotal: total,
        tax: 0,
@@ -912,616 +914,504 @@ const handleSaveEdit = async (e: React.FormEvent) => {
       
       {/* RENOVAR / ACTIVAR PLAN MODAL */}
       {showRenovarModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div>
-                <h3 className="text-lg sm:text-xl font-bold">
-                  {isWalkInMode
-                    ? 'Asignar una Membresía'
-                    : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 ? `Activar Plan — ${showRenovarModal.name}` : `Renovar Plan — ${showRenovarModal.name}`)}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isWalkInMode
-                    ? 'Si el cliente aún no se ha registrado en la web, el plan quedará asociado a su Cédula y se enlazará automáticamente cuando se registre en /registro.'
-                    : `C.I. ${showRenovarModal.cedula} • Se registrará el cobro en caja y se activará el plan seleccionado.`}
-                </p>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-card/90 dark:bg-[#0e1017]/90 backdrop-blur-2xl text-card-foreground border border-black/10 dark:border-white/15 rounded-2xl max-w-lg lg:max-w-6xl xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-foreground leading-tight">
+                    {isWalkInMode
+                      ? 'Asignar una Membresía'
+                      : (new Date(showRenovarModal.membershipEnd).getFullYear() <= 1970 
+                          ? `Activar Plan — ${showRenovarModal.name}` 
+                          : `Renovar Plan — ${showRenovarModal.name}`)}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {isWalkInMode
+                      ? 'Si el cliente aún no se ha registrado en la web, el plan quedará asociado a su Cédula.'
+                      : `C.I. ${showRenovarModal.cedula} • Cobro en caja y activación de membresía`}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowRenovarModal(null)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleRenovar} className="space-y-4">
-              {isWalkInMode && (
-                <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-primary mb-1 block">Cédula del Cliente (Solo números) *</label>
-                      <input
-                        required
-                        type="text"
-                        placeholder="Ej: 28123456"
-                        value={walkInCedula}
-                        onChange={e => {
-                          const clean = e.target.value.replace(/\D/g, "")
-                          setWalkInCedula(clean)
-                          const existingAth = athletes.find(x => x.cedula.replace(/\D/g, "") === clean)
-                          if (existingAth && !walkInName) {
-                            setWalkInName(existingAth.name)
-                            if (existingAth.phone) setWalkInPhone(existingAth.phone)
-                          }
-                        }}
-                        className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm font-mono focus:border-primary"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold mb-1 block">Nombre y Apellido *</label>
-                      <input
-                        required
-                        type="text"
-                        placeholder="Ej: María Pérez"
-                        value={walkInName}
-                        onChange={e => setWalkInName(e.target.value)}
-                        className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm focus:border-primary"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Teléfono / WhatsApp (Opcional)</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 04141234567"
-                      value={walkInPhone}
-                      onChange={e => setWalkInPhone(e.target.value)}
-                      className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-sm focus:border-primary"
-                    />
-                  </div>
-                </div>
-              )}
 
-              {/* Selector de Plan Promocional o Mensualidad Básica */}
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">
-                  Seleccionar Plan o Mensualidad
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {availablePlans.map((plan) => {
-                    const isSelected = selectedPlanName === plan.name
-                    return (
-                      <button
-                        key={plan.name}
-                        type="button"
-                        onClick={() => {
-                          setSelectedPlanName(plan.name)
-                          setSelectedPlanPrice(plan.price)
-                          syncSingleSplitAmount(plan.price, renovarMonths, renovarIncludeCoach, renovarSelectedCoach)
-                        }}
-                        className={`text-left p-3 rounded-xl border transition-all flex flex-col justify-between ${
-                          isSelected
-                            ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
-                            : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="font-black text-xs uppercase tracking-tight leading-snug">{plan.name}</span>
-                          {plan.popular && (
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground shrink-0">
-                              Popular
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-2 flex items-baseline gap-1">
-                          <span className="text-lg font-black text-primary">{settings.storeCurrency}{plan.price}</span>
-                          <span className="text-[10px] text-muted-foreground">{plan.period}</span>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+            {/* Formulario en 3 Columnas para PC */}
+            <form onSubmit={handleRenovar} className="flex flex-col flex-1 min-h-0">
+              {(() => {
+                const totalCalculado = Math.round(selectedPlanPrice * renovarMonths * 100) / 100
+                const coachCommissionAmount = renovarIncludeCoach && renovarSelectedCoach && renovarGiveCoachCommission
+                  ? Math.round(totalCalculado * (renovarCoachCommissionRate / 100) * 100) / 100
+                  : 0
+                const gymRetained = Math.round((totalCalculado - coachCommissionAmount) * 100) / 100
 
-              <div>
-                <label className="text-sm font-medium mb-1 block">Duración (Meses)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={renovarMonths}
-                  onChange={e => {
-                    const m = Math.max(1, Number(e.target.value) || 1)
-                    setRenovarMonths(m)
-                    syncSingleSplitAmount(selectedPlanPrice, m, renovarIncludeCoach, renovarSelectedCoach)
-                  }}
-                  className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded p-2 text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2 mt-4 bg-black/5 dark:bg-white/5 p-3 rounded-lg border border-black/10 dark:border-white/10">
-                <input 
-                  type="checkbox" 
-                  id="includeCoach" 
-                  checked={renovarIncludeCoach} 
-                  onChange={e => {
-                    const checked = e.target.checked
-                    setRenovarIncludeCoach(checked)
-                    syncSingleSplitAmount(selectedPlanPrice, renovarMonths, checked, renovarSelectedCoach)
-                  }} 
-                  className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary"
-                />
-                <label htmlFor="includeCoach" className="text-sm font-medium cursor-pointer">
-                  Añadir Entrenador Personal
-                </label>
-              </div>
-
-              {renovarIncludeCoach && (
-                <div className="mt-3 space-y-2.5 p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Seleccionar Entrenador (Coach)</label>
-                    <select 
-                      required 
-                      value={renovarSelectedCoach} 
-                      onChange={e => {
-                        const cId = e.target.value
-                        setRenovarSelectedCoach(cId)
-                        syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, cId, renovarUseCustomCoachFee, renovarCustomCoachFee)
-                      }} 
-                      className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded p-2.5 text-sm"
-                    >
-                      <option value="">Seleccione un Coach...</option>
-                      {allCoaches.map((c: any) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {renovarSelectedCoach && (
-                    <div className="pt-2 border-t border-black/10 dark:border-white/10 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRenovarUseCustomCoachFee(false)
-                            syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, false, renovarCustomCoachFee)
-                          }}
-                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
-                            !renovarUseCustomCoachFee
-                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                              : 'bg-black/5 dark:bg-white/5 text-muted-foreground border-black/10 dark:border-white/10 hover:text-foreground'
-                          }`}
-                        >
-                          Seguir Ajustes ({gymCoachPercentage}% = +{settings.storeCurrency}{((selectedPlanPrice * gymCoachPercentage) / 100).toFixed(2)}/mes)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const fallbackVal = renovarCustomCoachFee || ((selectedPlanPrice * gymCoachPercentage) / 100).toFixed(2)
-                            setRenovarCustomCoachFee(fallbackVal)
-                            setRenovarUseCustomCoachFee(true)
-                            syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, true, fallbackVal)
-                          }}
-                          className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition ${
-                            renovarUseCustomCoachFee
-                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                              : 'bg-black/5 dark:bg-white/5 text-muted-foreground border-black/10 dark:border-white/10 hover:text-foreground'
-                          }`}
-                        >
-                          Monto personalizado ($)
-                        </button>
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                    
+                    {/* COLUMNA 1: PLAN Y DURACIÓN */}
+                    <div className="space-y-3.5 bg-black/[0.02] dark:bg-white/[0.02] p-3.5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col">
+                      <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary border-b border-black/10 dark:border-white/10 pb-2">
+                        <span>1. Plan & Duración</span>
                       </div>
 
-                      {renovarUseCustomCoachFee && (
+                      {isWalkInMode && (
+                        <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20 space-y-2 text-xs">
+                          <div>
+                            <label className="font-bold text-primary block mb-0.5">Cédula *</label>
+                            <input
+                              required
+                              type="text"
+                              placeholder="Ej: 28123456"
+                              value={walkInCedula}
+                              onChange={e => {
+                                const clean = e.target.value.replace(/\D/g, "")
+                                setWalkInCedula(clean)
+                                const existingAth = athletes.find(x => x.cedula.replace(/\D/g, "") === clean)
+                                if (existingAth && !walkInName) {
+                                  setWalkInName(existingAth.name)
+                                  if (existingAth.phone) setWalkInPhone(existingAth.phone)
+                                }
+                              }}
+                              className="w-full bg-card dark:bg-black/40 border border-black/15 dark:border-white/15 rounded p-1.5 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-primary block mb-0.5">Nombre Completo *</label>
+                            <input
+                              required
+                              type="text"
+                              placeholder="Nombre y Apellido"
+                              value={walkInName}
+                              onChange={e => setWalkInName(e.target.value)}
+                              className="w-full bg-card dark:bg-black/40 border border-black/15 dark:border-white/15 rounded p-1.5 font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-muted-foreground block mb-0.5">Teléfono (WhatsApp)</label>
+                            <input
+                              type="text"
+                              placeholder="04141234567"
+                              value={walkInPhone}
+                              onChange={e => setWalkInPhone(e.target.value)}
+                              className="w-full bg-card dark:bg-black/40 border border-black/15 dark:border-white/15 rounded p-1.5"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                          Seleccionar Plan
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-0.5">
+                          {availablePlans.map((plan) => {
+                            const isSelected = selectedPlanName === plan.name
+                            return (
+                              <button
+                                key={plan.name}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedPlanName(plan.name)
+                                  setSelectedPlanPrice(plan.price)
+                                  syncSingleSplitAmount(plan.price, renovarMonths, renovarIncludeCoach, renovarSelectedCoach)
+                                }}
+                                className={`text-left p-2.5 rounded-xl border transition-all flex flex-col justify-between cursor-pointer ${
+                                  isSelected
+                                    ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                                    : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-1">
+                                  <span className="font-black text-[11px] uppercase tracking-tight leading-snug">{plan.name}</span>
+                                  {plan.popular && (
+                                    <span className="text-[8px] font-black uppercase px-1 py-0.2 rounded bg-primary text-primary-foreground shrink-0">
+                                      Popular
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1.5 flex items-baseline gap-1">
+                                  <span className="text-base font-black text-primary">{settings.storeCurrency}{plan.price}</span>
+                                  <span className="text-[9px] text-muted-foreground">{plan.period}</span>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                        <label className="text-xs font-semibold mb-1 block">Duración (Meses)</label>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-primary">{settings.storeCurrency}</span>
                           <input
                             type="number"
-                            step="any"
-                            min="0"
-                            value={renovarCustomCoachFee}
+                            min="1"
+                            max="12"
+                            value={renovarMonths}
                             onChange={e => {
-                              const val = e.target.value
-                              setRenovarCustomCoachFee(val)
-                              syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, renovarSelectedCoach, true, val)
+                              const m = Math.max(1, Number(e.target.value) || 1)
+                              setRenovarMonths(m)
+                              syncSingleSplitAmount(selectedPlanPrice, m, renovarIncludeCoach, renovarSelectedCoach)
                             }}
-                            placeholder="0.00"
-                            className="w-24 bg-card dark:bg-black border border-primary/50 rounded-lg px-2 py-1 text-xs font-mono font-bold focus:outline-none focus:border-primary"
+                            className="w-20 bg-card dark:bg-black/40 border border-black/15 dark:border-white/15 rounded-lg p-2 text-center text-sm font-black"
                           />
-                          <span className="text-[10px] text-muted-foreground">/mes</span>
+                          <div className="flex gap-1 flex-1">
+                            {[1, 3, 6, 12].map(m => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => {
+                                  setRenovarMonths(m)
+                                  syncSingleSplitAmount(selectedPlanPrice, m, renovarIncludeCoach, renovarSelectedCoach)
+                                }}
+                                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg border transition cursor-pointer ${
+                                  renovarMonths === m
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-primary/40'
+                                }`}
+                              >
+                                {m === 1 ? '+1M' : m === 3 ? '+3M' : m === 6 ? '+6M' : '+1A'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COLUMNA 2: ENTRENADOR PERSONAL & COMISIÓN */}
+                    <div className="space-y-3.5 bg-black/[0.02] dark:bg-white/[0.02] p-3.5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col">
+                      <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary border-b border-black/10 dark:border-white/10 pb-2">
+                        <span>2. Entrenador Personal & Comisión</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                        <input 
+                          type="checkbox" 
+                          id="includeCoach" 
+                          checked={renovarIncludeCoach} 
+                          onChange={e => {
+                            const checked = e.target.checked
+                            setRenovarIncludeCoach(checked)
+                            syncSingleSplitAmount(selectedPlanPrice, renovarMonths, checked, renovarSelectedCoach)
+                          }} 
+                          className="w-4 h-4 text-primary bg-black/10 dark:bg-white/10 border-black/20 dark:border-white/20 rounded focus:ring-primary cursor-pointer"
+                        />
+                        <label htmlFor="includeCoach" className="text-xs font-bold cursor-pointer select-none">
+                          Asignar Entrenador Personal (Coach)
+                        </label>
+                      </div>
+
+                      {renovarIncludeCoach ? (
+                        <div className="space-y-3 p-3 rounded-xl bg-card/60 dark:bg-black/40 border border-black/10 dark:border-white/10">
+                          <div>
+                            <label className="text-xs font-semibold mb-1 block">Seleccionar Entrenador</label>
+                            <select 
+                              required 
+                              value={renovarSelectedCoach} 
+                              onChange={e => {
+                                const cId = e.target.value
+                                setRenovarSelectedCoach(cId)
+                                syncSingleSplitAmount(selectedPlanPrice, renovarMonths, renovarIncludeCoach, cId)
+                              }} 
+                              className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-medium focus:border-primary"
+                            >
+                              <option value="">Seleccione un Entrenador...</option>
+                              {allCoaches.map((c: any) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {renovarSelectedCoach && (
+                            <div className="space-y-2.5 pt-2 border-t border-black/10 dark:border-white/10">
+                              <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                Esquema de Ganancia / Comisión
+                              </label>
+
+                              <div className="grid grid-cols-1 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setRenovarGiveCoachCommission(false)}
+                                  className={`p-2 rounded-lg border text-left text-xs transition cursor-pointer flex items-center justify-between ${
+                                    !renovarGiveCoachCommission
+                                      ? 'border-emerald-500 bg-emerald-500/10 text-foreground font-bold ring-1 ring-emerald-500'
+                                      : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-muted-foreground'
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="font-bold text-xs flex items-center gap-1.5">
+                                      <span>🏢 100% Ganancia Gimnasio</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">El gimnasio recibe los ${totalCalculado.toFixed(2)} completos sin deducir comisión.</p>
+                                  </div>
+                                  {!renovarGiveCoachCommission && (
+                                    <span className="text-emerald-500 text-xs font-bold">✓ Activo</span>
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRenovarGiveCoachCommission(true)
+                                    setRenovarCoachCommissionRate(0.5)
+                                  }}
+                                  className={`p-2 rounded-lg border text-left text-xs transition cursor-pointer flex items-center justify-between ${
+                                    renovarGiveCoachCommission
+                                      ? 'border-amber-500 bg-amber-500/10 text-foreground font-bold ring-1 ring-amber-500'
+                                      : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-muted-foreground'
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="font-bold text-xs flex items-center gap-1.5">
+                                      <span>🤝 0,5% Comisión al Entrenador</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">El entrenador devenga el 0,5% (${(totalCalculado * 0.005).toFixed(2)}) del atleta.</p>
+                                  </div>
+                                  {renovarGiveCoachCommission && (
+                                    <span className="text-amber-500 text-xs font-bold">✓ Activo</span>
+                                  )}
+                                </button>
+                              </div>
+
+                              {renovarGiveCoachCommission && (
+                                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground text-[11px]">Porcentaje asignado:</span>
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0.1"
+                                        max="100"
+                                        value={renovarCoachCommissionRate}
+                                        onChange={e => setRenovarCoachCommissionRate(Math.max(0.1, Number(e.target.value) || 0.5))}
+                                        className="w-16 bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded p-1 text-right text-xs font-mono font-bold"
+                                      />
+                                      <span className="font-bold">%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Desglose de Distribución */}
+                              <div className="p-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 space-y-1.5 text-xs">
+                                <div className="flex justify-between items-center text-muted-foreground text-[11px]">
+                                  <span>Total Cobrado al Atleta:</span>
+                                  <span className="font-bold text-foreground">${totalCalculado.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-emerald-500 font-semibold text-[11px]">
+                                  <span>Retención Gimnasio:</span>
+                                  <span>${gymRetained.toFixed(2)} ({((gymRetained / totalCalculado) * 100).toFixed(1)}%)</span>
+                                </div>
+                                <div className="flex justify-between items-center text-amber-500 font-semibold text-[11px]">
+                                  <span>Comisión Entrenador:</span>
+                                  <span>${coachCommissionAmount.toFixed(2)} ({renovarGiveCoachCommission ? renovarCoachCommissionRate : 0}%)</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-center text-muted-foreground text-xs my-auto">
+                          <p>Sin entrenador seleccionado.</p>
+                          <p className="text-[10px] mt-1 text-muted-foreground/70">
+                            El 100% de la cuota del atleta (${totalCalculado.toFixed(2)}) ingresa directamente a las finanzas del gimnasio.
+                          </p>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
-              
-              {(() => {
-                const mem = selectedPlanPrice * renovarMonths
-                const coachPrice = calculateCoachMonthlyFee(
-                  selectedPlanPrice,
-                  renovarIncludeCoach,
-                  renovarSelectedCoach,
-                  renovarUseCustomCoachFee,
-                  renovarCustomCoachFee
-                ) * renovarMonths
-                const totalCalculado = Math.round((mem + coachPrice) * 100) / 100
 
-                const assignedSum = renovarSplits.slice(0, renovarSplitCount).reduce((acc, s) => acc + (parseFloat(String(s.amount)) || 0), 0)
-                const diff = Math.round((totalCalculado - assignedSum) * 100) / 100
-                const isExact = Math.abs(diff) < 0.01
-
-                return (
-                  <>
-                    <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl mt-4 mb-4 flex justify-between items-center">
-                      <div>
-                        <span className="font-bold text-sm text-primary block">Total a Cobrar:</span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {selectedPlanName} × {renovarMonths} mes(es)
-                          {renovarIncludeCoach && renovarSelectedCoach
-                            ? ` + Coach: ${settings.storeCurrency}${coachPrice.toFixed(2)} (${renovarUseCustomCoachFee ? 'Personalizado' : `${gymCoachPercentage}% Ajustes`})`
-                            : ''}
-                        </span>
+                    {/* COLUMNA 3: CAJA, PAGO Y VUELTO */}
+                    <div className="space-y-3.5 bg-black/[0.02] dark:bg-white/[0.02] p-3.5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col">
+                      <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-primary border-b border-black/10 dark:border-white/10 pb-2">
+                        <span>3. Caja, Pago & Vuelto</span>
                       </div>
-                      <span className="text-2xl font-black text-primary">
-                        {settings.storeCurrency} {totalCalculado.toFixed(2)}
-                      </span>
-                    </div>
 
-                    {/* Método de Pago */}
-                    <div className="space-y-4 pt-4 border-t border-black/10 dark:border-white/10">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <h4 className="font-bold text-sm">Detalles de Facturación y Pago</h4>
-                        
-                        {/* Selector de 1, 2 o 3 formas de pago */}
-                        <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg border border-black/10 dark:border-white/10 text-xs">
-                          <span className="text-[10px] text-muted-foreground font-semibold px-1">Formas:</span>
+                      {/* Selector de número de pagos */}
+                      <div>
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1 block">
+                          Forma de Cobro
+                        </label>
+                        <div className="grid grid-cols-3 gap-1 bg-black/5 dark:bg-black/40 p-1 rounded-lg border border-black/10 dark:border-white/10">
                           {([1, 2, 3] as const).map(num => (
                             <button
                               key={num}
                               type="button"
                               onClick={() => {
                                 setRenovarSplitCount(num)
-                                setRenovarSplits(prev => {
-                                  const copy = [...prev]
-                                  if (num === 1) {
-                                    copy[0].amount = totalCalculado
-                                  } else if (num === 2) {
-                                    const half = Math.round((totalCalculado / 2) * 100) / 100
-                                    copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : half
-                                    copy[1].amount = Math.max(0, Math.round((totalCalculado - Number(copy[0].amount || 0)) * 100) / 100)
-                                  } else if (num === 3) {
-                                    const third = Math.round((totalCalculado / 3) * 100) / 100
-                                    copy[0].amount = copy[0].amount && Number(copy[0].amount) > 0 ? copy[0].amount : third
-                                    copy[1].amount = copy[1].amount && Number(copy[1].amount) > 0 ? copy[1].amount : third
-                                    copy[2].amount = Math.max(0, Math.round((totalCalculado - Number(copy[0].amount || 0) - Number(copy[1].amount || 0)) * 100) / 100)
-                                  }
-                                  return copy
-                                })
+                                if (num === 1) {
+                                  setRenovarSplits(prev => {
+                                    const copy = [...prev]
+                                    copy[0] = { ...copy[0], amount: totalCalculado }
+                                    return copy
+                                  })
+                                }
                               }}
-                              className={`px-2.5 py-1 rounded font-bold transition ${
-                                renovarSplitCount === num 
-                                  ? 'bg-primary text-primary-foreground shadow-sm' 
+                              className={`py-1 text-xs font-bold rounded transition cursor-pointer ${
+                                renovarSplitCount === num
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
                                   : 'text-muted-foreground hover:text-foreground'
                               }`}
                             >
-                              {num === 1 ? '1 Forma' : `${num} Formas`}
+                              {num === 1 ? '1 Pago' : `${num} Pagos (Mixto)`}
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Lista de formas de pago */}
-                      <div className="space-y-3">
-                        {Array.from({ length: renovarSplitCount }).map((_, idx) => {
-                          const split = renovarSplits[idx] || { method: 'Efectivo', amount: '', reference: '', receiptImage: null }
-                          return (
-                            <div key={idx} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-primary flex items-center gap-1.5">
-                                  <CreditCard className="w-3.5 h-3.5" /> Forma de Pago #{idx + 1}
-                                </span>
-                                {renovarSplitCount > 1 && (
-                                  <span className="text-[11px] text-muted-foreground">
-                                    Subtotal: <b>{settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}</b>
-                                  </span>
-                                )}
+                      {/* Formas de Pago */}
+                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-0.5">
+                        {renovarSplits.slice(0, renovarSplitCount).map((split, idx) => (
+                          <div key={idx} className="p-2.5 rounded-xl bg-card dark:bg-black/40 border border-black/10 dark:border-white/10 space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold">
+                              <span>Pago #{idx + 1}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-muted-foreground font-normal">Monto:</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={split.amount}
+                                  onChange={e => {
+                                    const val = e.target.value
+                                    setRenovarSplits(prev => {
+                                      const copy = [...prev]
+                                      copy[idx] = { ...copy[idx], amount: val }
+                                      return copy
+                                    })
+                                  }}
+                                  className="w-20 bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/15 rounded p-1 text-right text-xs font-mono font-bold"
+                                />
                               </div>
+                            </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-xs text-muted-foreground mb-1 block">Método de Pago</label>
-                                  <select 
-                                    value={split.method}
-                                    onChange={e => {
-                                      const newMethod = e.target.value as any
-                                      setRenovarSplits(prev => {
-                                        const c = [...prev]
-                                        c[idx] = { ...c[idx], method: newMethod }
-                                        return c
-                                      })
-                                    }}
-                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm focus:border-primary font-medium"
-                                  >
-                                    {availableMembershipPaymentMethods.map(m => (
-                                      <option key={m.value} value={m.value}>{m.label}</option>
-                                    ))}
-                                  </select>
-                                </div>
+                            <div className="grid grid-cols-1 gap-1.5">
+                              <select
+                                value={split.method}
+                                onChange={e => {
+                                  const val = e.target.value as PaymentMethodType
+                                  setRenovarSplits(prev => {
+                                    const copy = [...prev]
+                                    copy[idx] = { ...copy[idx], method: val }
+                                    return copy
+                                  })
+                                }}
+                                className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded p-1.5 text-xs font-semibold"
+                              >
+                                <option value="Efectivo">Efectivo (USD / Divisas)</option>
+                                <option value="Pago Móvil">Pago Móvil</option>
+                                <option value="Tarjeta">Punto de Venta / Tarjeta</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Binance">Binance Pay</option>
+                                <option value="Crédito/Fiado">Crédito / Fiado</option>
+                              </select>
 
-                                <div>
-                                  <label className="text-xs text-muted-foreground mb-1 block">
-                                    Monto a Pagar ({settings.storeCurrency})
-                                  </label>
-                                  <input 
-                                    type="number"
-                                    step="any"
-                                    min="0"
-                                    max={totalCalculado}
-                                    value={split.amount}
-                                    onChange={e => {
-                                      const val = e.target.value
-                                      setRenovarSplits(prev => {
-                                        const c = [...prev]
-                                        c[idx] = { ...c[idx], amount: val }
-                                        // Auto-calculate remainder for subsequent split if configured
-                                        if (renovarSplitCount === 2 && idx === 0) {
-                                          const numVal = parseFloat(val) || 0
-                                          c[1] = { ...c[1], amount: Math.max(0, Math.round((totalCalculado - numVal) * 100) / 100) }
-                                        } else if (renovarSplitCount === 3 && (idx === 0 || idx === 1)) {
-                                          const num0 = idx === 0 ? (parseFloat(val) || 0) : (parseFloat(String(c[0].amount)) || 0)
-                                          const num1 = idx === 1 ? (parseFloat(val) || 0) : (parseFloat(String(c[1].amount)) || 0)
-                                          c[2] = { ...c[2], amount: Math.max(0, Math.round((totalCalculado - num0 - num1) * 100) / 100) }
-                                        }
-                                        return c
-                                      })
-                                    }}
-                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-sm font-mono focus:border-primary"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                              </div>
-
-                              {split.method === 'Crédito/Fiado' && (
-                                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2">
-                                  <span>🔐</span>
-                                  <span>
-                                    <b>Crédito autorizado por Administrador:</b> Se solicitará la contraseña del Administrador al confirmar y este monto ({settings.storeCurrency} {Number(split.amount || 0).toFixed(2)}) irá a <b>Cuentas por Cobrar</b> con el plan elegido.
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Datos adicionales si es transferencia, pago móvil, binance o tarjeta */}
-                              {['Transferencia', 'Pago Móvil', 'Binance', 'Tarjeta'].includes(split.method) && (
-                                <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                  {/* Cuentas de Pago / Instrucciones y QRs */}
-                                  {split.method === 'Pago Móvil' && (
-                                    <div className="space-y-1.5">
-                                      {(settings.storePaymentInstructions?.pagoMovil || settings.storePaymentQRs?.pagoMovil) && (
-                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
-                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
-                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 1:</span>
-                                            {settings.storePaymentInstructions?.pagoMovil || 'Ver datos escaneando el código QR'}
-                                          </div>
-                                          {settings.storePaymentQRs?.pagoMovil && (
-                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.pagoMovil || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
-                                              <Eye className="h-3 w-3" /> Ver QR
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                      {(settings.storePaymentInstructions?.pagoMovil2 || settings.storePaymentQRs?.pagoMovil2) && (
-                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
-                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
-                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 2:</span>
-                                            {settings.storePaymentInstructions?.pagoMovil2 || 'Ver datos escaneando el código QR'}
-                                          </div>
-                                          {settings.storePaymentQRs?.pagoMovil2 && (
-                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.pagoMovil2 || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
-                                              <Eye className="h-3 w-3" /> Ver QR
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {split.method === 'Transferencia' && (
-                                    <div className="space-y-1.5">
-                                      {(settings.storePaymentInstructions?.transferencia || settings.storePaymentQRs?.transferencia) && (
-                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
-                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
-                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 1:</span>
-                                            {settings.storePaymentInstructions?.transferencia || 'Ver datos escaneando el código QR'}
-                                          </div>
-                                          {settings.storePaymentQRs?.transferencia && (
-                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.transferencia || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
-                                              <Eye className="h-3 w-3" /> Ver QR
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                      {(settings.storePaymentInstructions?.transferencia2 || settings.storePaymentQRs?.transferencia2) && (
-                                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg text-xs flex items-center justify-between gap-2">
-                                          <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-primary">
-                                            <span className="font-bold block text-[10px] uppercase text-primary/80">Cuenta 2:</span>
-                                            {settings.storePaymentInstructions?.transferencia2 || 'Ver datos escaneando el código QR'}
-                                          </div>
-                                          {settings.storePaymentQRs?.transferencia2 && (
-                                            <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.transferencia2 || null)} className="px-2 py-1 rounded bg-primary text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
-                                              <Eye className="h-3 w-3" /> Ver QR
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {split.method === 'Binance' && (
-                                    <div className="p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs flex items-center justify-between gap-2">
-                                      <div className="flex-1 whitespace-pre-wrap leading-tight text-[11px] text-yellow-600 dark:text-yellow-400">
-                                        <span className="font-bold block text-[10px] uppercase">Binance Pay:</span>
-                                        {settings.storePaymentInstructions?.binance || 'Pago directo con Binance'}
-                                      </div>
-                                      {settings.storePaymentQRs?.binance && (
-                                        <button type="button" onClick={() => setShowQRModal(settings.storePaymentQRs?.binance || null)} className="px-2 py-1 rounded bg-yellow-500 text-black font-bold text-[10px] flex items-center gap-1 shrink-0 hover:opacity-90 shadow-sm">
-                                          <Eye className="h-3 w-3" /> Ver QR
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center justify-between">
-                                    <label className="text-xs text-muted-foreground">
-                                      {split.method === 'Tarjeta' ? 'N° de Transacción / Voucher' : `N° Referencia (${split.method})`}
-                                    </label>
-                                  </div>
-
-                                  <input 
-                                    type="text" 
-                                    value={split.reference} 
-                                    onChange={e => {
-                                      const refVal = e.target.value
-                                      setRenovarSplits(prev => {
-                                        const c = [...prev]
-                                        c[idx] = { ...c[idx], reference: refVal }
-                                        return c
-                                      })
-                                    }}
-                                    placeholder={split.method === 'Tarjeta' ? 'Ej. 000123' : 'Número de referencia...'}
-                                    className="w-full bg-card dark:bg-black border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary"
-                                  />
-
-                                  {['Transferencia', 'Pago Móvil', 'Binance'].includes(split.method) && (
-                                    <div className="flex items-center gap-2 pt-1">
-                                      <label className="flex-1 flex items-center justify-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg py-1.5 text-xs font-semibold cursor-pointer transition">
-                                        <ImageIcon className="h-3.5 w-3.5" />
-                                        <span>{split.receiptImage ? '✓ Comprobante listo' : 'Subir Comprobante (Capture)'}</span>
-                                        <input 
-                                          type="file" 
-                                          accept="image/*"
-                                          onChange={(e) => {
-                                            const file = e.target.files?.[0]
-                                            if (file) {
-                                              const reader = new FileReader()
-                                              reader.onloadend = () => {
-                                                setRenovarSplits(prev => {
-                                                  const c = [...prev]
-                                                  c[idx] = { ...c[idx], receiptImage: reader.result as string }
-                                                  return c
-                                                })
-                                              }
-                                              reader.readAsDataURL(file)
-                                            }
-                                          }}
-                                          className="hidden" 
-                                        />
-                                      </label>
-                                      {split.receiptImage && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setRenovarSplits(prev => {
-                                              const c = [...prev]
-                                              c[idx] = { ...c[idx], receiptImage: null }
-                                              return c
-                                            })
-                                          }}
-                                          className="text-xs text-destructive hover:underline p-1 font-bold"
-                                        >
-                                          Quitar
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
+                              {split.method !== 'Efectivo' && (
+                                <input
+                                  type="text"
+                                  placeholder="N° Referencia o Comprobante..."
+                                  value={split.reference || ''}
+                                  onChange={e => {
+                                    const val = e.target.value
+                                    setRenovarSplits(prev => {
+                                      const copy = [...prev]
+                                      copy[idx] = { ...copy[idx], reference: val }
+                                      return copy
+                                    })
+                                  }}
+                                  className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded p-1.5 text-xs"
+                                />
                               )}
                             </div>
-                          )
-                        })}
+                          </div>
+                        ))}
                       </div>
 
-                      {/* Resumen del balance cuando son 2 o 3 formas de pago */}
-                      {renovarSplitCount > 1 && (
-                        <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs font-bold ${
-                          isExact 
-                            ? 'bg-success/10 border-success/30 text-success' 
-                            : 'bg-amber-500/10 border-amber-500/30 text-amber-500'
-                        }`}>
-                          <span>Total: {settings.storeCurrency} {totalCalculado.toFixed(2)} | Asignado: {settings.storeCurrency} {assignedSum.toFixed(2)}</span>
-                          <span>
-                            {isExact ? '✓ Monto completo distribuido' : diff > 0 ? `Falta asignar: ${settings.storeCurrency} ${diff.toFixed(2)}` : `Excede por: ${settings.storeCurrency} ${Math.abs(diff).toFixed(2)}`}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Calculadora y Registro de Vuelto (Cuando el cliente entrega billete mayor al total) */}
-                      <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-amber-500 flex items-center gap-1.5">
-                            <DollarSign className="w-3.5 h-3.5" /> Calculadora y Registro de Vuelto (Opcional)
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">Descuenta automáticamente de Caja / Banco</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] text-muted-foreground mb-1 block">Monto Recibido del Cliente ({settings.storeCurrency})</label>
+                      {/* Vuelto en efectivo si aplica */}
+                      {renovarSplits.slice(0, renovarSplitCount).some(s => s.method === 'Efectivo') && (
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-amber-500">Monto Recibido (Cliente entrega):</span>
                             <input
                               type="number"
-                              step="any"
-                              min="0"
-                              placeholder={`Ej: 20.00 (Total: ${totalCalculado.toFixed(2)})`}
+                              step="0.01"
+                              placeholder="Ej: 50.00"
                               value={renovarReceivedAmount}
                               onChange={e => setRenovarReceivedAmount(e.target.value)}
-                              className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-mono font-bold focus:border-amber-500"
+                              className="w-20 bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded p-1 text-right text-xs font-mono font-bold"
                             />
                           </div>
-                          <div>
-                            <label className="text-[11px] text-muted-foreground mb-1 block">Método de Entrega del Vuelto</label>
-                            <select
-                              value={renovarChangeMethod}
-                              onChange={e => setRenovarChangeMethod(e.target.value as any)}
-                              className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-2 text-xs font-semibold focus:border-amber-500"
-                            >
-                              <option value="Efectivo">Efectivo (Descontar de Caja)</option>
-                              <option value="Pago Móvil">Pago Móvil (Descontar de Banco)</option>
-                              <option value="Transferencia">Transferencia (Descontar de Banco)</option>
-                            </select>
-                          </div>
-                        </div>
-                        {(parseFloat(renovarReceivedAmount) || 0) > totalCalculado && (() => {
-                          const changeUsd = Math.round(((parseFloat(renovarReceivedAmount) || 0) - totalCalculado) * 100) / 100;
-                          const changeBs = settings.storeExchangeRate > 0 ? changeUsd * settings.storeExchangeRate : 0;
-                          return (
-                            <div className="pt-2 border-t border-amber-500/20 space-y-2">
-                              <div className="flex items-center justify-between text-xs font-black text-amber-500">
-                                <span>Vuelto a Entregar al Cliente:</span>
+                          {(parseFloat(renovarReceivedAmount) || 0) > totalCalculado && (() => {
+                            const changeUsd = Math.round(((parseFloat(renovarReceivedAmount) || 0) - totalCalculado) * 100) / 100;
+                            const changeBs = settings.storeExchangeRate > 0 ? changeUsd * settings.storeExchangeRate : 0;
+                            return (
+                              <div className="pt-1.5 border-t border-amber-500/20 flex items-center justify-between text-xs font-black text-amber-500">
+                                <span>Vuelto a Entregar:</span>
                                 <span>
                                   {settings.storeCurrency} {changeUsd.toFixed(2)}
                                   {changeBs > 0 && settings.storeCurrencySecondary ? ` (${settings.storeCurrencySecondary} ${changeBs.toFixed(2)})` : ''}
                                 </span>
                               </div>
-                              {renovarChangeMethod !== 'Efectivo' && (
-                                <input
-                                  type="text"
-                                  placeholder={`N° Referencia del vuelto por ${renovarChangeMethod} (Opcional)...`}
-                                  value={renovarChangeRef}
-                                  onChange={e => setRenovarChangeRef(e.target.value)}
-                                  className="w-full bg-card dark:bg-black border border-black/15 dark:border-white/15 rounded-lg p-1.5 text-xs focus:border-amber-500"
-                                />
-                              )}
-                            </div>
-                          );
-                        })()}
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Tarjeta de Total a Cobrar */}
+                      <div className="mt-auto p-3 rounded-xl bg-primary/10 border border-primary/20 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-muted-foreground">Total a Cobrar:</span>
+                          <span className="text-xl font-black text-primary">
+                            {settings.storeCurrency} {totalCalculado.toFixed(2)}
+                          </span>
+                        </div>
+                        {settings.storeExchangeRate > 0 && settings.storeCurrencySecondary && (
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span>Tasa BCV ({settings.storeCurrencySecondary}):</span>
+                            <span className="font-bold text-foreground">
+                              {settings.storeCurrencySecondary} {(totalCalculado * settings.storeExchangeRate).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
                     </div>
-                  </>
+                  </div>
                 )
               })()}
 
-              <div className="flex gap-3 justify-end pt-4">
-                <button type="button" onClick={() => setShowRenovarModal(null)} className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:bg-white/10 rounded transition">Cancelar</button>
-                <button type="submit" className="px-4 py-2 text-sm bg-green-500 text-white font-bold rounded hover:bg-green-600 transition shadow-lg shadow-green-500/20">Validar PIN y Cobrar</button>
+              {/* Botones de acción del pie */}
+              <div className="flex gap-2.5 justify-end pt-3 mt-4 border-t border-black/10 dark:border-white/10 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowRenovarModal(null)}
+                  className="px-4 py-2 text-xs font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingRenovar}
+                  className="px-5 py-2 text-xs bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition disabled:opacity-50 shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isProcessingRenovar ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <span>Validar PIN y Cobrar</span>
+                  )}
+                </button>
               </div>
             </form>
           </div>

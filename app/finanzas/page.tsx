@@ -11,7 +11,7 @@ import type { AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   BarChart3, TrendingDown, TrendingUp, DollarSign, 
-  AlertCircle, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle, X 
+  AlertCircle, AlertTriangle, Wrench, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle, X 
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { BcvRateBadge } from "@/components/ui/bcv-rate-badge"
@@ -332,6 +332,120 @@ export default function FinanzasPage() {
       }
     })
   }
+
+    const handleAdminCorrectTx = async (tx: any) => {
+    const hasCoachItem = Array.isArray(tx.items) && tx.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'));
+    const invNum = getInvoiceNumber(tx);
+
+    const { value: formValues } = await Swal.fire({
+      title: `Corregir Factura #${invNum}`,
+      html: `
+        <div class="text-left text-sm space-y-3">
+          <p class="text-xs text-muted-foreground">Cliente: <b>${tx.customer?.name || 'Cliente'}</b> (C.I. ${tx.customer?.cedula || '-'})</p>
+          <div>
+            <label class="block text-xs font-bold mb-1">Monto Total Real (${settings.storeCurrency}):</label>
+            <input id="swal-new-total" type="number" step="any" class="w-full p-2 border rounded-lg bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm font-bold font-mono" value="${tx.total === 28 ? '20' : tx.total}" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Método de Pago:</label>
+            <input id="swal-new-method" type="text" class="w-full p-2 border rounded-lg bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm" value="${tx.paymentMethod || 'PAGO MÓVIL'}" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Referencia / Comprobante:</label>
+            <input id="swal-new-ref" type="text" class="w-full p-2 border rounded-lg bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm" value="${tx.reference || ''}" />
+          </div>
+          ${hasCoachItem ? `
+            <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+              <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-500">
+                <input id="swal-remove-coach" type="checkbox" checked class="w-4 h-4 rounded text-amber-500 accent-amber-500" />
+                <span>Remover recargo extra de Entrenador (Ajustar a Plan ${tx.total === 28 ? '$20.00' : ''})</span>
+              </label>
+            </div>
+          ` : ''}
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar Corrección',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#f59e0b',
+      preConfirm: () => {
+        const totalInput = (document.getElementById('swal-new-total') as HTMLInputElement)?.value;
+        const methodInput = (document.getElementById('swal-new-method') as HTMLInputElement)?.value;
+        const refInput = (document.getElementById('swal-new-ref') as HTMLInputElement)?.value;
+        const removeCoach = (document.getElementById('swal-remove-coach') as HTMLInputElement)?.checked ?? false;
+        const parsedTotal = parseFloat(totalInput);
+        if (isNaN(parsedTotal) || parsedTotal <= 0) {
+          Swal.showValidationMessage('Ingresa un monto total válido mayor a 0.');
+          return false;
+        }
+        return {
+          total: parsedTotal,
+          paymentMethod: methodInput.trim(),
+          reference: refInput.trim(),
+          removeCoachItem: removeCoach
+        };
+      }
+    });
+
+    if (!formValues) return;
+
+    Swal.fire({ title: 'Actualizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const { adminCorrectTransaction } = await import('@/app/actions/store');
+    const res = await adminCorrectTransaction(tx.id, formValues);
+    if (res.success) {
+      setTransactions(prev => prev.map((t: any) => t.id === tx.id ? { 
+        ...t, 
+        total: formValues.total, 
+        subtotal: formValues.total,
+        paymentMethod: formValues.paymentMethod,
+        reference: formValues.reference,
+        items: formValues.removeCoachItem ? t.items.filter((i: any) => i.productId !== 'COACH' && !i.name.toLowerCase().includes('entrenador')).map((i: any) => ({ ...i, price: formValues.total, subtotal: formValues.total })) : t.items
+      } : t));
+      Swal.fire('¡Factura Corregida!', `La Factura #${invNum} fue ajustada exitosamente a ${settings.storeCurrency} ${formValues.total.toFixed(2)}.`, 'success');
+    } else {
+      Swal.fire('Error', res.error || 'No se pudo corregir la factura.', 'error');
+    }
+  };
+
+  const handleFixAllCoachOvercharges = async () => {
+    const count = transactions.filter((t: any) => t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))).length;
+    if (count === 0) {
+      Swal.fire('Sin facturas pendientes', 'No se encontraron facturas con monto de $28.00 de entrenador para corregir.', 'info');
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      title: '¿Corregir todas a $20.00?',
+      text: `Se encontraron ${count} factura(s) con recargo erróneo de $28.00. Se ajustarán todas automáticamente a $20.00 y se removerá el recargo indebido de coach.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, corregir todas a $20.00',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#f59e0b'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({ title: 'Corrigiendo facturas...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const { adminFixAllOverchargedCoachTransactions } = await import('@/app/actions/store');
+    const res = await adminFixAllOverchargedCoachTransactions();
+    if (res.success) {
+      setTransactions(prev => prev.map((t: any) => {
+        if (t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))) {
+          return {
+            ...t,
+            total: 20,
+            subtotal: 20,
+            items: t.items.filter((i: any) => i.productId !== 'COACH' && !i.name.toLowerCase().includes('entrenador')).map((i: any) => ({ ...i, price: 20, subtotal: 20 }))
+          };
+        }
+        return t;
+      }));
+      Swal.fire('¡Corrección Completada!', `Se ajustaron exitosamente ${res.corrected} factura(s) a ${settings.storeCurrency} 20.00.`, 'success');
+    } else {
+      Swal.fire('Error', res.error || 'No se pudieron corregir las facturas.', 'error');
+    }
+  };
 
   const handleAdminCancelTx = async (id: string) => {
     const targetTx = transactions.find((t: any) => t.id === id);
@@ -902,7 +1016,28 @@ export default function FinanzasPage() {
             </button>
           </div>
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
-            <div className="overflow-x-auto">
+            
+              {/* BANNER DE CORRECCIÓN RÁPIDA DE COBROS ERRÓNEOS DE $28 A $20 */}
+              {transactions.some((t: any) => t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))) && (
+                <div className="mb-4 p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-500">
+                  <div className="flex items-center gap-2.5">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                    <span>
+                      <b>Aviso de facturación:</b> Se detectaron facturas registradas con recargo indebido de <b>$28.00</b>. Puedes corregirlas todas al monto estándar de <b>$20.00</b> con un clic.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFixAllCoachOvercharges}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Corregir Todas a $20.00</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-sm hidden md:table">
                 <thead className="bg-black/5 dark:bg-black/40 border-b border-black/10 dark:border-white/10 text-muted-foreground">
                   <tr>
@@ -997,7 +1132,10 @@ export default function FinanzasPage() {
                         {tx.status === 'CANCELED' ? (
                           <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                         ) : (
-                          <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button onClick={() => handleAdminCorrectTx(tx)} title="Corregir factura" className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold cursor-pointer">Corregir</button>
+                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition cursor-pointer">Anular</button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1063,7 +1201,10 @@ export default function FinanzasPage() {
                         {tx.status === 'CANCELED' ? (
                           <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                         ) : (
-                          <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => handleAdminCorrectTx(tx)} className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold">Corregir</button>
+                            <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
+                          </div>
                         )}
                       </div>
                     </div>
