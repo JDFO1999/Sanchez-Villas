@@ -18,6 +18,7 @@ interface DialogProps {
   /** Evita cerrar al hacer clic fuera (formularios con datos sin guardar). */
   persistent?: boolean
   className?: string
+  backdropClassName?: string
   children: React.ReactNode
 }
 
@@ -25,7 +26,7 @@ interface DialogProps {
  * Modal accesible: role="dialog", Escape cierra, el foco queda atrapado dentro,
  * se restaura al elemento que lo abrió y se bloquea el scroll del fondo.
  */
-export function Dialog({ open, onClose, title, description, hideTitle, hideCloseButton, persistent, className, children }: DialogProps) {
+export function Dialog({ open, onClose, title, description, hideTitle, hideCloseButton, persistent, className, backdropClassName, children }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null)
   const onCloseRef = React.useRef(onClose)
   const persistentRef = React.useRef(persistent)
@@ -74,7 +75,10 @@ export function Dialog({ open, onClose, title, description, hideTitle, hideClose
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-150"
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-150",
+        backdropClassName
+      )}
       onMouseDown={e => { if (e.target === e.currentTarget && !persistent) onClose() }}
     >
       <div

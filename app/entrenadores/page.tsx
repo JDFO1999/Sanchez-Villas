@@ -122,17 +122,15 @@ export default function EntrenadoresPage() {
           {filteredCoaches.map((coach) => {
             const athleteCount = coach.coachedAthletes?.length || 0
             const attendanceCount = coach.attendances?.length || 0
-            const isSelected = selectedCoach?.id === coach.id
 
             return (
               <div
                 key={coach.id}
-                onClick={() => setSelectedCoach(isSelected ? null : coach)}
-                className={`group relative rounded-2xl border bg-card p-5 shadow-sm transition-all cursor-pointer hover:shadow-md hover:border-primary/50 flex flex-col justify-between ${
-                  isSelected
-                    ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                    : "border-border"
-                }`}
+                onClick={() => {
+                  setSelectedCoach(coach)
+                  setAthleteSearch("")
+                }}
+                className="group relative rounded-2xl border border-border bg-card p-5 shadow-sm transition-all cursor-pointer hover:shadow-md hover:border-primary/50 flex flex-col justify-between"
               >
                 <div>
                   {/* Fila Superior: Avatar + Info */}
@@ -215,10 +213,18 @@ export default function EntrenadoresPage() {
                     <span>Ver Asistencia</span>
                   </button>
 
-                  <span className="text-xs font-bold text-primary flex items-center gap-1">
-                    <span>{isSelected ? "Ocultar Atletas" : "Ver Atletas"}</span>
-                    <ChevronRight className={`w-4 h-4 transition-transform ${isSelected ? "rotate-90" : ""}`} />
-                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedCoach(coach)
+                      setAthleteSearch("")
+                    }}
+                    className="text-xs font-bold text-primary flex items-center gap-1 hover:underline transition py-1 px-2 rounded-lg hover:bg-primary/10"
+                  >
+                    <span>Ver Atletas</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )
@@ -226,185 +232,262 @@ export default function EntrenadoresPage() {
         </div>
       )}
 
-      {/* Detalle de Atletas Asignados */}
+      {/* MODAL: Atletas Asignados al Entrenador */}
       {selectedCoach && (
-        <div className="mt-8 rounded-3xl border-2 border-primary/40 bg-card p-5 sm:p-7 shadow-xl animate-in fade-in duration-300 relative">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4 mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-bold">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-lg text-foreground">
-                  Atletas Asignados a {selectedCoach.name}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Listado de deportistas bajo la tutela de este entrenador.
-                </p>
-              </div>
-            </div>
+        <Dialog
+          open={!!selectedCoach}
+          onClose={() => {
+            setSelectedCoach(null)
+            setAthleteSearch("")
+          }}
+          title={`Atletas Asignados — ${selectedCoach.name}`}
+          className="max-w-4xl sm:max-w-4xl w-full p-6 space-y-4"
+        >
+          {(() => {
+            const totalAthletes = selectedCoach.coachedAthletes?.length || 0
+            const activeAthletes = (selectedCoach.coachedAthletes || []).filter((ath: any) => {
+              const m = ath.memberships?.[0]
+              return m && new Date(m.endDate).getTime() >= new Date().setHours(0, 0, 0, 0)
+            }).length
+            const inactiveAthletes = totalAthletes - activeAthletes
 
-            <div className="flex items-center gap-3">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Buscar en sus atletas..."
-                  value={athleteSearch}
-                  onChange={(e) => setAthleteSearch(e.target.value)}
-                  className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-primary"
-                />
-              </div>
+            return (
+              <div className="space-y-4">
+                {/* Resumen del Coach */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/20 border border-border/60 rounded-2xl p-4">
+                  <div className="flex items-center gap-3.5">
+                    {selectedCoach.profilePicture ? (
+                      <img
+                        src={selectedCoach.profilePicture}
+                        alt={selectedCoach.name}
+                        className="w-12 h-12 rounded-xl object-cover border-2 border-primary/40 shrink-0 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary border-2 border-primary/30 flex items-center justify-center font-black text-lg shrink-0">
+                        {selectedCoach.name?.charAt(0) || "C"}
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-extrabold text-base text-foreground">
+                          {selectedCoach.name}
+                        </h4>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          Coach
+                        </span>
+                      </div>
+                      <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                        C.I. {selectedCoach.cedula}
+                      </p>
+                    </div>
+                  </div>
 
-              <button
-                onClick={() => setSelectedCoach(null)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition"
-                title="Cerrar panel de atletas"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+                  {/* Badges de métricas rápidas */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs px-3 py-1.5 rounded-xl bg-card border border-border font-bold flex items-center gap-1.5 text-foreground shadow-sm">
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      <span>{totalAthletes} Atletas Totales</span>
+                    </span>
+                    <span className="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 font-bold flex items-center gap-1.5 text-emerald-500">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                      <span>{activeAthletes} Activos</span>
+                    </span>
+                    {inactiveAthletes > 0 && (
+                      <span className="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/25 font-bold flex items-center gap-1.5 text-rose-500">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                        <span>{inactiveAthletes} Vencidos</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-          {filteredAthletes.length === 0 ? (
-            <div className="p-10 text-center text-muted-foreground">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-500" />
-              <p className="font-bold text-sm">
-                {selectedCoach.coachedAthletes?.length === 0
-                  ? "Este entrenador aún no tiene atletas asignados."
-                  : "No se encontraron atletas con ese criterio de búsqueda."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
-                    <th className="py-3 px-3">Estado Membresía</th>
-                    <th className="py-3 px-3">Atleta</th>
-                    <th className="py-3 px-3">Cédula</th>
-                    <th className="py-3 px-3">Fecha de Ingreso</th>
-                    <th className="py-3 px-3">Plan / Vencimiento</th>
-                    <th className="py-3 px-3 text-center">Días Asistidos</th>
-                    <th className="py-3 px-3 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40 font-medium">
-                  {filteredAthletes.map((ath: any) => {
-                    const latestMemb = ath.memberships?.[0]
-                    const hasActiveMembership =
-                      latestMemb &&
-                      new Date(latestMemb.endDate).getTime() >= new Date().setHours(0, 0, 0, 0)
-                    const admissionDate = ath.createdAt
-                      ? new Date(ath.createdAt).toLocaleDateString("es-VE", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })
-                      : "N/A"
-                    const attendanceCount = ath.attendances?.length || 0
-
-                    return (
-                      <tr
-                        key={ath.id}
-                        className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                {/* Buscador de atletas */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Buscar atleta por nombre o cédula..."
+                      value={athleteSearch}
+                      onChange={(e) => setAthleteSearch(e.target.value)}
+                      className="w-full bg-background border border-border rounded-xl pl-10 pr-9 py-2 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm"
+                    />
+                    {athleteSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setAthleteSearch("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
                       >
-                        {/* Estado: Círculo Verde / Rojo */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`w-3.5 h-3.5 rounded-full inline-block shadow-sm ${
-                                hasActiveMembership
-                                  ? "bg-emerald-500 ring-4 ring-emerald-500/20"
-                                  : "bg-rose-500 ring-4 ring-rose-500/20"
-                              }`}
-                              title={hasActiveMembership ? "Membresía Activa" : "Membresía Inactiva / Vencida"}
-                            />
-                            <span
-                              className={`text-[11px] font-bold ${
-                                hasActiveMembership ? "text-emerald-500" : "text-rose-500"
-                              }`}
-                            >
-                              {hasActiveMembership ? "Activa" : "Inactiva"}
-                            </span>
-                          </div>
-                        </td>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground font-medium shrink-0 flex items-center gap-1">
+                    <span>Mostrando</span>
+                    <strong className="text-foreground">{filteredAthletes.length}</strong>
+                    <span>de {totalAthletes}</span>
+                  </div>
+                </div>
 
-                        {/* Nombre y Foto */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2.5">
-                            {ath.profilePicture ? (
-                              <img
-                                src={ath.profilePicture}
-                                alt={ath.name}
-                                className="w-8 h-8 rounded-full object-cover border border-border"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
-                                {ath.name?.charAt(0) || "A"}
-                              </div>
-                            )}
-                            <div>
-                              <span className="font-bold text-foreground block text-sm">
-                                {ath.name}
-                              </span>
-                              {ath.phone && (
-                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                  <Phone className="w-3 h-3" /> {ath.phone}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
+                {/* Tabla o Estado Vacío */}
+                {filteredAthletes.length === 0 ? (
+                  <div className="p-10 text-center text-muted-foreground bg-muted/5 rounded-2xl border border-dashed border-border/60">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-500" />
+                    <p className="font-bold text-sm">
+                      {totalAthletes === 0
+                        ? "Este entrenador aún no tiene atletas asignados."
+                        : "No se encontraron atletas con ese criterio de búsqueda."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border/60 overflow-hidden">
+                    <div className="overflow-x-auto max-h-[50vh] overflow-y-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead className="sticky top-0 bg-muted/90 backdrop-blur z-10 border-b border-border shadow-sm">
+                          <tr className="text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+                            <th className="py-3 px-3">Estado Membresía</th>
+                            <th className="py-3 px-3">Atleta</th>
+                            <th className="py-3 px-3">Cédula</th>
+                            <th className="py-3 px-3">Fecha de Ingreso</th>
+                            <th className="py-3 px-3">Plan / Vencimiento</th>
+                            <th className="py-3 px-3 text-center">Días Asistidos</th>
+                            <th className="py-3 px-3 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40 font-medium bg-card">
+                          {filteredAthletes.map((ath: any) => {
+                            const latestMemb = ath.memberships?.[0]
+                            const hasActiveMembership =
+                              latestMemb &&
+                              new Date(latestMemb.endDate).getTime() >= new Date().setHours(0, 0, 0, 0)
+                            const admissionDate = ath.createdAt
+                              ? new Date(ath.createdAt).toLocaleDateString("es-VE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : "N/A"
+                            const attendanceCount = ath.attendances?.length || 0
 
-                        {/* Cédula */}
-                        <td className="py-3 px-3 font-mono text-xs">{ath.cedula}</td>
+                            return (
+                              <tr
+                                key={ath.id}
+                                className="hover:bg-muted/30 transition-colors"
+                              >
+                                {/* Estado: Círculo Verde / Rojo */}
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`w-3.5 h-3.5 rounded-full inline-block shadow-sm ${
+                                        hasActiveMembership
+                                          ? "bg-emerald-500 ring-4 ring-emerald-500/20"
+                                          : "bg-rose-500 ring-4 ring-rose-500/20"
+                                      }`}
+                                      title={hasActiveMembership ? "Membresía Activa" : "Membresía Inactiva / Vencida"}
+                                    />
+                                    <span
+                                      className={`text-[11px] font-bold ${
+                                        hasActiveMembership ? "text-emerald-500" : "text-rose-500"
+                                      }`}
+                                    >
+                                      {hasActiveMembership ? "Activa" : "Inactiva"}
+                                    </span>
+                                  </div>
+                                </td>
 
-                        {/* Fecha de Ingreso */}
-                        <td className="py-3 px-3 text-muted-foreground">{admissionDate}</td>
+                                {/* Nombre y Foto */}
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2.5">
+                                    {ath.profilePicture ? (
+                                      <img
+                                        src={ath.profilePicture}
+                                        alt={ath.name}
+                                        className="w-8 h-8 rounded-full object-cover border border-border"
+                                      />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                                        {ath.name?.charAt(0) || "A"}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <span className="font-bold text-foreground block text-sm">
+                                        {ath.name}
+                                      </span>
+                                      {ath.phone && (
+                                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                          <Phone className="w-3 h-3" /> {ath.phone}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
 
-                        {/* Plan */}
-                        <td className="py-3 px-3">
-                          {latestMemb ? (
-                            <div>
-                              <span className="font-semibold text-foreground block">
-                                {latestMemb.planName || "Plan General"}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                Vence: {new Date(latestMemb.endDate).toLocaleDateString("es-VE")}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground italic">Sin Plan Registrado</span>
-                          )}
-                        </td>
+                                {/* Cédula */}
+                                <td className="py-3 px-3 font-mono text-xs">{ath.cedula}</td>
 
-                        {/* Días Asistidos */}
-                        <td className="py-3 px-3 text-center">
-                          <span className="inline-flex items-center gap-1 font-bold px-2.5 py-1 rounded-full bg-info/10 text-info">
-                            <Calendar className="w-3.5 h-3.5" /> {attendanceCount}
-                          </span>
-                        </td>
+                                {/* Fecha de Ingreso */}
+                                <td className="py-3 px-3 text-muted-foreground">{admissionDate}</td>
 
-                        {/* Acción: Ver Historial de Asistencia */}
-                        <td className="py-3 px-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setAthleteAttendanceModal(ath)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition font-bold text-xs border border-border/60"
-                          >
-                            <History className="w-3.5 h-3.5 text-primary" />
-                            <span>Historial</span>
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                                {/* Plan */}
+                                <td className="py-3 px-3">
+                                  {latestMemb ? (
+                                    <div>
+                                      <span className="font-semibold text-foreground block">
+                                        {latestMemb.planName || "Plan General"}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        Vence: {new Date(latestMemb.endDate).toLocaleDateString("es-VE")}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground italic">Sin Plan Registrado</span>
+                                  )}
+                                </td>
+
+                                {/* Días Asistidos */}
+                                <td className="py-3 px-3 text-center">
+                                  <span className="inline-flex items-center gap-1 font-bold px-2.5 py-1 rounded-full bg-info/10 text-info">
+                                    <Calendar className="w-3.5 h-3.5" /> {attendanceCount}
+                                  </span>
+                                </td>
+
+                                {/* Acción: Ver Historial de Asistencia */}
+                                <td className="py-3 px-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => setAthleteAttendanceModal(ath)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition font-bold text-xs border border-border/60"
+                                  >
+                                    <History className="w-3.5 h-3.5 text-primary" />
+                                    <span>Historial</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón de cierre inferior */}
+                <div className="pt-2 flex items-center justify-end border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedCoach(null)
+                      setAthleteSearch("")
+                    }}
+                    className="px-5 py-2 font-bold"
+                  >
+                    Cerrar
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </Dialog>
       )}
 
       {/* MODAL 1: Historial de Asistencia del COACH */}
@@ -486,6 +569,7 @@ export default function EntrenadoresPage() {
           open={!!athleteAttendanceModal}
           onClose={() => setAthleteAttendanceModal(null)}
           title={`Historial de Asistencias: ${athleteAttendanceModal.name}`}
+          backdropClassName="z-[60]"
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-4">
