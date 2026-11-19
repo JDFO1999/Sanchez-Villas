@@ -10,7 +10,7 @@ import { getExpenses, addExpense, updateExpense, deleteExpense } from "@/app/act
 import type { AthleteProfile } from "@/lib/data-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  BarChart3, TrendingDown, TrendingUp, DollarSign, 
+  Eye, BarChart3, TrendingDown, TrendingUp, DollarSign, 
   AlertCircle, AlertTriangle, Wrench, FileText, Download, Calendar, Wallet, Users, Plus, Trash2, MessageCircle, X 
 } from "lucide-react"
 import Swal from "sweetalert2"
@@ -364,6 +364,16 @@ export default function FinanzasPage() {
             <label class="block text-xs font-bold mb-1">Referencia / Comprobante:</label>
             <input id="swal-new-ref" type="text" class="w-full p-2 border rounded-lg bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-sm" value="${tx.reference || ''}" />
           </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Capture / Foto del Comprobante (Opcional):</label>
+            <input id="swal-new-receipt-file" type="file" accept="image/*" class="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-black hover:file:opacity-90 cursor-pointer" />
+          </div>
+          ${tx.receiptImage ? `
+            <div class="p-2 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between text-xs">
+              <span class="text-primary font-bold flex items-center gap-1">✓ Tiene capture guardado</span>
+              <a href="${tx.receiptImage}" target="_blank" rel="noreferrer" class="text-primary underline text-[11px] font-bold">Ver actual 👁️</a>
+            </div>
+          ` : ''}
           ${hasCoachItem ? `
             <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg">
               <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-500">
@@ -378,20 +388,34 @@ export default function FinanzasPage() {
       confirmButtonText: 'Guardar Corrección',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#f59e0b',
-      preConfirm: () => {
+      preConfirm: async () => {
         const totalInput = (document.getElementById('swal-new-total') as HTMLInputElement)?.value;
         const methodInput = (document.getElementById('swal-new-method') as HTMLInputElement)?.value;
         const refInput = (document.getElementById('swal-new-ref') as HTMLInputElement)?.value;
+        const fileInput = document.getElementById('swal-new-receipt-file') as HTMLInputElement;
         const removeCoach = (document.getElementById('swal-remove-coach') as HTMLInputElement)?.checked ?? false;
         const parsedTotal = parseFloat(totalInput);
         if (isNaN(parsedTotal) || parsedTotal <= 0) {
           Swal.showValidationMessage('Ingresa un monto total válido mayor a 0.');
           return false;
         }
+
+        let newReceiptBase64: string | undefined = undefined;
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+          const file = fileInput.files[0];
+          newReceiptBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(undefined);
+            reader.readAsDataURL(file);
+          });
+        }
+
         return {
           total: parsedTotal,
           paymentMethod: methodInput.trim(),
           reference: refInput.trim(),
+          receiptImage: newReceiptBase64,
           removeCoachItem: removeCoach
         };
       }
@@ -409,6 +433,7 @@ export default function FinanzasPage() {
         subtotal: formValues.total,
         paymentMethod: formValues.paymentMethod,
         reference: formValues.reference,
+        ...(formValues.receiptImage ? { receiptImage: formValues.receiptImage } : {}),
         items: formValues.removeCoachItem ? t.items.filter((i: any) => i.productId !== 'COACH' && !i.name.toLowerCase().includes('entrenador')).map((i: any) => ({ ...i, price: formValues.total, subtotal: formValues.total })) : t.items
       } : t));
       Swal.fire('¡Factura Corregida!', `La Factura #${invNum} fue ajustada exitosamente a ${settings.storeCurrency} ${formValues.total.toFixed(2)}.`, 'success');
@@ -1122,10 +1147,19 @@ export default function FinanzasPage() {
                         )}
                       </td>
                       <td className="p-4 text-xs text-muted-foreground">
-                        <div className="flex flex-col gap-1">
-                          <span className={isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : ""}>{tx.reference || '-'}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : ""}>
+                            {tx.reference || '-'}
+                          </span>
                           {tx.receiptImage && (
-                            <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold text-left">Ver Comprobante</button>
+                            <button
+                              type="button"
+                              onClick={() => setViewImage(tx.receiptImage!)}
+                              title="Ver capture / comprobante cargado"
+                              className="p-1 rounded-md text-primary hover:text-primary hover:bg-primary/20 transition cursor-pointer inline-flex items-center justify-center group"
+                            >
+                              <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -1210,10 +1244,19 @@ export default function FinanzasPage() {
                         <span className="text-xs bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded uppercase font-bold">{tx.paymentMethod}</span>
                       )}
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`text-xs ${isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>{tx.reference || '-'}</span>
-                        {tx.receiptImage && (
-                          <button onClick={() => setViewImage(tx.receiptImage!)} className="text-primary hover:underline text-[10px] font-bold">Ver Comprobante</button>
-                        )}
+                        <div className="flex items-center gap-1.5 justify-end flex-wrap">
+                          <span className={`text-xs ${isNoFlow ? "text-amber-500 font-medium text-[11px]" : hasVuelto ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>{tx.reference || '-'}</span>
+                          {tx.receiptImage && (
+                            <button
+                              type="button"
+                              onClick={() => setViewImage(tx.receiptImage!)}
+                              title="Ver capture / comprobante cargado"
+                              className="p-1 rounded-md text-primary hover:text-primary hover:bg-primary/20 transition cursor-pointer inline-flex items-center justify-center"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                         {tx.status === 'CANCELED' ? (
                           <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                         ) : (
@@ -1243,12 +1286,39 @@ export default function FinanzasPage() {
         open={Boolean(viewImage)}
         onClose={() => setViewImage(null)}
         title="Comprobante de Pago"
-        className="max-w-2xl bg-black/95 p-4"
+        className="max-w-2xl bg-card border border-border/80 p-5"
       >
-        <div className="flex justify-center">
-          {viewImage && (
-            <img src={viewImage} alt="Comprobante Completo" className="w-full rounded-lg object-contain max-h-[80vh]" />
-          )}
+        <div className="space-y-4">
+          <div className="flex justify-center bg-black/60 rounded-xl p-2 border border-border/40 overflow-hidden">
+            {viewImage && (
+              <img
+                src={viewImage}
+                alt="Comprobante de Pago Completo"
+                className="max-w-full rounded-lg object-contain max-h-[75vh] shadow-lg"
+              />
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-2">
+            {viewImage && (
+              <a
+                href={viewImage}
+                target="_blank"
+                rel="noreferrer"
+                download="comprobante-pago.jpg"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Descargar / Ver en tamaño original</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setViewImage(null)}
+              className="px-4 py-1.5 rounded-lg bg-muted text-foreground text-xs font-bold hover:bg-muted/80 transition cursor-pointer ml-auto"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </Dialog>
 

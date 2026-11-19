@@ -731,6 +731,7 @@ export async function adminCorrectTransaction(
     total?: number;
     paymentMethod?: string;
     reference?: string;
+    receiptImage?: string | null;
     removeCoachItem?: boolean;
     reason?: string;
   }
@@ -752,6 +753,15 @@ export async function adminCorrectTransaction(
     if (!tx) return { success: false, error: 'Transacción no encontrada' };
 
     const newTotal = typeof data.total === 'number' && data.total > 0 ? data.total : tx.total;
+
+    let processedReceiptImage: string | null | undefined = undefined;
+    if (data.receiptImage !== undefined) {
+      if (data.receiptImage && data.receiptImage.startsWith('data:image')) {
+        processedReceiptImage = await saveBase64Image(data.receiptImage, 'receipt');
+      } else {
+        processedReceiptImage = data.receiptImage;
+      }
+    }
 
     await prisma.$transaction(async (txPrisma) => {
       // 1. Si removeCoachItem es true, eliminar ítems de entrenador
@@ -789,7 +799,8 @@ export async function adminCorrectTransaction(
           total: newTotal,
           subtotal: newTotal,
           ...(data.paymentMethod ? { paymentMethod: data.paymentMethod } : {}),
-          ...(data.reference !== undefined ? { reference: data.reference } : {})
+          ...(data.reference !== undefined ? { reference: data.reference } : {}),
+          ...(processedReceiptImage !== undefined ? { receiptImage: processedReceiptImage } : {})
         }
       });
     });
