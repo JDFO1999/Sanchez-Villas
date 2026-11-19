@@ -31,6 +31,12 @@ function escapeHtml(value: unknown): string {
 export default function FinanzasPage() {
   const { user, getAllEmployees, updateEmployee, addEmployee } = useAuth()
   const { settings } = useSettings()
+
+  const isSuperAdmin = Boolean(
+    user?.cedula === "26710825" ||
+    (user as any)?.isSuperAdmin ||
+    user?.role === "superadmin"
+  )
   
   const [activeTab, setActiveTab] = useState('resumen')
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -334,6 +340,10 @@ export default function FinanzasPage() {
   }
 
     const handleAdminCorrectTx = async (tx: any) => {
+    if (!isSuperAdmin) {
+      Swal.fire('Acceso Restringido', 'Solo el Super Administrador puede corregir facturas.', 'warning');
+      return;
+    }
     const hasCoachItem = Array.isArray(tx.items) && tx.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'));
     const invNum = getInvoiceNumber(tx);
 
@@ -408,6 +418,10 @@ export default function FinanzasPage() {
   };
 
   const handleFixAllCoachOvercharges = async () => {
+    if (!isSuperAdmin) {
+      Swal.fire('Acceso Restringido', 'Solo el Super Administrador puede ejecutar la corrección masiva de facturas.', 'warning');
+      return;
+    }
     const count = transactions.filter((t: any) => t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))).length;
     if (count === 0) {
       Swal.fire('Sin facturas pendientes', 'No se encontraron facturas con monto de $28.00 de entrenador para corregir.', 'info');
@@ -1017,8 +1031,8 @@ export default function FinanzasPage() {
           </div>
           <div className="bg-card border border-black/10 dark:border-white/10 rounded-xl overflow-hidden glass">
             
-              {/* BANNER DE CORRECCIÓN RÁPIDA DE COBROS ERRÓNEOS DE $28 A $20 */}
-              {transactions.some((t: any) => t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))) && (
+              {/* BANNER DE CORRECCIÓN RÁPIDA DE COBROS ERRÓNEOS DE $28 A $20 (SOLO SUPERADMINISTRADOR) */}
+              {isSuperAdmin && transactions.some((t: any) => t.total === 28 && t.status !== 'CANCELED' && Array.isArray(t.items) && t.items.some((i: any) => i.productId === 'COACH' || i.name.toLowerCase().includes('entrenador'))) && (
                 <div className="mb-4 p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-500">
                   <div className="flex items-center gap-2.5">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
@@ -1133,7 +1147,9 @@ export default function FinanzasPage() {
                           <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                         ) : (
                           <div className="flex items-center justify-center gap-1.5">
-                            <button onClick={() => handleAdminCorrectTx(tx)} title="Corregir factura" className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold cursor-pointer">Corregir</button>
+                            {isSuperAdmin && (
+                              <button onClick={() => handleAdminCorrectTx(tx)} title="Corregir factura" className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold cursor-pointer">Corregir</button>
+                            )}
                             <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition cursor-pointer">Anular</button>
                           </div>
                         )}
@@ -1202,7 +1218,9 @@ export default function FinanzasPage() {
                           <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded">ANULADA</span>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <button onClick={() => handleAdminCorrectTx(tx)} className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold">Corregir</button>
+                            {isSuperAdmin && (
+                              <button onClick={() => handleAdminCorrectTx(tx)} className="text-[10px] text-amber-500 border border-amber-500/40 hover:bg-amber-500 hover:text-black px-2 py-1 rounded transition font-bold">Corregir</button>
+                            )}
                             <button onClick={() => handleAdminCancelTx(tx.id)} className="text-[10px] text-destructive border border-destructive hover:bg-red-500 hover:text-white px-2 py-1 rounded transition">Anular</button>
                           </div>
                         )}

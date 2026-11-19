@@ -18,6 +18,13 @@ async function getSuperAdminUser() {
   return superAdmin
 }
 
+async function isActorSuperAdmin(actor: any): Promise<boolean> {
+  if (!actor) return false
+  if (actor.cedula === "26710825" || actor.role === "superadmin" || actor.isSuperAdmin) return true
+  const superAdmin = await getSuperAdminUser()
+  return Boolean(superAdmin && actor.id === superAdmin.id)
+}
+
 function cleanReceiptReference(ref?: string | null): string | null {
   if (!ref) return null
   const cleaned = String(ref)
@@ -731,6 +738,11 @@ export async function adminCorrectTransaction(
   const g = await guard(ROLES.ADMIN);
   if (!g.ok) return { success: false, error: g.error };
 
+  const isSuper = await isActorSuperAdmin(g.user);
+  if (!isSuper) {
+    return { success: false, error: "Acceso denegado: solo el Super Administrador puede corregir facturas históricas." };
+  }
+
   try {
     const tx = await prisma.transaction.findUnique({
       where: { id: transactionId },
@@ -807,6 +819,11 @@ export async function adminCorrectTransaction(
 export async function adminFixAllOverchargedCoachTransactions() {
   const g = await guard(ROLES.ADMIN);
   if (!g.ok) return { success: false, error: g.error, corrected: 0 };
+
+  const isSuper = await isActorSuperAdmin(g.user);
+  if (!isSuper) {
+    return { success: false, error: "Acceso denegado: solo el Super Administrador puede realizar correcciones masivas de facturas.", corrected: 0 };
+  }
 
   try {
     const candidateTxs = await prisma.transaction.findMany({
