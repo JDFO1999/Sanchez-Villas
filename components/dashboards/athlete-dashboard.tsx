@@ -137,63 +137,6 @@ export function AthleteDashboard() {
     return prod?.imageUrl || ''
   }
 
-  const handleOpenPrModal = async () => {
-    const { value: formValues } = await Swal.fire({
-      title: 'Registrar Carga Máxima (PR)',
-      html: `
-        <div style="text-align: left; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-          <div>
-            <label style="font-weight: bold; display: block; margin-bottom: 4px;">Ejercicio *</label>
-            <input id="swal-pr-exercise" class="swal2-input" placeholder="Ej. Press de Banca, Sentadilla, Peso Muerto" style="width: 100%; margin: 0; box-sizing: border-box;" />
-          </div>
-          <div>
-            <label style="font-weight: bold; display: block; margin-bottom: 4px;">Peso Máximo Levantado (kg) *</label>
-            <input id="swal-pr-weight" type="number" step="0.5" min="1" class="swal2-input" placeholder="Ej. 80.5" style="width: 100%; margin: 0; box-sizing: border-box;" />
-          </div>
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar Récord',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#22c55e',
-      cancelButtonColor: '#64748b',
-      preConfirm: () => {
-        const exerciseName = (document.getElementById('swal-pr-exercise') as HTMLInputElement)?.value?.trim()
-        const weight = (document.getElementById('swal-pr-weight') as HTMLInputElement)?.value
-        if (!exerciseName) {
-          Swal.showValidationMessage('Por favor ingresa el nombre del ejercicio.')
-          return false
-        }
-        if (!weight || parseFloat(weight) <= 0) {
-          Swal.showValidationMessage('Por favor ingresa un peso válido mayor a 0 kg.')
-          return false
-        }
-        return { exerciseName, weight: parseFloat(weight) }
-      }
-    })
-
-    if (formValues) {
-      const res = await recordExerciseProgress({
-        exerciseName: formValues.exerciseName,
-        weight: formValues.weight
-      })
-      if (res.success && res.record) {
-        setExerciseProgress(prev => [...prev, res.record])
-        Swal.fire({
-          title: '¡Récord Guardado!',
-          text: `Se registró tu PR de ${formValues.weight} kg en ${formValues.exerciseName}. ¡Sigue superándote!`,
-          icon: 'success',
-          confirmButtonColor: '#22c55e'
-        })
-      } else {
-        Swal.fire('Error', res.error || 'No se pudo guardar el récord personal.', 'error')
-      }
-    }
-  }
-
-  
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -245,59 +188,21 @@ export function AthleteDashboard() {
         </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="flex flex-col justify-between">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-              <span>Carga Máxima (PR)</span>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Carga Máxima (PR)
             </CardTitle>
-            <button
-              type="button"
-              onClick={handleOpenPrModal}
-              className="p-1 rounded-md text-primary hover:bg-primary/10 transition cursor-pointer"
-              title="Registrar nuevo récord personal"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {exerciseProgress.length === 0 ? (
-              <div className="space-y-2.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="stat-number text-3xl font-black text-muted-foreground/40">
-                    -- <span className="text-xs font-bold text-muted-foreground">kg</span>
-                  </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground border border-white/5">
-                    Sin marcas
-                  </span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Dumbbell className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>Sin registros de fuerza aún</span>
-                  </p>
-                  <p className="text-[11px] text-muted-foreground leading-snug">
-                    Registra tus pesos máximos levantados o completa tus ejercicios diarios para seguir tu evolución de fuerza y récords personales (PR).
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleOpenPrModal}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-black font-black text-xs hover:opacity-90 transition cursor-pointer shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Registrar Carga
-                  </button>
-                  <Link
-                    href="/rutina"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
-                  >
-                    <span>Ver Rutinas</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
+              <>
+                <div className="stat-number text-4xl">0 kg</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sin registros asignados por tu coach
+                </p>
+              </>
             ) : (
               <>
                 <div className="mb-2">
@@ -324,33 +229,22 @@ export function AthleteDashboard() {
                   const strokeColor = isImproving ? "hsl(var(--success))" : "hsl(var(--warning))";
                   
                   return (
-                    <>
-                      <div className="flex justify-between items-end">
-                        <div>
-                          <div className="stat-number text-3xl font-black">{prData[prData.length - 1].weight} kg</div>
-                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-semibold">
-                            {isImproving ? <span className="text-success">↑ Mejorando</span> : <span className="text-warning">→ Estable / Mantenido</span>}
-                          </p>
-                        </div>
-                        <div className="h-12 w-24">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={prData}>
-                              <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
-                              <Line type="monotone" dataKey="weight" stroke={strokeColor} strokeWidth={2} dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <div className="stat-number text-4xl">{prData[prData.length - 1].weight} kg</div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 font-semibold">
+                          {isImproving ? <span className="text-success">↑ Mejorando</span> : <span className="text-warning">→ Estable / Mantenido</span>}
+                        </p>
                       </div>
-                      <div className="pt-2 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={handleOpenPrModal}
-                          className="text-[11px] text-primary hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" /> Registrar nuevo peso
-                        </button>
+                      <div className="h-12 w-24">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={prData}>
+                            <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
+                            <Line type="monotone" dataKey="weight" stroke={strokeColor} strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
                       </div>
-                    </>
+                    </div>
                   )
                 })()}
               </>
