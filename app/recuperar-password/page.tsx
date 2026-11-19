@@ -173,7 +173,7 @@ function RecuperarPasswordContent() {
             </div>
             <h2 className="text-lg font-black text-foreground">Enlace No Válido o Expirado</h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {tokenError || "Este enlace de recuperación ya fue utilizado o superó el tiempo límite de seguridad (60 minutos)."}
+              {tokenError || "Este enlace de recuperación ya fue utilizado o superó el tiempo límite de seguridad (20 minutos)."}
             </p>
             <div className="pt-2 flex flex-col gap-2">
               <Link

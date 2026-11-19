@@ -6,7 +6,7 @@ import type { AthleteProfile } from "@/lib/data-service"
 import { storeService, Transaction } from "@/lib/store-service"
 import { useSettings } from "@/lib/settings-context"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon, Bell, Send, Mail } from "lucide-react"
+import { Search, CreditCard, Clock, MessageSquare, Edit, Check, DollarSign, Camera, Eye, Image as ImageIcon, X, Calendar, KeyRound, User as UserIcon, Bell, Send, Mail, Loader2, CalendarCheck } from "lucide-react"
 import Link from "next/link"
 import Swal from 'sweetalert2'
 import { showSweetToast } from "@/lib/toast-context"
@@ -107,6 +107,7 @@ export default function MembresíasPage() {
   const [editName, setEditName] = useState("")
   const [editCedula, setEditCedula] = useState("")
   const [editPhone, setEditPhone] = useState("")
+  const [editEmail, setEditEmail] = useState("")
   const [editAddress, setEditAddress] = useState("")
   const [editRole, setEditRole] = useState("athlete")
   const [editCoachId, setEditCoachId] = useState("")
@@ -120,6 +121,7 @@ export default function MembresíasPage() {
   const [editPaymentRef, setEditPaymentRef] = useState("")
   const [editPaymentAmount, setEditPaymentAmount] = useState<string>("")
   const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [isSendingReset, setIsSendingReset] = useState(false)
 
   // Message Modal State
   const [showMessageModal, setShowMessageModal] = useState<AthleteProfile | null>(null)
@@ -292,6 +294,7 @@ export default function MembresíasPage() {
     setEditName(a.name)
     setEditCedula(a.cedula)
     setEditPhone(a.phone || "")
+    setEditEmail((a as any).email || "")
     setEditAddress(a.address || "")
     setEditRole("athlete")
     setEditCoachId(a.coachId || "")
@@ -367,19 +370,88 @@ export default function MembresíasPage() {
 
   const passwordMatch = editPassword && editConfirmPassword && editPassword === editConfirmPassword
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
+    const handleSendResetLink = async (targetAthlete: { id: string; name: string; email?: string | null; phone?: string | null }) => {
+    setIsSendingReset(true)
+    try {
+      const { adminSendAthletePasswordReset } = await import("@/app/actions/auth-reset")
+      const res = await adminSendAthletePasswordReset(targetAthlete.id)
+      if (!res.success) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: res.error || 'No se pudo generar el enlace de recuperación.'
+        })
+        return
+      }
+
+      const emailNote = res.emailSent
+        ? `<div class="p-2.5 mb-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-semibold">
+             ✉️ Enlace enviado exitosamente al correo <b>${res.userEmail}</b>
+           </div>`
+        : res.hasEmail
+        ? `<div class="p-2.5 mb-3 bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-semibold">
+             ⚠️ No se pudo enviar por correo (${res.emailError || 'sin servidor SMTP configurado'}), pero el enlace está listo abajo.
+           </div>`
+        : `<div class="p-2.5 mb-3 bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-semibold">
+             ℹ️ El atleta no tiene correo registrado. Puedes compartirle el enlace directamente por WhatsApp o copiarlo.
+           </div>`;
+
+      const phoneClean = res.userPhone ? res.userPhone.replace(/\D/g, "") : ""
+      const waPhone = phoneClean.startsWith('58') ? phoneClean : phoneClean.length === 11 && phoneClean.startsWith('0') ? '58' + phoneClean.slice(1) : phoneClean
+      const waUrl = waPhone
+        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${res.userName}! Aquí tienes tu enlace seguro para acceder y configurar tu contraseña en Maximum Evolution Fit:\n\n${res.resetUrl}\n\n(Válido por 20 minutos)`)}`
+        : null
+
+      await Swal.fire({
+        title: 'Enlace de Restablecimiento',
+        html: `
+          <div class="text-left text-sm space-y-2">
+            ${emailNote}
+            <p class="text-xs text-muted-foreground mb-1 font-semibold">Enlace de acceso generado (válido por 20 min):</p>
+            <div class="p-2.5 bg-black/10 dark:bg-white/10 rounded-lg font-mono text-[11px] break-all select-all border border-black/10 dark:border-white/10">
+              ${res.resetUrl}
+            </div>
+            <div class="pt-3 flex flex-col gap-2">
+              <button id="swal-copy-btn-memb" type="button" class="w-full py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition cursor-pointer">
+                📋 Copiar Enlace al Portapapeles
+              </button>
+              ${waUrl ? `
+                <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg text-center transition flex items-center justify-center gap-1.5 no-underline">
+                  💬 Enviar por WhatsApp al ${res.userPhone}
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `,
+        icon: 'success',
+        showConfirmButton: true,
+        confirmButtonText: 'Listo',
+        confirmButtonColor: '#f59e0b',
+        didOpen: () => {
+          const btn = document.getElementById('swal-copy-btn-memb')
+          if (btn) {
+            btn.addEventListener('click', () => {
+              navigator.clipboard.writeText(res.resetUrl || "")
+              btn.innerText = '✅ ¡Enlace Copiado!'
+              setTimeout(() => { btn.innerText = '📋 Copiar Enlace al Portapapeles' }, 2000)
+            })
+          }
+        }
+      })
+    } catch (err: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Conexión',
+        text: err?.message || 'Error al conectar con el servidor.'
+      })
+    } finally {
+      setIsSendingReset(false)
+    }
+  }
+
+const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!showEditModal) return
-    if (editPassword) {
-      if (editPassword.length < 6) {
-        showSweetToast("La contraseña debe tener al menos 6 caracteres.", "warning")
-        return
-      }
-      if (editPassword !== editConfirmPassword) {
-        showSweetToast("Las contraseñas no coinciden.", "warning")
-        return
-      }
-    }
 
     setIsSavingEdit(true)
     try {
@@ -389,7 +461,6 @@ export default function MembresíasPage() {
           cedula: editCedula,
           phone: editPhone,
           role: editRole,
-          ...(editPassword ? { clave: editPassword } : {})
         } as any)
         if ((ok as any) === false) {
           setIsSavingEdit(false)
@@ -406,9 +477,9 @@ export default function MembresíasPage() {
         name: editName,
         cedula: editCedula,
         phone: editPhone,
+        email: editEmail,
         address: editAddress,
         coachId: editCoachId || null,
-        ...(editPassword ? { password: editPassword } : {})
       })
 
       if (!res.success) {
@@ -437,6 +508,7 @@ export default function MembresíasPage() {
       }
 
       // Registrar Transacción / Factura (Con o Sin Flujo de Caja)
+      const hadExistingMemb = Boolean(showEditModal.membershipEnd && new Date(showEditModal.membershipEnd).getFullYear() > 1970)
       if (editPlanName && editEndDate) {
         const { createTransaction } = await import('@/app/actions/store')
         const pName = editPlanName || "Plan Estándar"
@@ -471,8 +543,8 @@ export default function MembresíasPage() {
               showSweetToast("Membresía actualizada, pero ocurrió un aviso con el registro en caja: " + (txRes.error || ""), "warning")
             }
           }
-        } else {
-          // Factura emitida sin impacto en Flujo de Caja (Histórico)
+        } else if (!hadExistingMemb) {
+          // Factura emitida sin impacto en Flujo de Caja (Histórico) únicamente al asignar membresía a atleta que NO tenía
           await createTransaction({
             cashierId: user?.id,
             customerId: showEditModal.id,
@@ -501,7 +573,7 @@ export default function MembresíasPage() {
       showSweetToast(
         editRegisterPayment 
           ? "Datos, membresía y cobro en caja registrados con éxito." 
-          : editPlanName && editEndDate
+          : editPlanName && editEndDate && !hadExistingMemb
           ? "Membresía asignada: Factura registrada como «Sin Flujo de Caja (Histórico)»."
           : "Datos y membresía actualizados correctamente.", 
         "success"
@@ -1458,10 +1530,10 @@ export default function MembresíasPage() {
 
       {/* EDIT MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/90 p-2 sm:p-4 backdrop-blur-md overflow-y-auto">
-          <div className="bg-card text-card-foreground border border-black/10 dark:border-white/10 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-card/90 dark:bg-[#0e1017]/90 backdrop-blur-2xl text-card-foreground border border-black/10 dark:border-white/15 rounded-2xl max-w-lg lg:max-w-6xl xl:max-w-7xl w-full p-4 sm:p-6 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-black/10 dark:border-white/10 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
                   <Edit className="h-5 w-5" />
@@ -1480,319 +1552,350 @@ export default function MembresíasPage() {
               </button>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleSaveEdit} className="space-y-4 overflow-y-auto pr-1">
-              {/* Sección Datos Personales */}
-              <div className="space-y-3">
-                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales
-                </span>
+            {/* Formulario de 3 Columnas en PC */}
+            <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto pr-1 flex-1">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-start">
+                  {/* COLUMNA 1: DATOS PERSONALES & CONTACTO */}
+                  <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-3">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <UserIcon className="w-3.5 h-3.5 text-primary" /> Datos Personales & Contacto
+                    </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
-                    <input
-                      required
-                      type="text"
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Cédula *</label>
-                    <input
-                      required
-                      type="text"
-                      value={editCedula}
-                      onChange={e => setEditCedula(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Teléfono</label>
-                    <input
-                      type="text"
-                      placeholder="0414-0000000"
-                      value={editPhone}
-                      onChange={e => setEditPhone(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Entrenador (Coach Asignado)</label>
-                    <select
-                      value={editCoachId}
-                      onChange={e => setEditCoachId(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    >
-                      <option value="">Sin entrenador asignado</option>
-                      {allCoaches.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} (Coach)</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
-                  <input
-                    type="text"
-                    placeholder="Sector / Calle / Residencia"
-                    value={editAddress}
-                    onChange={e => setEditAddress(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Sección Membresía & Corte / Fechas */}
-              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte (Histórico)
-                  </span>
-                  {((showEditModal.membershipEnd && new Date(showEditModal.membershipEnd).getFullYear() > 1970) || editEndDate) && (
-                    <button
-                      type="button"
-                      onClick={handleClearMembershipInEditModal}
-                      disabled={isSavingEdit}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                    >
-                      <X className="w-3 h-3" />
-                      Devolver / Quitar Membresía
-                    </button>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Modifica directamente la fecha de compra/inicio, fecha de corte (vencimiento) y plan del atleta. Si el atleta no tiene membresía, deja la Fecha de Corte en blanco.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
-                    <input
-                      type="date"
-                      value={editStartDate}
-                      onChange={e => setEditStartDate(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Fecha de Corte / Vencimiento</label>
-                    <input
-                      type="date"
-                      value={editEndDate}
-                      onChange={e => setEditEndDate(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Botones rápidos de cálculo de Fecha de Corte */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-muted-foreground mr-1">Cálculo rápido de corte:</span>
-                  {[
-                    { label: "+1 Mes", months: 1 },
-                    { label: "+3 Meses", months: 3 },
-                    { label: "+6 Meses", months: 6 },
-                    { label: "+1 Año", months: 12 },
-                  ].map(btn => (
-                    <button
-                      key={btn.months}
-                      type="button"
-                      onClick={() => setEditEndDate(calculateCutoffDate(editStartDate, btn.months))}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold mb-1.5 block">Seleccionar Plan / Membresía</label>
-                  <select
-                    value={editPlanName}
-                    onChange={e => handleSelectPlanInEditModal(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none font-medium"
-                  >
-                    <option value="">-- Sin Plan Seleccionado --</option>
-                    {availablePlans.map((plan) => (
-                      <option key={plan.name} value={plan.name}>
-                        {plan.name} — {settings.storeCurrency}{plan.price} {plan.period}
-                      </option>
-                    ))}
-                    {editPlanName && !availablePlans.some(p => p.name === editPlanName) && (
-                      <option value={editPlanName}>{editPlanName}</option>
-                    )}
-                  </select>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    {availablePlans.map((plan) => {
-                      const isSelected = editPlanName === plan.name
-                      return (
-                        <button
-                          key={plan.name}
-                          type="button"
-                          onClick={() => handleSelectPlanInEditModal(plan.name)}
-                          className={`text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
-                            isSelected
-                              ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
-                              : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="font-bold text-xs block truncate">{plan.name}</span>
-                            <span className="text-[11px] font-black text-primary">
-                              {settings.storeCurrency}{plan.price} <span className="text-[10px] font-normal text-muted-foreground">{plan.period}</span>
-                            </span>
-                          </div>
-                          {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Opción para asentar en Caja / Flujo de Caja */}
-                <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editRegisterPayment}
-                      onChange={e => setEditRegisterPayment(e.target.checked)}
-                      className="w-4 h-4 text-primary rounded focus:ring-primary accent-primary"
-                    />
-                    <div className="text-xs">
-                      <span className="font-bold text-foreground block">¿Registrar este cobro en Caja y Flujo Financiero?</span>
-                      <span className="text-muted-foreground">Crea el asiento contable para que sume a los ingresos del gimnasio y métricas.</span>
-                    </div>
-                  </label>
-
-                  {editRegisterPayment && (
-                    <div className="pt-2 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold block mb-1">Monto ({settings.storeCurrency})</label>
+                        <label className="text-xs font-semibold mb-1 block">Nombre Completo *</label>
                         <input
-                          type="number"
-                          step="0.01"
-                          value={editPaymentAmount}
-                          onChange={e => setEditPaymentAmount(e.target.value)}
-                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
-                          placeholder="Monto"
-                          required={editRegisterPayment}
+                          required
+                          type="text"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold block mb-1">Método de Pago</label>
-                        <select
-                          value={editPaymentMethod}
-                          onChange={e => setEditPaymentMethod(e.target.value as PaymentMethodType)}
-                          className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
-                        >
-                          {availableMembershipPaymentMethods.map(m => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                          ))}
-                        </select>
+                        <label className="text-xs font-semibold mb-1 block">Cédula *</label>
+                        <input
+                          required
+                          type="text"
+                          value={editCedula}
+                          onChange={e => setEditCedula(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold block mb-1">Referencia / Comprobante</label>
+                        <label className="text-xs font-semibold mb-1 block">Teléfono (WhatsApp)</label>
                         <input
                           type="text"
-                          value={editPaymentRef}
-                          onChange={e => setEditPaymentRef(e.target.value)}
-                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
-                          placeholder="Ej: 849204 / Efectivo"
+                          placeholder="0414-0000000"
+                          value={editPhone}
+                          onChange={e => setEditPhone(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block">Correo Electrónico</label>
+                        <input
+                          type="email"
+                          placeholder="atleta@gym.com"
+                          value={editEmail}
+                          onChange={e => setEditEmail(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
                         />
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {user?.role === 'admin' && (
-                <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-2">
-                  <label className="text-xs font-bold text-primary block">Rol en el Sistema (Ascender Usuario)</label>
-                  <select
-                    value={editRole}
-                    onChange={e => setEditRole(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary font-medium"
-                  >
-                    <option value="athlete">Atleta (Cliente)</option>
-                    <option value="employee">Entrenador (Coach)</option>
-                    <option value="cajero">Cajero / Recepción</option>
-                    <option value="gerente">Gerente</option>
-                    <option value="admin">Administrador del Sistema</option>
-                  </select>
-                  {editRole === 'admin' && (
-                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] text-amber-600 dark:text-amber-400">
-                      🔐 <b>Super Administrador Requerido:</b> Al guardar se te pedirá la contraseña del <b>Super Administrador (primer administrador creado)</b> para autorizar el rol de Administrador.
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Entrenador (Coach Asignado)</label>
+                      <select
+                        value={editCoachId}
+                        onChange={e => setEditCoachId(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      >
+                        <option value="">Sin entrenador asignado</option>
+                        {allCoaches.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} (Coach)</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                </div>
-              )}
 
-              <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-3">
-                <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Cambiar Contraseña (Opcional)
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  Deja estos campos en blanco si no deseas modificar la clave actual del atleta.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block">Nueva Contraseña</label>
-                    <input
-                      type="password"
-                      placeholder="Mínimo 6 caracteres"
-                      value={editPassword}
-                      onChange={e => setEditPassword(e.target.value)}
-                      className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Dirección de Habitación</label>
+                      <input
+                        type="text"
+                        placeholder="Sector / Calle / Residencia"
+                        value={editAddress}
+                        onChange={e => setEditAddress(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-sm focus:border-primary focus:outline-none"
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <label className="text-xs font-semibold mb-1 block">Confirmar Contraseña</label>
-                    <input
-                      type="password"
-                      value={editConfirmPassword}
-                      onChange={e => setEditConfirmPassword(e.target.value)}
-                      className={`w-full bg-black/5 dark:bg-black/40 border rounded-lg p-2.5 text-sm focus:outline-none transition-all ${
-                        editConfirmPassword
-                          ? passwordMatch
-                            ? 'border-emerald-500 focus:border-emerald-500'
-                            : 'border-rose-500 focus:border-rose-500'
-                          : 'border-black/10 dark:border-white/10 focus:border-primary'
-                      }`}
-                      placeholder="Repetir contraseña"
-                      disabled={!editPassword}
-                      required={!!editPassword}
-                    />
-                    {passwordMatch && editPassword && <Check className="absolute right-3 top-8 h-4 w-4 text-emerald-500" />}
-                    {editConfirmPassword && !passwordMatch && editPassword && (
-                      <span className="text-[10px] text-destructive absolute -bottom-4 left-0">No coinciden</span>
+
+                  {/* COLUMNA 2: SEGURIDAD Y MEMBRESÍA HISTÓRICA */}
+                  <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4">
+                    {/* Tarjeta Restablecer Contraseña */}
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-amber-500" /> Seguridad & Acceso
+                      </span>
+                      <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 space-y-2.5">
+                        <div>
+                          <p className="text-xs font-bold text-foreground">
+                            Restablecer Contraseña
+                          </p>
+                          <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                            Genera un link seguro (válido 20 min) enviado al correo y listo para compartir por WhatsApp.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSendResetLink(showEditModal)}
+                          disabled={isSendingReset}
+                          className="w-full px-3.5 py-2.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSendingReset ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Generando Enlace...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Enviar Link de Acceso</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Sección Fechas de Membresía */}
+                    <div className="space-y-3 pt-3 border-t border-black/10 dark:border-white/10">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-primary" /> Membresía & Fecha de Corte
+                        </span>
+                        {((showEditModal.membershipEnd && new Date(showEditModal.membershipEnd).getFullYear() > 1970) || editEndDate) && (
+                          <button
+                            type="button"
+                            onClick={handleClearMembershipInEditModal}
+                            disabled={isSavingEdit}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 border border-rose-500/30 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <X className="w-3 h-3" />
+                            Quitar Membresía
+                          </button>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-muted-foreground leading-tight">
+                        Modifica las fechas históricas. Si no tiene membresía, deja la Fecha de Corte en blanco.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block">Fecha de Compra / Inicio</label>
+                          <input
+                            type="date"
+                            value={editStartDate}
+                            onChange={e => setEditStartDate(e.target.value)}
+                            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block">Fecha de Corte</label>
+                          <input
+                            type="date"
+                            value={editEndDate}
+                            onChange={e => setEditEndDate(e.target.value)}
+                            className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Botones rápidos de cálculo */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-muted-foreground block">Cálculo rápido de corte:</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {[
+                            { label: "+1 Mes", months: 1 },
+                            { label: "+3 Meses", months: 3 },
+                            { label: "+6 Meses", months: 6 },
+                            { label: "+1 Año", months: 12 },
+                          ].map(btn => (
+                            <button
+                              key={btn.months}
+                              type="button"
+                              onClick={() => setEditEndDate(calculateCutoffDate(editStartDate, btn.months))}
+                              className="px-2 py-1 rounded-md text-[11px] font-bold border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer"
+                            >
+                              {btn.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLUMNA 3: PLAN, FACTURACIÓN & ROL */}
+                  <div className="bg-black/5 dark:bg-white/[0.03] p-4 rounded-xl border border-black/10 dark:border-white/10 space-y-4">
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2">
+                        <CalendarCheck className="w-3.5 h-3.5 text-primary" /> Plan & Facturación
+                      </span>
+
+                      <label className="text-xs font-semibold mb-1 block">Seleccionar Plan</label>
+                      <select
+                        value={editPlanName}
+                        onChange={e => handleSelectPlanInEditModal(e.target.value)}
+                        className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none font-medium mb-2.5"
+                      >
+                        <option value="">-- Sin Plan Seleccionado --</option>
+                        {availablePlans.map((plan) => (
+                          <option key={plan.name} value={plan.name}>
+                            {plan.name} — {settings.storeCurrency}{plan.price} {plan.period}
+                          </option>
+                        ))}
+                        {editPlanName && !availablePlans.some(p => p.name === editPlanName) && (
+                          <option value={editPlanName}>{editPlanName}</option>
+                        )}
+                      </select>
+
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5">
+                        {availablePlans.map((plan) => {
+                          const isSelected = editPlanName === plan.name
+                          return (
+                            <button
+                              key={plan.name}
+                              type="button"
+                              onClick={() => handleSelectPlanInEditModal(plan.name)}
+                              className={`text-left p-2 rounded-lg border transition-all flex items-center justify-between gap-1.5 ${
+                                isSelected
+                                  ? 'border-primary bg-primary/15 shadow-sm ring-1 ring-primary'
+                                  : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:border-primary/40'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <span className="font-bold text-[11px] block truncate">{plan.name}</span>
+                                <span className="text-[10px] font-black text-primary">
+                                  {settings.storeCurrency}{plan.price} <span className="text-[9px] font-normal text-muted-foreground">{plan.period}</span>
+                                </span>
+                              </div>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Flujo de caja */}
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl space-y-2.5">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editRegisterPayment}
+                          onChange={e => setEditRegisterPayment(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 text-primary rounded focus:ring-primary accent-primary shrink-0"
+                        />
+                        <div className="text-xs">
+                          <span className="font-bold text-foreground block leading-tight">¿Registrar en Flujo de Caja?</span>
+                          <span className="text-[11px] text-muted-foreground leading-tight block mt-0.5">Actívalo si es un cobro que debe sumar a los ingresos de caja.</span>
+                        </div>
+                      </label>
+
+                      {editRegisterPayment && (
+                        <div className="pt-2 border-t border-primary/10 space-y-2 animate-in fade-in duration-200">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-bold block mb-1">Monto ({settings.storeCurrency})</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editPaymentAmount}
+                                onChange={e => setEditPaymentAmount(e.target.value)}
+                                className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                                placeholder="Monto"
+                                required={editRegisterPayment}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold block mb-1">Método de Pago</label>
+                              <select
+                                value={editPaymentMethod}
+                                onChange={e => setEditPaymentMethod(e.target.value as PaymentMethodType)}
+                                className="w-full bg-black/5 dark:bg-[#161922] border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                              >
+                                {availableMembershipPaymentMethods.map(m => (
+                                  <option key={m.value} value={m.value}>{m.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1">Referencia / Comprobante</label>
+                            <input
+                              type="text"
+                              value={editPaymentRef}
+                              onChange={e => setEditPaymentRef(e.target.value)}
+                              className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2 text-xs focus:border-primary focus:outline-none"
+                              placeholder="Ej: 849204 / Efectivo"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rol en el sistema */}
+                    {user?.role === 'admin' && (
+                      <div className="pt-3 border-t border-black/10 dark:border-white/10 space-y-2">
+                        <label className="text-xs font-bold text-primary block">Rol en el Sistema (Ascender Usuario)</label>
+                        <select
+                          value={editRole}
+                          onChange={e => setEditRole(e.target.value)}
+                          className="w-full bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg p-2.5 text-xs focus:border-primary font-medium"
+                        >
+                          <option value="athlete">Atleta (Cliente)</option>
+                          <option value="employee">Entrenador (Coach)</option>
+                          <option value="cajero">Cajero / Recepción</option>
+                          <option value="gerente">Gerente</option>
+                          <option value="admin">Administrador del Sistema</option>
+                        </select>
+                        {editRole === 'admin' && (
+                          <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[10px] text-amber-600 dark:text-amber-400">
+                            🔐 <b>Super Administrador Requerido:</b> Al guardar se te pedirá la contraseña del <b>Super Administrador</b> para autorizar el rol.
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
-              
-              <div className="flex gap-3 justify-end pt-4 border-t border-black/10 dark:border-white/10">
+
+              {/* Botones de acción fijos en el pie */}
+              <div className="flex gap-2.5 justify-end pt-3 mt-4 border-t border-black/10 dark:border-white/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(null)}
-                  className="px-4 py-2 text-sm bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-semibold bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingEdit || (!!editPassword && !passwordMatch)}
-                  className="px-5 py-2 text-sm bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition disabled:opacity-50 shadow-md"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2 text-xs bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition disabled:opacity-50 shadow-md flex items-center gap-1.5"
                 >
-                  {isSavingEdit ? "Guardando..." : "Guardar Cambios"}
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Cambios</span>
+                  )}
                 </button>
               </div>
             </form>

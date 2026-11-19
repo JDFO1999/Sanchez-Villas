@@ -310,7 +310,7 @@ export default function AtletasPage() {
       const phoneClean = res.userPhone ? res.userPhone.replace(/\D/g, "") : ""
       const waPhone = phoneClean.startsWith('58') ? phoneClean : phoneClean.length === 11 && phoneClean.startsWith('0') ? '58' + phoneClean.slice(1) : phoneClean
       const waUrl = waPhone
-        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${res.userName}! Aquí tienes tu enlace seguro para acceder y configurar tu contraseña en Maximum Evolution Fit:\n\n${res.resetUrl}\n\n(Válido por 60 minutos)`)}`
+        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola ${res.userName}! Aquí tienes tu enlace seguro para acceder y configurar tu contraseña en Maximum Evolution Fit:\n\n${res.resetUrl}\n\n(Válido por 20 minutos)`)}`
         : null
 
       await Swal.fire({
@@ -318,7 +318,7 @@ export default function AtletasPage() {
         html: `
           <div class="text-left text-sm space-y-2">
             ${emailNote}
-            <p class="text-xs text-muted-foreground mb-1 font-semibold">Enlace de acceso generado (válido por 60 min):</p>
+            <p class="text-xs text-muted-foreground mb-1 font-semibold">Enlace de acceso generado (válido por 20 min):</p>
             <div class="p-2.5 bg-black/10 dark:bg-white/10 rounded-lg font-mono text-[11px] break-all select-all border border-black/10 dark:border-white/10">
               ${res.resetUrl}
             </div>
@@ -367,6 +367,7 @@ export default function AtletasPage() {
     setIsSaving(true)
     try {
       const { updateAthlete, updateAthleteMembershipAndCoach } = await import('@/app/actions/users')
+      const hadMembershipBefore = Boolean(editingAthlete.membershipEnd && new Date(editingAthlete.membershipEnd).getFullYear() > 1970)
       
       // 1. Guardar datos personales
       const res = await updateAthlete(editingAthlete.id, {
@@ -445,8 +446,8 @@ export default function AtletasPage() {
               showSweetToast(txRes.error || "Se guardó el atleta pero hubo un error al registrar en Caja.", "warning")
             }
           }
-        } else {
-          // Factura emitida sin impacto en Flujo de Caja (Histórico)
+        } else if (!hadMembershipBefore) {
+          // Factura emitida sin impacto en Flujo de Caja (Histórico) únicamente al asignar por primera vez
           await createTransaction({
             cashierId: user?.id,
             customerId: editingAthlete.id,
@@ -473,7 +474,7 @@ export default function AtletasPage() {
       showSweetToast(
         editRegisterPayment
           ? "Atleta actualizado y cobro registrado en el Flujo de Caja."
-          : editPlanName && editEndDate
+          : editPlanName && editEndDate && !hadMembershipBefore
           ? "Membresía asignada: Factura registrada como «Sin Flujo de Caja (Histórico)»."
           : "Datos del atleta actualizados correctamente.",
         "success"
@@ -946,7 +947,7 @@ export default function AtletasPage() {
                             Restablecer Contraseña
                           </p>
                           <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                            Genera un link seguro (válido 60 min) enviado al correo y listo para compartir por WhatsApp.
+                            Genera un link seguro (válido 20 min) enviado al correo y listo para compartir por WhatsApp.
                           </p>
                         </div>
                         <button

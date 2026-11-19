@@ -122,7 +122,7 @@ export default function LoginPage() {
         title={recoveryStep === 1 ? "Recuperar contraseña" : "¡Correo de recuperación enviado!"}
         description={recoveryStep === 1
           ? "Ingresa tu cédula o correo electrónico y te enviaremos un enlace seguro para restablecer tu clave."
-          : `Hemos enviado el enlace de un solo uso al correo ${recoveryMaskedEmail || "asociado a tu cuenta"}. Revisa tu bandeja de entrada o spam (válido por 60 min).`}
+          : `Hemos enviado el enlace de un solo uso al correo ${recoveryMaskedEmail || "asociado a tu cuenta"}. Revisa tu bandeja de entrada o spam (válido por 20 min).`}
       >
         {recoveryStep === 1 ? (
           <form onSubmit={handleSendRecovery} className="w-full space-y-4">

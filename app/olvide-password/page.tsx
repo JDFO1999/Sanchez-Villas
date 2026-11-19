@@ -110,7 +110,7 @@ export default function OlvidePasswordPage() {
               {successData.maskedEmail}
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              ⏳ El enlace tiene una validez de <strong>60 minutos</strong>. Revisa también tu carpeta de correo no deseado (SPAM) si no lo ves de inmediato.
+              ⏳ El enlace tiene una validez de <strong>20 minutos</strong>. Revisa también tu carpeta de correo no deseado (SPAM) si no lo ves de inmediato.
             </p>
             <div className="pt-2">
               <button

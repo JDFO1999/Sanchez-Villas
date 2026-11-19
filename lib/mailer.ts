@@ -146,7 +146,7 @@ function wrapCorporateTemplate(title: string, badgeText: string, badgeColor: str
 /**
  * 1. Restablecimiento de Contraseña
  */
-export async function sendPasswordResetEmail(to: string, clientName: string, resetUrl: string, expiresInMinutes: number = 60) {
+export async function sendPasswordResetEmail(to: string, clientName: string, resetUrl: string, expiresInMinutes: number = 20) {
   try {
     const transporter = getTransporter();
     const from = getSenderAddress();

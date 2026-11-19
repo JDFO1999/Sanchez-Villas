@@ -39,7 +39,7 @@ async function ensurePasswordResetTable() {
 /**
  * Solicita el restablecimiento de contraseña.
  * Busca al usuario por cédula o correo, genera un token criptográfico de 64 caracteres,
- * guarda la expiración (60 min) y envía el correo con la plantilla prémium de Maximum Evolution Fit.
+ * guarda la expiración (20 min) y envía el correo con la plantilla prémium de Maximum Evolution Fit.
  */
 export async function requestPasswordReset(identifier: string) {
   try {
@@ -95,7 +95,7 @@ export async function requestPasswordReset(identifier: string) {
 
     // Generar token criptográficamente seguro
     const token = crypto.randomBytes(32).toString("hex")
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora de validez
+    const expiresAt = new Date(Date.now() + 20 * 60 * 1000) // 20 minutos de validez
 
     await prisma.passwordResetToken.create({
       data: {
@@ -111,7 +111,7 @@ export async function requestPasswordReset(identifier: string) {
     const resetUrl = `${appUrl}/recuperar-password?token=${token}`
 
     // Enviar correo
-    const mailRes = await sendPasswordResetEmail(user.email, user.name, resetUrl, 60)
+    const mailRes = await sendPasswordResetEmail(user.email, user.name, resetUrl, 20)
     if (!mailRes.success) {
       return {
         success: false,
@@ -168,7 +168,7 @@ export async function verifyPasswordResetToken(token: string) {
     }
 
     if (new Date() > tokenRecord.expiresAt) {
-      return { valid: false, error: "Este enlace de recuperación ha expirado por motivos de seguridad (límite de 60 minutos)." }
+      return { valid: false, error: "Este enlace de recuperación ha expirado por motivos de seguridad (límite de 20 minutos)." }
     }
 
     return {
@@ -265,7 +265,7 @@ export async function adminSendAthletePasswordReset(userId: string) {
 
     // Generar token criptográficamente seguro
     const token = crypto.randomBytes(32).toString("hex")
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora de validez
+    const expiresAt = new Date(Date.now() + 20 * 60 * 1000) // 20 minutos de validez
 
     await prisma.passwordResetToken.create({
       data: {
@@ -283,7 +283,7 @@ export async function adminSendAthletePasswordReset(userId: string) {
     let emailError: string | null = null
 
     if (user.email && user.email.includes("@")) {
-      const mailRes = await sendPasswordResetEmail(user.email, user.name, resetUrl, 60)
+      const mailRes = await sendPasswordResetEmail(user.email, user.name, resetUrl, 20)
       if (mailRes.success) {
         emailSent = true
       } else {
