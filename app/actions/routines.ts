@@ -360,3 +360,38 @@ export async function toggleExerciseCompleted(exerciseId: string, completed: boo
     return { success: false, error: "No se pudo actualizar el ejercicio." }
   }
 }
+
+export async function recordExerciseProgress(data: {
+  exerciseName: string
+  weight: number | string
+  date?: string | Date
+  athleteId?: string
+}) {
+  const g = await guard(["athlete", "coach", "admin", "employee"])
+  if (!g.ok) return { success: false, error: g.error }
+
+  try {
+    const targetAthleteId = g.user.role === "athlete" ? g.user.id : (data.athleteId || g.user.id)
+    if (!data.exerciseName?.trim()) {
+      return { success: false, error: "Debes indicar el nombre del ejercicio." }
+    }
+    const weightNum = parseFloat(String(data.weight))
+    if (!Number.isFinite(weightNum) || weightNum <= 0) {
+      return { success: false, error: "El peso debe ser mayor a 0 kg." }
+    }
+
+    const record = await prisma.exerciseProgress.create({
+      data: {
+        athleteId: targetAthleteId,
+        exerciseName: data.exerciseName.trim(),
+        weight: weightNum,
+        date: data.date ? new Date(data.date) : new Date()
+      }
+    })
+
+    return { success: true, record }
+  } catch (error: any) {
+    console.error("Error al registrar récord personal:", error)
+    return { success: false, error: "No se pudo guardar la carga máxima." }
+  }
+}
