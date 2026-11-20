@@ -7,12 +7,18 @@ import { MapPin, Navigation, Phone, MessageCircle, Clock, Calendar, CheckCircle2
 export function MapSection() {
   const { settings } = useSettings()
 
-  const mapData = settings.landingSettings?.map || {
-    embedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3923.2384976722216!2d-66.8833!3d10.488!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDI5JzE2LjgiTiA2NsKwNTInNTkuOSJX!5e0!3m2!1ses!2sve!4v1600000000000!5m2!1ses!2sve',
-    address: settings.landingSettings?.map?.address || settings.storeAddress || 'Avenida Principal, Centro Deportivo, Edificio Gym, Nivel 1',
-    googleMapsUrl: 'https://maps.google.com',
-    phone: '+58 412 123 4567',
-    whatsapp: '+58 414 123 4567'
+  const rawMap = settings.landingSettings?.map
+  const officialAddress = "Centro comercial rospier local 28, 29 y 30, 5ta Av con avenida la patria, San Felipe, Yaracuy, Venezuela"
+  const officialGoogleMapsUrl = "https://www.google.com/maps/place/?q=place_id:ChIJV1stlkrPgI4Rl7xpcD1p26w"
+  const officialEmbedUrl = "https://maps.google.com/maps?q=10.3356845,-68.7391279+(Maximum+Evolution+Fit)&t=&z=17&ie=UTF8&iwloc=&output=embed"
+
+  const mapData = {
+    embedUrl: (rawMap?.embedUrl && !rawMap.embedUrl.includes("66.8833")) ? rawMap.embedUrl : officialEmbedUrl,
+    address: (rawMap?.address && !rawMap.address.includes("Avenida Principal, Centro")) ? rawMap.address : (settings.storeAddress || officialAddress),
+    googleMapsUrl: (rawMap?.googleMapsUrl && rawMap.googleMapsUrl !== "https://maps.google.com") ? rawMap.googleMapsUrl : officialGoogleMapsUrl,
+    phone: rawMap?.phone || "+58 412 123 4567",
+    whatsapp: rawMap?.whatsapp || "+58 414 123 4567",
+    infoCardTitle: rawMap?.infoCardTitle || "Información del Gym"
   }
 
   const gymSchedule = settings.gymSchedule || {

@@ -1102,9 +1102,30 @@ export function LandingTab({
 
               {/* GESTOR DE UBICACIÓN Y GOOGLE MAPS */}
               <div className="space-y-4 p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                <h4 className="text-base font-extrabold text-foreground flex items-center gap-2 pb-2 border-b border-black/10 dark:border-white/10">
-                  <MapPin className="w-4 h-4 text-primary" /> Ubicación y Mapa Interactivo (Google Maps)
-                </h4>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-black/10 dark:border-white/10">
+                  <h4 className="text-base font-extrabold text-foreground flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary" /> Ubicación y Mapa Interactivo (Google Maps)
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLandingSettings((prev: any) => ({
+                        ...prev,
+                        map: {
+                          ...(prev?.map || {}),
+                          embedUrl: "https://maps.google.com/maps?q=10.3356845,-68.7391279+(Maximum+Evolution+Fit)&t=&z=17&ie=UTF8&iwloc=&output=embed",
+                          address: "Centro comercial rospier local 28, 29 y 30, 5ta Av con avenida la patria, San Felipe, Yaracuy, Venezuela",
+                          googleMapsUrl: "https://www.google.com/maps/place/?q=place_id:ChIJV1stlkrPgI4Rl7xpcD1p26w",
+                          infoCardTitle: "Información del Gym"
+                        }
+                      }))
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/15 hover:bg-primary/25 text-primary text-xs font-bold transition self-start sm:self-auto"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>📍 Autocompletar Ubicación Oficial (San Felipe)</span>
+                  </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 md:col-span-2">
