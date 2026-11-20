@@ -177,6 +177,19 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/* Google Tag Manager / Google Tag */}
+        <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-DVQJ8XGN" />
+        <script
+          id="google-tag-manager-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+            `,
+          }}
+        />
+
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         {/* Preload prioritario de logos e imágenes críticas antes de renderizar la página */}
