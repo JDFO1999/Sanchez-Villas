@@ -822,3 +822,189 @@ export async function getHallOfFameAction() {
   }
 }
 
+// -------------------------------------------------------------
+// CONDECORACIONES Y MEDALLAS DE COACHES EN EL SALÓN DE LA FAMA
+// -------------------------------------------------------------
+
+export interface CoachAward {
+  id: string
+  athleteId: string
+  athleteName: string
+  athleteCedula?: string
+  athletePicture?: string | null
+  coachId: string
+  coachName: string
+  coachPicture?: string | null
+  category: string
+  medal: "ORO" | "PLATA" | "BRONCE" | "DIAMANTE"
+  achievement: string
+  imageUrl?: string | null
+  createdAt: string
+}
+
+export async function getCoachAwardsAction() {
+  try {
+    const row = await prisma.systemSetting.findUnique({
+      where: { id: "hall_of_fame_awards" },
+    })
+    if (!row || !row.data) return { success: true, awards: [] }
+    const parsed = JSON.parse(row.data)
+    const awards: CoachAward[] = Array.isArray(parsed) ? parsed : []
+    awards.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    return { success: true, awards }
+  } catch (err: any) {
+    console.error("Error fetching coach awards:", err)
+    return { success: false, error: "Error al obtener condecoraciones", awards: [] }
+  }
+}
+
+export async function createCoachAwardAction(data: {
+  athleteId: string
+  category: string
+  medal: "ORO" | "PLATA" | "BRONCE" | "DIAMANTE"
+  achievement: string
+  imageUrl?: string | null
+}) {
+  const g = await guard()
+  if (!g.ok) return { success: false, error: g.error }
+
+  const isAuthorized =
+    g.user.role === "coach" ||
+    g.user.role === "admin" ||
+    g.user.role === "gerente" ||
+    (g.user as any)?.cedula === "26710825" ||
+    (g.user as any)?.permissions?.includes("COMMUNITY_MANAGE")
+
+  if (!isAuthorized) {
+    return {
+      success: false,
+      error: "Solo los entrenadores certificados (coaches) y administradores pueden otorgar medallas en el Salón de la Fama.",
+    }
+  }
+
+  if (!data.athleteId || !data.category?.trim() || !data.medal || !data.achievement?.trim()) {
+    return { success: false, error: "Todos los campos de la condecoración son obligatorios." }
+  }
+
+  try {
+    const athlete = await prisma.user.findUnique({
+      where: { id: data.athleteId },
+      select: { id: true, name: true, cedula: true, profilePicture: true },
+    })
+
+    if (!athlete) {
+      return { success: false, error: "El atleta seleccionado no existe en el sistema." }
+    }
+
+    const newAward: CoachAward = {
+      id: `award_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      athleteId: athlete.id,
+      athleteName: athlete.name,
+      athleteCedula: athlete.cedula,
+      athletePicture: athlete.profilePicture || null,
+      coachId: g.user.id,
+      coachName: g.user.name,
+      coachPicture: (g.user as any).profilePicture || null,
+      category: data.category.trim(),
+      medal: data.medal,
+      achievement: data.achievement.trim(),
+      imageUrl: data.imageUrl || null,
+      createdAt: new Date().toISOString(),
+    }
+
+    const row = await prisma.systemSetting.findUnique({
+      where: { id: "hall_of_fame_awards" },
+    })
+    const existingAwards: CoachAward[] = row && row.data ? JSON.parse(row.data) : []
+    const updatedAwards = [newAward, ...existingAwards]
+
+    await prisma.systemSetting.upsert({
+      where: { id: "hall_of_fame_awards" },
+      update: { data: JSON.stringify(updatedAwards) },
+      create: { id: "hall_of_fame_awards", data: JSON.stringify(updatedAwards) },
+    })
+
+    // Publicar anuncio en el muro de comunidad para que todos lo celebren
+    const medalLabel =
+      data.medal === "ORO"
+        ? "🥇 Medalla de Oro"
+        : data.medal === "PLATA"
+        ? "🥈 Medalla de Plata"
+        : data.medal === "BRONCE"
+        ? "🥉 Medalla de Bronce"
+        : "💎 Condecoración Diamante"
+
+    try {
+      await prisma.communityPost.create({
+        data: {
+          authorId: g.user.id,
+          title: `🏆 ¡Condecoración de Honor para ${athlete.name}!`,
+          content: `🌟 ¡Máximo reconocimiento en el Salón de la Fama! 🌟\n\nEl entrenador ${g.user.name} ha otorgado una distinción especial a ${athlete.name}:\n\n🏅 Mérito: ${medalLabel}\n🎯 Categoría: ${data.category}\n🔥 Logro destacado: "${data.achievement.trim()}"\n\n¡Felicidades a nuestro atleta por su disciplina y superación! Dejémosle nuestros aplausos y felicitaciones en los comentarios. 👏💪🔥`,
+          tag: "Salón de la Fama",
+          imageUrl: data.imageUrl || athlete.profilePicture || null,
+        },
+      })
+    } catch (postErr) {
+      console.error("Error creating celebratory post:", postErr)
+    }
+
+    // Notificación push y en la campana para el atleta
+    try {
+      await sendNotificationToUser(athlete.id, {
+        title: `🏅 ¡Has sido condecorado en el Salón de la Fama!`,
+        message: `Tu entrenador ${g.user.name} te ha otorgado la ${medalLabel} por "${data.category}": "${data.achievement.trim().slice(0, 90)}..."`,
+        type: "RANKING",
+        url: "/comunidad",
+        avatarUrl: (g.user as any).profilePicture || undefined,
+      })
+    } catch (notifErr) {
+      console.error("Error sending push notification to athlete:", notifErr)
+    }
+
+    revalidatePath("/comunidad")
+    return { success: true, award: newAward }
+  } catch (error: any) {
+    console.error("Error creating coach award:", error)
+    return { success: false, error: error?.message || "Error al crear la condecoración" }
+  }
+}
+
+export async function deleteCoachAwardAction(awardId: string) {
+  const g = await guard()
+  if (!g.ok) return { success: false, error: g.error }
+
+  try {
+    const row = await prisma.systemSetting.findUnique({
+      where: { id: "hall_of_fame_awards" },
+    })
+    if (!row || !row.data) return { success: false, error: "Condecoración no encontrada" }
+
+    const existingAwards: CoachAward[] = JSON.parse(row.data)
+    const target = existingAwards.find((a) => a.id === awardId)
+
+    if (!target) return { success: false, error: "Condecoración no encontrada" }
+
+    const isAuthorized =
+      target.coachId === g.user.id ||
+      g.user.role === "admin" ||
+      g.user.role === "gerente" ||
+      (g.user as any)?.cedula === "26710825"
+
+    if (!isAuthorized) {
+      return { success: false, error: "No tienes permisos para eliminar esta condecoración." }
+    }
+
+    const filtered = existingAwards.filter((a) => a.id !== awardId)
+    await prisma.systemSetting.update({
+      where: { id: "hall_of_fame_awards" },
+      data: { data: JSON.stringify(filtered) },
+    })
+
+    revalidatePath("/comunidad")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error deleting coach award:", error)
+    return { success: false, error: "Error al eliminar condecoración" }
+  }
+}
+

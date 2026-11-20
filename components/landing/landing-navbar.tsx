@@ -36,9 +36,10 @@ export function LandingNavbar() {
     { name: "Inicio", href: "#inicio" },
     { name: "Disciplinas", href: "#disciplinas" },
     { name: "Instalaciones", href: "#instalaciones" },
-    { name: "Horarios", href: "#horarios" },
-    { name: "Ubicación", href: "#ubicacion" },
+    { name: "Antes y Después", href: "#transformaciones" },
+    { name: "Entrenadores", href: "#entrenadores" },
     { name: "Planes", href: "#planes" },
+    { name: "Ubicación", href: "#ubicacion" },
     { name: "Contacto", href: "#contacto" },
   ]
 

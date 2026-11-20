@@ -5,6 +5,8 @@ import { LandingNavbar } from "./landing-navbar"
 import { HeroCarousel } from "./hero-carousel"
 import { DisciplinesSection } from "./disciplines-section"
 import { FacilitiesSection } from "./facilities-section"
+import { TransformationsSection } from "./transformations-section"
+import { CoachesSection } from "./coaches-section"
 import { PlansSection } from "./plans-section"
 import { MapSection } from "./map-section"
 import { Footer } from "@/components/layout/footer"
@@ -86,6 +88,12 @@ export function GymLandingPage() {
 
         {/* FACILITIES & PROMISE */}
         <FacilitiesSection />
+
+        {/* BEFORE & AFTER REAL TRANSFORMATIONS */}
+        <TransformationsSection />
+
+        {/* OUR COACHES & STAFF */}
+        <CoachesSection />
 
         {/* GOOGLE MAPS INTERACTIVE LOCATION & INFO */}
         <MapSection />

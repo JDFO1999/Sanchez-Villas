@@ -162,6 +162,35 @@ export interface AppSettings {
         ctaLink?: string
       }[]
     }
+    transformationsSettings?: {
+      badge?: string
+      title?: string
+      description?: string
+      items: {
+        id: string
+        athleteName: string
+        duration: string
+        changeText: string
+        description: string
+        beforeImage: string
+        afterImage: string
+      }[]
+    }
+    coachesSettings?: {
+      badge?: string
+      title?: string
+      description?: string
+      coaches: {
+        id: string
+        name: string
+        specialty: string
+        experience: string
+        bio: string
+        photo: string
+        instagram?: string
+        phone?: string
+      }[]
+    }
     map: {
       embedUrl: string
       address: string

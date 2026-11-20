@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { useSettings } from "@/lib/settings-context"
@@ -26,6 +26,9 @@ import {
   Edit3,
   X,
   Check,
+  Medal,
+  Search,
+  Image as ImageIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
@@ -42,7 +45,12 @@ import {
   updateTrainingPhilosophyAction,
   updateGymScheduleAction,
   getHallOfFameAction,
+  getCoachAwardsAction,
+  createCoachAwardAction,
+  deleteCoachAwardAction,
+  type CoachAward,
 } from "@/app/actions/community"
+import { getAthletes } from "@/app/actions/users"
 
 export default function ComunidadPage() {
   const { settings, updateSettings } = useSettings()
@@ -88,6 +96,24 @@ export default function ComunidadPage() {
   const [hallOfFame, setHallOfFame] = useState<any[]>([])
   const [isLoadingHallOfFame, setIsLoadingHallOfFame] = useState(true)
 
+  // Medallero de Coaches / Salón de la Fama
+  const [coachAwards, setCoachAwards] = useState<CoachAward[]>([])
+  const [isLoadingAwards, setIsLoadingAwards] = useState(true)
+  const [hallOfFameSubTab, setHallOfFameSubTab] = useState<"awards" | "ranking">("awards")
+  const [selectedAwardCategory, setSelectedAwardCategory] = useState<string>("TODAS")
+
+  // Modal para Condecorar Atleta (Coaches & Admin)
+  const [showAwardModal, setShowAwardModal] = useState(false)
+  const [availableAthletes, setAvailableAthletes] = useState<any[]>([])
+  const [isLoadingAthletes, setIsLoadingAthletes] = useState(false)
+  const [athleteSearchQuery, setAthleteSearchQuery] = useState("")
+  const [selectedAthleteId, setSelectedAthleteId] = useState("")
+  const [awardCategory, setAwardCategory] = useState("Fuerza Máxima PR")
+  const [awardMedal, setAwardMedal] = useState<"ORO" | "PLATA" | "BRONCE" | "DIAMANTE">("ORO")
+  const [awardAchievement, setAwardAchievement] = useState("")
+  const [awardImage, setAwardImage] = useState("")
+  const [isSubmittingAward, setIsSubmittingAward] = useState(false)
+
   const { theme, resolvedTheme } = useTheme()
   const isDark = (resolvedTheme || theme) === "dark"
   const companyLogoSrc = (isDark && settings.logoUrlDark) ? settings.logoUrlDark : (settings.logoUrl || settings.logoUrlDark || "")
@@ -100,6 +126,7 @@ export default function ComunidadPage() {
 
   const hasChallengesPerm = Boolean(user?.permissions?.includes("CHALLENGES_MANAGE"))
   const canCreateChallenge = isAdmin || hasChallengesPerm || isCoach
+  const canGiveAwards = isCoach || isAdmin || Boolean(user?.permissions?.includes("COMMUNITY_POST"))
 
   // Cargar Posts desde la Base de Datos
   const loadPosts = async () => {
@@ -146,11 +173,89 @@ export default function ComunidadPage() {
     }
   }
 
+  // Cargar Condecoraciones de Entrenadores
+  const loadAwards = async () => {
+    setIsLoadingAwards(true)
+    try {
+      const res = await getCoachAwardsAction()
+      if (res && res.success && res.awards) {
+        setCoachAwards(res.awards)
+      }
+    } catch (e) {
+      console.error("Error loading coach awards:", e)
+    } finally {
+      setIsLoadingAwards(false)
+    }
+  }
+
   useEffect(() => {
     loadPosts()
     loadChallenges()
     loadHallOfFame()
+    loadAwards()
   }, [])
+
+  const handleOpenAwardModal = async () => {
+    setShowAwardModal(true)
+    if (availableAthletes.length === 0) {
+      setIsLoadingAthletes(true)
+      try {
+        const res = await getAthletes()
+        if (res && res.success && res.athletes) {
+          setAvailableAthletes(res.athletes)
+        }
+      } catch (e) {
+        console.error("Error fetching athletes:", e)
+      } finally {
+        setIsLoadingAthletes(false)
+      }
+    }
+  }
+
+  const handleCreateAward = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedAthleteId) {
+      showToast("Por favor selecciona un atleta.", "error")
+      return
+    }
+    if (!awardAchievement.trim()) {
+      showToast("Por favor describe el logro o mérito obtenido.", "error")
+      return
+    }
+
+    setIsSubmittingAward(true)
+    const res = await createCoachAwardAction({
+      athleteId: selectedAthleteId,
+      category: awardCategory,
+      medal: awardMedal,
+      achievement: awardAchievement.trim(),
+      imageUrl: awardImage.trim() || undefined,
+    })
+
+    if (res.success) {
+      showToast("¡Medalla otorgada exitosamente!", "success")
+      setSelectedAthleteId("")
+      setAwardAchievement("")
+      setAwardImage("")
+      setShowAwardModal(false)
+      loadAwards()
+      loadPosts()
+    } else {
+      showToast(res.error || "No se pudo otorgar la medalla.", "error")
+    }
+    setIsSubmittingAward(false)
+  }
+
+  const handleDeleteAward = async (awardId: string) => {
+    if (!confirm("¿Deseas eliminar esta condecoración del Salón de la Fama?")) return
+    const res = await deleteCoachAwardAction(awardId)
+    if (res.success) {
+      showToast("Condecoración eliminada.", "success")
+      setCoachAwards((prev) => prev.filter((a) => a.id !== awardId))
+    } else {
+      showToast(res.error || "No se pudo eliminar.", "error")
+    }
+  }
 
   // Crear Publicación
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -782,61 +887,320 @@ export default function ComunidadPage() {
           )}
 
           {activeTab === "ranking" && (
-            <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-card p-6 shadow-lg space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-extrabold uppercase font-display text-foreground">
-                    Atletas del Mes & Máximos Récords
-                  </h3>
-                  <p className="text-xs text-muted-foreground">Reconocimiento a la constancia y disciplina</p>
+            <div className="space-y-6">
+              {/* Header Box */}
+              <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-card p-6 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-6 h-6 text-amber-400" />
+                      <h3 className="text-xl font-extrabold uppercase font-display text-foreground">
+                        Salón de la Fama & Medallero
+                      </h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Condecoraciones otorgadas por entrenadores y atletas con mayor constancia
+                    </p>
+                  </div>
+
+                  {canGiveAwards && (
+                    <Button
+                      onClick={handleOpenAwardModal}
+                      className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold shadow-md flex items-center gap-2 self-start sm:self-auto"
+                    >
+                      <Medal className="w-4 h-4" />
+                      <span>+ Condecorar Atleta</span>
+                    </Button>
+                  )}
                 </div>
-                <Trophy className="w-8 h-8 text-amber-400" />
+
+                {/* Sub-tabs: Medallero vs Ranking Automático */}
+                <div className="flex items-center gap-2 mt-6 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-border/50 max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => setHallOfFameSubTab("awards")}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      hallOfFameSubTab === "awards"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Medal className="w-3.5 h-3.5" />
+                    <span>Medallero de Honor ({coachAwards.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHallOfFameSubTab("ranking")}
+                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      hallOfFameSubTab === "ranking"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Flame className="w-3.5 h-3.5" />
+                    <span>Ranking Constancia</span>
+                  </button>
+                </div>
               </div>
 
-              {isLoadingHallOfFame ? (
-                <div className="py-12 flex justify-center items-center">
-                  <Loader size={48} text="Cargando récords y méritos de atletas..." />
-                </div>
-              ) : hallOfFame.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground space-y-2">
-                  <Trophy className="w-10 h-10 mx-auto text-amber-500/40" />
-                  <p className="font-bold text-sm">Aún no hay récords registrados.</p>
-                  <p className="text-xs">A medida que los atletas registren asistencias, avances de peso y retos completados, irán figurando aquí automáticamente.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {hallOfFame.map((item) => (
-                    <div key={`${item.athleteId}-${item.category}-${item.pos}`} className="py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center font-black font-display text-base ${item.color}`}>
-                          #{item.pos}
-                        </span>
-                        {item.profilePicture ? (
-                          <img
-                            src={item.profilePicture}
-                            alt={item.name}
-                            className="w-10 h-10 rounded-full object-cover border border-primary/40"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-black text-primary text-xs">
-                            {item.name?.slice(0, 2).toUpperCase() || "AT"}
-                          </div>
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-sm text-foreground">{item.name}</h4>
-                            <span className="text-[10px] text-primary/80 font-semibold bg-primary/10 px-2 py-0.5 rounded-md">
-                              {item.category}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{item.stat}</p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-border">
-                        {item.badge}
-                      </span>
+              {/* CONTENIDO 1: MEDALLERO DE HONOR (AWARDS) */}
+              {hallOfFameSubTab === "awards" && (
+                <div className="space-y-4">
+                  {/* Categorías Filter */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {[
+                      "TODAS",
+                      "Fuerza Máxima PR",
+                      "Hipertrofia",
+                      "Pérdida de Grasa",
+                      "Constancia & Disciplina",
+                      "Atleta del Mes",
+                      "Técnica Perfecta",
+                      "Espíritu Deportivo",
+                    ].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedAwardCategory(cat)}
+                        className={`text-xs px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all border ${
+                          selectedAwardCategory === cat
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-card border-black/10 dark:border-white/10 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+
+                  {isLoadingAwards ? (
+                    <div className="py-12 flex justify-center items-center">
+                      <Loader size={48} text="Cargando medallero de honor..." />
                     </div>
-                  ))}
+                  ) : (() => {
+                    const filteredAwards = coachAwards.filter((award) => {
+                      if (selectedAwardCategory === "TODAS") return true
+                      return award.category.toLowerCase().includes(selectedAwardCategory.toLowerCase())
+                    })
+
+                    if (filteredAwards.length === 0) {
+                      return (
+                        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center space-y-3">
+                          <Medal className="w-12 h-12 mx-auto text-amber-500/40" />
+                          <h4 className="font-extrabold text-foreground text-sm">
+                            {selectedAwardCategory === "TODAS"
+                              ? "Aún no se han otorgado medallas en el gimnasio"
+                              : `Sin condecoraciones en la categoría "${selectedAwardCategory}"`}
+                          </h4>
+                          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                            Los entrenadores y coaches pueden condecorar a sus atletas por récords de fuerza, constancia o transformación usando el botón superior.
+                          </p>
+                          {canGiveAwards && (
+                            <Button
+                              onClick={handleOpenAwardModal}
+                              size="sm"
+                              className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold mt-2"
+                            >
+                              <Medal className="w-4 h-4 mr-1.5" />
+                              Otorgar la Primera Medalla
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredAwards.map((award) => {
+                          const medalMeta = {
+                            DIAMANTE: {
+                              label: "Diamante Legendario",
+                              icon: "💎",
+                              cardStyle: "border-cyan-500/40 bg-gradient-to-br from-cyan-950/20 via-card to-card shadow-cyan-500/5",
+                              badgeStyle: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+                              glow: "text-cyan-400",
+                            },
+                            ORO: {
+                              label: "Medalla de Oro",
+                              icon: "🥇",
+                              cardStyle: "border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-card to-card shadow-amber-500/5",
+                              badgeStyle: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+                              glow: "text-amber-400",
+                            },
+                            PLATA: {
+                              label: "Medalla de Plata",
+                              icon: "🥈",
+                              cardStyle: "border-slate-400/40 bg-gradient-to-br from-slate-900/40 via-card to-card shadow-slate-500/5",
+                              badgeStyle: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+                              glow: "text-slate-300",
+                            },
+                            BRONCE: {
+                              label: "Medalla de Bronce",
+                              icon: "🥉",
+                              cardStyle: "border-amber-700/40 bg-gradient-to-br from-amber-950/15 via-card to-card shadow-amber-800/5",
+                              badgeStyle: "bg-amber-700/15 text-amber-500 border-amber-700/30",
+                              glow: "text-amber-500",
+                            },
+                          }[award.medal] || {
+                            label: "Medalla de Honor",
+                            icon: "🎖️",
+                            cardStyle: "border-primary/40 bg-card",
+                            badgeStyle: "bg-primary/10 text-primary border-primary/20",
+                            glow: "text-primary",
+                          }
+
+                          const canDelete = isAdmin || (isCoach && user?.id === award.coachId)
+
+                          return (
+                            <div
+                              key={award.id}
+                              className={`rounded-2xl border p-5 shadow-lg transition-all hover:scale-[1.01] relative flex flex-col justify-between ${medalMeta.cardStyle}`}
+                            >
+                              <div className="space-y-3">
+                                {/* Top Bar: Medal + Category + Delete */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-2xl" role="img" aria-label={award.medal}>
+                                      {medalMeta.icon}
+                                    </span>
+                                    <span className={`text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${medalMeta.badgeStyle}`}>
+                                      {medalMeta.label}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-muted-foreground bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md border border-border">
+                                      {award.category}
+                                    </span>
+                                  </div>
+
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteAward(award.id)}
+                                      className="text-muted-foreground/50 hover:text-red-500 transition-colors p-1"
+                                      title="Eliminar condecoración"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Athlete Profile */}
+                                <div className="flex items-center gap-3 pt-1">
+                                  {award.athletePicture ? (
+                                    <img
+                                      src={award.athletePicture}
+                                      alt={award.athleteName}
+                                      className="w-12 h-12 rounded-full object-cover border-2 border-primary/40 shadow-sm"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center font-black text-primary text-sm shadow-sm">
+                                      {award.athleteName.slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="font-extrabold text-foreground text-sm tracking-wide">
+                                      {award.athleteName}
+                                    </h4>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Otorgada por Coach <span className="font-semibold text-foreground/80">{award.coachName}</span>
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Achievement Quote */}
+                                <div className="p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-border/50">
+                                  <p className="text-xs text-foreground/90 italic leading-relaxed">
+                                    &ldquo;{award.achievement}&rdquo;
+                                  </p>
+                                </div>
+
+                                {/* Optional Picture */}
+                                {award.imageUrl && (
+                                  <div className="rounded-xl overflow-hidden border border-border max-h-48">
+                                    <img
+                                      src={award.imageUrl}
+                                      alt="Foto del récord"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Footer Date */}
+                              <div className="pt-3 mt-3 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span className="flex items-center gap-1 font-medium">
+                                  <Clock className="w-3 h-3" />
+                                  {new Date(award.createdAt).toLocaleDateString("es-ES", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                <span className="font-bold text-primary">Salón de la Fama</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* CONTENIDO 2: RANKING POR CONSTANCIA (AUTOMÁTICO) */}
+              {hallOfFameSubTab === "ranking" && (
+                <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-card p-6 shadow-lg space-y-4">
+                  {isLoadingHallOfFame ? (
+                    <div className="py-12 flex justify-center items-center">
+                      <Loader size={48} text="Cargando récords y méritos de atletas..." />
+                    </div>
+                  ) : hallOfFame.length === 0 ? (
+                    <div className="py-12 text-center text-muted-foreground space-y-2">
+                      <Trophy className="w-10 h-10 mx-auto text-amber-500/40" />
+                      <p className="font-bold text-sm">Aún no hay récords automáticos registrados.</p>
+                      <p className="text-xs">
+                        A medida que los atletas registren asistencias, avances de peso y retos completados, irán figurando aquí automáticamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {hallOfFame.map((item) => (
+                        <div
+                          key={`${item.athleteId}-${item.category}-${item.pos}`}
+                          className="py-4 flex items-center justify-between gap-4 first:pt-0 last:pb-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center font-black font-display text-base ${item.color}`}
+                            >
+                              #{item.pos}
+                            </span>
+                            {item.profilePicture ? (
+                              <img
+                                src={item.profilePicture}
+                                alt={item.name}
+                                className="w-10 h-10 rounded-full object-cover border border-primary/40"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center font-black text-primary text-xs">
+                                {item.name?.slice(0, 2).toUpperCase() || "AT"}
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-sm text-foreground">{item.name}</h4>
+                                <span className="text-[10px] text-primary/80 font-semibold bg-primary/10 px-2 py-0.5 rounded-md">
+                                  {item.category}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">{item.stat}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-border">
+                            {item.badge}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1078,6 +1442,188 @@ export default function ComunidadPage() {
             </Button>
             <Button type="submit" disabled={isSavingSchedule}>
               {isSavingSchedule ? "Guardando..." : "Guardar Horarios"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* MODAL: Condecorar Atleta (Coaches & Admins) */}
+      <Dialog
+        open={showAwardModal}
+        onClose={() => setShowAwardModal(false)}
+        title="🏅 Condecorar Atleta en el Salón de la Fama"
+        description="Otorga una distinción oficial de honor a un atleta destacado. El atleta recibirá una notificación push y se celebrará en la comunidad."
+      >
+        <form onSubmit={handleCreateAward} className="space-y-4">
+          {/* Selección de Atleta */}
+          <div>
+            <label className="text-xs font-bold block mb-1.5 text-foreground">
+              Atleta a Condecorar <span className="text-red-500">*</span>
+            </label>
+            {isLoadingAthletes ? (
+              <div className="p-3 text-xs text-muted-foreground flex items-center gap-2">
+                <Loader size={16} /> Cargando lista de atletas...
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={athleteSearchQuery}
+                    onChange={(e) => setAthleteSearchQuery(e.target.value)}
+                    placeholder="Filtrar por nombre o cédula..."
+                    className="w-full bg-card dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <select
+                  value={selectedAthleteId}
+                  onChange={(e) => setSelectedAthleteId(e.target.value)}
+                  className="w-full bg-card dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  required
+                >
+                  <option value="">-- Selecciona un atleta --</option>
+                  {availableAthletes
+                    .filter((ath) => {
+                      if (!athleteSearchQuery.trim()) return true
+                      const q = athleteSearchQuery.toLowerCase()
+                      return (
+                        ath.name?.toLowerCase().includes(q) ||
+                        ath.dni?.toLowerCase().includes(q)
+                      )
+                    })
+                    .map((ath) => (
+                      <option key={ath.id} value={ath.id}>
+                        {ath.name} {ath.dni ? `(C.I. ${ath.dni})` : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Tipo de Medalla */}
+          <div>
+            <label className="text-xs font-bold block mb-1.5 text-foreground">
+              Tipo de Medalla / Distinción <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { type: "DIAMANTE", label: "Diamante", icon: "💎", color: "border-cyan-500 text-cyan-400 bg-cyan-500/10" },
+                { type: "ORO", label: "Oro", icon: "🥇", color: "border-amber-500 text-amber-400 bg-amber-500/10" },
+                { type: "PLATA", label: "Plata", icon: "🥈", color: "border-slate-400 text-slate-300 bg-slate-500/10" },
+                { type: "BRONCE", label: "Bronce", icon: "🥉", color: "border-amber-700 text-amber-600 bg-amber-700/10" },
+              ].map((m) => (
+                <button
+                  key={m.type}
+                  type="button"
+                  onClick={() => setAwardMedal(m.type as any)}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                    awardMedal === m.type
+                      ? `${m.color} ring-2 ring-primary/40 font-black shadow-md`
+                      : "border-border bg-card/50 text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <span className="text-xl">{m.icon}</span>
+                  <span>{m.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label className="text-xs font-bold block mb-1.5 text-foreground">Categoría del Mérito</label>
+            <select
+              value={awardCategory}
+              onChange={(e) => setAwardCategory(e.target.value)}
+              className="w-full bg-card dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="Fuerza Máxima PR">Fuerza Máxima (PR Récord)</option>
+              <option value="Hipertrofia">Hipertrofia & Desarrollo Muscular</option>
+              <option value="Pérdida de Grasa">Transformación & Pérdida de Grasa</option>
+              <option value="Constancia & Disciplina">Constancia & Asistencia Imparable</option>
+              <option value="Atleta del Mes">Atleta del Mes</option>
+              <option value="Técnica Perfecta">Técnica & Ejecución Impecable</option>
+              <option value="Espíritu Deportivo">Espíritu Deportivo & Motivación</option>
+            </select>
+          </div>
+
+          {/* Descripción del Logro */}
+          <div>
+            <label className="text-xs font-bold block mb-1.5 text-foreground">
+              Hazaña / Justificación del Reconocimiento <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              value={awardAchievement}
+              onChange={(e) => setAwardAchievement(e.target.value)}
+              placeholder="Ej. Superó su marca histórica alcanzando 150 kg en Peso Muerto con una técnica impecable..."
+              className="w-full bg-card dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm resize-none text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              required
+            />
+          </div>
+
+          {/* Foto del logro o evidencia */}
+          <div>
+            <label className="text-xs font-bold block mb-1.5 text-foreground">
+              Foto o Evidencia del Logro (Opcional)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                id="award-photo-file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                      showToast("La imagen supera los 5MB.", "error")
+                      return
+                    }
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setAwardImage(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }}
+              />
+              <label
+                htmlFor="award-photo-file"
+                className="cursor-pointer px-3 py-2 bg-black/5 dark:bg-white/5 border border-border rounded-xl text-xs font-bold text-foreground hover:bg-black/10 flex items-center gap-1.5"
+              >
+                <ImageIcon className="w-4 h-4 text-primary" />
+                <span>{awardImage ? "Cambiar Imagen" : "Subir Foto"}</span>
+              </label>
+              {awardImage && (
+                <button
+                  type="button"
+                  onClick={() => setAwardImage("")}
+                  className="text-xs text-red-500 hover:underline"
+                >
+                  Quitar foto
+                </button>
+              )}
+            </div>
+            {awardImage && (
+              <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-border relative">
+                <img src={awardImage} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-border">
+            <Button type="button" variant="outline" onClick={() => setShowAwardModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmittingAward}
+              className="bg-amber-500 hover:bg-amber-600 text-black font-extrabold"
+            >
+              {isSubmittingAward ? "Condecorando..." : "Otorgar Medalla & Notificar"}
             </Button>
           </div>
         </form>
