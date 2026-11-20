@@ -12,6 +12,8 @@ interface TransformationItem {
   description: string
   beforeImage: string
   afterImage: string
+  beforePosition?: string
+  afterPosition?: string
 }
 
 const DEFAULT_TRANSFORMATIONS: TransformationItem[] = [
@@ -98,6 +100,11 @@ export function TransformationsSection() {
                     <img
                       src={displayImg || item.afterImage}
                       alt={`${item.athleteName} - ${currentView}`}
+                      style={{
+                        objectPosition: currentView === "before"
+                          ? (item.beforePosition || "50% 50%")
+                          : (item.afterPosition || "50% 50%")
+                      }}
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
 

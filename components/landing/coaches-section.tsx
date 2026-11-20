@@ -11,6 +11,7 @@ interface CoachItem {
   experience: string
   bio: string
   photo: string
+  photoPosition?: string
   instagram?: string
   phone?: string
 }
@@ -99,7 +100,8 @@ export function CoachesSection() {
                     <img
                       src={coach.photo || "https://images.unsplash.com/photo-1567013127542-490d757e51fc?q=80&w=800&auto=format&fit=crop"}
                       alt={coach.name}
-                      className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
+                      style={{ objectPosition: coach.photoPosition || "50% 20%" }}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
 
                     {/* BADGE DE COACH CERTIFICADO */}

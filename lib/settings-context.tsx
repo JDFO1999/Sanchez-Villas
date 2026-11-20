@@ -174,6 +174,8 @@ export interface AppSettings {
         description: string
         beforeImage: string
         afterImage: string
+        beforePosition?: string
+        afterPosition?: string
       }[]
     }
     coachesSettings?: {
@@ -187,6 +189,7 @@ export interface AppSettings {
         experience: string
         bio: string
         photo: string
+        photoPosition?: string
         instagram?: string
         phone?: string
       }[]

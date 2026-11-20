@@ -9,9 +9,10 @@ import { FinanceSettingsTab } from "@/components/settings/FinanceSettingsTab"
 import { LoginTab } from "@/components/settings/LoginTab"
 import { FooterTab } from "@/components/settings/FooterTab"
 import { LandingTab } from "@/components/settings/LandingTab"
+import { TransformationsAndCoachesTab } from "@/components/settings/TransformationsAndCoachesTab"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard, Shield, Building2, Coins, Receipt, RefreshCw, Database, Download, ShieldCheck, FileJson, Lock } from "lucide-react"
+import { Save, Settings, Type, Palette, Image as ImageIcon, Store, User, QrCode, Globe, Video, Plus, Trash2, MapPin, ExternalLink, HeartHandshake, CreditCard, Shield, Building2, Coins, Receipt, RefreshCw, Database, Download, ShieldCheck, FileJson, Lock, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast, showSweetToast } from "@/lib/toast-context"
 import Swal from "sweetalert2"
@@ -465,6 +466,10 @@ export default function AjustesPage() {
           <button type="button" onClick={() => setActiveTab('navbar')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'navbar' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Pantalla de Login</button>
           <button type="button" onClick={() => setActiveTab('footer')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Footer y Redes</button>
           <button type="button" onClick={() => setActiveTab('landing')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all ${activeTab === 'landing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Página Principal (Promocional)</button>
+          <button type="button" onClick={() => setActiveTab('transformaciones')} className={`whitespace-nowrap px-6 py-4 font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'transformaciones' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>Casos de Éxito & Coaches</span>
+          </button>
         </div>
         <form onSubmit={handleSave} className="space-y-6">
             
@@ -579,6 +584,11 @@ export default function AjustesPage() {
                 landingSettings={landingSettings}
                 setLandingSettings={setLandingSettings}
               />
+            </div>
+
+            {/* PANEL DE CASOS DE ÉXITO & COACHES (MÓDULO INDEPENDIENTE) */}
+            <div className={activeTab === "transformaciones" ? "" : "hidden"}>
+              <TransformationsAndCoachesTab />
             </div>
 
             <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
