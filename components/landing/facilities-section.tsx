@@ -49,6 +49,8 @@ export function FacilitiesSection() {
     promise.images?.[3] || 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800&auto=format&fit=crop'
   ]
 
+  const imagePositions = (promise as any).imagePositions || ["50% 50%", "50% 50%", "50% 50%", "50% 50%"]
+
   return (
     <section id="instalaciones" className="pt-6 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -88,6 +90,7 @@ export function FacilitiesSection() {
               <img
                 src={images[0]}
                 alt="Instalación 1"
+                style={{ objectPosition: imagePositions[0] || "50% 50%" }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -95,6 +98,7 @@ export function FacilitiesSection() {
               <img
                 src={images[1]}
                 alt="Instalación 2"
+                style={{ objectPosition: imagePositions[1] || "50% 50%" }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -104,6 +108,7 @@ export function FacilitiesSection() {
               <img
                 src={images[2]}
                 alt="Instalación 3"
+                style={{ objectPosition: imagePositions[2] || "50% 50%" }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -111,6 +116,7 @@ export function FacilitiesSection() {
               <img
                 src={images[3]}
                 alt="Instalación 4"
+                style={{ objectPosition: imagePositions[3] || "50% 50%" }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
             </div>

@@ -32,12 +32,15 @@ export function LandingNavbar() {
     ? (settings.logoUrlDark || settings.logoUrl) 
     : (settings.logoUrl || settings.logoUrlDark)
 
+  const showTransformations = settings.landingSettings?.transformationsSettings?.enabled !== false
+  const showCoaches = settings.landingSettings?.coachesSettings?.enabled !== false
+
   const navLinks = [
     { name: "Inicio", href: "#inicio" },
     { name: "Disciplinas", href: "#disciplinas" },
     { name: "Instalaciones", href: "#instalaciones" },
-    { name: "Antes y Después", href: "#transformaciones" },
-    { name: "Entrenadores", href: "#entrenadores" },
+    ...(showTransformations ? [{ name: "Antes y Después", href: "#transformaciones" }] : []),
+    ...(showCoaches ? [{ name: "Entrenadores", href: "#entrenadores" }] : []),
     { name: "Planes", href: "#planes" },
     { name: "Ubicación", href: "#ubicacion" },
     { name: "Contacto", href: "#contacto" },

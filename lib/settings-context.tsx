@@ -125,6 +125,7 @@ export interface AppSettings {
       id: string
       type: 'image' | 'video'
       url: string
+      position?: string
       title?: string
       subtitle?: string
       ctaText?: string
@@ -135,6 +136,7 @@ export interface AppSettings {
       title: string
       description: string
       imageUrl: string
+      position?: string
       intensity?: string
       schedule?: string
     }[]
@@ -143,6 +145,7 @@ export interface AppSettings {
       title?: string
       description?: string
       images: string[]
+      imagePositions?: string[]
     }
     plansSettings?: {
       badge?: string
@@ -163,6 +166,7 @@ export interface AppSettings {
       }[]
     }
     transformationsSettings?: {
+      enabled?: boolean
       badge?: string
       title?: string
       description?: string
@@ -179,6 +183,7 @@ export interface AppSettings {
       }[]
     }
     coachesSettings?: {
+      enabled?: boolean
       badge?: string
       title?: string
       description?: string

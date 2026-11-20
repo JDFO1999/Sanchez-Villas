@@ -92,6 +92,7 @@ export function DisciplinesSection() {
               <img
                 src={item.imageUrl}
                 alt={item.title}
+                style={{ objectPosition: (item as any).position || "50% 50%" }}
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               />
               

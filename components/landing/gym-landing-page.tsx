@@ -90,10 +90,14 @@ export function GymLandingPage() {
         <FacilitiesSection />
 
         {/* BEFORE & AFTER REAL TRANSFORMATIONS */}
-        <TransformationsSection />
+        {settings.landingSettings?.transformationsSettings?.enabled !== false && (
+          <TransformationsSection />
+        )}
 
         {/* OUR COACHES & STAFF */}
-        <CoachesSection />
+        {settings.landingSettings?.coachesSettings?.enabled !== false && (
+          <CoachesSection />
+        )}
 
         {/* GOOGLE MAPS INTERACTIVE LOCATION & INFO */}
         <MapSection />

@@ -8,6 +8,7 @@ import {
   Flame, Award, Check, Download, RefreshCw 
 } from "lucide-react"
 import { getCoachesWithAthletesAction } from "@/app/actions/users"
+import { DraggableImageFrame } from "./DraggableImageFrame"
 import Swal from "sweetalert2"
 
 interface LandingTabProps {
@@ -181,38 +182,53 @@ export function LandingTab({
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* PREVIEW Y SUBIDA */}
+                        {/* PREVIEW Y SUBIDA CON REENCUADRE ARRASTRABLE */}
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-muted-foreground block">Multimedia (Imagen o Video)</label>
-                          <div className="h-28 w-full bg-black/20 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 flex items-center justify-center relative group">
-                            {slide.type === 'video' ? (
+                          {slide.type === 'video' ? (
+                            <div className="h-32 w-full bg-black/20 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 flex items-center justify-center relative group">
                               <video src={slide.url} className="w-full h-full object-cover" muted />
-                            ) : (
-                              <img src={slide.url} alt="Preview" className="w-full h-full object-cover" />
-                            )}
-                            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer transition">
-                              <span>Cambiar Archivo</span>
-                              <input
-                                type="file"
-                                accept="image/*,video/mp4,video/webm"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const isVideo = file.type.startsWith('video');
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      const arr = [...landingSettings.heroSlides];
-                                      arr[idx].url = reader.result as string;
-                                      arr[idx].type = isVideo ? 'video' : 'image';
-                                      setLandingSettings((prev: any) => ({ ...prev, heroSlides: arr }));
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
+                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer transition">
+                                <span>Cambiar Video</span>
+                                <input
+                                  type="file"
+                                  accept="video/mp4,video/webm"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        const arr = [...landingSettings.heroSlides];
+                                        arr[idx].url = reader.result as string;
+                                        arr[idx].type = 'video';
+                                        setLandingSettings((prev: any) => ({ ...prev, heroSlides: arr }));
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          ) : (
+                            <DraggableImageFrame
+                              src={slide.url}
+                              position={slide.position || "50% 50%"}
+                              onChange={(pos) => {
+                                const arr = [...landingSettings.heroSlides];
+                                arr[idx].position = pos;
+                                setLandingSettings((prev: any) => ({ ...prev, heroSlides: arr }));
+                              }}
+                              label={`Slide #${idx + 1} (Arrastra para encuadrar)`}
+                              aspectRatio="aspect-video"
+                              onUpload={(dataUrl) => {
+                                const arr = [...landingSettings.heroSlides];
+                                arr[idx].url = dataUrl;
+                                arr[idx].type = 'image';
+                                setLandingSettings((prev: any) => ({ ...prev, heroSlides: arr }));
+                              }}
+                            />
+                          )}
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -394,32 +410,38 @@ export function LandingTab({
                         </button>
                       </div>
 
-                      <div className="flex gap-4">
-                        <div className="w-24 h-24 shrink-0 rounded-xl bg-black/20 overflow-hidden relative group border border-border">
-                          <img src={disc.imageUrl} alt={disc.title} className="w-full h-full object-cover" />
-                          <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold cursor-pointer transition text-center p-1">
-                            <span>Subir Foto</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    const arr = [...landingSettings.disciplines];
-                                    arr[idx].imageUrl = reader.result as string;
-                                    setLandingSettings((prev: any) => ({ ...prev, disciplines: arr }));
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                          </label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <DraggableImageFrame
+                            src={disc.imageUrl}
+                            position={disc.position || "50% 50%"}
+                            onChange={(pos) => {
+                              const arr = [...landingSettings.disciplines];
+                              arr[idx].position = pos;
+                              setLandingSettings((prev: any) => ({ ...prev, disciplines: arr }));
+                            }}
+                            label="📸 Foto (Arrastra para encuadrar)"
+                            aspectRatio="aspect-[4/3]"
+                            onUpload={(dataUrl) => {
+                              const arr = [...landingSettings.disciplines];
+                              arr[idx].imageUrl = dataUrl;
+                              setLandingSettings((prev: any) => ({ ...prev, disciplines: arr }));
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={disc.imageUrl || ''}
+                            onChange={(e) => {
+                              const arr = [...landingSettings.disciplines];
+                              arr[idx].imageUrl = e.target.value;
+                              setLandingSettings((prev: any) => ({ ...prev, disciplines: arr }));
+                            }}
+                            placeholder="URL imagen..."
+                            className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[11px]"
+                          />
                         </div>
 
-                        <div className="flex-1 space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                           <input
                             type="text"
                             value={disc.title || ''}
@@ -547,40 +569,34 @@ export function LandingTab({
                         'https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?q=80&w=800&auto=format&fit=crop',
                         'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800&auto=format&fit=crop'
                       ];
+                      const currentPositions = landingSettings?.promiseSettings?.imagePositions || [
+                        '50% 50%', '50% 50%', '50% 50%', '50% 50%'
+                      ];
                       const imgSrc = currentImages[imgIdx] || '';
                       return (
-                        <div key={imgIdx} className="p-3 rounded-xl bg-card border border-border space-y-2">
-                          <span className="text-[11px] font-bold text-primary block">Foto #{imgIdx + 1}</span>
-                          <div className="h-32 w-full rounded-lg bg-black/20 overflow-hidden relative group border border-border">
-                            {imgSrc ? (
-                              <img src={imgSrc} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-xs text-muted-foreground">Sin foto</div>
-                            )}
-                            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold cursor-pointer transition text-center p-1">
-                              <span>Subir Imagen</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      const newImages = [...currentImages];
-                                      newImages[imgIdx] = reader.result as string;
-                                      setLandingSettings((prev: any) => ({
-                                        ...prev,
-                                        promiseSettings: { ...(prev?.promiseSettings || {}), images: newImages }
-                                      }));
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
-                          </div>
+                        <div key={imgIdx} className="p-3 rounded-2xl bg-card border border-border space-y-2">
+                          <DraggableImageFrame
+                            src={imgSrc}
+                            position={currentPositions[imgIdx] || "50% 50%"}
+                            onChange={(pos) => {
+                              const newPositions = [...currentPositions];
+                              newPositions[imgIdx] = pos;
+                              setLandingSettings((prev: any) => ({
+                                ...prev,
+                                promiseSettings: { ...(prev?.promiseSettings || {}), imagePositions: newPositions }
+                              }));
+                            }}
+                            label={`📸 Instalación #${imgIdx + 1}`}
+                            aspectRatio="aspect-[4/3]"
+                            onUpload={(dataUrl) => {
+                              const newImages = [...currentImages];
+                              newImages[imgIdx] = dataUrl;
+                              setLandingSettings((prev: any) => ({
+                                ...prev,
+                                promiseSettings: { ...(prev?.promiseSettings || {}), images: newImages }
+                              }));
+                            }}
+                          />
                           <input
                             type="text"
                             value={imgSrc}
@@ -593,7 +609,7 @@ export function LandingTab({
                               }));
                             }}
                             placeholder="O pega URL de imagen"
-                            className="w-full bg-black/5 dark:bg-black/40 border border-border rounded p-1.5 text-[11px]"
+                            className="w-full bg-black/5 dark:bg-black/40 border border-border rounded-lg p-1.5 text-[11px]"
                           />
                         </div>
                       );

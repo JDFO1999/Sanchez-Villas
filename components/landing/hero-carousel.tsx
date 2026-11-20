@@ -89,9 +89,10 @@ export function HeroCarousel() {
               />
             ) : (
               <div 
-                className="w-full h-full bg-cover bg-center transition-transform duration-[8000ms] ease-out"
+                className="w-full h-full bg-cover transition-transform duration-[8000ms] ease-out"
                 style={{ 
                   backgroundImage: `url('${slide.url}')`,
+                  backgroundPosition: (slide as any).position || 'center center',
                   transform: isCurrent ? 'scale(1.04)' : 'scale(1.0)'
                 }}
               />

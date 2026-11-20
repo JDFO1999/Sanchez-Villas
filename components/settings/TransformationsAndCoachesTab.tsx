@@ -104,6 +104,7 @@ export function TransformationsAndCoachesTab() {
 
   // Local states
   const [transConf, setTransConf] = useState({
+    enabled: settings.landingSettings?.transformationsSettings?.enabled !== false,
     badge: settings.landingSettings?.transformationsSettings?.badge || "RESULTADOS COMPROBADOS",
     title: settings.landingSettings?.transformationsSettings?.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
     description: settings.landingSettings?.transformationsSettings?.description || "La constancia, el esfuerzo diario y la guía experta de nuestros entrenadores marcan la diferencia. Conoce las historias de éxito de nuestra comunidad.",
@@ -111,6 +112,7 @@ export function TransformationsAndCoachesTab() {
   })
 
   const [coachesConf, setCoachesConf] = useState({
+    enabled: settings.landingSettings?.coachesSettings?.enabled !== false,
     badge: settings.landingSettings?.coachesSettings?.badge || "STAFF DE ÉLITE",
     title: settings.landingSettings?.coachesSettings?.title || "CONOCE A NUESTROS ENTRENADORES",
     description: settings.landingSettings?.coachesSettings?.description || "Profesionales certificados y apasionados por guiar tu técnica, nutrición y evolución deportiva paso a paso.",
@@ -121,6 +123,7 @@ export function TransformationsAndCoachesTab() {
   useEffect(() => {
     if (settings.landingSettings?.transformationsSettings) {
       setTransConf({
+        enabled: settings.landingSettings.transformationsSettings.enabled !== false,
         badge: settings.landingSettings.transformationsSettings.badge || "RESULTADOS COMPROBADOS",
         title: settings.landingSettings.transformationsSettings.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
         description: settings.landingSettings.transformationsSettings.description || "",
@@ -131,6 +134,7 @@ export function TransformationsAndCoachesTab() {
     }
     if (settings.landingSettings?.coachesSettings) {
       setCoachesConf({
+        enabled: settings.landingSettings.coachesSettings.enabled !== false,
         badge: settings.landingSettings.coachesSettings.badge || "STAFF DE ÉLITE",
         title: settings.landingSettings.coachesSettings.title || "CONOCE A NUESTROS ENTRENADORES",
         description: settings.landingSettings.coachesSettings.description || "",
@@ -297,33 +301,50 @@ export function TransformationsAndCoachesTab() {
         <div className="space-y-6">
           {/* Encabezados de la Sección */}
           <div className="p-6 rounded-3xl bg-card border border-border shadow-lg space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/50">
               <h3 className="font-extrabold text-sm uppercase text-foreground tracking-wide flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 Textos de la Sección en la Landing
               </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  const newCase = {
-                    id: String(Date.now()),
-                    athleteName: "Nuevo Atleta",
-                    duration: "3 Meses",
-                    changeText: "-10 kg grasa / +3 kg músculo",
-                    description: "Disciplina inquebrantable, plan de entrenamiento personalizado y hábitos saludables.",
-                    beforeImage: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?q=80&w=800&auto=format&fit=crop",
-                    afterImage: "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?q=80&w=800&auto=format&fit=crop",
-                    beforePosition: "50% 50%",
-                    afterPosition: "50% 50%",
-                  }
-                  setTransConf((prev) => ({ ...prev, items: [newCase, ...prev.items] }))
-                  showToast("Nuevo caso agregado. Personalízalo a continuación.", "info")
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Agregar Transformación</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* BOTÓN ACTIVAR / DESACTIVAR EN LA WEB */}
+                <button
+                  type="button"
+                  onClick={() => setTransConf((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    transConf.enabled
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700"
+                  }`}
+                  title="Activar o desactivar si esta sección se muestra en la página principal"
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full ${transConf.enabled ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
+                  <span>{transConf.enabled ? "Mostrando en la Web" : "Oculto en la Web"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newCase = {
+                      id: String(Date.now()),
+                      athleteName: "Nuevo Atleta",
+                      duration: "3 Meses",
+                      changeText: "-10 kg grasa / +3 kg músculo",
+                      description: "Disciplina inquebrantable, plan de entrenamiento personalizado y hábitos saludables.",
+                      beforeImage: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?q=80&w=800&auto=format&fit=crop",
+                      afterImage: "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?q=80&w=800&auto=format&fit=crop",
+                      beforePosition: "50% 50%",
+                      afterPosition: "50% 50%",
+                    }
+                    setTransConf((prev) => ({ ...prev, items: [newCase, ...prev.items] }))
+                    showToast("Nuevo caso agregado. Personalízalo a continuación.", "info")
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Agregar Transformación</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -511,6 +532,21 @@ export function TransformationsAndCoachesTab() {
                 Textos de la Sección en la Landing
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
+                {/* BOTÓN ACTIVAR / DESACTIVAR EN LA WEB */}
+                <button
+                  type="button"
+                  onClick={() => setCoachesConf((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    coachesConf.enabled
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700"
+                  }`}
+                  title="Activar o desactivar si esta sección se muestra en la página principal"
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full ${coachesConf.enabled ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
+                  <span>{coachesConf.enabled ? "Mostrando en la Web" : "Oculto en la Web"}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleImportCoaches}
