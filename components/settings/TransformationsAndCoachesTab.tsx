@@ -8,7 +8,6 @@ import {
   Users,
   Plus,
   Trash2,
-  Save,
   ExternalLink,
   CheckCircle2,
   RefreshCw,
@@ -94,82 +93,127 @@ const DEFAULT_COACHES = [
   },
 ]
 
-export function TransformationsAndCoachesTab() {
-  const { settings, updateSettings } = useSettings()
+type TransConf = {
+  enabled: boolean
+  badge: string
+  title: string
+  description: string
+  items: any[]
+}
+
+type CoachesConf = {
+  enabled: boolean
+  badge: string
+  title: string
+  description: string
+  coaches: any[]
+}
+
+interface TransformationsAndCoachesTabProps {
+  landingSettings?: any
+  setLandingSettings?: React.Dispatch<React.SetStateAction<any>>
+}
+
+export function TransformationsAndCoachesTab({
+  landingSettings,
+  setLandingSettings,
+}: TransformationsAndCoachesTabProps = {}) {
+  const { settings } = useSettings()
   const { showToast } = useToast()
 
   const [activeSubTab, setActiveSubTab] = useState<"transformations" | "coaches">("transformations")
-  const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
   // Local states
-  const [transConf, setTransConf] = useState({
-    enabled: settings.landingSettings?.transformationsSettings?.enabled !== false,
-    badge: settings.landingSettings?.transformationsSettings?.badge || "RESULTADOS COMPROBADOS",
-    title: settings.landingSettings?.transformationsSettings?.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
-    description: settings.landingSettings?.transformationsSettings?.description || "La constancia, el esfuerzo diario y la guía experta de nuestros entrenadores marcan la diferencia. Conoce las historias de éxito de nuestra comunidad.",
-    items: settings.landingSettings?.transformationsSettings?.items || DEFAULT_TRANSFORMATIONS,
+  const initialLanding = landingSettings || settings.landingSettings
+  const [transConf, _setTransConf] = useState<TransConf>({
+    enabled: initialLanding?.transformationsSettings?.enabled !== false,
+    badge: initialLanding?.transformationsSettings?.badge || "RESULTADOS COMPROBADOS",
+    title: initialLanding?.transformationsSettings?.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
+    description: initialLanding?.transformationsSettings?.description || "La constancia, el esfuerzo diario y la guía experta de nuestros entrenadores marcan la diferencia. Conoce las historias de éxito de nuestra comunidad.",
+    items: initialLanding?.transformationsSettings?.items || DEFAULT_TRANSFORMATIONS,
   })
 
-  const [coachesConf, setCoachesConf] = useState({
-    enabled: settings.landingSettings?.coachesSettings?.enabled !== false,
-    badge: settings.landingSettings?.coachesSettings?.badge || "STAFF DE ÉLITE",
-    title: settings.landingSettings?.coachesSettings?.title || "CONOCE A NUESTROS ENTRENADORES",
-    description: settings.landingSettings?.coachesSettings?.description || "Profesionales certificados y apasionados por guiar tu técnica, nutrición y evolución deportiva paso a paso.",
-    coaches: settings.landingSettings?.coachesSettings?.coaches || DEFAULT_COACHES,
+  const [coachesConf, _setCoachesConf] = useState<CoachesConf>({
+    enabled: initialLanding?.coachesSettings?.enabled !== false,
+    badge: initialLanding?.coachesSettings?.badge || "STAFF DE ÉLITE",
+    title: initialLanding?.coachesSettings?.title || "CONOCE A NUESTROS ENTRENADORES",
+    description: initialLanding?.coachesSettings?.description || "Profesionales certificados y apasionados por guiar tu técnica, nutrición y evolución deportiva paso a paso.",
+    coaches: initialLanding?.coachesSettings?.coaches || DEFAULT_COACHES,
   })
 
-  // Sincronizar si cambia settings exterior
+  // Sincronizador bidireccional con el formulario general de ajustes
+  const setTransConf = (updater: TransConf | ((prev: TransConf) => TransConf)) => {
+    _setTransConf((prev: TransConf) => {
+      const next = typeof updater === "function" ? updater(prev) : updater
+      if (setLandingSettings) {
+        setLandingSettings((curr: any) => ({
+          ...curr,
+          transformationsSettings: next,
+        }))
+      }
+      return next
+    })
+  }
+
+  const setCoachesConf = (updater: CoachesConf | ((prev: CoachesConf) => CoachesConf)) => {
+    _setCoachesConf((prev: CoachesConf) => {
+      const next = typeof updater === "function" ? updater(prev) : updater
+      if (setLandingSettings) {
+        setLandingSettings((curr: any) => ({
+          ...curr,
+          coachesSettings: next,
+        }))
+      }
+      return next
+    })
+  }
+
+  // Inicializar en landingSettings para que el botón inferior lo persista de inmediato
   useEffect(() => {
-    if (settings.landingSettings?.transformationsSettings) {
-      setTransConf({
-        enabled: settings.landingSettings.transformationsSettings.enabled !== false,
-        badge: settings.landingSettings.transformationsSettings.badge || "RESULTADOS COMPROBADOS",
-        title: settings.landingSettings.transformationsSettings.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
-        description: settings.landingSettings.transformationsSettings.description || "",
-        items: settings.landingSettings.transformationsSettings.items?.length
-          ? settings.landingSettings.transformationsSettings.items
+    if (setLandingSettings) {
+      setLandingSettings((curr: any) => {
+        let changed = false
+        const next = { ...curr }
+        if (!next.transformationsSettings) {
+          next.transformationsSettings = transConf
+          changed = true
+        }
+        if (!next.coachesSettings) {
+          next.coachesSettings = coachesConf
+          changed = true
+        }
+        return changed ? next : curr
+      })
+    }
+  }, [])
+
+  // Sincronizar si cambia settings o landingSettings exterior
+  useEffect(() => {
+    const sourceLanding = landingSettings || settings.landingSettings
+    if (sourceLanding?.transformationsSettings) {
+      _setTransConf({
+        enabled: sourceLanding.transformationsSettings.enabled !== false,
+        badge: sourceLanding.transformationsSettings.badge || "RESULTADOS COMPROBADOS",
+        title: sourceLanding.transformationsSettings.title || "TRANSFORMACIONES REALES, VIDAS EXTRAORDINARIAS",
+        description: sourceLanding.transformationsSettings.description || "",
+        items: sourceLanding.transformationsSettings.items?.length
+          ? sourceLanding.transformationsSettings.items
           : DEFAULT_TRANSFORMATIONS,
       })
     }
-    if (settings.landingSettings?.coachesSettings) {
-      setCoachesConf({
-        enabled: settings.landingSettings.coachesSettings.enabled !== false,
-        badge: settings.landingSettings.coachesSettings.badge || "STAFF DE ÉLITE",
-        title: settings.landingSettings.coachesSettings.title || "CONOCE A NUESTROS ENTRENADORES",
-        description: settings.landingSettings.coachesSettings.description || "",
-        coaches: settings.landingSettings.coachesSettings.coaches?.length
-          ? settings.landingSettings.coachesSettings.coaches
+    if (sourceLanding?.coachesSettings) {
+      _setCoachesConf({
+        enabled: sourceLanding.coachesSettings.enabled !== false,
+        badge: sourceLanding.coachesSettings.badge || "STAFF DE ÉLITE",
+        title: sourceLanding.coachesSettings.title || "CONOCE A NUESTROS ENTRENADORES",
+        description: sourceLanding.coachesSettings.description || "",
+        coaches: sourceLanding.coachesSettings.coaches?.length
+          ? sourceLanding.coachesSettings.coaches
           : DEFAULT_COACHES,
       })
     }
-  }, [settings])
-
-  // Guardar configuración completa
-  const handleSave = async () => {
-    setIsSaving(true)
-    try {
-      const currentLanding = settings.landingSettings || ({} as any)
-      const res = await updateSettings({
-        landingSettings: {
-          ...currentLanding,
-          transformationsSettings: transConf,
-          coachesSettings: coachesConf,
-        },
-      })
-
-      if (res && res.success) {
-        showToast("¡Configuración guardada exitosamente!", "success")
-      } else {
-        showToast(res?.error || "Error al guardar los cambios", "error")
-      }
-    } catch (err: any) {
-      console.error("Error saving transformations & coaches:", err)
-      showToast("Ocurrió un error al guardar", "error")
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  }, [landingSettings, settings.landingSettings])
 
   // Importar entrenadores del sistema
   const handleImportCoaches = async () => {
@@ -177,7 +221,7 @@ export function TransformationsAndCoachesTab() {
     try {
       const res = await getCoachesWithAthletesAction()
       if (res.success && res.coaches && res.coaches.length > 0) {
-        const existingNames = new Set(coachesConf.coaches.map((c) => c.name.toLowerCase().trim()))
+        const existingNames = new Set(coachesConf.coaches.map((c: any) => c.name.toLowerCase().trim()))
         let addedCount = 0
         const updatedList = [...coachesConf.coaches]
 
@@ -199,8 +243,8 @@ export function TransformationsAndCoachesTab() {
               id: coach.id,
               name: coach.name,
               specialty: specialtyText,
-              experience: "+3 años de experiencia",
-              bio: coach.bio || "Entrenador comprometido con la superación física y los objetivos de cada atleta.",
+              experience: "",
+              bio: coach.bio || "",
               photo: coach.profilePicture || "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop",
               photoPosition: "50% 20%",
               instagram: coach.instagram || "",
@@ -212,7 +256,7 @@ export function TransformationsAndCoachesTab() {
 
         setCoachesConf((prev) => ({ ...prev, coaches: updatedList }))
         if (addedCount > 0) {
-          showToast(`¡Se importaron ${addedCount} entrenadores del sistema! Recuerda guardar cambios.`, "success")
+          showToast(`¡Se importaron ${addedCount} entrenadores del sistema! Recuerda presionar 'Guardar Cambios' al final de la página.`, "success")
         } else {
           showToast("Todos los entrenadores del sistema ya estaban incluidos.", "info")
         }
@@ -254,16 +298,6 @@ export function TransformationsAndCoachesTab() {
             <span>Ver en la Web</span>
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </Link>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-black shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isSaving ? "Guardando..." : "Guardar Cambios"}</span>
-          </button>
         </div>
       </div>
 
@@ -564,15 +598,15 @@ export function TransformationsAndCoachesTab() {
                       id: `coach-${Date.now()}`,
                       name: "Nuevo Entrenador",
                       specialty: "Acondicionamiento Físico & Musculación",
-                      experience: "+3 años de experiencia",
-                      bio: "Especialista en entrenamiento estructurado, biomecánica y motivación constante.",
-                      photo: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop",
+                      experience: "",
+                      bio: "",
+                      photo: "",
                       photoPosition: "50% 20%",
                       instagram: "",
                       phone: "",
                     }
                     setCoachesConf((prev) => ({ ...prev, coaches: [newCoach, ...prev.coaches] }))
-                    showToast("Nuevo coach agregado. Personalízalo a continuación.", "info")
+                    showToast("Nuevo coach agregado. Llena sus datos y presiona 'Guardar Cambios' al final de la página.", "info")
                   }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:brightness-110 active:scale-95 transition"
                 >

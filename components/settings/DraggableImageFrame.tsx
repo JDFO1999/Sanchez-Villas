@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useCallback } from "react"
-import { Move, RotateCcw, Upload, ArrowUp, ArrowDown } from "lucide-react"
+import { Move, RotateCcw, Upload, ArrowUp, ArrowDown, Loader2 } from "lucide-react"
 
 interface DraggableImageFrameProps {
   src: string
@@ -24,6 +24,7 @@ export function DraggableImageFrame({
 }: DraggableImageFrameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const dragStartRef = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number }>({
     mouseX: 0,
     mouseY: 0,
@@ -195,22 +196,48 @@ export function DraggableImageFrame({
         </div>
 
         {onUpload && (
-          <label className="cursor-pointer px-2.5 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition font-bold flex items-center gap-1">
-            <Upload className="w-3 h-3" />
-            <span>Subir</span>
+          <label className={`cursor-pointer px-2.5 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition font-bold flex items-center gap-1.5 ${isUploading ? "opacity-60 pointer-events-none" : ""}`}>
+            {isUploading ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                <span className="text-[10px]">Guardando en storage...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-3 h-3" />
+                <span>Subir</span>
+              </>
+            )}
             <input
               type="file"
               accept="image/*"
+              disabled={isUploading}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) {
+                  setIsUploading(true)
                   const reader = new FileReader()
-                  reader.onloadend = () => {
-                    onUpload(reader.result as string)
+                  reader.onloadend = async () => {
+                    try {
+                      const b64 = reader.result as string
+                      const { processBase64Image } = await import("@/app/actions/upload")
+                      const savedUrl = await processBase64Image(b64, "landing")
+                      if (savedUrl) {
+                        onUpload(savedUrl)
+                      } else {
+                        onUpload(b64)
+                      }
+                    } catch (uploadErr) {
+                      console.error("Error al subir imagen al storage:", uploadErr)
+                      onUpload(reader.result as string)
+                    } finally {
+                      setIsUploading(false)
+                    }
                   }
                   reader.readAsDataURL(file)
                 }
+                e.target.value = ""
               }}
             />
           </label>

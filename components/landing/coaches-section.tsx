@@ -84,10 +84,17 @@ export function CoachesSection() {
         {/* GRID DE ENTRENADORES */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {coaches.map((coach) => {
-            const waPhone = coach.phone?.replace(/\D/g, "")
-            const waHref = waPhone
-              ? `https://wa.me/${waPhone}?text=${encodeURIComponent(`Hola Coach ${coach.name}, quisiera información sobre entrenamiento personalizado en ${settings.appName || 'el gimnasio'}.`)}`
+            const rawPhone = coach.phone ? coach.phone.replace(/\D/g, "") : ""
+            const hasPhone = Boolean(rawPhone.length >= 7)
+            const waHref = hasPhone
+              ? `https://wa.me/${rawPhone}?text=${encodeURIComponent(`Hola Coach ${coach.name}, quisiera información sobre entrenamiento personalizado en ${settings.appName || 'el gimnasio'}.`)}`
               : null
+
+            const hasInstagram = Boolean(coach.instagram && coach.instagram.trim().length > 0)
+            const hasContact = Boolean(hasInstagram || waHref)
+            const hasExperience = Boolean(coach.experience && coach.experience.trim().length > 0)
+            const hasBio = Boolean(coach.bio && coach.bio.trim().length > 0)
+            const hasSpecialty = Boolean(coach.specialty && coach.specialty.trim().length > 0)
 
             return (
               <div
@@ -110,7 +117,7 @@ export function CoachesSection() {
                       <span>Coach Certificado</span>
                     </div>
 
-                    {coach.experience && (
+                    {hasExperience && (
                       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-xs font-medium text-foreground">
                         <Award className="w-3.5 h-3.5 text-primary" />
                         <span>{coach.experience}</span>
@@ -124,14 +131,14 @@ export function CoachesSection() {
                       {coach.name}
                     </h3>
 
-                    {coach.specialty && (
+                    {hasSpecialty && (
                       <p className="text-xs font-bold text-primary flex items-center gap-1.5">
                         <Dumbbell className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span>{coach.specialty}</span>
                       </p>
                     )}
 
-                    {coach.bio && (
+                    {hasBio && (
                       <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                         {coach.bio}
                       </p>
@@ -139,43 +146,38 @@ export function CoachesSection() {
                   </div>
                 </div>
 
-                {/* ACCIONES DEL COACH */}
-                <div className="p-5 sm:p-6 pt-0 border-t border-border/40 mt-4 flex items-center justify-between gap-3">
-                  {coach.instagram && (
-                    <a
-                      href={coach.instagram.startsWith("http") ? coach.instagram : `https://instagram.com/${coach.instagram.replace("@", "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition pt-3"
-                    >
-                      <svg className="w-4 h-4 text-pink-500 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                      </svg>
-                      <span>{coach.instagram.startsWith("@") ? coach.instagram : `@${coach.instagram}`}</span>
-                    </a>
-                  )}
+                {/* ACCIONES DEL COACH: Solo si tiene Instagram o WhatsApp */}
+                {hasContact && (
+                  <div className="p-5 sm:p-6 pt-0 border-t border-border/40 mt-4 flex items-center justify-between gap-3">
+                    {hasInstagram && (
+                      <a
+                        href={coach.instagram!.startsWith("http") ? coach.instagram : `https://instagram.com/${coach.instagram!.replace("@", "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition pt-3"
+                      >
+                        <svg className="w-4 h-4 text-pink-500 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                          <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                        </svg>
+                        <span>{coach.instagram!.startsWith("@") ? coach.instagram : `@${coach.instagram}`}</span>
+                      </a>
+                    )}
 
-                  {waHref ? (
-                    <a
-                      href={waHref}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black font-bold text-xs transition border border-emerald-500/30 mt-3 ml-auto"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span>Consultar</span>
-                    </a>
-                  ) : (
-                    <a
-                      href="#planes"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline mt-3 ml-auto"
-                    >
-                      <span>Entrenar con este coach</span>
-                    </a>
-                  )}
-                </div>
+                    {waHref && (
+                      <a
+                        href={waHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black font-bold text-xs transition border border-emerald-500/30 mt-3 ml-auto"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Consultar</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}

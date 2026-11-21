@@ -588,7 +588,10 @@ export default function AjustesPage() {
 
             {/* PANEL DE CASOS DE ÉXITO & COACHES (MÓDULO INDEPENDIENTE) */}
             <div className={activeTab === "transformaciones" ? "" : "hidden"}>
-              <TransformationsAndCoachesTab />
+              <TransformationsAndCoachesTab
+                landingSettings={landingSettings}
+                setLandingSettings={setLandingSettings}
+              />
             </div>
 
             <div className="pt-6 border-t border-black/10 dark:border-white/10 flex justify-end mt-6">
