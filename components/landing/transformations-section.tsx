@@ -67,7 +67,7 @@ export function TransformationsSection() {
   }
 
   return (
-    <section id="transformaciones" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/40 bg-gradient-to-b from-background via-black/20 to-background">
+    <section id="transformaciones" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/40 bg-gradient-to-b from-background via-muted/40 to-background">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* ENCABEZADO DE SECCIÓN */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
@@ -96,7 +96,7 @@ export function TransformationsSection() {
               >
                 <div>
                   {/* FOTOGRAFÍA COMPARATIVA INTERACTIVA */}
-                  <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-black/40">
+                  <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-muted">
                     <img
                       src={displayImg || item.afterImage}
                       alt={`${item.athleteName} - ${currentView}`}
@@ -109,20 +109,20 @@ export function TransformationsSection() {
                     />
 
                     {/* OVERLAY SUPERIOR: BADGE DE TIEMPO */}
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-xs font-bold text-foreground shadow-md">
+                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-black/70 backdrop-blur-md border border-black/10 dark:border-white/10 text-xs font-bold text-zinc-900 dark:text-zinc-100 shadow-md">
                       <Clock className="w-3.5 h-3.5 text-primary" />
                       <span>{item.duration || "Transformación"}</span>
                     </div>
 
                     {/* SELECTOR INTERACTIVO: ANTES / DESPUÉS */}
-                    <div className="absolute bottom-4 right-4 z-10 flex items-center p-1 rounded-xl bg-black/80 backdrop-blur-md border border-white/15 shadow-xl">
+                    <div className="absolute bottom-4 right-4 z-10 flex items-center p-1 rounded-xl bg-white/90 dark:bg-black/80 backdrop-blur-md border border-black/10 dark:border-white/15 shadow-xl">
                       <button
                         type="button"
                         onClick={() => toggleView(item.id, "before")}
                         className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                           currentView === "before"
-                            ? "bg-primary text-black shadow-md scale-105"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "bg-primary text-primary-foreground shadow-md scale-105"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-foreground"
                         }`}
                       >
                         ANTES
@@ -132,8 +132,8 @@ export function TransformationsSection() {
                         onClick={() => toggleView(item.id, "after")}
                         className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
                           currentView === "after"
-                            ? "bg-emerald-500 text-black shadow-md scale-105"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "bg-emerald-500 text-white shadow-md scale-105"
+                            : "text-zinc-600 dark:text-zinc-400 hover:text-foreground"
                         }`}
                       >
                         DESPUÉS
@@ -145,8 +145,8 @@ export function TransformationsSection() {
                       <span
                         className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg backdrop-blur-md border shadow-sm ${
                           currentView === "before"
-                            ? "bg-muted/80 text-foreground border-white/10"
-                            : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            ? "bg-white/90 dark:bg-muted/80 text-zinc-900 dark:text-zinc-100 border-black/10 dark:border-white/10"
+                            : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                         }`}
                       >
                         Viendo: {currentView === "before" ? "Estado Inicial" : "Resultado Final"}

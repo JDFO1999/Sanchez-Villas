@@ -103,7 +103,7 @@ export function CoachesSection() {
               >
                 <div>
                   {/* FOTO DEL ENTRENADOR */}
-                  <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-black/40">
+                  <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-muted">
                     <img
                       src={coach.photo || "https://images.unsplash.com/photo-1567013127542-490d757e51fc?q=80&w=800&auto=format&fit=crop"}
                       alt={coach.name}
@@ -112,13 +112,13 @@ export function CoachesSection() {
                     />
 
                     {/* BADGE DE COACH CERTIFICADO */}
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-primary/30 text-xs font-bold text-primary shadow-md">
+                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-black/70 backdrop-blur-md border border-primary/40 text-xs font-bold text-primary shadow-md">
                       <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span>Coach Certificado</span>
                     </div>
 
                     {hasExperience && (
-                      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-xs font-medium text-foreground">
+                      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-black/80 backdrop-blur-md border border-black/10 dark:border-white/10 text-xs font-semibold text-zinc-900 dark:text-zinc-100 shadow-md">
                         <Award className="w-3.5 h-3.5 text-primary" />
                         <span>{coach.experience}</span>
                       </div>

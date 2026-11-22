@@ -127,7 +127,7 @@ export function DraggableImageFrame({
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        className={`relative ${aspectRatio} w-full rounded-2xl overflow-hidden bg-zinc-900 border-2 transition-all select-none ${
+        className={`relative ${aspectRatio} w-full rounded-2xl overflow-hidden bg-muted border-2 transition-all select-none ${
           isDragging
             ? "border-amber-400 ring-4 ring-amber-400/20 cursor-grabbing shadow-xl scale-[1.01]"
             : "border-border hover:border-primary/50 cursor-grab"
@@ -150,8 +150,8 @@ export function DraggableImageFrame({
 
         {/* Indicador de Ayuda */}
         <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
-          <span className="px-2 py-1 rounded-lg bg-black/75 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 shadow-sm border border-white/10">
-            <Move className="w-3 h-3 text-amber-400" />
+          <span className="px-2 py-1 rounded-lg bg-white/90 dark:bg-black/75 backdrop-blur-md text-[10px] font-bold text-zinc-900 dark:text-white flex items-center gap-1 shadow-sm border border-black/10 dark:border-white/10">
+            <Move className="w-3 h-3 text-amber-500 dark:text-amber-400" />
             <span>Arrastra para encuadrar</span>
           </span>
         </div>
